@@ -28,10 +28,10 @@ struct FEventParameter
     int32 IntValue = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int32 FloatValue = 0;
+    float FloatValue = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int32 BoolValue = 0;
+    bool BoolValue;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FVector VectorValue = FVector::ZeroVector;
