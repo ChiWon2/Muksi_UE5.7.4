@@ -7,7 +7,14 @@
 		{
 			"Name": "Muksi",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject",
+				"DeveloperSettings",
+				"CommonUI",
+				"UMG"
+			]
 		}
 	],
 	"Plugins": [
@@ -17,6 +24,10 @@
 			"TargetAllowList": [
 				"Editor"
 			]
+		},
+		{
+			"Name": "CommonUI",
+			"Enabled": true
 		}
 	]
 }
