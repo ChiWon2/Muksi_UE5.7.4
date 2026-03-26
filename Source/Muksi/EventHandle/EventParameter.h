@@ -31,7 +31,7 @@ struct FEventParameter
     float FloatValue = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool BoolValue;
+    bool BoolValue = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FVector VectorValue = FVector::ZeroVector;

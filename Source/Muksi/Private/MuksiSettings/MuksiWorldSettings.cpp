@@ -1,0 +1,9 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "MuksiSettings/MuksiWorldSettings.h"
+
+FGameplayTag AMuksiWorldSettings::GetStartupWidgetTag() const
+{
+	return StartupWidgetTag;
+}
