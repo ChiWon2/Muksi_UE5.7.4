@@ -104,8 +104,8 @@ void UTravelTimeSubsystem::SetTotalTravelTime(float RealTravelMinutes)
     if (RealTravelMinutes <= 0.f)
         return;
 
-    int64 StartH = FTravelTimeUtils::ConvertToHours(StartDate);
-    int64 EndH = FTravelTimeUtils::ConvertToHours(EndDate);
+    int64 StartH = FTravelTimeUtils::DateToHours(StartDate);
+    int64 EndH = FTravelTimeUtils::DateToHours(EndDate);
 
     int64 TotalGameHours = FMath::Abs(EndH - StartH);
 

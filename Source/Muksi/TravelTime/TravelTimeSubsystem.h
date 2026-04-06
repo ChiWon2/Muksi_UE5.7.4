@@ -22,10 +22,10 @@ private:
     const FTravelDate StartDate = FTravelDate(1857, 3, 3, 12);
     const FTravelDate EndDate = FTravelDate(1859, 9, 9, 12);
 
-private:
     FTravelDate CurrentDate;
     //int64 TotalHours = 0;
 
+private:
     float SecondsPerTravelHour = 1.f;
     float AccumulatedRealSeconds = 0.f;
 

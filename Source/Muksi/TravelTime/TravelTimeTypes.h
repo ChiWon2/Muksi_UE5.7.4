@@ -61,25 +61,14 @@ struct FTravelDuration
     }
 };
 
-//////////////////////////////////////////////////////////////
-// Utils
-//////////////////////////////////////////////////////////////
-
 class FTravelTimeUtils
 {
 public:
 
-    //////////////////////////////////////////////////////////
-    //윤년
-    //////////////////////////////////////////////////////////
     static bool IsLeapYear(int32 Year)
     {
         return (Year % 4 == 0 && Year % 100 != 0) || (Year % 400 == 0);
     }
-
-    //////////////////////////////////////////////////////////
-    // 월 일수
-    //////////////////////////////////////////////////////////
     static int32 GetDaysInMonth(int32 Year, int32 Month)
     {
         switch (Month)
@@ -90,10 +79,7 @@ public:
         }
     }
 
-    //////////////////////////////////////////////////////////
-    // Date → Hours
-    //////////////////////////////////////////////////////////
-    static int64 ConvertToHours(const FTravelDate& Time)
+    static int64 DateToHours(const FTravelDate& Time)
     {
         int32 Y = Time.Year - 1;
 
@@ -120,10 +106,8 @@ public:
         return TotalDays * 24 + Time.Hour;
     }
 
-    //////////////////////////////////////////////////////////
-    // Hours → Date
-    //////////////////////////////////////////////////////////
-    static FTravelDate ConvertToDate(int64 InHours)
+
+    static FTravelDate HoursToDate(int64 InHours)
     {
         FTravelDate Result;
 
@@ -173,9 +157,6 @@ public:
         return Result;
     }
 
-    //////////////////////////////////////////////////////////
-    // Duration < - > Hour
-    //////////////////////////////////////////////////////////
     static int64 DurationToHours(const FTravelDuration& D)
     {
         return (int64)D.Day * 24 + D.Hour;
@@ -215,8 +196,8 @@ public:
 
     static FTravelDate AddHours(const FTravelDate& Date, int64 Hours)
     {
-        int64 Base = ConvertToHours(Date);
-        return ConvertToDate(Base + Hours);
+        int64 Base = DateToHours(Date);
+        return HoursToDate(Base + Hours);
     }
 };
 
@@ -227,8 +208,8 @@ public:
 // Date - Date = Duration
 FORCEINLINE FTravelDuration operator-(const FTravelDate& A, const FTravelDate& B)
 {
-    int64 AH = FTravelTimeUtils::ConvertToHours(A);
-    int64 BH = FTravelTimeUtils::ConvertToHours(B);
+    int64 AH = FTravelTimeUtils::DateToHours(A);
+    int64 BH = FTravelTimeUtils::DateToHours(B);
 
     return FTravelTimeUtils::HoursToDuration(AH - BH);
 }
@@ -236,19 +217,19 @@ FORCEINLINE FTravelDuration operator-(const FTravelDate& A, const FTravelDate& B
 // Date + Duration = Date
 FORCEINLINE FTravelDate operator+(const FTravelDate& Date, const FTravelDuration& Duration)
 {
-    int64 Base = FTravelTimeUtils::ConvertToHours(Date);
+    int64 Base = FTravelTimeUtils::DateToHours(Date);
     int64 Add = FTravelTimeUtils::DurationToHours(Duration);
 
-    return FTravelTimeUtils::ConvertToDate(Base + Add);
+    return FTravelTimeUtils:: HoursToDate(Base + Add);
 }
 
 // Date - Duration = Date
 FORCEINLINE FTravelDate operator-(const FTravelDate& Date, const FTravelDuration& Duration)
 {
-    int64 Base = FTravelTimeUtils::ConvertToHours(Date);
+    int64 Base = FTravelTimeUtils::DateToHours(Date);
     int64 Sub = FTravelTimeUtils::DurationToHours(Duration);
 
-    return FTravelTimeUtils::ConvertToDate(Base - Sub);
+    return FTravelTimeUtils::HoursToDate(Base - Sub);
 }
 
 // Duration + Duration = Duration
@@ -260,13 +241,13 @@ FORCEINLINE FTravelDuration operator+(const FTravelDuration& A, const FTravelDur
     );
 }
 
-// 비교
+// Compare
 FORCEINLINE bool operator>(const FTravelDate& A, const FTravelDate& B)
 {
-    return FTravelTimeUtils::ConvertToHours(A) > FTravelTimeUtils::ConvertToHours(B);
+    return FTravelTimeUtils::DateToHours(A) > FTravelTimeUtils::DateToHours(B);
 }
 
 FORCEINLINE bool operator<(const FTravelDate& A, const FTravelDate& B)
 {
-    return FTravelTimeUtils::ConvertToHours(A) < FTravelTimeUtils::ConvertToHours(B);
+    return FTravelTimeUtils::DateToHours(A) < FTravelTimeUtils::DateToHours(B);
 }
