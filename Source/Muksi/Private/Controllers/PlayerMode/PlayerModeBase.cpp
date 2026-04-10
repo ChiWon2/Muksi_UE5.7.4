@@ -4,9 +4,10 @@
 #include "Controllers/PlayerMode/PlayerModeBase.h"
 
 
-void UPlayerModeBase::EnterMode()
+void UPlayerModeBase::EnterMode(AMuksiPlayerController* PlayerController)
 {
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase Enter Mode"));
+	PC = PlayerController;
 }
 
 void UPlayerModeBase::ExitMode()

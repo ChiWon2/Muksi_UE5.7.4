@@ -1,5 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Widgets/Battle/Widget_BattleCardBase.h"
+#include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
 

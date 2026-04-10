@@ -19,6 +19,9 @@ namespace MuksiGameplayTag
 	
 	//Muksi Battle Widgets
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_BattleMainScreen, "Muksi.Widget.Battle.MainScreen");
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Battle_CharacterData, "Muksi.Widget.Battle.CharacterData");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Battle_Test, "Muksi.Widget.Battle.Test");
 	
 	//Muksi TravelTime Widgets
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_TravelTime_ClockHUD, "Muksi.Widget.TravelTime.ClockHUD");
