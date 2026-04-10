@@ -12,17 +12,23 @@ class UInputMappingContext;
 /**
  * 
  */
-UCLASS()
+UCLASS(Abstract, Blueprintable, BlueprintType)
 class MUKSI_API UPlayerModeBase : public UObject
 {
 	GENERATED_BODY()
 		
 public:
-	virtual void EnterMode();
+	virtual void EnterMode(AMuksiPlayerController* PlayerController);
 	virtual void ExitMode();
 	virtual UInputMappingContext* GetInputMappingContext() const {return IMC;};
+	virtual int32 GetInputMappingPriority() const { return 0; }
+	
+	
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> IMC = nullptr;
+	
+	UPROPERTY()
+	TObjectPtr<AMuksiPlayerController> PC;
 };

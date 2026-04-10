@@ -106,3 +106,58 @@ void UMuksiUISubsystem::PushConfirmScreenToModalStackAynsc(EConfirmScreenType In
 		}
 	);
 }
+
+
+
+void UMuksiUISubsystem::PushSoftWidgetToStackAsync(APlayerController* OwningPlayerController,
+	const FGameplayTag& InWidgetStackTag, TSoftClassPtr<UWidget_ActivatableBase> InSoftWidgetClass,
+	bool bFocusOnNewlyPushedWidget, TFunction<void(UWidget_ActivatableBase*)> OnCreatedBeforePush,
+	TFunction<void(UWidget_ActivatableBase*)> OnAfterPush)
+{
+	PushSoftWidgetToStackAynsc(
+		InWidgetStackTag,
+		InSoftWidgetClass,
+		[OwningPlayerController, bFocusOnNewlyPushedWidget, OnCreatedBeforePush, OnAfterPush]
+		(EAsyncPushWidgetState InPushState, UWidget_ActivatableBase* PushedWidget)
+		{
+			if (!PushedWidget)
+			{
+				return;
+			}
+
+			switch (InPushState)
+			{
+			case EAsyncPushWidgetState::OnCreatedBeforePush:
+				{
+					PushedWidget->SetOwningPlayer(OwningPlayerController);
+
+					if (OnCreatedBeforePush)
+					{
+						OnCreatedBeforePush(PushedWidget);
+					}
+					break;
+				}
+
+				case EAsyncPushWidgetState::AfterPush:
+				{
+					if (OnAfterPush)
+					{
+						OnAfterPush(PushedWidget);
+					}
+
+					if (bFocusOnNewlyPushedWidget)
+					{
+						if (UWidget* WidgetToFocus = PushedWidget->GetDesiredFocusTarget())
+						{
+							WidgetToFocus->SetFocus();
+						}
+					}
+					break;
+				}
+
+				default:
+				break;
+			}
+		}
+	);
+}

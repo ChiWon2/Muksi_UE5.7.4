@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
-#include "Widget_BattleCardBase.generated.h"
+#include "Muksi/Contents/Battle/CharacterDataBase.h"
+#include "CharacterData_Player.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class MUKSI_API UWidget_BattleCardBase : public UUserWidget
+class MUKSI_API UCharacterData_Player : public UCharacterDataBase
 {
 	GENERATED_BODY()
 	
