@@ -23,6 +23,9 @@ namespace MuksiGameplayTag
 	
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Battle_Test, "Muksi.Widget.Battle.Test");
 	
+	//Muksi TravelTime Widgets
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_TravelTime_ClockHUD, "Muksi.Widget.TravelTime.ClockHUD");
+	
 	//Muksi Options Image
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Image_TestImage, "Muksi.Image.TestImage")
 }

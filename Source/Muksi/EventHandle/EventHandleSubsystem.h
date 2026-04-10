@@ -15,6 +15,7 @@ public:
     UPROPERTY()
     TMap<FName, UBaseEvent*> EventMap;
 public:
+    static UEventHandleSubsystem* Get(const UObject* WorldContextObject);
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 public:
