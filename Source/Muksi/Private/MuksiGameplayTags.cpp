@@ -19,6 +19,9 @@ namespace MuksiGameplayTag
 	
 	//Muksi Battle Widgets
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_BattleMainScreen, "Muksi.Widget.Battle.MainScreen");
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Battle_CharacterData, "Muksi.Widget.Battle.CharacterData");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Battle_Test, "Muksi.Widget.Battle.Test");
 	
 	//Muksi Options Image
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Image_TestImage, "Muksi.Image.TestImage")

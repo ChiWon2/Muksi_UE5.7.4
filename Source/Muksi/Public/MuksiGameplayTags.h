@@ -19,6 +19,9 @@ namespace MuksiGameplayTag
 	
 	//Muksi Battle Widgets
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_MainScreen);
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_CharacterData);
+	
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_Test);
 	
 	
 	//Muksi Options Image
