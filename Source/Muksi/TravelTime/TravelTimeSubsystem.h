@@ -17,6 +17,9 @@ class MUKSI_API UTravelTimeSubsystem : public UGameInstanceSubsystem, public FTi
 {
     GENERATED_BODY()
 
+public:
+    static UTravelTimeSubsystem* Get(const UObject* WorldContextObject);
+
 private:
     const int TotalTravelMinute = 180; 
     const FTravelDate StartDate = FTravelDate(1857, 3, 3, 12);
@@ -58,9 +61,10 @@ public:
     float GetNormalizedDayTime() const;
 
     UFUNCTION(BlueprintCallable)
-    FText GetFormattedTime() const;
+    FText GetCurrentFormattedTime(bool bIncludeMinute) const;
 
     FText GetFormattedTime(const FTravelDate& Date) const;
+
 
     UFUNCTION(BlueprintCallable)
     FTravelDuration GetTimeDiff(const FTravelDate& Early, const FTravelDate& Late);

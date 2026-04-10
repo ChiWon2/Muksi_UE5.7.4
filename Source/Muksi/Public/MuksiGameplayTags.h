@@ -19,7 +19,10 @@ namespace MuksiGameplayTag
 	
 	//Muksi Battle Widgets
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_MainScreen);
-	
+
+	//Muksi TravelTime Widgets
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_TravelTime_ClockHUD);
+
 	
 	//Muksi Options Image
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Image_TestImage);

@@ -1,9 +1,18 @@
 #include "TravelTimeSubsystem.h"
 
+UTravelTimeSubsystem* UTravelTimeSubsystem::Get(const UObject* WorldContextObject)
+{
+    if (!WorldContextObject) return nullptr;
+
+    UGameInstance* GI = WorldContextObject->GetWorld()->GetGameInstance();
+    return GI ? GI->GetSubsystem<UTravelTimeSubsystem>() : nullptr;
+}
+
 void UTravelTimeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
     InitializeTravelTimeSubsystem();
+    StartTravelTime();
 }
 
 void UTravelTimeSubsystem::InitializeTravelTimeSubsystem()
@@ -62,19 +71,29 @@ float UTravelTimeSubsystem::GetNormalizedDayTime() const
 }
 ///////////////////////////////
 
-FText UTravelTimeSubsystem::GetFormattedTime() const
+FText UTravelTimeSubsystem::GetCurrentFormattedTime(bool bIncludeMinute) const
 {
-    float HourFloat = GetCurrentHourFloat();
-    int32 Minute = FMath::FloorToInt((HourFloat - CurrentDate.Hour) * 60.f);
+    if (bIncludeMinute)
+    {
+        float HourFloat = GetCurrentHourFloat();
+        int32 Minute = FMath::FloorToInt((HourFloat - FMath::FloorToInt(HourFloat)) * 60.f);
+        return FText::FromString(
+            FString::Printf(TEXT("%d/%d/%d %02d:%02d"),
+                CurrentDate.Year,
+                CurrentDate.Month,
+                CurrentDate.Day,
+                CurrentDate.Hour,
+                Minute
+            )
+        );
+    }
 
     return FText::FromString(
-        FString::Printf(
-            TEXT("%04d-%02d-%02d  %02d:%02d"),
+        FString::Printf(TEXT("%d/%d/%d %02d"),
             CurrentDate.Year,
             CurrentDate.Month,
             CurrentDate.Day,
-            CurrentDate.Hour,
-            Minute
+            CurrentDate.Hour
         )
     );
 }
@@ -108,6 +127,7 @@ void UTravelTimeSubsystem::SetTotalTravelTime(float RealTravelMinutes)
     int64 EndH = FTravelTimeUtils::DateToHours(EndDate);
 
     int64 TotalGameHours = FMath::Abs(EndH - StartH);
+    FTravelDuration TotalTravelDuration = FTravelTimeUtils::HoursToDuration(TotalGameHours);
 
     if (TotalGameHours <= 0)
         return;
@@ -115,7 +135,7 @@ void UTravelTimeSubsystem::SetTotalTravelTime(float RealTravelMinutes)
     float TotalRealSeconds = RealTravelMinutes * 60.f;
     SecondsPerTravelHour = TotalRealSeconds / (float)TotalGameHours;
 
-    UE_LOG(LogTemp, Warning,TEXT("[UTravelTimeSubsystem] TotalPlay: %.2f min ¡æ SecPerTravelHour = %.4f"), RealTravelMinutes,SecondsPerTravelHour);
+    UE_LOG(LogTemp, Warning,TEXT("[UTravelTimeSubsystem] TotalTravelMinute: %.2f min / TotalGameDuration: %d D %d H = %d H -> SecPerTravelHour = %.4f"), RealTravelMinutes , TotalTravelDuration.Day, TotalTravelDuration.Hour, TotalGameHours,SecondsPerTravelHour);
 }
 
 FTravelDuration UTravelTimeSubsystem::GetTimeDiff(const FTravelDate& Early, const FTravelDate& Late)

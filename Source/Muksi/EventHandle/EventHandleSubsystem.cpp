@@ -11,6 +11,13 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
+UEventHandleSubsystem* UEventHandleSubsystem::Get(const UObject* WorldContextObject)
+{
+    if (!WorldContextObject) return nullptr;
+
+    UGameInstance* GI = WorldContextObject->GetWorld()->GetGameInstance();
+    return GI ? GI->GetSubsystem<UEventHandleSubsystem>() : nullptr;
+}
 
 void UEventHandleSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -27,7 +34,7 @@ void UEventHandleSubsystem::RegisterEventObject(UBaseEvent* Event)
     if (Event && !EventMap.Contains(Event->EventID))
     {
         EventMap.Add(Event->EventID, Event);
-        UE_LOG(LogTemp, Warning, TEXT("[EventHandleSubsystem] Registered Event: %s"), *Event->EventID.ToString());
+        UE_LOG(LogTemp, Log, TEXT("[EventHandleSubsystem] Registered Event: %s"), *Event->EventID.ToString());
     }
 }
 
@@ -50,7 +57,7 @@ void UEventHandleSubsystem::ExportEventsToCSV()
 
     if (FFileHelper::SaveStringToFile(CSVContent,*SavePath,FFileHelper::EEncodingOptions::ForceUTF8))
     {
-        UE_LOG(LogTemp, Warning, TEXT("[EventHandleSubsystem] CSV Export Success: %s"), *SavePath);
+        UE_LOG(LogTemp, Warning, TEXT("[EventHandleSubsystem] CSV Export Success: %s You can search the eventTag and Description in this File"), *SavePath);
     }
     else
     {
