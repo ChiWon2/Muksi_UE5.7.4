@@ -19,8 +19,9 @@ public class Muksi : ModuleRules
 			"UMG", 
 			"CommonInput", 
 			"CommonUI",
-			"PropertyPath"
-		});
+			"PropertyPath",
+            "NavigationSystem"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
