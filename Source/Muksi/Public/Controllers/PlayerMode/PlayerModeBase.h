@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "InputActionValue.h"
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "PlayerModeBase.generated.h"
@@ -23,6 +24,8 @@ public:
 	virtual UInputMappingContext* GetInputMappingContext() const {return IMC;};
 	virtual int32 GetInputMappingPriority() const { return 0; }
 	
+	virtual void HandleLeftClick(const FInputActionValue& Value);
+	virtual void HandleRightClick(const FInputActionValue& Value);
 	
 	
 protected:

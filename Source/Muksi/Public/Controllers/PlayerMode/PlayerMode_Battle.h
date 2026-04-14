@@ -22,6 +22,8 @@ public:
 	virtual void EnterMode(AMuksiPlayerController* PlayerController)override;
 	virtual void ExitMode()override;
 	virtual int32 GetInputMappingPriority() const override { return 10; }
+	
+	virtual void HandleLeftClick(const FInputActionValue& Value) override;
 	//~ End UPlayerModeBase Interface
 	
 	//TEST

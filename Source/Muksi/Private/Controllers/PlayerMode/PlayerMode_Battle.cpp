@@ -6,6 +6,9 @@
 #include "Controllers/MuksiPlayerController.h"
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
 
+#include "MuksiDebugHelper.h"
+#include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
+
 void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 {
 	Super::EnterMode(PlayerController);
@@ -34,6 +37,47 @@ void UPlayerMode_Battle::ExitMode()
 
 
 //***************** Test
+
+void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
+{
+	Super::HandleLeftClick(Value);
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PlayerMode_Battle::HandleLeftClick - PC is nullptr"));
+		return;
+	}
+
+	FHitResult HitResult;
+
+	const bool bHit = PC->GetHitResultUnderCursorByChannel(
+		UEngineTypes::ConvertToTraceType(ECC_Visibility),
+		true,
+		HitResult
+	);
+
+	if (!bHit)
+	{
+		Debug::Print(TEXT("Nothing Hit"));
+		return;
+	}
+
+	AActor* HitActor = HitResult.GetActor();
+	if (!HitActor)
+	{
+		Debug::Print(TEXT("Hit, But No Actor"));
+		return;
+	}
+
+	if (HitActor->GetClass()->ImplementsInterface(USelectableCharacterInterface::StaticClass()))
+	{
+		PC->ClickedActor = HitActor;
+		PC->PushSoftWidget();
+	}
+	else
+	{
+		Debug::Print(FString::Printf(TEXT("Not Selectable : %s"), *HitActor->GetName()));
+	}
+}
 
 void UPlayerMode_Battle::InitializeBattleTestData()
 {

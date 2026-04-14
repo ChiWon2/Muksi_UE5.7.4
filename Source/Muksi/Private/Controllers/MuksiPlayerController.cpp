@@ -16,9 +16,7 @@
 
 #include "MuksiDebugHelper.h"
 #include "AsyncActions/AsyncAction_PushSoftWidget.h"
-#include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "Subsystems/MuksiUISubsystem.h"
-#include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 
 AMuksiPlayerController::AMuksiPlayerController()
@@ -80,12 +78,19 @@ void AMuksiPlayerController::SetupInputComponent()
 			EnhancedInput->BindAction(LeftClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnLeftClick);
 			UE_LOG(LogTemp, Log, TEXT("Bind LeftClickAction"));
 		}
+		
+		if (RightClickAction)
+		{
+			EnhancedInput->BindAction(RightClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnLeftClick);
+			UE_LOG(LogTemp, Log, TEXT("Bind LeftClickAction"));
+		}
 	}
 }
 
 void AMuksiPlayerController::OnLeftClick(const FInputActionValue& Value)
 {
-	FHitResult HitResult;
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleLeftClick(Value);}
+	/*FHitResult HitResult;
 
 	const bool bHit = GetHitResultUnderCursorByChannel(
 		UEngineTypes::ConvertToTraceType(ECC_Visibility),
@@ -114,8 +119,14 @@ void AMuksiPlayerController::OnLeftClick(const FInputActionValue& Value)
 	else
 	{
 		Debug::Print(FString::Printf(TEXT("Not Selectable : %s"), *HitActor->GetName()));
-	}
+	}*/
 }
+
+void AMuksiPlayerController::OnRightClick(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleRightClick(Value);}
+}
+
 
 void AMuksiPlayerController::ApplyInputMappingFromMode(UPlayerModeBase* InMode)
 {
