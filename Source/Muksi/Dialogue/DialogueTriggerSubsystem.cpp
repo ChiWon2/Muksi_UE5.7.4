@@ -5,6 +5,7 @@
 #include"DialogueSubsystem.h"
 //#include"../Quest/QuestSubsystem.h"
 #include"Algo/RandomShuffle.h"
+#include"../ConditionHandle/GameConditionEvaluator.h"
 
 UDialogueTriggerSubsystem* UDialogueTriggerSubsystem::Get(const UObject* WorldContextObject)
 {
@@ -90,7 +91,7 @@ FName UDialogueTriggerSubsystem::ExtractRandomTriggerID(EDialogueTriggerType Typ
         if (!Row)
             continue;
 
-        if (CheckPopUpConditions(Row->PopUpConditions))
+        if (FGameConditionEvaluator::CheckAll(GetWorld(), Row->PopUpConditions))
         {
             ValidIndices.Add(i);
         }
@@ -171,53 +172,4 @@ TArray<FName>* UDialogueTriggerSubsystem::GetTrrigerArray(EDialogueTriggerType T
         break;
     }
     return nullptr;
-}
-
-bool UDialogueTriggerSubsystem::CheckPopUpConditions(const TArray<FDialogueCondition>& Conditions)
-{
-    for (const FDialogueCondition& Condition : Conditions)
-    {
-        if (!CheckCondition(Condition))
-            return false;
-    }
-    return true;
-}
-
-bool UDialogueTriggerSubsystem::CheckCondition(const FDialogueCondition& Condition)
-{
-    switch (Condition.Type)
-    {
-    //case EDialogueConditionType::PlayerLocation:
-    //    return CheckPlayerLocation(Condition);
-
-    //case EDialogueConditionType::DateBefore:
-    //    return CheckDateBefore(Condition);
-
-    //case EDialogueConditionType::DateAfter:
-    //    return CheckDateAfter(Condition);
-
-    //case EDialogueConditionType::PlayerStat:
-    //    return CheckPlayerStat(Condition);
-
-    case EDialogueConditionType::QuestCompleted:
-        return CheckQuestCompleted(Condition);
-
-    //case EDialogueConditionType::QuestFailed:
-    //    return CheckQuestFailed(Condition);
-
-    //case EDialogueConditionType::DialogueSeen:
-    //    return CheckDialogueSeen(Condition);
-
-    //case EDialogueConditionType::DialogueOptionSelected:
-    //    return CheckDialogueOptionSelected(Condition);
-    }
-
-    return false;
-}
-
-bool UDialogueTriggerSubsystem::CheckQuestCompleted(const FDialogueCondition& Condition)
-{
-    //UQuestSubsystem* QuestSubSys = GetGameInstance()->GetSubsystem<UQuestSubsystem>();
-    //return QuestSubSys->IsQuestCompleted(Condition.NameValue);
-    return false;
 }

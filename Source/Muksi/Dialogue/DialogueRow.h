@@ -5,9 +5,10 @@
 #include "CoreMinimal.h"
 #include"DialogueOption.h"
 #include"DialogueMeta.h"
-#include"DialogueCondition.h"
 #include"DialogueEvent.h"
 #include"GameplayTagContainer.h"
+#include"../ConditionHandle/GameCondition.h"
+
 #include "DialogueRow.generated.h"
 
 
@@ -21,7 +22,7 @@ public:
 	FDialogueMeta meta;
 
 	UPROPERTY(EditAnywhere)
-	TArray<FDialogueCondition> PopUpConditions;
+	TArray<FGameCondition> PopUpConditions;
 
 	UPROPERTY(EditAnywhere)
 	TArray<FDialogueEvent> OnEnterEvents;

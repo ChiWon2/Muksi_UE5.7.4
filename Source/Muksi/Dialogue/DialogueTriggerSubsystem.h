@@ -8,9 +8,6 @@
 #include"DialogueRow.h"
 #include "DialogueTriggerSubsystem.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class MUKSI_API UDialogueTriggerSubsystem : public UGameInstanceSubsystem
 {
@@ -40,17 +37,4 @@ private:
 
 private:
 	TArray<FName>* GetTrrigerArray(EDialogueTriggerType Type);
-	
-	bool CheckPopUpConditions(const TArray<FDialogueCondition>& Conditions);
-	bool CheckCondition(const FDialogueCondition& Condition);
-
-	bool CheckQuestCompleted(const FDialogueCondition& Condition);
-	//bool CheckPlayerLocation(const FDialogueCondition& Condition);
-	//bool CheckDateBefore(const FDialogueCondition& Condition);
-	//bool CheckDateAfter(const FDialogueCondition& Condition);
-	//bool CheckPlayerStat(const FDialogueCondition& Condition);
-	//bool CheckQuestFailed(const FDialogueCondition& Condition);
-	//bool CheckDialogueSeen(const FDialogueCondition& Condition);
-	//bool CheckDialogueOptionSelected(const FDialogueCondition& Condition);
-
 };

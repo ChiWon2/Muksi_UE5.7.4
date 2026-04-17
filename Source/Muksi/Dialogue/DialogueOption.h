@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "DialogueEvent.h"
-#include"DialogueCondition.h"
+#include"../ConditionHandle/GameCondition.h"
 #include"DialogueOption.generated.h"
 
 USTRUCT(BlueprintType)
@@ -25,6 +25,6 @@ public:
 
     //Conditions required to select this option
     UPROPERTY(EditAnywhere)
-    TArray<FDialogueCondition> OptionConditions;
+    TArray<FGameCondition> OptionConditions;
 
 };
