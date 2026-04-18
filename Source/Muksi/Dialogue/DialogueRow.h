@@ -7,8 +7,7 @@
 #include"DialogueMeta.h"
 #include"DialogueEvent.h"
 #include"GameplayTagContainer.h"
-#include"../ConditionHandle/GameCondition.h"
-
+#include "StructUtils/InstancedStruct.h"
 #include "DialogueRow.generated.h"
 
 
@@ -21,8 +20,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	FDialogueMeta meta;
 
-	UPROPERTY(EditAnywhere)
-	TArray<FGameCondition> PopUpConditions;
+	UPROPERTY(EditAnywhere, meta = (BaseStruct = "/Script/Muksi.Cond_Base"))
+	TArray<FInstancedStruct> PopUpConditions;
 
 	UPROPERTY(EditAnywhere)
 	TArray<FDialogueEvent> OnEnterEvents;

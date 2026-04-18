@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "DialogueEvent.h"
-#include"../ConditionHandle/GameCondition.h"
+#include "StructUtils/InstancedStruct.h"
 #include"DialogueOption.generated.h"
 
 USTRUCT(BlueprintType)
@@ -24,7 +24,7 @@ public:
     TArray<FDialogueEvent> OnSelectEvents;
 
     //Conditions required to select this option
-    UPROPERTY(EditAnywhere)
-    TArray<FGameCondition> OptionConditions;
+    UPROPERTY(EditAnywhere, meta = (BaseStruct = "/Script/Muksi.Cond_Base"))
+    TArray<FInstancedStruct> PopUpConditions;
 
 };
