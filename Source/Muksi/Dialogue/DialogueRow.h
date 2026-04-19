@@ -6,10 +6,10 @@
 #include"DialogueOption.h"
 #include"DialogueMeta.h"
 #include"DialogueEvent.h"
+#include"../ConditionHandle/CondTree/CondNode.h"
 #include"GameplayTagContainer.h"
 #include "StructUtils/InstancedStruct.h"
 #include "DialogueRow.generated.h"
-
 
 
 USTRUCT(BlueprintType)
@@ -17,21 +17,21 @@ struct FDialogueRow : public FTableRowBase
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Meta", meta = (ShowOnlyInnerProperties))
 	FDialogueMeta meta;
 
-	UPROPERTY(EditAnywhere, meta = (BaseStruct = "/Script/Muksi.Cond_Base"))
-	TArray<FInstancedStruct> PopUpConditions;
-
-	UPROPERTY(EditAnywhere)
-	TArray<FDialogueEvent> OnEnterEvents;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Content", meta = (MultiLine = true))
 	FText Text;
-	
-	UPROPERTY(EditAnywhere)
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Content")
+	TSoftObjectPtr<UTexture2D> DialogueImage;
+
+	UPROPERTY(EditAnywhere, Category = "Options", meta = (TitleProperty = "OptionText"))
 	TArray<FDialogueOption> Options;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSoftObjectPtr<UTexture2D> DialogueImage;
+	UPROPERTY(EditAnywhere, Category = "Condition", meta = (AdvancedDisplay))
+	FCondNode PopUpConditions;
+
+	UPROPERTY(EditAnywhere, Category = "Events", meta = (AdvancedDisplay))
+	TArray<FDialogueEvent> OnEnterEvents;
 };

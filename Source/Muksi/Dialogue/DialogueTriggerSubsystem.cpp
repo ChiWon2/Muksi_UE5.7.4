@@ -6,6 +6,7 @@
 //#include"../Quest/QuestSubsystem.h"
 #include"Algo/RandomShuffle.h"
 #include"../ConditionHandle/GameConditionEvaluator.h"
+#include"../ConditionHandle/CondTree/ConditionTreeEvaluator.h"
 
 UDialogueTriggerSubsystem* UDialogueTriggerSubsystem::Get(const UObject* WorldContextObject)
 {
@@ -91,7 +92,7 @@ FName UDialogueTriggerSubsystem::ExtractRandomTriggerID(EDialogueTriggerType Typ
         if (!Row)
             continue;
 
-        if (FGameConditionEvaluator::CheckAll(GetWorld(), Row->PopUpConditions))
+        if (FConditionTreeEvaluator::Evaluate(GetWorld(), Row->PopUpConditions))
         {
             ValidIndices.Add(i);
         }
