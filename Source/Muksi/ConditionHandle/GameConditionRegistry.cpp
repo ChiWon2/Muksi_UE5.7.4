@@ -8,21 +8,15 @@ TMap<const UScriptStruct*, FConditionFunc>& FGameConditionRegistry::GetMap()
 
 void FGameConditionRegistry::Register(const UScriptStruct* Type, FConditionFunc Func)
 {
+	if (GetMap().Contains(Type))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ConditionRegistry] Already registered: %s"), *Type->GetName());
+	}
+
 	GetMap().Add(Type, Func);
 }
 
-bool FGameConditionRegistry::Evaluate(UObject* WorldContext, const FInstancedStruct& Data)
+FConditionFunc* FGameConditionRegistry::Find(const UScriptStruct* Type)
 {
-	if (!Data.IsValid())
-		return false;
-
-	const UScriptStruct* Type = Data.GetScriptStruct();
-
-	if (FConditionFunc* Func = GetMap().Find(Type))
-	{
-		return (*Func)(WorldContext, Data);
-	}
-
-	UE_LOG(LogTemp, Error, TEXT("[GameConditionRegistry]No handler for %s"), *Type->GetName());
-	return false;
+	return GetMap().Find(Type);
 }

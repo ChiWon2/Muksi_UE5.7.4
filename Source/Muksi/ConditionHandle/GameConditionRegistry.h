@@ -12,9 +12,10 @@ class FGameConditionRegistry
 public:
 	static TMap<const UScriptStruct*, FConditionFunc>& GetMap();
 
-	static bool Evaluate(UObject* WorldContext, const FInstancedStruct& Data);
-
 	static void Register(const UScriptStruct* Type, FConditionFunc Func);
+
+	static FConditionFunc* Find(const UScriptStruct* Type);
+
 
 	template<typename T>
 	static void RegisterCondition(bool(*Func)(UObject*, const T&))
