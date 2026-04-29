@@ -21,6 +21,6 @@ public:
 	UPROPERTY(EditAnywhere, meta = (AdvancedDisplay))
 	FCondNode SelectConditions;
 
-	UPROPERTY(EditAnywhere, meta = (AdvancedDisplay))
-	TArray<FDialogueEvent> OnSelectEvents;
+	UPROPERTY(EditAnywhere, Category = "Events", meta = (BaseStruct = "/Script/Muksi.Event_Base"))
+	TArray<FInstancedStruct> OnSelectEvents;
 };

@@ -4,7 +4,8 @@
 #include "DialogueSubsystem.h"
 #include "Widgets/DialogueWidget.h"
 #include "Kismet/GameplayStatics.h"
-#include "../EventHandle/EventHandleSubsystem.h"
+#include "StructUtils/InstancedStruct.h"
+#include "../GameEventHandle/GameEventHandleSubsystem.h"
 
 UDialogueSubsystem* UDialogueSubsystem::Get(const UObject* WorldContextObject)
 {
@@ -148,16 +149,10 @@ void UDialogueSubsystem::EndDialogue()
 
 }
 
-void UDialogueSubsystem::ExecuteEvents(const TArray<FDialogueEvent>& DialogueEvents)
+void UDialogueSubsystem::ExecuteEvents(const TArray<FInstancedStruct>& DialogueEvents)
 {
-    UGameInstance* GI = GetGameInstance();
-    UEventHandleSubsystem* EventHandleSubsys = GI->GetSubsystem<UEventHandleSubsystem>();
-
-    for (const FDialogueEvent& DialogueEvent : DialogueEvents)
-    {
-        //UE_LOG(LogTemp, Log, TEXT("[UDialogueSubsystem]  : Dialogue Event Executed"));
-        EventHandleSubsys->ExecuteEvent(DialogueEvent.EventID, DialogueEvent.EventParameter);
-    }
+    UGameEventHandleSubsystem* EventHandleSubsys = UGameEventHandleSubsystem::Get(this);
+    EventHandleSubsys->ExecuteEvents(this, DialogueEvents);
 }
 
 bool UDialogueSubsystem::IsDialogueActive() const

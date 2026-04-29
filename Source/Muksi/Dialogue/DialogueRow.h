@@ -7,7 +7,6 @@
 #include"DialogueMeta.h"
 #include"DialogueEvent.h"
 #include"../ConditionHandle/CondTree/CondNode.h"
-#include"GameplayTagContainer.h"
 #include "DialogueRow.generated.h"
 
 
@@ -31,6 +30,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Condition", meta = (AdvancedDisplay))
 	FCondNode PopUpConditions;
 
-	UPROPERTY(EditAnywhere, Category = "Events", meta = (AdvancedDisplay))
-	TArray<FDialogueEvent> OnEnterEvents;
+	UPROPERTY(EditAnywhere,Category = "Events",meta = (BaseStruct = "/Script/Muksi.Event_Base"))
+	TArray<FInstancedStruct> OnEnterEvents;
 };

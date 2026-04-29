@@ -53,7 +53,7 @@ private:
 	void EndDialogue();
 
 	// 이벤트 실행
-	void ExecuteEvents(const TArray<FDialogueEvent>& DialogueEvents);
+	void ExecuteEvents(const TArray<FInstancedStruct>& DialogueEvents);
 	
 	bool IsDialogueActive() const;
 private:

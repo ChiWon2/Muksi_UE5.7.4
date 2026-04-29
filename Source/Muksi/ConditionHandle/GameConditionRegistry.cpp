@@ -8,11 +8,6 @@ TMap<const UScriptStruct*, FConditionFunc>& FGameConditionRegistry::GetMap()
 
 void FGameConditionRegistry::Register(const UScriptStruct* Type, FConditionFunc Func)
 {
-	if (GetMap().Contains(Type))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ConditionRegistry] Already registered: %s"), *Type->GetName());
-	}
-
 	GetMap().Add(Type, Func);
 }
 
