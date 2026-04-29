@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include"DialogueOption.h"
 #include"DialogueMeta.h"
-#include"DialogueEvent.h"
 #include"../ConditionHandle/CondTree/CondNode.h"
 #include "DialogueRow.generated.h"
 
