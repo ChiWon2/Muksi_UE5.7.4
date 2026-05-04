@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// DialogueOptionWidget.h
 
 #pragma once
 
@@ -10,32 +10,35 @@
 class UTextBlock;
 class UButton;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOptionButtonClicked, int32, OptionIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOptionButtonClicked,int32,OptionIndex);
 
 UCLASS()
 class MUKSI_API UDialogueOptionWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
 public:
-	UPROPERTY(BlueprintCallable)
+	void InitWidget(const FDialogueOption& InOption,int32 InOptionIndex);
+
+public:
+	UPROPERTY(BlueprintAssignable)
 	FOnOptionButtonClicked OnOptionButtonClicked;
 
-	void NativeConstruct() override;
-	void NativeDestruct() override;
-
+protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TXT_OptionText;
+
 	UPROPERTY(meta = (BindWidget))
 	UButton* BTN_OptionButton;
 
-	UFUNCTION(BlueprintCallable)
-	void InitWidget(int32 InOptionIndex, const FText& InText);
 protected:
 	UFUNCTION()
 	void HandleOptionButtonClicked();
 
 private:
-	int32 OptionIndex;
-
+	int32 OptionIndex = INDEX_NONE;
 };

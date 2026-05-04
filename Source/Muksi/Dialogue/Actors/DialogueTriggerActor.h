@@ -32,7 +32,7 @@ public:
 public:
 	ADialogueTriggerActor();
 public:
-	void Init(FName InID, EDialogueTriggerType InType, ADialogueTriggerCreator* Creator, ACharacter* Player);
+	void Init(FName InID, EDialogueTriggerType InType, ADialogueTriggerCreator* Creator);
 protected:
 	virtual void BeginPlay() override;
 public:	

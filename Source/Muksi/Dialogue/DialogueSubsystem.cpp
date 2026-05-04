@@ -6,6 +6,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "StructUtils/InstancedStruct.h"
 #include "../GameEventHandle/GameEventHandleSubsystem.h"
+#include "DeveloperSettings/DialogueDeveloperSettings.h"
+#include "../Public/Subsystems/MuksiUISubsystem.h"
+#include"../Public/MuksiGameplayTags.h"
 
 UDialogueSubsystem* UDialogueSubsystem::Get(const UObject* WorldContextObject)
 {
@@ -15,40 +18,61 @@ UDialogueSubsystem* UDialogueSubsystem::Get(const UObject* WorldContextObject)
     return GI ? GI->GetSubsystem<UDialogueSubsystem>() : nullptr;
 }
 
-void UDialogueSubsystem::Initialize(FSubsystemCollectionBase& Collection)
-{
-
-}
-
-void UDialogueSubsystem::Deinitialize()
-{
-
-}
-
 void UDialogueSubsystem::StartDialogue(FName StartDialogueID)
 {
-    if (!ensureMsgf(!IsDialogueActive(), TEXT("[DialogueSubsystem] Dialogue already active"))) return;
-    if (!ensureMsgf(DialogueWidgetClass, TEXT("[DialogueSubsystem] DialogueWidgetClass is null"))) return;
-    if (!ensureMsgf(!StartDialogueID.IsNone(), TEXT("[DialogueSubsystem] StartDialogueID is None"))) return;
-
-    UWorld* World = GetWorld();
-    if (!ensureMsgf(World, TEXT("[DialogueSubsystem] World is null"))) return;
-
-    APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
-    if (!ensureMsgf(PC, TEXT("[DialogueSubsystem] PlayerController is null"))) return;
-
-    if (!CurrentDialogueWidget &&
-        !ensureMsgf(CurrentDialogueWidget = CreateWidget<UDialogueWidget>(PC, DialogueWidgetClass),
-            TEXT("[DialogueSubsystem] Failed to create DialogueWidget"))) return;
-
-    if (!CurrentDialogueWidget->IsInViewport())
+    if (IsDialogueActive())
     {
-        CurrentDialogueWidget->AddToViewport();
+        UE_LOG(LogTemp, Warning, TEXT("[DialogueSubsystem] Dialogue already active"));
+        return;
     }
 
-    LoadDialogue(StartDialogueID);
+    if (!DialogueWidgetClass)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[DialogueSubsystem] DialogueWidgetClass is null"));
+        return;
+    }
 
-    UGameplayStatics::SetGlobalTimeDilation(World, 0.0001f);
+    if (StartDialogueID.IsNone())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[DialogueSubsystem] StartDialogueID is None"));
+        return;
+    }
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
+    if (!PC) return;
+
+    const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
+    if (!Settings) return;
+
+    UMuksiUISubsystem::Get(this)->PushSoftWidgetToStackAsync(
+        PC,
+        MuksiGameplayTag::Muksi_WidgetStack_GameHud,
+        Settings->DialogueWidgetClass,
+        true,
+
+        // BEFORE
+        nullptr,
+
+        // AFTER (UI 완전히 준비된 시점)
+        [this, StartDialogueID](UWidget_ActivatableBase* CreatedWidget)
+        {
+            CurrentDialogueWidget = Cast<UDialogueWidget>(CreatedWidget);
+
+            if (!CurrentDialogueWidget)
+            {
+                UE_LOG(LogTemp, Error, TEXT("[DialogueSubsystem] Widget cast failed"));
+                return;
+            }
+
+            // UI 준비 완료 후에만 실행
+            LoadDialogue(StartDialogueID);
+
+            UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.0001f);
+        }
+    );
 }
 void UDialogueSubsystem::SelectOption(int32 OptionIndex)
 {
@@ -110,8 +134,7 @@ void UDialogueSubsystem::LoadDialogue(FName DialogueID)
     CurrentDialogueID = DialogueID;
 
     // 진입 이벤트 실행
-
-    ExecuteEvents(Row->OnEnterEvents);
+    ExecuteEvents(Row-> OnEnterEvents);
 
     //최종 다이얼로그 텍스트 갱신
     FText FinalDialogueText = BuildFormattedText(Row->Text);

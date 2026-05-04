@@ -24,8 +24,6 @@ class MUKSI_API UDialogueSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 public:
 	static UDialogueSubsystem* Get(const UObject* WorldContextObject);
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual void Deinitialize() override;
 
 public:
 	UPROPERTY(BlueprintAssignable)
@@ -45,6 +43,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SelectOption(int32 OptionIndex);
 
+	bool IsDialogueActive() const;
+
+
 private:
 	// 실제 대화 로딩 (상태 전환의 유일한 관문)
 	void LoadDialogue(FName DialogueID);
@@ -55,7 +56,6 @@ private:
 	// 이벤트 실행
 	void ExecuteEvents(const TArray<FInstancedStruct>& DialogueEvents);
 	
-	bool IsDialogueActive() const;
 private:
 	//TODO:: 다이얼로그 테이블 여러개 가능하게 설계
 	UDataTable* DialogueTable;

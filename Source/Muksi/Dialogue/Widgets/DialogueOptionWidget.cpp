@@ -1,16 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// DialogueOptionWidget.cpp
 
 #include "DialogueOptionWidget.h"
-#include"Components/TextBlock.h"
-#include"Components/Button.h"
+
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
 
 void UDialogueOptionWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	if(BTN_OptionButton)
-		BTN_OptionButton->OnClicked.AddDynamic(this, &UDialogueOptionWidget::HandleOptionButtonClicked);
 
+	check(BTN_OptionButton);
+
+	BTN_OptionButton->OnClicked.AddDynamic(this,&UDialogueOptionWidget::HandleOptionButtonClicked);
 }
 
 void UDialogueOptionWidget::NativeDestruct()
@@ -19,15 +20,18 @@ void UDialogueOptionWidget::NativeDestruct()
 	{
 		BTN_OptionButton->OnClicked.RemoveAll(this);
 	}
+
 	Super::NativeDestruct();
 }
 
-void UDialogueOptionWidget::InitWidget(int32 OptionIdx, const FText& InText)
+void UDialogueOptionWidget::InitWidget(const FDialogueOption& InOption ,int32 InOptionIndex)
 {
-	OptionIndex = OptionIdx;
-	if(TXT_OptionText)
-		TXT_OptionText->SetText(InText);
+	OptionIndex = InOptionIndex;
 
+	if (TXT_OptionText)
+	{
+		TXT_OptionText->SetText(InOption.OptionText);
+	}
 }
 
 void UDialogueOptionWidget::HandleOptionButtonClicked()

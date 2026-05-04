@@ -11,11 +11,11 @@ struct FDialogueOption
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, meta = (MultiLine = true))
-	FText OptionText;
-
 	UPROPERTY(EditAnywhere)
 	FName NextDialogueID;
+
+	UPROPERTY(EditAnywhere, meta = (MultiLine = true))
+	FText OptionText;
 
 	UPROPERTY(EditAnywhere, meta = (AdvancedDisplay))
 	FCondNode SelectConditions;

@@ -5,7 +5,7 @@ bool FGameConditionEvaluator::Check(UObject* WorldContext, const FInstancedStruc
 {
 	if (!Data.IsValid())
 	{
-		return false;
+		return true;
 	}
 
 	const UScriptStruct* Type = Data.GetScriptStruct();
