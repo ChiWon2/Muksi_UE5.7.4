@@ -14,7 +14,7 @@ class MUKSI_API ADialogueTriggerActor : public AActor
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere)
-	FName DialogueID;
+	FDialogueKey DialogueKey;
 
 	UPROPERTY(EditAnywhere)
 	EDialogueTriggerType TriggerType;
@@ -32,7 +32,7 @@ public:
 public:
 	ADialogueTriggerActor();
 public:
-	void Init(FName InID, EDialogueTriggerType InType, ADialogueTriggerCreator* Creator);
+	void Init(const FDialogueKey& InKey, EDialogueTriggerType InType, ADialogueTriggerCreator* Creator);
 protected:
 	virtual void BeginPlay() override;
 public:	

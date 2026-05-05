@@ -54,7 +54,7 @@ bool ADialogueTriggerCreator::ExecuteTriggerCheck()
 	return Roll <= Chance;
 }
 
-void ADialogueTriggerCreator::CreatePopUpDialogue(const FName& DialogueID,EDialogueTriggerType Type)
+void ADialogueTriggerCreator::CreatePopUpDialogue(const FDialogueKey& DialogueKey)
 {
 	if (!DialogueSubsystem)
 	{
@@ -62,13 +62,13 @@ void ADialogueTriggerCreator::CreatePopUpDialogue(const FName& DialogueID,EDialo
 		return;
 	}
 
-	DialogueSubsystem->StartDialogue(DialogueID);
+	DialogueSubsystem->StartDialogueByKey(DialogueKey);
 
 	UE_LOG(LogTemp, Log,
 		TEXT("[DialogueTriggerCreator] Popup Dialogue!!"));
 }
 
-void ADialogueTriggerCreator::CreateInteractableObject(const FName& DialogueID,EDialogueTriggerType Type)
+void ADialogueTriggerCreator::CreateInteractableObject(const FDialogueKey& DialogueKey,EDialogueTriggerType Type)
 {
 	if (!DialogueTriggerActorClass)
 	{
@@ -140,14 +140,14 @@ void ADialogueTriggerCreator::CreateInteractableObject(const FName& DialogueID,E
 	}
 
 	CreatedTriggerActor->Init(
-		DialogueID,
+		DialogueKey,
 		Type,
 		this
 	);
 
 	UE_LOG(LogTemp, Log,
 		TEXT("[DialogueTriggerCreator] Spawned Interactable Trigger Actor!! TriggerID : %s"),
-		*DialogueID.ToString());
+		*DialogueKey.ToString());
 }
 
 EDialogueTriggerType ADialogueTriggerCreator::SelectTriggerType()
@@ -219,12 +219,13 @@ void ADialogueTriggerCreator::CreateRandomDialogue()
 	}
 
 	EDialogueTriggerType TriggerType = SelectTriggerType();
-	FName DialogueID = DialogueTriggerSubsystem->ExtractRandomTriggerID(TriggerType);
 
-	if (DialogueID.IsNone())
+	FDialogueKey DialogueKey = DialogueTriggerSubsystem->ExtractRandomTriggerKey(TriggerType);
+
+	if (!DialogueKey.IsValid())
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("[DialogueTriggerCreator] No Valid DialogueID Found"));
+			TEXT("[DialogueTriggerCreator] No Valid DialogueKey Found"));
 		return;
 	}
 
@@ -233,11 +234,11 @@ void ADialogueTriggerCreator::CreateRandomDialogue()
 	switch (CreateType)
 	{
 	case EDialogueCreateType::PopUp:
-		CreatePopUpDialogue(DialogueID, TriggerType);
+		CreatePopUpDialogue(DialogueKey);
 		break;
 
 	case EDialogueCreateType::InteractableObject:
-		CreateInteractableObject(DialogueID, TriggerType);
+		CreateInteractableObject(DialogueKey, TriggerType);
 		break;
 	}
 }

@@ -45,8 +45,8 @@ public:
 
 private:
 	bool ExecuteTriggerCheck();
-	void CreatePopUpDialogue(const FName& DialogueID, EDialogueTriggerType Type);
-	void CreateInteractableObject(const FName& DialogueID , EDialogueTriggerType Type);
+	void CreatePopUpDialogue(const FDialogueKey& DialogueKey);
+	void CreateInteractableObject(const FDialogueKey& DialogueKey , EDialogueTriggerType Type);
 	EDialogueTriggerType SelectTriggerType();
 	EDialogueCreateType SelectCreateType();
 public :
@@ -62,6 +62,7 @@ public:
 
 
 #pragma endregion
+
 private:
 	class ACharacter* PlayerCharacter;
 	UDialogueSubsystem* DialogueSubsystem;

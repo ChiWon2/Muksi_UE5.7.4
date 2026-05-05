@@ -14,27 +14,25 @@ class MUKSI_API UDialogueTriggerSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 public:
 	static UDialogueTriggerSubsystem* Get(const UObject* WorldContextObject);
+	void InitializeSubsystem();
+
 public:
-	void FillUpTriggerIDs(UDataTable* DataTable);
+	void FillUpTriggerKeys(FName TableID, UDataTable* DataTable);
+	FDialogueKey ExtractRandomTriggerKey(EDialogueTriggerType Type);
+	void RetrieveTriggerKey(const FDialogueKey& Key, EDialogueTriggerType Type);
+
+public:
 	void ClearSingleTriggerIDs();
 	void ClearReusableTriggerIDs();
 	bool IsTriggerIDsEmpty(EDialogueTriggerType Type);
 	bool IsTriggerIDsEmpty();
 
-public:
-	FName ExtractRandomTriggerID(EDialogueTriggerType Type);
-	void RetrieveTriggerID(const FName& ID, EDialogueTriggerType Type);
+private:
+	TArray<FDialogueKey> SingleTriggerKeys;
+	TArray<FDialogueKey> ReusableTriggerKeys;
+	TArray<FDialogueKey> ForTownTriggerKeys;
+	TArray<FDialogueKey> RecycleKeysBox;
 
 private:
-	//한번만 Trigger 되는 ID
-	TArray<FName> SingleTriggerIDs;
-	//여러번 Trigger 가능한 ID
-	TArray<FName> ReusableTriggerIDs;
-	TArray<FName> RecycleIDsBox;//재사용용 박스
-
-	//마을용 Trigger ID
-	TArray<FName> ForTownTriggerIDs;
-
-private:
-	TArray<FName>* GetTrrigerArray(EDialogueTriggerType Type);
+	TArray<FDialogueKey>* GetTrrigerArray(EDialogueTriggerType Type);
 };

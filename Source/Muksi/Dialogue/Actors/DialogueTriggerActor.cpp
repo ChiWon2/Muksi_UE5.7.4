@@ -31,21 +31,18 @@ ADialogueTriggerActor::ADialogueTriggerActor()
 
 	TriggerBox->SetCollisionResponseToAllChannels(ECR_Ignore);
 
-	TriggerBox->SetCollisionResponseToChannel(
-		ECC_Pawn,
-		ECR_Overlap
-	);
+	TriggerBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	TriggerBox->SetGenerateOverlapEvents(true);
 }
 
-void ADialogueTriggerActor::Init(FName InID,EDialogueTriggerType InType,ADialogueTriggerCreator* Creator)
+void ADialogueTriggerActor::Init(const FDialogueKey& InKey,EDialogueTriggerType InType,ADialogueTriggerCreator* Creator)
 {
-	DialogueID = InID;
+	DialogueKey = InKey;
 	TriggerType = InType;
 	DialogueCreator = Creator;
 
-	if (DialogueID == NAME_None)
+	if (!DialogueKey.IsValid())
 	{
 		UE_LOG(LogTemp, Error,
 			TEXT("[DialogueTriggerActor] There is no loaded DialogueID"));
@@ -58,10 +55,7 @@ void ADialogueTriggerActor::BeginPlay()
 
 	if (TriggerBox)
 	{
-		TriggerBox->OnComponentBeginOverlap.AddDynamic(
-			this,
-			&ADialogueTriggerActor::HandleOverlap
-		);
+		TriggerBox->OnComponentBeginOverlap.AddDynamic(this,&ADialogueTriggerActor::HandleOverlap);
 	}
 }
 
@@ -69,29 +63,21 @@ void ADialogueTriggerActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (DialogueID == NAME_None)
+	if (!DialogueKey.IsValid())
 	{
-		UE_LOG(LogTemp, Error,
-			TEXT("[DialogueTriggerActor] There is no loaded DialogueID"));
+		UE_LOG(LogTemp, Error,TEXT("[DialogueTriggerActor] Invalid DialogueKey"));
 		return;
 	}
 
 	if (!DialogueCreator)
 	{
-		UE_LOG(LogTemp, Error,
-			TEXT("[DialogueTriggerActor] DialogueCreator is null"));
+		UE_LOG(LogTemp, Error,TEXT("[DialogueTriggerActor] DialogueCreator is null"));
 		Destroy();
 		return;
 	}
 
-	// Creator 기준 거리 체크
-	const float DistSq =
-		FVector::DistSquared(
-			GetActorLocation(),
-			DialogueCreator->GetActorLocation()
-		);
+	const float DistSq = FVector::DistSquared(GetActorLocation(),DialogueCreator->GetActorLocation());
 
-	// 너무 멀어지면 제거 + ID 반환
 	if (DistSq > FMath::Square(1000.f))
 	{
 		UE_LOG(LogTemp, Warning,
@@ -101,10 +87,7 @@ void ADialogueTriggerActor::Tick(float DeltaTime)
 		if (UDialogueTriggerSubsystem* DialogueTriggerSubsystem =
 			UDialogueTriggerSubsystem::Get(GetWorld()))
 		{
-			DialogueTriggerSubsystem->RetrieveTriggerID(
-				DialogueID,
-				TriggerType
-			);
+			DialogueTriggerSubsystem->RetrieveTriggerKey(DialogueKey,TriggerType);
 		}
 
 		DialogueCreator->CreatedTriggerActor = nullptr;
@@ -113,34 +96,16 @@ void ADialogueTriggerActor::Tick(float DeltaTime)
 	}
 }
 
-void ADialogueTriggerActor::HandleOverlap(
-	UPrimitiveComponent* OverlappedComponent,
-	AActor* OtherActor,
-	UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex,
-	bool bFromSweep,
-	const FHitResult& SweepResult)
+void ADialogueTriggerActor::HandleOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
 {
 	if (!OtherActor || !OtherActor->IsA<ACharacter>())
 	{
 		return;
 	}
 
-	UDialogueSubsystem* DialogueSubsystem =
-		UDialogueSubsystem::Get(GetWorld());
+	UDialogueSubsystem* DialogueSubsystem = UDialogueSubsystem::Get(GetWorld());
 
-	if (!DialogueSubsystem)
-	{
-		UE_LOG(LogTemp, Error,
-			TEXT("[DialogueTriggerActor] DialogueSubsystem is null"));
-		return;
-	}
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("[DialogueTriggerActor] Player Overlap Trigger : %s"),
-		*DialogueID.ToString());
-
-	DialogueSubsystem->StartDialogue(DialogueID);
+	DialogueSubsystem->StartDialogueByKey(DialogueKey);
 
 	if (DialogueCreator)
 	{

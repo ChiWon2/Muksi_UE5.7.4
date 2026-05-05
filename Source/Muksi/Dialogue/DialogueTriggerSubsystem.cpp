@@ -3,9 +3,9 @@
 
 #include "DialogueTriggerSubsystem.h"
 #include"DialogueSubsystem.h"
-//#include"../Quest/QuestSubsystem.h"
 #include"Algo/RandomShuffle.h"
 #include"../ConditionHandle/CondTree/ConditionTreeEvaluator.h"
+#include"DeveloperSettings/DialogueDeveloperSettings.h"
 
 UDialogueTriggerSubsystem* UDialogueTriggerSubsystem::Get(const UObject* WorldContextObject)
 {
@@ -15,7 +15,46 @@ UDialogueTriggerSubsystem* UDialogueTriggerSubsystem::Get(const UObject* WorldCo
     return GI ? GI->GetSubsystem<UDialogueTriggerSubsystem>() : nullptr;
 }
 
-void UDialogueTriggerSubsystem::FillUpTriggerIDs(UDataTable* DataTable)
+void UDialogueTriggerSubsystem::InitializeSubsystem()
+{
+    //TODO:: For Test Initialization
+    const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
+
+    const FDialogueTableEntry& Entry = Settings->DialogueTables[0];
+
+    FName TableID = Entry.TableID;
+    UDataTable* Table = Entry.Table.LoadSynchronous();
+
+    FillUpTriggerKeys(TableID, Table);
+}
+
+
+void UDialogueTriggerSubsystem::ClearSingleTriggerIDs()
+{
+    SingleTriggerKeys.Empty();
+    UE_LOG(LogTemp, Log, TEXT("[DialogueTriggerSubsystem] SingleTriggerIDs cleared"));
+}
+
+void UDialogueTriggerSubsystem::ClearReusableTriggerIDs()
+{
+    ReusableTriggerKeys.Empty();
+
+    UE_LOG(LogTemp, Log, TEXT("[DialogueTriggerSubsystem] RepeatTriggerIDs cleared"));
+}
+
+bool UDialogueTriggerSubsystem::IsTriggerIDsEmpty(EDialogueTriggerType Type)
+{
+    TArray<FDialogueKey>* TriggerKeys = GetTrrigerArray(Type);
+
+    return TriggerKeys->IsEmpty();
+}
+
+bool UDialogueTriggerSubsystem::IsTriggerIDsEmpty()
+{
+    return SingleTriggerKeys.IsEmpty() && ReusableTriggerKeys.IsEmpty() && ForTownTriggerKeys.IsEmpty();
+}
+
+void UDialogueTriggerSubsystem::FillUpTriggerKeys(FName TableID, UDataTable* DataTable)
 {
     if (!DataTable)
     {
@@ -33,61 +72,54 @@ void UDialogueTriggerSubsystem::FillUpTriggerIDs(UDataTable* DataTable)
         if (!Row)
             continue;
 
-        // Entry Dialogue¸¸ Trigger ´ë»ó
         if (!Row->meta.bIsEntry)
             continue;
 
-        if (Row->meta.TriggerType == EDialogueTriggerType::Single)
-            SingleTriggerIDs.Add(RowName);
-        else if (Row->meta.TriggerType == EDialogueTriggerType::Reusable)
-            ReusableTriggerIDs.Add(RowName);
-        else if (Row->meta.TriggerType == EDialogueTriggerType::ForTown)
-            ForTownTriggerIDs.Add(RowName);
+        FDialogueKey Key;
+        Key.TableID = TableID;
+        Key.RowID = RowName;
 
+        switch (Row->meta.TriggerType)
+        {
+        case EDialogueTriggerType::Single:
+            SingleTriggerKeys.Add(Key);
+            break;
+
+        case EDialogueTriggerType::Reusable:
+            ReusableTriggerKeys.Add(Key);
+            break;
+
+        case EDialogueTriggerType::ForTown:
+            ForTownTriggerKeys.Add(Key);
+            break;
+        }
     }
-    UE_LOG(LogTemp, Warning, TEXT("[DialogueTriggerSubsystem] FillUpTriggerIDs Complete - Single: %d, Repeat: %d, ForTown: %d"), SingleTriggerIDs.Num(), ReusableTriggerIDs.Num(), ForTownTriggerIDs.Num());
+
+    UE_LOG(LogTemp, Warning, TEXT("[DialogueTriggerSubsystem] FillUpTriggerIDs Complete - Single: %d, Repeat: %d, ForTown: %d"),
+        SingleTriggerKeys.Num(),
+        ReusableTriggerKeys.Num(),
+        ForTownTriggerKeys.Num());
 }
 
-void UDialogueTriggerSubsystem::ClearSingleTriggerIDs()
-{
-    SingleTriggerIDs.Empty();
-    UE_LOG(LogTemp, Log, TEXT("[DialogueTriggerSubsystem] SingleTriggerIDs cleared"));
-}
-
-void UDialogueTriggerSubsystem::ClearReusableTriggerIDs()
-{
-    ReusableTriggerIDs.Empty();
-
-    UE_LOG(LogTemp, Log, TEXT("[DialogueTriggerSubsystem] RepeatTriggerIDs cleared"));
-}
-
-bool UDialogueTriggerSubsystem::IsTriggerIDsEmpty(EDialogueTriggerType Type)
-{
-    TArray<FName>* TriggerIDs = GetTrrigerArray(Type);
-
-    return TriggerIDs->IsEmpty();
-}
-
-bool UDialogueTriggerSubsystem::IsTriggerIDsEmpty()
-{
-    return SingleTriggerIDs.IsEmpty() && ReusableTriggerIDs.IsEmpty() && ForTownTriggerIDs.IsEmpty();
-}
-
-FName UDialogueTriggerSubsystem::ExtractRandomTriggerID(EDialogueTriggerType Type)
+FDialogueKey UDialogueTriggerSubsystem::ExtractRandomTriggerKey(EDialogueTriggerType Type)
 {
     UDialogueSubsystem* DialogueSubsys = GetGameInstance()->GetSubsystem<UDialogueSubsystem>();
-    TArray<FName>* TriggerIDs = GetTrrigerArray(Type);
+    TArray<FDialogueKey>* TriggerKeys = GetTrrigerArray(Type);
 
-    if (TriggerIDs->IsEmpty())
-        return NAME_None;
+    if (!TriggerKeys || TriggerKeys->IsEmpty())
+        return FDialogueKey();
 
     TArray<int32> ValidIndices;
 
-    for (int i = 0; i < TriggerIDs->Num(); ++i)
+    for (int32 i = 0; i < TriggerKeys->Num(); ++i)
     {
-        const FName& ID = (*TriggerIDs)[i];
-        const FDialogueRow* Row = DialogueSubsys->GetDialogueRow(ID);
+        const FDialogueKey& Key = (*TriggerKeys)[i];
 
+        UDataTable* Table = DialogueSubsys->GetTableByID(Key.TableID);
+        if (!Table)
+            continue;
+
+        const FDialogueRow* Row = Table->FindRow<FDialogueRow>(Key.RowID, TEXT("TriggerCheck"));
         if (!Row)
             continue;
 
@@ -99,77 +131,67 @@ FName UDialogueTriggerSubsystem::ExtractRandomTriggerID(EDialogueTriggerType Typ
 
     if (ValidIndices.IsEmpty())
     {
-        if (Type == EDialogueTriggerType::Reusable && !RecycleIDsBox.IsEmpty())
+        if (Type == EDialogueTriggerType::Reusable && !RecycleKeysBox.IsEmpty())
         {
-            TriggerIDs->Append(RecycleIDsBox);
-            RecycleIDsBox.Empty();
+            TriggerKeys->Append(RecycleKeysBox);
+            RecycleKeysBox.Empty();
 
-            return ExtractRandomTriggerID(Type);
+            return ExtractRandomTriggerKey(Type);
         }
 
-        return NAME_None;
+        return FDialogueKey();
     }
 
     const int32 RandomIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
+    FDialogueKey Result = (*TriggerKeys)[RandomIndex];
 
-    FName Result = (*TriggerIDs)[RandomIndex];
-
-    TriggerIDs->RemoveAtSwap(RandomIndex);
+    TriggerKeys->RemoveAtSwap(RandomIndex);
 
     if (Type == EDialogueTriggerType::Reusable)
     {
-        RecycleIDsBox.Push(Result);
-        if (TriggerIDs->IsEmpty())
+        RecycleKeysBox.Push(Result);
+
+        if (TriggerKeys->IsEmpty())
         {
-            TriggerIDs->Append(RecycleIDsBox);
-            RecycleIDsBox.Empty();
+            TriggerKeys->Append(RecycleKeysBox);
+            RecycleKeysBox.Empty();
         }
     }
 
     return Result;
 }
-void UDialogueTriggerSubsystem::RetrieveTriggerID(const FName& ID, EDialogueTriggerType Type)
-{
-    switch (Type)
-    {
-    case EDialogueTriggerType::Single:
-    {
-        if(!SingleTriggerIDs.Contains(ID))
-            SingleTriggerIDs.Add(ID);
-    }
-        break;
-    case EDialogueTriggerType::Reusable:
-    {
-        if (!ReusableTriggerIDs.Contains(ID))
-            ReusableTriggerIDs.Add(ID);
 
-        RecycleIDsBox.Remove(ID);
-    }
-        break;
-    case EDialogueTriggerType::ForTown:
+void UDialogueTriggerSubsystem::RetrieveTriggerKey(const FDialogueKey& Key, EDialogueTriggerType Type)
+{
+    TArray<FDialogueKey>* TriggerKeys = GetTrrigerArray(Type);
+
+    if (!TriggerKeys)
+        return;
+
+    if (!TriggerKeys->Contains(Key))
     {
-        UE_LOG(LogTemp, Warning, TEXT("[DialogueTrrigerSubSystem] : there is no RetrieveFunction for town \"YET\""));
-        return;
+        TriggerKeys->Add(Key);
     }
-        break;
-    default:
-        return;
+
+    if (Type == EDialogueTriggerType::Reusable)
+    {
+        RecycleKeysBox.Remove(Key);
     }
 }
 
-TArray<FName>* UDialogueTriggerSubsystem::GetTrrigerArray(EDialogueTriggerType Type)
+TArray<FDialogueKey>* UDialogueTriggerSubsystem::GetTrrigerArray(EDialogueTriggerType Type)
 {
     switch (Type)
     {
     case EDialogueTriggerType::Single:
-        return &SingleTriggerIDs;
-        break;
+        return &SingleTriggerKeys;
+
     case EDialogueTriggerType::Reusable:
-        return &ReusableTriggerIDs;
-        break;
+        return &ReusableTriggerKeys;
+
     case EDialogueTriggerType::ForTown:
-        return &ForTownTriggerIDs;
-        break;
+        return &ForTownTriggerKeys;
     }
+
     return nullptr;
 }

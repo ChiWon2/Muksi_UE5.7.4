@@ -1,42 +1,43 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "DialogueSubsystem.h"
-#include "Widgets/DialogueWidget.h"
+﻿#include "DialogueSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "StructUtils/InstancedStruct.h"
-#include "../GameEventHandle/GameEventHandleSubsystem.h"
 #include "DeveloperSettings/DialogueDeveloperSettings.h"
+#include "../GameEventHandle/GameEventHandleSubsystem.h"
 #include "../Public/Subsystems/MuksiUISubsystem.h"
-#include"../Public/MuksiGameplayTags.h"
+#include "../Public/MuksiGameplayTags.h"
 
 UDialogueSubsystem* UDialogueSubsystem::Get(const UObject* WorldContextObject)
 {
     if (!WorldContextObject) return nullptr;
 
-    UGameInstance* GI = WorldContextObject->GetWorld()->GetGameInstance();
-    return GI ? GI->GetSubsystem<UDialogueSubsystem>() : nullptr;
+    if (UGameInstance* GI = WorldContextObject->GetWorld()->GetGameInstance())
+    {
+        return GI->GetSubsystem<UDialogueSubsystem>();
+    }
+
+    return nullptr;
 }
 
-void UDialogueSubsystem::StartDialogue(FName StartDialogueID)
+void UDialogueSubsystem::InitializeSubsystem()
 {
-    if (IsDialogueActive())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[DialogueSubsystem] Dialogue already active"));
-        return;
-    }
+    //TOOD :: For Test Initialization
+    const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
+    if (!Settings) return;
 
-    if (!DialogueWidgetClass)
+    for (const FDialogueTableEntry& Entry : Settings->DialogueTables)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[DialogueSubsystem] DialogueWidgetClass is null"));
-        return;
-    }
+        if (Entry.TableID.IsNone()) continue;
 
-    if (StartDialogueID.IsNone())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[DialogueSubsystem] StartDialogueID is None"));
-        return;
+        if (UDataTable* Table = Entry.Table.LoadSynchronous())
+        {
+            LoadedTables.Add(Entry.TableID, Table);
+        }
     }
+}
+
+void UDialogueSubsystem::StartDialogueByKey(const FDialogueKey& Key)
+{
+    if (IsDialogueActive()) return;
 
     UWorld* World = GetWorld();
     if (!World) return;
@@ -47,106 +48,71 @@ void UDialogueSubsystem::StartDialogue(FName StartDialogueID)
     const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
     if (!Settings) return;
 
+    CurrentTableID = Key.TableID;
+
+    TSoftClassPtr<UWidget_ActivatableBase> WidgetClass(Settings->DialogueWidgetClass.ToSoftObjectPath());
+
     UMuksiUISubsystem::Get(this)->PushSoftWidgetToStackAsync(
         PC,
         MuksiGameplayTag::Muksi_WidgetStack_GameHud,
-        Settings->DialogueWidgetClass,
+        WidgetClass,
         true,
-
-        // BEFORE
         nullptr,
-
-        // AFTER (UI 완전히 준비된 시점)
-        [this, StartDialogueID](UWidget_ActivatableBase* CreatedWidget)
+        [this, Key](UWidget_ActivatableBase* CreatedWidget)
         {
-            CurrentDialogueWidget = Cast<UDialogueWidget>(CreatedWidget);
-
-            if (!CurrentDialogueWidget)
-            {
-                UE_LOG(LogTemp, Error, TEXT("[DialogueSubsystem] Widget cast failed"));
-                return;
-            }
-
-            // UI 준비 완료 후에만 실행
-            LoadDialogue(StartDialogueID);
-
+            LoadDialogueByKey(Key);
             UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.0001f);
         }
     );
+
 }
-void UDialogueSubsystem::SelectOption(int32 OptionIndex)
+
+void UDialogueSubsystem::LoadDialogueByKey(const FDialogueKey& Key)
 {
-    if (!DialogueTable)
-        return;
+    if (!Key.IsValid()) return;
 
-    FDialogueRow* Row = DialogueTable->FindRow<FDialogueRow>(CurrentDialogueID, TEXT("SelectOption"));
+    FName FinalTableID = Key.TableID.IsNone() ? CurrentTableID : Key.TableID;
 
-    if (!Row || !Row->Options.IsValidIndex(OptionIndex))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[UDialogueSubsystem] : Invalid OptionIndex"));
-        return;
-    }
+    if (FinalTableID.IsNone()) return;
 
-    const FDialogueOption& Option = Row->Options[OptionIndex];
-    
-    //TODO:: Add CheckConditions
-    //if (!CheckConditions(Option.OptionConditions))
-    //{
-    //    UE_LOG(LogTemp, Warning, TEXT("[UDialogueSubsystem] : Option Condition Failed"));
-    //    return;
-    //}
+    UDataTable* Table = GetTableByID(FinalTableID);
+    if (!Table) return;
 
-    // 선택 이벤트 실행
-    ExecuteEvents(Option.OnSelectEvents);
+    FDialogueRow* Row = Table->FindRow<FDialogueRow>(Key.RowID, TEXT(""));
+    if (!Row) return;
 
-    // 다음 대화 or 종료
-    if (Option.NextDialogueID.IsNone())
+    CurrentDialogueKey = Key;
+    CurrentDialogueTable = Table;
+    CurrentTableID = FinalTableID;
+
+    ExecuteEvents(Row->OnEnterEvents);
+
+    OnDialogueTextUpdated.Broadcast(Row->Text);
+    OnDialogueOptionsUpdated.Broadcast(Row->Options);
+
+    if (Row->Options.Num() == 0)
     {
         EndDialogue();
     }
-    else
-    {
-        LoadDialogue(Option.NextDialogueID);
-    }
 }
 
-
-void UDialogueSubsystem::LoadDialogue(FName DialogueID)
+void UDialogueSubsystem::SelectOption(int32 OptionIndex)
 {
-    ClearDialogueContext();
+    if (!CurrentDialogueTable) return;
 
-    if (!DialogueTable)
+    FDialogueRow* Row =CurrentDialogueTable->FindRow<FDialogueRow>(CurrentDialogueKey.RowID, TEXT(""));
+
+    if (!Row || !Row->Options.IsValidIndex(OptionIndex)) return;
+
+    const FDialogueOption& Option = Row->Options[OptionIndex];
+
+    ExecuteEvents(Option.OnSelectEvents);
+
+    if (Option.NextDialogueKey.IsValid())
     {
-        UE_LOG(LogTemp, Error, TEXT("[UDialogueSubsystem] : DialogueTable is null"));
-        return;
+        LoadDialogueByKey(Option.NextDialogueKey);
     }
-
-    FDialogueRow* Row = DialogueTable->FindRow<FDialogueRow>(DialogueID, TEXT("LoadDialogue"));
-
-    if (!Row)
-    {
-        UE_LOG(LogTemp, Error, TEXT("[UDialogueSubsystem] : DialogueID not found: %s"), *DialogueID.ToString());
-        return;
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT("[UDialogueSubsystem] : Dialogue is Loaded : %s"), *DialogueID.ToString());
-    // 상태 갱신
-    CurrentDialogueID = DialogueID;
-
-    // 진입 이벤트 실행
-    ExecuteEvents(Row-> OnEnterEvents);
-
-    //최종 다이얼로그 텍스트 갱신
-    FText FinalDialogueText = BuildFormattedText(Row->Text);
-
-    // UI 업데이트
-    if (OnDialogueTextUpdated.IsBound())
-        OnDialogueTextUpdated.Broadcast(FinalDialogueText);
-    if (OnDialogueOptionsUpdated.IsBound())
-        OnDialogueOptionsUpdated.Broadcast(Row->Options);
-
-    // 선택지가 없으면 자동 종료
-    if (Row->Options.Num() == 0)
+    else
     {
         EndDialogue();
     }
@@ -158,72 +124,39 @@ void UDialogueSubsystem::EndDialogue()
 
     OnDialogueEnded.Broadcast();
 
-    if (CurrentDialogueWidget)
-    {
-        CurrentDialogueWidget = nullptr;
-    }
-
-    OnDialogueTextUpdated.Clear();
-    OnDialogueOptionsUpdated.Clear();
-    OnDialogueEnded.Clear();
-
-    CurrentDialogueID = NAME_None;
-    UE_LOG(LogTemp, Warning, TEXT("[UDialogueSubsystem] : EndDialogue"));
-
-}
-
-void UDialogueSubsystem::ExecuteEvents(const TArray<FInstancedStruct>& DialogueEvents)
-{
-    UGameEventHandleSubsystem* EventHandleSubsys = UGameEventHandleSubsystem::Get(this);
-    EventHandleSubsys->ExecuteEvents(this, DialogueEvents);
+    CurrentDialogueKey = FDialogueKey();
+    CurrentDialogueTable = nullptr;
 }
 
 bool UDialogueSubsystem::IsDialogueActive() const
 {
-    return !CurrentDialogueID.IsNone();;
+    return CurrentDialogueKey.IsValid();
 }
 
-void UDialogueSubsystem::SetDialogueWidget(const TSubclassOf<UDialogueWidget>& WidgetClass) 
+void UDialogueSubsystem::ExecuteEvents(const TArray<FInstancedStruct>& Events)
 {
-    DialogueWidgetClass = WidgetClass;
-}
-
-void UDialogueSubsystem::SetDialogueTable(UDataTable* InTable)
-{
-    DialogueTable = InTable;
-}
-
-UDataTable* UDialogueSubsystem::GetDialogueTable() const
-{
-    return DialogueTable;
-}
-
-FText UDialogueSubsystem::BuildFormattedText(const FText& Source)
-{
-    if (DialogueContext.IsEmpty())
-        return Source;
-
-    FFormatNamedArguments Args;
-
-    for (auto& Pair : DialogueContext)
+    if (UGameEventHandleSubsystem* Subsys = UGameEventHandleSubsystem::Get(this))
     {
-        Args.Add(Pair.Key.ToString(), Pair.Value);
+        Subsys->ExecuteEvents(this, Events);
+    }
+}
+
+UDataTable* UDialogueSubsystem::GetTableByID(FName TableID) const
+{
+    if (UDataTable* const* Found = LoadedTables.Find(TableID))
+    {
+        return *Found;
     }
 
-    return FText::Format(Source, Args);
+    return nullptr;
 }
 
-void UDialogueSubsystem::AddDialogueContext(FName Key, const FText& Value)
+FDialogueRow* UDialogueSubsystem::GetDialogueRow(const FDialogueKey& Key)
 {
-    DialogueContext.Add(Key, Value);
-}
+    UDataTable* Table = GetTableByID(
+        Key.TableID.IsNone() ? CurrentTableID : Key.TableID);
 
-void UDialogueSubsystem::ClearDialogueContext()
-{
-    DialogueContext.Empty();
-}
+    if (!Table) return nullptr;
 
-FDialogueRow* UDialogueSubsystem::GetDialogueRow(const FName& DialogueID)
-{
-    return DialogueTable->FindRow<FDialogueRow>(DialogueID, TEXT("LoadDialogue"));
+    return Table->FindRow<FDialogueRow>(Key.RowID, TEXT(""));
 }

@@ -26,11 +26,8 @@ void UMuksiGameInstance::InitialzieDialogueSystem()
     UDialogueTriggerSubsystem* Trigger = GetSubsystem<UDialogueTriggerSubsystem>();
 
     // 1. Dialogue Table 세팅
-    Dialogue->SetDialogueTable(Settings->DialogueTables[0].Table.LoadSynchronous());
+    Dialogue->InitializeSubsystem();
 
     // 2. Trigger Table 기반 초기화
-    Trigger->FillUpTriggerIDs(Dialogue->GetDialogueTable());
-
-    // 3. Widget Class 전달
-    Dialogue->SetDialogueWidget(Settings->DialogueWidgetClass.LoadSynchronous());
+    Trigger->InitializeSubsystem();
 }

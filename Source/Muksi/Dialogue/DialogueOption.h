@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include"../ConditionHandle/CondTree/CondNode.h"
+#include "DialogueKey.h"
 #include"DialogueOption.generated.h"
 
 USTRUCT(BlueprintType)
@@ -12,7 +13,7 @@ struct FDialogueOption
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere)
-	FName NextDialogueID;
+	FDialogueKey NextDialogueKey;
 
 	UPROPERTY(EditAnywhere, meta = (MultiLine = true))
 	FText OptionText;
