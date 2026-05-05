@@ -11,6 +11,7 @@ class UDialogueWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueTextUpdated, const FText&, Text);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueOptionsUpdated, const TArray<FDialogueOption>&, Options);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDialogueEnded);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueImageUpdated, const TSoftObjectPtr<UTexture2D>&,Image);
 
 UCLASS()
 class MUKSI_API UDialogueSubsystem : public UGameInstanceSubsystem
@@ -28,7 +29,12 @@ public:
     FOnDialogueTextUpdated OnDialogueTextUpdated;
 
     UPROPERTY(BlueprintAssignable)
+    FOnDialogueImageUpdated OnDialogueImageUpdated;
+
+    UPROPERTY(BlueprintAssignable)
     FOnDialogueEnded OnDialogueEnded;
+
+
 
 public:
     UFUNCTION(BlueprintCallable)

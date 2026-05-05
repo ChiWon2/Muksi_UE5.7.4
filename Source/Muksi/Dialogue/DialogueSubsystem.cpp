@@ -88,7 +88,9 @@ void UDialogueSubsystem::LoadDialogueByKey(const FDialogueKey& Key)
 
     ExecuteEvents(Row->OnEnterEvents);
 
+
     OnDialogueTextUpdated.Broadcast(Row->Text);
+    OnDialogueImageUpdated.Broadcast(Row->DialogueImage);
     OnDialogueOptionsUpdated.Broadcast(Row->Options);
 
     if (Row->Options.Num() == 0)

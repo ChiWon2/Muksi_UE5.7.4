@@ -64,6 +64,8 @@ void UDialogueWidget::BindToSubsystem()
 	DialogueSubSystem->OnDialogueTextUpdated.AddDynamic(this,&UDialogueWidget::OnDialogueTextUpdated);
 
 	DialogueSubSystem->OnDialogueOptionsUpdated.AddDynamic(this,&UDialogueWidget::OnDialogueOptionsUpdated);
+	
+	DialogueSubSystem->OnDialogueImageUpdated.AddDynamic(this,&UDialogueWidget::OnDialogueImageUpdated);
 
 	DialogueSubSystem->OnDialogueEnded.AddDynamic(this,&UDialogueWidget::OnDialogueEnded);
 }
@@ -74,6 +76,8 @@ void UDialogueWidget::UnbindFromSubsystem()
 		return;
 
 	DialogueSubSystem->OnDialogueTextUpdated.RemoveDynamic(this,&UDialogueWidget::OnDialogueTextUpdated);
+
+	DialogueSubSystem->OnDialogueImageUpdated.RemoveDynamic(this,&UDialogueWidget::OnDialogueImageUpdated);
 
 	DialogueSubSystem->OnDialogueOptionsUpdated.RemoveDynamic(this,&UDialogueWidget::OnDialogueOptionsUpdated);
 
@@ -112,6 +116,47 @@ void UDialogueWidget::OnDialogueOptionsUpdated(const TArray<FDialogueOption>& Op
 
 		VB_Options->AddChild(OptionWidget);
 	}
+}
+
+void UDialogueWidget::OnDialogueImageUpdated(const TSoftObjectPtr<UTexture2D>& ImagePtr)
+{
+	if (!IMG_Dialogue)
+		return;
+
+	// 이미지 없음 처리
+	if (ImagePtr.IsNull())
+	{
+		IMG_Dialogue->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	// 레이스 방지용 저장
+	CurrentImagePtr = ImagePtr;
+
+	// (선택) 로딩 중 숨김 or placeholder
+	IMG_Dialogue->SetVisibility(ESlateVisibility::Hidden);
+
+	FStreamableManager& Streamable = UAssetManager::GetStreamableManager();
+
+	Streamable.RequestAsyncLoad(
+		ImagePtr.ToSoftObjectPath(),
+		FStreamableDelegate::CreateWeakLambda(this, [this, ImagePtr]()
+			{
+				if (ImagePtr != CurrentImagePtr)
+					return;
+
+				if (!IMG_Dialogue)
+					return;
+
+				UTexture2D* Texture = ImagePtr.Get();
+
+				if (!Texture)
+					return;
+
+				IMG_Dialogue->SetBrushFromTexture(Texture);
+				IMG_Dialogue->SetVisibility(ESlateVisibility::Visible);
+			})
+	);
 }
 
 void UDialogueWidget::OnDialogueEnded()

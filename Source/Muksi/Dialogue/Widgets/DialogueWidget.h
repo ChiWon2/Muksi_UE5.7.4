@@ -31,6 +31,9 @@ protected:
 	URichTextBlock* TXT_DialogueText;
 
 	UPROPERTY(meta = (BindWidget))
+	UImage* IMG_Dialogue;
+
+	UPROPERTY(meta = (BindWidget))
 	UVerticalBox* VB_Options;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dialogue")
@@ -42,6 +45,9 @@ protected:
 
 	UFUNCTION()
 	void OnDialogueOptionsUpdated(const TArray<FDialogueOption>& Options);
+
+	UFUNCTION()
+	void OnDialogueImageUpdated(const TSoftObjectPtr<UTexture2D>& ImagePtr);
 
 	UFUNCTION()
 	void OnDialogueEnded();
