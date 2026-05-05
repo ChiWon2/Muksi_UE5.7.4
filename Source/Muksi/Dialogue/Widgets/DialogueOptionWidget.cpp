@@ -24,7 +24,7 @@ void UDialogueOptionWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
-void UDialogueOptionWidget::InitWidget(const FDialogueOption& InOption ,int32 InOptionIndex)
+void UDialogueOptionWidget::InitWidget(const FDialogueOption& InOption, int32 InOptionIndex, bool bInIsEnabled)
 {
 	OptionIndex = InOptionIndex;
 
@@ -32,9 +32,34 @@ void UDialogueOptionWidget::InitWidget(const FDialogueOption& InOption ,int32 In
 	{
 		TXT_OptionText->SetText(InOption.OptionText);
 	}
+
+	if (BTN_OptionButton)
+	{
+		BTN_OptionButton->SetIsEnabled(bInIsEnabled);
+	}
+
+	UpdateVisual(bInIsEnabled);
+}
+
+void UDialogueOptionWidget::UpdateVisual(bool bInIsEnabled)
+{
+	if (!TXT_OptionText)
+		return;
+
+	if (bInIsEnabled)
+	{
+		TXT_OptionText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	}
+	else
+	{
+		TXT_OptionText->SetColorAndOpacity(FSlateColor(FLinearColor::Gray));
+	}
 }
 
 void UDialogueOptionWidget::HandleOptionButtonClicked()
 {
+	if (BTN_OptionButton && !BTN_OptionButton->GetIsEnabled())
+		return;
+
 	OnOptionButtonClicked.Broadcast(OptionIndex);
 }

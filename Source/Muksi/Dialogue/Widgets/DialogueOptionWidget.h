@@ -22,8 +22,8 @@ protected:
 	virtual void NativeDestruct() override;
 
 public:
-	void InitWidget(const FDialogueOption& InOption,int32 InOptionIndex);
-
+	void InitWidget(const FDialogueOption& InOption, int32 InOptionIndex, bool bInIsEnabled);
+	void UpdateVisual(bool bInIsEnabled);
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnOptionButtonClicked OnOptionButtonClicked;

@@ -6,15 +6,20 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/RichTextBlock.h"
+#include "Components/Image.h"
 
 #include "../DialogueSubsystem.h"
 #include "../TravelTime/TravelTimeSubsystem.h"
+#include"../ConditionHandle/CondTree/ConditionTreeEvaluator.h"
+#include "Engine/StreamableManager.h"
+#include "Engine/AssetManager.h"
 
 void UDialogueWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	DialogueSubSystem = UDialogueSubsystem::Get(this);
+	TravelTimeSystem = UTravelTimeSubsystem::Get(this);
 
 	InitWidget();
 }
@@ -29,12 +34,15 @@ void UDialogueWidget::NativeOnActivated()
 	Super::NativeOnActivated();
 
 	BindToSubsystem();
+
+	StopTravelTime();
 }
 
 void UDialogueWidget::NativeOnDeactivated()
 {
 	UnbindFromSubsystem();
 
+	StartTravelTime();
 	Super::NativeOnDeactivated();
 }
 
@@ -83,27 +91,22 @@ void UDialogueWidget::OnDialogueTextUpdated(const FText& NewText)
 void UDialogueWidget::OnDialogueOptionsUpdated(const TArray<FDialogueOption>& Options)
 {
 	if (!VB_Options)
-	{
 		return;
-	}
+	if (!DialogueOptionWidgetClass)
+		return;
 
 	VB_Options->ClearChildren();
 
 	for (int32 i = 0; i < Options.Num(); ++i)
 	{
-		if (!DialogueOptionWidgetClass)
-		{
-			continue;
-		}
-
-		UDialogueOptionWidget* OptionWidget =CreateWidget<UDialogueOptionWidget>(this,DialogueOptionWidgetClass);
+		UDialogueOptionWidget* OptionWidget = CreateWidget<UDialogueOptionWidget>(this,DialogueOptionWidgetClass);
 
 		if (!OptionWidget)
-		{
 			continue;
-		}
 
-		OptionWidget->InitWidget(Options[i], i);
+		bool bIsSelectable = IsOptionSelectable(Options[i]);
+
+		OptionWidget->InitWidget(Options[i], i, bIsSelectable);
 
 		OptionWidget->OnOptionButtonClicked.AddDynamic(this,&UDialogueWidget::HandleOptionButtonClicked);
 
@@ -119,4 +122,19 @@ void UDialogueWidget::OnDialogueEnded()
 void UDialogueWidget::HandleOptionButtonClicked(int32 OptionIndex)
 {
 	DialogueSubSystem->SelectOption(OptionIndex);
+}
+
+void UDialogueWidget::StartTravelTime()
+{
+	TravelTimeSystem->StartTravelTime();
+}
+
+void UDialogueWidget::StopTravelTime()
+{
+	TravelTimeSystem->StopTravelTime();
+}
+
+bool UDialogueWidget::IsOptionSelectable(const FDialogueOption& Option) const
+{
+	return FConditionTreeEvaluator::Evaluate(GetWorld(),Option.SelectConditions);
 }

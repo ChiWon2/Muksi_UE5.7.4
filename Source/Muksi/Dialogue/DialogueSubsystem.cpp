@@ -5,6 +5,7 @@
 #include "../GameEventHandle/GameEventHandleSubsystem.h"
 #include "../Public/Subsystems/MuksiUISubsystem.h"
 #include "../Public/MuksiGameplayTags.h"
+#include"../ConditionHandle/CondTree/ConditionTreeEvaluator.h"
 
 UDialogueSubsystem* UDialogueSubsystem::Get(const UObject* WorldContextObject)
 {
@@ -103,10 +104,19 @@ void UDialogueSubsystem::SelectOption(int32 OptionIndex)
     FDialogueRow* Row =CurrentDialogueTable->FindRow<FDialogueRow>(CurrentDialogueKey.RowID, TEXT(""));
 
     if (!Row || !Row->Options.IsValidIndex(OptionIndex)) return;
+    
 
     const FDialogueOption& Option = Row->Options[OptionIndex];
 
+    //Check Conditions
+    if (!FConditionTreeEvaluator::Evaluate(GetWorld(), Option.SelectConditions))
+    {
+        return;
+    }
+
+
     ExecuteEvents(Option.OnSelectEvents);
+    
 
     if (Option.NextDialogueKey.IsValid())
     {

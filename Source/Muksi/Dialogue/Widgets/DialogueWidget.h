@@ -8,10 +8,11 @@
 #include "DialogueWidget.generated.h"
 
 class UTextBlock;
+class URichTextBlock;
 class UVerticalBox;
 class UDialogueSubsystem;
 class UTravelTimeSubsystem;
-class URichTextBlock;
+class UImage;
 
 UCLASS()
 class MUKSI_API UDialogueWidget : public UWidget_ActivatableBase
@@ -50,14 +51,17 @@ protected:
 
 private:
 	void InitWidget();
-
 	void BindToSubsystem();
 	void UnbindFromSubsystem();
 
+private:
 	void StartTravelTime();
 	void StopTravelTime();
-
+	bool IsOptionSelectable(const FDialogueOption& Option) const;
 private:
 	UPROPERTY()
 	UDialogueSubsystem* DialogueSubSystem;
+	UPROPERTY()
+	UTravelTimeSubsystem* TravelTimeSystem;
+	TSoftObjectPtr<UTexture2D> CurrentImagePtr;
 };
