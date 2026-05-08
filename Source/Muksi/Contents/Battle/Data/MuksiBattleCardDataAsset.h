@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "MuksiBattleCardEffectData.h"
 #include "MuksiBattleCardDataAsset.generated.h"
 
 class UTexture2D;
@@ -34,4 +35,11 @@ public:
 	/** 카드 이미지 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	TObjectPtr<UTexture2D> CardTexture;
+	
+	
+public:
+	//** 카드 효과 ** //
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
+	TArray<FMuksiBattleCardEffectData> Effects;
+	
 };

@@ -12,8 +12,15 @@ class UWidget_BattleCardBase;
 class UWidget_CardEquipSlot;
 class UCanvasPanel;
 class UCanvasPanelSlot;
-class ABattleManager;
+class UCommonButtonBase;
+class UCharacterDataBase;
 class UButton;
+class UVerticalBox;
+
+class UMuksiCharacterDataAsset;
+class UMuksiBattleCardDataAsset;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndTurnRequested);
 
 USTRUCT(BlueprintType)
 struct FWidgetCard
@@ -29,6 +36,35 @@ public:
 	UPROPERTY()
 	int32 ZIndex = 0;
 	
+};
+
+USTRUCT(BlueprintType)
+struct FCardEquipSlotData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 SlotIndex = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 ExchangeNumber = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UMuksiBattleCardDataAsset> CardData = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UCharacterDataBase> SourceCharacter = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UCharacterDataBase> TargetCharacter = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bConfirmed = false;
+
+	bool IsValidCard() const
+	{
+		return CardData != nullptr && SourceCharacter != nullptr;
+	}
 };
 
 /**
@@ -60,6 +96,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ClearHandCards();
 	
+	
 	void SetHoveredCard(UWidget_BattleCardBase* InHoveredCard);
 	void ClearHoveredCard(UWidget_BattleCardBase* InCard);
 	
@@ -68,7 +105,7 @@ public:
 	const FGeometry& GetHandCanvasGeometry() const;
 	UCanvasPanel* GetHandCanvas() const { return HandCanvas; }
 	
-	UWidget_CardEquipSlot* GetEquipSlot() const { return EquipSlotTest; }
+	UWidget_CardEquipSlot* GetEquipSlot() const;
 	
 	void RemoveBattleCards(UWidget_BattleCardBase* InCard);
 	
@@ -80,20 +117,36 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void DeActiveInkLine();
+	
+
+	
 
 protected:
 	//****** Bind Widget ******
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> HandCanvas;
 	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget_CardEquipSlot> EquipSlotTest;
+	/*UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CardEquipSlot> EquipSlotTest;*/
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_TurnEnd;
 	
 	UPROPERTY(meta = (BindWidget))
 	UInkLineWidget* InkLine;
+	
+	//CardEquipSlot Box
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CardEquipSlot> CardEquipSlot_1;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CardEquipSlot> CardEquipSlot_2;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CardEquipSlot> CardEquipSlot_3;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UWidget_CardEquipSlot>> ExchangeSlots;
 	//****** Bind Widget ******
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
@@ -120,8 +173,67 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget_BattleCardBase> HoveredCard = nullptr;
 	
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleManager> BattleManager = nullptr;
 	
 	FTimerHandle TimerHandle;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Card Slot")
+	TSubclassOf<UWidget_CardEquipSlot> CardEquipSlotClass;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UWidget_CardEquipSlot>> PlayerEquipSlots;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UWidget_CardEquipSlot>> EnemyEquipSlots;
+	
+	
+	//***** Turn Changed UI Function *****
+public:
+	
+		
+	UPROPERTY(BlueprintAssignable, Category = "Hand|Event")
+	FOnEndTurnRequested OnEndTurnRequested;
+	
+	
+	void ShowTurnEndButton(bool bShow);
+	
+	UFUNCTION(BlueprintCallable)
+	FCardEquipSlotData GetSlotDataByExchangeNumber(int32 InIndex);
+	
+	UFUNCTION(BlueprintCallable)
+	void ConfirmExchangeInput(int32 InIndex);
+	
+	UFUNCTION(BlueprintCallable)
+	void StartExchangeInput(int32 ExchangeNumber);
+	
+	UFUNCTION(BlueprintCallable)
+	void InitializeExchangeSlots();
+	
+	
+	UFUNCTION(BlueprintCallable)
+	void EnableExchangeSlots(int32 InIndex);	
+	
+protected:
+	void BindEndTurnButton();
+	void UnbindEndTurnButton();
+
+	UFUNCTION()
+	void HandleEndTurnButtonClicked();	
+	
+	UWidget_CardEquipSlot* GetSlotByExchangeNumber(int32 ExchangeNumber) const;
+	//***** Turn Changed UI Function *****
+	
+	
+	
+	
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
+	void BuildHandFromCharacterData(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets);
+
+	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
+	void AddCardToHand(UMuksiBattleCardDataAsset* CardData);
+	
+	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
+	void BuildHandBattleStart();
+	
 };

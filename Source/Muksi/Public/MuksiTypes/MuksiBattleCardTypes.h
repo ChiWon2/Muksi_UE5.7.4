@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿//이거 이제 안씀 Contents/Battle/Data/MuksiBattleCardEffectData.h로 변경
+
+
 
 /*
 이동
@@ -69,43 +71,92 @@
 1국(局) 종료 (혹은 1판 종료)
 */
 
+#pragma once
+#include "CoreMinimal.h"
+#include "MuksiBattleCardTypes.generated.h"
+
+UENUM(BlueprintType)
+enum class ERangeType : uint8
+{
+	None			UMETA(DisplayName = "None"),
+	Front1			UMETA(DisplayName = "Front 1"),
+	Front2			UMETA(DisplayName = "Front 2"),
+};
+
 UENUM(BlueprintType)
 enum class ECardEffectType : uint8
 {
-	None,
-	Move,
-	Damage,
-	ApplyStatus,
-	
+	Attack		UMETA(DisplayName = "Attack"),
+	Move		UMETA(DisplayName = "Move"),
+	Defense		UMETA(DisplayName = "Defense"),
+	Heal		UMETA(DisplayName = "Heal")
 };
 
 UENUM(BlueprintType)
-enum class EStatusEffectType : uint8
+enum class ECardTargetType : uint8
 {
-	None,
-	Rush,
-	Bleed,
-	Poison,
+	None		UMETA(DisplayName = "None"),
+	Self		UMETA(DisplayName = "Self"),
+	Enemy		UMETA(DisplayName = "Enemy"),
 };
 
+UENUM(BlueprintType)
+enum class ECardColorType : uint8
+{
+	Red,
+	Blue,
+	Green,
+	Yellow,
+	Purple
+};
 
-
-
-/*USTRUCT(BlueprintType)
-struct FCardEffectSpec
+USTRUCT(BlueprintType)
+struct FCardEffect
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	ECardEffectType EffectType = ECardEffectType::None;
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Card Effect")
+	ECardEffectType EffectType = ECardEffectType::Attack;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 Value = 0;
-	
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	EStatusEffectType StatusEffectType = EStatusEffectType::None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Card Effect")
+	ECardTargetType TargetType = ECardTargetType::None;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 Duration = 0;
-};*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Card Effect")
+	int32 Value = 0;*/
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Effect")
+	ECardEffectType EffectType = ECardEffectType::Attack;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Effect")
+	ECardTargetType TargetType = ECardTargetType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Range")
+	ERangeType RangeType = ERangeType::None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Range")
+	TObjectPtr<UTexture2D> RangePreviewImage = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Attack")
+	int32 Damage = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defense")
+	int32 DefenseValue = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Heal")
+	int32 HealValue = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FAttackRangePreviewRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	ERangeType RangeType = ERangeType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UTexture2D> PreviewImage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Description;
+};
