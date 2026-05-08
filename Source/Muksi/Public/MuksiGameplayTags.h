@@ -24,6 +24,9 @@ namespace MuksiGameplayTag
 	//Muksi TravelTime Widgets
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_TravelTime_ClockHUD);
 
+	//Muksi Dialogue Widgets
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Dialogue_Main);
+
 	
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_Test);
 	
