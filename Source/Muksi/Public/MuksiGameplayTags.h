@@ -27,7 +27,11 @@ namespace MuksiGameplayTag
 	
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_Test);
 	
-	
+	//Muksi World Widgets
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_World_MainScreen);
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_World_Town);
+
+
 	//Muksi Options Image
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Image_TestImage);
 }

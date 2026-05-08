@@ -9,6 +9,13 @@
 #include "GameFramework/PlayerController.h"
 #include "MuksiPlayerController.generated.h"
 
+//Test Zone
+class AZoneManager;
+class AZoneActor;
+class UTownDataAsset;
+struct FZoneData;
+//Test Zone
+
 class UPlayerMode_Battle;
 class UWidget_ActivatableBase;
 class UWidget_CharacterData;
@@ -61,7 +68,33 @@ public:
 	//Test Push soft widget
 	UFUNCTION()
 	void PushSoftWidget();
-	
+
+	//Test Zone, Town UI
+	UFUNCTION(BlueprintCallable, Category = "Zone")
+	void SetZoneManager(AZoneManager* InZoneManager) { ZoneManager = InZoneManager; }
+
+	UFUNCTION(BlueprintPure, Category = "Zone")
+	AZoneManager* GetZoneManager() const { return ZoneManager.Get(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Zone")
+	void SetCurrentZone(AZoneActor* NewZone);
+
+	UFUNCTION(BlueprintPure, Category = "Zone")
+	AZoneActor* GetCurrentZone() const;
+
+	UFUNCTION(BlueprintPure, Category = "Zone")
+	FZoneData GetCurrentZoneData() const;
+
+	UFUNCTION(BlueprintCallable)
+	void OpenTownUI(UTownDataAsset* InTownData);
+
+	UFUNCTION(BlueprintCallable)
+	void CloseTownUI();
+
+	UFUNCTION(BlueprintPure)
+	bool IsTownUIOpen() const { return CurrentTownWidget != nullptr; }
+	//Test Zone, Town UI
+
 protected:
 	//~ Begin AActor Interface
 	virtual void BeginPlay() override; //PlayerMode 인스턴스 초기화
@@ -88,7 +121,7 @@ protected:
 	
 	void ApplyInputMappingFromMode(UPlayerModeBase* InMode);
 
-	
+
 	
 	UPROPERTY()
 	TMap<EPlayerModeType, TObjectPtr<UPlayerModeBase>> PlayerModeMap;
@@ -105,7 +138,21 @@ protected:
 	
 	void ApplyCurrentPlayerModeIMC();
 	
-	
+
+	//Test Zone, Town UI
+	UPROPERTY()
+	TObjectPtr<AZoneManager> ZoneManager = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "World UI")
+	TSoftClassPtr<UWidget_ActivatableBase> TownWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget_ActivatableBase> CurrentTownWidget = nullptr;
+
+	void ApplyTownUIInputMode(UWidget_ActivatableBase* FocusWidget);
+	void RestoreWorldInputMode();
+
+	//Test Zone, Town UI
 	
 	
 	
