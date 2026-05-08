@@ -1,11 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include"../DialogueRarity.h"
 #include "Engine/DeveloperSettings.h"
 #include "DialogueDeveloperSettings.generated.h"
 
 class UDataTable;
 class UDialogueWidget;
+
 
 USTRUCT()
 struct FDialogueTableEntry
@@ -20,16 +22,21 @@ struct FDialogueTableEntry
 
 };
 
-
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Dialogue Settings"))
 class MUKSI_API UDialogueDeveloperSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(Config, EditAnywhere)
+	//Dialogue Tables
+	UPROPERTY(Config, EditAnywhere, Category = "Dialogue")
 	TArray<FDialogueTableEntry> DialogueTables;
 
+	//Dialogue Widgets
 	UPROPERTY(Config,EditAnywhere,BlueprintReadOnly,Category = "Dialogue")
 	TSoftClassPtr<UDialogueWidget> DialogueWidgetClass;
+	
+	//DialogueRarity
+	UPROPERTY(Config, EditAnywhere, Category = "Dialogue")
+	TMap<EDialogueRarity, float> RarityWeights;
 };

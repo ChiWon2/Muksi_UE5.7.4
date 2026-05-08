@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include"DialogueRarity.h"
 #include"DialogueMeta.generated.h"
 
 
@@ -24,5 +25,8 @@ public:
 	
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "bIsEntry", EditConditionHides))
 	EDialogueTriggerType TriggerType = EDialogueTriggerType::Single;
+
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "bIsEntry", EditConditionHides))
+	EDialogueRarity Rarity = EDialogueRarity::Common;
 
 };
