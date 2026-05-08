@@ -35,11 +35,11 @@ void UCharacterDataPanelWidget_Player::ApplyCharacterData(UCharacterDataBase* In
 		return;
 	}
 
-	if (CharacterDeckPanelWidget)
+	/*if (CharacterDeckPanelWidget)
 	{
 		CharacterDeckPanelWidget->SetDeckData(
 			InCharacterData->GetCardDataTable(),
 			InCharacterData->GetDeckCardRowNames()
 		);
-	}
+	}*/
 }

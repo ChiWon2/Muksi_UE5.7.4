@@ -73,8 +73,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> LeftClickAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> RightClickAction;
+	
+	
 
 	void OnLeftClick(const FInputActionValue& Value);
+	void OnRightClick(const FInputActionValue& Value);
 	
 	UPROPERTY()
 	TObjectPtr<UPlayerModeBase> CurrentPlayerMode = nullptr;

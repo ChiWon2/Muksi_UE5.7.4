@@ -6,7 +6,6 @@
 
 #include "Widget_CardEquipSlot.h"
 #include "Components/Button.h"
-#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -14,46 +13,42 @@
 #include "Muksi/Widgets/Components/InkLineWidget.h"
 #include "TimerManager.h"
 
+
+#include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+
 #include "MuksiDebugHelper.h"
+
+
 
 FWidgetCard::FWidgetCard()
 {
+	
 }
 
 void UHandWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	BattleManager = Cast<ABattleManager>(
-		UGameplayStatics::GetActorOfClass(GetWorld(), ABattleManager::StaticClass())
-	);
-	BattleManager->SetHandWidget(this);
-	BattleManager->SettingBattleManager();
+	
+	
 	
 	Debug::Print(TEXT("Battle Manager Settings"));
 	
-	if (Button_TurnEnd)
-	{
-		Button_TurnEnd->OnClicked.AddDynamic(this, &UHandWidget::OnClickedTurnEndButton);
-	}
+	BindEndTurnButton();
 
-	SpawnDefaultHandCards();
+	//SpawnDefaultHandCards();
 	
-	
+	InitializeExchangeSlots();
 }
 
 void UHandWidget::NativeDestruct()
 {
-	if (Button_TurnEnd)
-	{
-		Button_TurnEnd->OnClicked.RemoveDynamic(this, &UHandWidget::OnClickedTurnEndButton);
-	}
+	
 
-	if (BattleManager)
-	{
-		BattleManager->SetHandWidget(nullptr);
-	}
-
+	UnbindEndTurnButton();
+	
+	
 	ClearHandCards();
 	Super::NativeDestruct();
 }
@@ -235,6 +230,7 @@ void UHandWidget::ClearHandCards()
 	CardsStructArray.Empty();
 }
 
+
 void UHandWidget::SetHoveredCard(UWidget_BattleCardBase* InHoveredCard)
 {
 	HoveredCard = InHoveredCard;
@@ -253,6 +249,11 @@ void UHandWidget::ClearHoveredCard(UWidget_BattleCardBase* InCard)
 const FGeometry& UHandWidget::GetHandCanvasGeometry() const
 { return HandCanvas->GetCachedGeometry(); }
 
+UWidget_CardEquipSlot* UHandWidget::GetEquipSlot() const
+{
+	return nullptr;
+}
+
 void UHandWidget::RemoveBattleCards(UWidget_BattleCardBase* InCard)
 {
 	BattleCards.Remove(InCard);
@@ -261,7 +262,7 @@ void UHandWidget::RemoveBattleCards(UWidget_BattleCardBase* InCard)
 void UHandWidget::OnClickedTurnEndButton()
 {
 	Debug::Print(TEXT("Clicked Turn end button"));
-	if (!EquipSlotTest)
+	/*if (!EquipSlotTest)
 	{
 		return;
 	}
@@ -273,7 +274,7 @@ void UHandWidget::OnClickedTurnEndButton()
 	if (BattleManager)
 	{
 		BattleManager->EndExchange();
-	}
+	}*/
 }
 
 void UHandWidget::ActiveInkLine(FText& DisplayText,float DisplayTime)
@@ -300,6 +301,272 @@ void UHandWidget::DeActiveInkLine()
 {
 	InkLine->ResetInkLine();
 	InkLine->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void UHandWidget::ShowTurnEndButton(bool bShow)
+{
+	if (!Button_TurnEnd)
+	{
+		return;
+	}
+
+	Button_TurnEnd->SetVisibility(
+		bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+	);
+
+	Button_TurnEnd->SetIsEnabled(bShow);
+}
+
+FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber(int32 InIndex)
+{
+	const int32 SlotIndex = InIndex - 1;
+
+	if (!ExchangeSlots.IsValidIndex(SlotIndex))
+	{
+		return FCardEquipSlotData();
+	}
+
+	if (!ExchangeSlots[SlotIndex])
+	{
+		return FCardEquipSlotData();
+	}
+
+	return ExchangeSlots[SlotIndex]->GetSlotData();
+}
+
+void UHandWidget::ConfirmExchangeInput(int32 InIndex)
+{
+	UWidget_CardEquipSlot* EquipSlot = GetSlotByExchangeNumber(InIndex);
+
+	if (!EquipSlot)
+	{
+		return;
+	}
+
+	/*EquipSlot->ConfirmSlot();
+	EquipSlot->SetSlotEnabled(false);
+	EquipSlot->SetSlotHighlighted(false);
+	EquipSlot->SetSlotConfirmed(true);*/
+}
+
+void UHandWidget::StartExchangeInput(int32 ExchangeNumber)
+{
+	const int32 ActiveSlotIndex = ExchangeNumber - 1;
+
+	for (int32 i = 0; i < ExchangeSlots.Num(); i++)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Test"));
+		UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[i];
+
+		if (!EquipSlot)
+		{
+			continue;
+		}
+
+		const bool bActive = (i == ActiveSlotIndex);
+
+		/*EquipSlot->SetSlotEnabled(bActive);
+		EquipSlot->SetSlotHighlighted(bActive);*/
+	}
+}
+
+void UHandWidget::InitializeExchangeSlots()
+{
+	ExchangeSlots.Empty();
+
+	ExchangeSlots.Add(CardEquipSlot_1);
+	ExchangeSlots.Add(CardEquipSlot_2);
+	ExchangeSlots.Add(CardEquipSlot_3);
+
+	for (int32 i = 0; i < ExchangeSlots.Num(); i++)
+	{
+		UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[i];
+
+		if (!EquipSlot)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ExchangeSlots[%d] is null"), i);
+			continue;
+		}
+
+		const int32 SlotIndex = i;
+		const int32 ExchangeNumber = i + 1;
+
+		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
+		EquipSlot->ClearSlot();
+		/*EquipSlot->SetSlotEnabled(false);
+		EquipSlot->SetSlotHighlighted(false);
+		EquipSlot->SetSlotConfirmed(false);*/
+	}
+}
+
+void UHandWidget::EnableExchangeSlots(int32 InIndex)
+{
+	const int32 ActiveSlotIndex = InIndex - 1;
+
+	if (!ExchangeSlots.IsValidIndex(ActiveSlotIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput failed: invalid ExchangeNumber %d"), InIndex);
+		return;
+	}
+
+	for (int32 i = 0; i < ExchangeSlots.Num(); i++)
+	{
+		UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[i];
+
+		if (!EquipSlot)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput skipped: ExchangeSlots[%d] is null"), i);
+			continue;
+		}
+
+		const bool bActive = (i == ActiveSlotIndex);
+
+		EquipSlot->SetSlotEnabled(bActive);
+		EquipSlot->SetSlotHighlighted(bActive);
+
+		// 이미 확정된 슬롯은 다시 활성화하지 않으려면 이 부분은 상황에 따라 조절
+		if (bActive)
+		{
+			EquipSlot->SetSlotConfirmed(false);
+		}
+	}
+
+	//UE_LOG(LogTemp, Log, TEXT("StartExchangeInput: ExchangeNumber=%d, ActiveSlotIndex=%d"), ExchangeNumber, ActiveSlotIndex);
+}
+
+void UHandWidget::BindEndTurnButton()
+{
+	if (!Button_TurnEnd)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HandWidget: EndTurnButton is null"));
+		return;
+	}
+
+	// 중복 바인딩 방지
+	Button_TurnEnd->OnClicked.RemoveAll(this);
+	//Button_TurnEnd->OnClicked().RemoveAll(this);
+
+	Button_TurnEnd->OnClicked.AddDynamic(
+		this,
+		&UHandWidget::HandleEndTurnButtonClicked
+	);
+}
+
+void UHandWidget::UnbindEndTurnButton()
+{
+	if (!Button_TurnEnd)
+	{
+		return;
+	}
+
+	Button_TurnEnd->OnClicked.RemoveAll(this);
+}
+
+void UHandWidget::HandleEndTurnButtonClicked()
+{
+	UE_LOG(LogTemp, Log, TEXT("HandWidget: EndTurnButton clicked"));
+
+	OnEndTurnRequested.Broadcast();
+}
+
+UWidget_CardEquipSlot* UHandWidget::GetSlotByExchangeNumber(int32 ExchangeNumber) const
+{
+	const int32 SlotIndex = ExchangeNumber - 1;
+
+	if (!ExchangeSlots.IsValidIndex(SlotIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid ExchangeNumber: %d"), ExchangeNumber);
+		return nullptr;
+	}
+
+	return ExchangeSlots[SlotIndex];
+}
+
+void UHandWidget::BuildHandFromCharacterData(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets)
+{
+	if (BattleCardAssets.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BuildHandFromCharacterData failed: CharacterData is null"));
+		return;
+	}
+
+	ClearHandCards();
+
+	for (UMuksiBattleCardDataAsset* CardData : BattleCardAssets)
+	{
+		if (!CardData)
+		{
+			continue;
+		}
+
+		AddCardToHand(CardData);
+	}
+
+	OrganizeCards(DefaultCardSpacing);
+
+	/*UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("BuildHandFromCharacterData: %s / CardCount=%d"),
+		*GetNameSafe(CharacterData),
+		BattleCards.Num()
+	);	*/
+}
+
+void UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* CardData)
+{
+	if (!CardData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CardData is null"));
+		return;
+	}
+
+	if (!BattleCardClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: BattleCardClass is null"));
+		return;
+	}
+
+	if (!HandCanvas)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: HandCanvas is null"));
+		return;
+	}
+
+	UWidget_BattleCardBase* CardWidget =
+		CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
+
+	if (!CardWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed"));
+		return;
+	}
+
+	CardWidget->SetOwningHandWidget(this);
+	CardWidget->SetCardData(CardData);
+
+	if (UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(CardWidget))
+	{
+		CanvasSlot->SetAutoSize(true);
+		CanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
+		CanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
+		CanvasSlot->SetPosition(FVector2D::ZeroVector);
+		CanvasSlot->SetZOrder(BattleCards.Num());
+	}
+
+	FWidgetCard WidgetCard;
+	WidgetCard.Cards = CardWidget;
+	WidgetCard.ZIndex = BattleCards.Num();
+
+	CardsStructArray.Add(WidgetCard);
+	BattleCards.Add(CardWidget);
+
+	UE_LOG(LogTemp, Log, TEXT("AddCardToHand: %s"), *GetNameSafe(CardData));
+}
+
+void UHandWidget::BuildHandBattleStart()
+{
+	
 }
 
 
