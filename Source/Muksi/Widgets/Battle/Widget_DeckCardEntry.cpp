@@ -54,8 +54,8 @@ void UWidget_DeckCardEntry::RefreshCardData()
 	}
 	
 
-	if (CardImage && CardRow->CardTexture)
+	/*if (CardImage && CardRow->CardTexture)
 	{
 		CardImage->SetBrushFromTexture(CardRow->CardTexture);
-	}
+	}*/
 }

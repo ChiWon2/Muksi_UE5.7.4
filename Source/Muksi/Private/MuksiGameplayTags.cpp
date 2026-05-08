@@ -30,6 +30,9 @@ namespace MuksiGameplayTag
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_World_MainScreen, "Muksi.Widget.World.MainScreen");
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_World_Town, "Muksi.Widget.World.Town");
 	
+	//Muksi Dialogue Widgets
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Dialogue_Main, "Muksi.Widget.Dialogue.Main");
+	
 	//Muksi Options Image
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Image_TestImage, "Muksi.Image.TestImage")
 }

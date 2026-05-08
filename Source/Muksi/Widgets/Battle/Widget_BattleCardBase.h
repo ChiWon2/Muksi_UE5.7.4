@@ -8,6 +8,10 @@
 #include "Widget_BattleCardBase.generated.h"
 
 class UHandWidget;
+class UMuksiBattleCardDataAsset;
+class UCommonTextBlock;
+class UImage;
+
 /**
  * 
  */
@@ -37,6 +41,9 @@ public:
 	void SetOwningHandWidget(UHandWidget* InHandWidget);
 	void SetCardRenderAngle(float InAngle);
 	
+
+	UFUNCTION(BlueprintPure, Category = "BattleCard")
+	UMuksiBattleCardDataAsset* GetCardData() const { return CardData; }
 	
 protected:
 	UFUNCTION()
@@ -74,6 +81,22 @@ protected:
 	FTimeline MoveTimeline;
 	
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BattleCard")
+	TObjectPtr<UMuksiBattleCardDataAsset> CardData = nullptr;
 	
+public:
+	UFUNCTION(BlueprintCallable, Category = "BattleCard")
+	void SetCardData(UMuksiBattleCardDataAsset* InCardData);
 	
+protected:
+	// ***** BindWidget *****//
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> Text_CardName;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> Text_CardDescription;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> Image_CardArt;
+	// ***** BindWidget *****//
 };

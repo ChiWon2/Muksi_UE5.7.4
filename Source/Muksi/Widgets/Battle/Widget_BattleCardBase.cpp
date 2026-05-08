@@ -3,11 +3,11 @@
 
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 
+#include "CommonTextBlock.h"
 #include "HandWidget.h"
 #include "Widget_CardEquipSlot.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
 void UWidget_BattleCardBase::NativeConstruct()
@@ -247,6 +247,17 @@ void UWidget_BattleCardBase::StopDragging()
 	{
 		OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
 	}
+}
+
+void UWidget_BattleCardBase::SetCardData(UMuksiBattleCardDataAsset* InCardData)
+{
+	CardData = InCardData;
+	
+	if (Text_CardName)
+	{
+		Text_CardName->SetText(CardData->CardName);
+	}
+
 }
 
 
