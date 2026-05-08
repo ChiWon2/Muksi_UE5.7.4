@@ -4,13 +4,24 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/Widget_ActivatableBase.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Widget_BattleMainScreen.generated.h"
 
 class UWidget_CharacterData;
 class UHandWidget;
 class UInkLineWidget;
+class UCharacterDataBase;
 
 class UButton;
+
+class ABattleManager;
+
+UENUM(BlueprintType)
+enum class EBattleUIPhase : uint8
+{	
+	None,
+	
+};
 
 /**
  * 
@@ -29,6 +40,7 @@ public:
 protected:
 	//~Begin UCommonActivatableWidget Interface
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	
 	
 	virtual FReply NativeOnMouseButtonDown(
@@ -48,6 +60,53 @@ protected:
 
 	//***** Bound Widgets ****
 	
+private:
+	UPROPERTY()
+	TObjectPtr<ABattleManager> CachedBattleManager;
 
+	void BindBattleManagerEvents();
+	void UnbindBattleManagerEvents();
 
+	UFUNCTION()
+	void HandleBattlePhaseChanged(EBattlePhase NewPhase);
+	
+	
+public:
+	//Handle HandWidget UI
+	UFUNCTION(BlueprintCallable)
+	void HandleExchangedStarted(int32 ExchangeNumber);
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleTurnEnd();
+	
+	UFUNCTION(BlueprintCallable)
+	void FinishCurrentExchange();
+	
+	UFUNCTION(BlueprintCallable)
+	void BindHandWidgetEvents();
+	
+	UFUNCTION(BlueprintCallable)
+	void UnbindHandWidgetEvents();
+	
+	bool CanRequestEndExchange();
+
+protected:
+	UPROPERTY()
+	TObjectPtr<UCharacterDataBase> PlayerBattleCharacter;
+	UPROPERTY()
+	TObjectPtr<UCharacterDataBase> EnemyBattleCharacter;
+	
+	UPROPERTY()
+	TObjectPtr<UMuksiCharacterDataAsset> PlayerDataAsset = nullptr;
+
+	//Send Info to BattleManager
+public:
+	UFUNCTION(BlueprintCallable)
+	void HandleBattleReady();
+	
+	
+	
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleBattleStarted();
 };

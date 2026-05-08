@@ -3,17 +3,15 @@
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
 
-#include "Components/Button.h"
-#include "AsyncActions/AsyncAction_PushSoftWidget.h"
-#include "MuksiGameplayTags.h"
+
 #include "Controllers/MuksiPlayerController.h"
 #include "Muksi/Widgets/Battle/HandWidget.h"
-#include "Muksi/Widgets/Components/InkLineWidget.h"
+#include "Kismet/GameplayStatics.h"
+#include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
+
 
 #include "MuksiDebugHelper.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
-
+#include "Muksi/Contents/Battle/CharacterDataBase.h"
 
 
 void UWidget_BattleMainScreen::NativeConstruct()
@@ -23,6 +21,9 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	
 	GetOwningMuksiPlayerController()->TestWidgetScreen = this;
 	
+	BindBattleManagerEvents();
+	BindHandWidgetEvents();
+	
 	//Debug::Print(TEXT("TestNativeConstruct"));
 	/*if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
 	{
@@ -31,6 +32,16 @@ void UWidget_BattleMainScreen::NativeConstruct()
 		FInputModeGameAndUI InputMode;
 		PC->SetInputMode(InputMode);
 	}*/
+	
+	CachedBattleManager->StartBattle();
+}
+
+void UWidget_BattleMainScreen::NativeDestruct()
+{
+	UnbindHandWidgetEvents();
+	UnbindBattleManagerEvents();
+	
+	Super::NativeDestruct();
 }
 
 FReply UWidget_BattleMainScreen::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -46,13 +57,371 @@ void UWidget_BattleMainScreen::NativeOnActivated()
 	//UE_LOG(LogTemp, Warning, TEXT("Frontend Reactivated"));
 	RequestRefreshFocus();
 	
-	if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
+	/*if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
 	{
 		Debug::Print(TEXT("TestNativeOnActivated"));
 		//FInputModeUIOnly InputMode;
 		FInputModeGameAndUI InputMode;
 		PC->SetInputMode(InputMode);
-	}
+	}*/
 }
+
+void UWidget_BattleMainScreen::BindBattleManagerEvents()
+{
+	CachedBattleManager = Cast<ABattleManager>(
+		UGameplayStatics::GetActorOfClass(
+			GetWorld(),
+			ABattleManager::StaticClass()
+		)
+	);
+
+	if (!CachedBattleManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: BattleManager not found"));
+		return;
+	}
+
+	// BattleManager 이벤트 바인딩
+	// 중복 되는 경우 방지하기 위해 Remove 한 이후 바인딩
+
+	//BattleReady 이벤트 (위젯 준비)
+	CachedBattleManager->OnBattleReady.RemoveDynamic(
+	this,
+	&UWidget_BattleMainScreen::HandleBattleReady
+);
+	
+	CachedBattleManager->OnBattleReady.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleBattleReady
+	);
+	
+	//BattleStarted 이벤트
+	CachedBattleManager->OnBattleStarted.RemoveDynamic(
+	this,
+	&UWidget_BattleMainScreen::HandleBattleStarted
+);
+
+	CachedBattleManager->OnBattleStarted.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleBattleStarted
+	);
+	
+	
+	//BattlePhase 변경시 이벤트 <- 안 쓸듯
+	CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleBattlePhaseChanged
+	);
+
+	CachedBattleManager->OnBattlePhaseChanged.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleBattlePhaseChanged
+	);
+	
+	
+	//합 시작 시 이벤트
+	CachedBattleManager->OnExchangeStarted.RemoveDynamic(
+	this,
+	&UWidget_BattleMainScreen::HandleExchangedStarted
+	);
+
+	CachedBattleManager->OnExchangeStarted.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleExchangedStarted
+	);
+	
+	
+
+	// 이벤트를 놓쳤을 수도 있으니 현재 페이즈와 UI를 즉시 동기화
+	HandleBattlePhaseChanged(CachedBattleManager->GetCurrentPhase());
+}
+
+void UWidget_BattleMainScreen::UnbindBattleManagerEvents()
+{
+	if (!CachedBattleManager)
+	{
+		return;
+	}
+	
+	//BattleStarted 시 이벤트 UnBind
+	CachedBattleManager->OnBattleStarted.RemoveDynamic(
+	this,
+	&UWidget_BattleMainScreen::HandleBattleStarted
+);
+
+	//BattlePhase 변경 시 이벤트 UnBind <- 안 쓸듯
+	CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleBattlePhaseChanged
+	);
+
+	CachedBattleManager = nullptr;
+}
+
+void UWidget_BattleMainScreen::HandleBattlePhaseChanged(EBattlePhase NewPhase)
+{
+	/*switch (NewPhase)
+	{
+	case EBattlePhase::BattleStart:
+		UE_LOG(LogTemp, Log, TEXT("UI: BattleStart"));
+		break;
+
+	case EBattlePhase::PlayerTurnStart:
+		UE_LOG(LogTemp, Log, TEXT("UI: PlayerTurnStart"));
+		break;
+
+	case EBattlePhase::WaitingForCard:
+		UE_LOG(LogTemp, Log, TEXT("UI: 카드를 선택하세요"));
+		// ShowPhaseText(TEXT("카드를 선택하세요"));
+		// SetHandEnabled(true);
+		// ShowTargetGuide(false);
+		break;
+
+	case EBattlePhase::WaitingForTarget:
+		UE_LOG(LogTemp, Log, TEXT("UI: 대상을 선택하세요"));
+		// ShowPhaseText(TEXT("대상을 선택하세요"));
+		// SetHandEnabled(false);
+		// ShowTargetGuide(true);
+		break;
+
+	case EBattlePhase::ResolvingCard:
+		UE_LOG(LogTemp, Log, TEXT("UI: 카드 처리 중"));
+		// SetHandEnabled(false);
+		break;
+
+	case EBattlePhase::EnemyTurn:
+		UE_LOG(LogTemp, Log, TEXT("UI: 적 턴"));
+		// ShowPhaseText(TEXT("적 턴"));
+		// SetHandEnabled(false);
+		// ShowTargetGuide(false);
+		break;
+
+	case EBattlePhase::BattleEnd:
+		UE_LOG(LogTemp, Log, TEXT("UI: 전투 종료"));
+		// PushBattleResultWidget();
+		break;
+
+	default:
+		break;
+	}*/
+}
+
+void UWidget_BattleMainScreen::HandleExchangedStarted(int32 ExchangeNumber)
+{
+	if (ExchangeNumber == 1)
+	{
+		HandWidget->BuildHandFromCharacterData(PlayerBattleCharacter->GetCharacterDeck());
+		/*UE_LOG(LogTemp, Log, TEXT("Exchange Test"));
+		return;*/
+	}
+	
+	if (!HandWidget)
+	{
+		return;
+	}
+
+	FText DisplayText = FText::FromString(
+		FString::Printf(TEXT("%d 합 시작!!"), ExchangeNumber)
+	);
+
+	HandWidget->ActiveInkLine(DisplayText, 3.f);
+	HandWidget->StartExchangeInput(ExchangeNumber);
+	HandWidget->EnableExchangeSlots(ExchangeNumber);
+	HandWidget->ShowTurnEndButton(true);
+}
+
+void UWidget_BattleMainScreen::HandleTurnEnd()
+{
+	if (CachedBattleManager)
+	{
+		if (CanRequestEndExchange())
+		{
+			FinishCurrentExchange();
+		}
+	}
+	
+}
+
+void UWidget_BattleMainScreen::FinishCurrentExchange()
+{
+	if (!CachedBattleManager || !HandWidget)
+	{
+		return;
+	}
+
+	if (CachedBattleManager->GetCurrentPhase() != EBattlePhase::Exchange)
+	{
+		return;
+	}
+
+	const int32 ExchangeNumber = CachedBattleManager->GetCurrentExchange();
+
+	FCardEquipSlotData SlotData =
+		HandWidget->GetSlotDataByExchangeNumber(ExchangeNumber);
+
+	HandWidget->ConfirmExchangeInput(ExchangeNumber);
+
+	CachedBattleManager->RequestEndExchange();
+}
+
+void UWidget_BattleMainScreen::BindHandWidgetEvents()
+{
+	if (!HandWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: HandWidget is null"));
+		return;
+	}
+
+	// 중복 바인딩 방지
+	HandWidget->OnEndTurnRequested.RemoveDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleTurnEnd
+	);
+
+	HandWidget->OnEndTurnRequested.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleTurnEnd
+	);
+}
+
+void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
+{
+	if (!HandWidget)
+	{
+		return;
+	}
+
+	HandWidget->OnEndTurnRequested.RemoveDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleTurnEnd
+	);
+}
+
+bool UWidget_BattleMainScreen::CanRequestEndExchange()
+{
+	if (!CachedBattleManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: BattleManager is null"));
+		return false;
+	}
+
+	if (!HandWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: HandWidget is null"));
+		return false;
+	}
+
+	if (!CachedBattleManager->IsBattleStarted())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: battle is not started"));
+		return false;
+	}
+
+	if (CachedBattleManager->GetCurrentPhase() != EBattlePhase::Exchange)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("CanRequestEndExchange failed: CurrentPhase is not Exchange")
+		);
+		return false;
+	}
+
+	const int32 ExchangeNumber = CachedBattleManager->GetCurrentExchange();
+
+	if (ExchangeNumber < 1 || ExchangeNumber > 3)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("CanRequestEndExchange failed: invalid ExchangeNumber %d"),
+			ExchangeNumber
+		);
+		return false;
+	}
+
+	return true;
+}
+
+void UWidget_BattleMainScreen::HandleBattleReady()
+{
+	//Battle Ready 시점 처리
+	/*UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleReady"));
+	if (!CachedBattleManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: CachedBattleManager is null"));
+		return;
+	}
+
+	
+	UMuksiCharacterDataAsset* PlayerData =
+		CachedBattleManager->GetPlayerCharacterDataAsset();
+		*/
+	
+	
+	
+	//return;
+	UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleReady"));
+
+	if (!CachedBattleManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: CachedBattleManager is null"));
+		return;
+	}
+
+	if (!HandWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: HandWidget is null"));
+		return;
+	}
+
+	HandWidget->InitializeExchangeSlots();
+	HandWidget->ShowTurnEndButton(false);
+	PlayerBattleCharacter = CachedBattleManager->GetPlayerCharacterData();
+	
+	UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady successfully"));
+	CachedBattleManager->NotifyBattleReadyFinished();
+
+}
+
+void UWidget_BattleMainScreen::HandleBattleStarted()
+{
+	//BattleStart 시점 처리 
+	UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleStarted"));
+
+	if (!CachedBattleManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: CachedBattleManager is null"));
+		return;
+	}
+
+	PlayerDataAsset =
+		CachedBattleManager->GetPlayerCharacterDataAsset();
+	
+	
+	if (!PlayerDataAsset)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: PlayerData is null"));
+		return;
+	}
+	
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("HandleBattleStarted PlayerData: %s"),
+		*GetNameSafe(PlayerDataAsset)
+	);
+	
+	if (!HandWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: HandWidget is null"));
+		return;
+	}
+
+	
+	CachedBattleManager->NotifyBattleStartFinished();
+	
+}
+
 
 

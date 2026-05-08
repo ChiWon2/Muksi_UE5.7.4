@@ -2,6 +2,8 @@
 
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 // Sets default values
 ABattleCharacterBase::ABattleCharacterBase()
@@ -46,6 +48,24 @@ void ABattleCharacterBase::HandleClicked(AActor* TouchedActor, FKey ButtonPresse
 		*ButtonPressed.ToString());
 }
 
+void ABattleCharacterBase::SetCharacterData(UCharacterDataBase* InCharacterData)
+{
+	CharacterData = InCharacterData;
+
+	if (!CharacterData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterData is null"));
+		return;
+	}
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("BattleCharacterBase SetCharacterData: %s"),
+		*GetNameSafe(CharacterData)
+	);
+}
+
 
 void ABattleCharacterBase::OnSelected()
 {
@@ -56,4 +76,5 @@ void ABattleCharacterBase::OnDeselected()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Deselected"));
 }
+
 

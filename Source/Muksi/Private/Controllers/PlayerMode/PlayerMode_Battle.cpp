@@ -81,7 +81,7 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 
 void UPlayerMode_Battle::InitializeBattleTestData()
 {
-	if (!BattleCardDataTable || !TestPlayerCharacterDataAsset || !TestEnemyCharacterDataAsset)
+	/*if (!BattleCardDataTable || !TestPlayerCharacterDataAsset || !TestEnemyCharacterDataAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UPlayerMode::InitializeBattleTestData - Required asset is missing"));
 		return;
@@ -92,13 +92,13 @@ void UPlayerMode_Battle::InitializeBattleTestData()
 
 	if (PlayerCharacterData)
 	{
-		PlayerCharacterData->InitializeFromDataAsset(TestPlayerCharacterDataAsset, BattleCardDataTable);
+		PlayerCharacterData->InitializeFromDataAsset(TestPlayerCharacterDataAsset);
 	}
 
 	if (EnemyCharacterData)
 	{
-		EnemyCharacterData->InitializeFromDataAsset(TestEnemyCharacterDataAsset, BattleCardDataTable);
-	}
+		EnemyCharacterData->InitializeFromDataAsset(TestEnemyCharacterDataAsset);
+	}*/
 }
 
 

@@ -7,6 +7,11 @@
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
 
+class UMuksiBattleCardDataAsset;
+class UMuksiCharacterDataAsset;
+class UCharacterDataBase;
+class UStaticMeshComponent;
+
 UCLASS()
 class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacterInterface
 {
@@ -34,9 +39,24 @@ protected:
 	void HandleClicked(AActor* TouchedActor, FKey ButtonPressed);
 	
 	//FCharacterDisplayData CharacterDisplayData;
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
+	void SetCharacterData(UCharacterDataBase* InCharacterData);
+	
+	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
+	UCharacterDataBase* GetCharacterData() const {return CharacterData;};
+	
+protected:
+	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;	
 public:
 	//virtual FCharacterDisplayData GetCharacterDisplayData() const override;
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
+	
+	
+	
+	
+	
 
 };
