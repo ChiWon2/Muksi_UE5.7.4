@@ -82,6 +82,11 @@ void UDialogueSubsystem::LoadDialogueByKey(const FDialogueKey& Key)
     FDialogueRow* Row = Table->FindRow<FDialogueRow>(Key.RowID, TEXT(""));
     if (!Row) return;
 
+    if (Row->meta.bIsEntry)
+    {
+        OnDialogueEntryStarted.Broadcast(*Row);
+    }
+
     CurrentDialogueKey = Key;
     CurrentDialogueTable = Table;
     CurrentTableID = FinalTableID;
