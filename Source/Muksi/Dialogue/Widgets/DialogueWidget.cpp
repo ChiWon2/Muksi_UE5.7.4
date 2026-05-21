@@ -92,8 +92,11 @@ void UDialogueWidget::UnbindFromSubsystem()
 void UDialogueWidget::OnDialogueEntryStarted(const FDialogueRow& RowData)
 {
 	const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
-	const FDialogueEffectPreset* Preset = Settings->DialogueEffectPresets.Find(RowData.meta.Rarity);
-	DialogueEffectOverlay->PlayEffect(*Preset);
+	if (Settings->bUseOverlayEffect)
+	{
+		const FDialogueEffectPreset* Preset = Settings->DialogueEffectPresets.Find(RowData.meta.Rarity);
+		DialogueEffectOverlay->PlayEffect(*Preset);
+	}
 }
 
 void UDialogueWidget::OnDialogueTextUpdated(const FText& NewText)

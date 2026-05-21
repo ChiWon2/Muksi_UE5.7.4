@@ -49,6 +49,10 @@ public:
 
 
 	// rarity Effects
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Dialogue|Effect")
+	bool bUseOverlayEffect = false;
+
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Dialogue|Effect")
 	TMap<EDialogueRarity, FDialogueEffectPreset> DialogueEffectPresets;
 };
