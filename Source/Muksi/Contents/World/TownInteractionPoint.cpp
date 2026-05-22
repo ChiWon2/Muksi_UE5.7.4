@@ -90,7 +90,6 @@ void ATownInteractionPoint::Interact(AActor* Interactor)
 		return;
 	}
 
-	const FZoneData ZoneData = PC->GetCurrentZoneData();
 	if (!TownDataAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("TownInteractionPoint failed: TownDataAsset is null"));
