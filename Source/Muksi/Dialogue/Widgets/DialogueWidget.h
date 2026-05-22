@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include"../DialogueRow.h"
 #include "DialogueOptionWidget.h"
 #include "../../Public/Widgets/Widget_ActivatableBase.h"
 #include "DialogueWidget.generated.h"
@@ -12,6 +13,7 @@ class URichTextBlock;
 class UVerticalBox;
 class UDialogueSubsystem;
 class UTravelTimeSubsystem;
+class UDialogueEffectOverlayWidget;
 class UImage;
 
 UCLASS()
@@ -36,10 +38,18 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UVerticalBox* VB_Options;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UDialogueEffectOverlayWidget> DialogueEffectOverlay;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dialogue")
 	TSubclassOf<UDialogueOptionWidget> DialogueOptionWidgetClass;
 
+
+
 protected:
+	UFUNCTION()
+	void OnDialogueEntryStarted(const FDialogueRow& RowData);
+
 	UFUNCTION()
 	void OnDialogueTextUpdated(const FText& NewText);
 
@@ -61,13 +71,12 @@ private:
 	void UnbindFromSubsystem();
 
 private:
-	void StartTravelTime();
-	void StopTravelTime();
 	bool IsOptionSelectable(const FDialogueOption& Option) const;
 private:
 	UPROPERTY()
 	UDialogueSubsystem* DialogueSubSystem;
 	UPROPERTY()
 	UTravelTimeSubsystem* TravelTimeSystem;
+
 	TSoftObjectPtr<UTexture2D> CurrentImagePtr;
 };

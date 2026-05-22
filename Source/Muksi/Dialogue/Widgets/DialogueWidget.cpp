@@ -8,6 +8,8 @@
 #include "Components/RichTextBlock.h"
 #include "Components/Image.h"
 
+#include"../DeveloperSettings/DialogueDeveloperSettings.h"
+#include"DialogueEffectOverlayWidget.h"
 #include "../DialogueSubsystem.h"
 #include "../TravelTime/TravelTimeSubsystem.h"
 #include"../ConditionHandle/CondTree/ConditionTreeEvaluator.h"
@@ -35,14 +37,14 @@ void UDialogueWidget::NativeOnActivated()
 
 	BindToSubsystem();
 
-	StopTravelTime();
+	TravelTimeSystem->StopTravelTime();
 }
 
 void UDialogueWidget::NativeOnDeactivated()
 {
 	UnbindFromSubsystem();
 
-	StartTravelTime();
+	TravelTimeSystem->StartTravelTime();
 	Super::NativeOnDeactivated();
 }
 
@@ -60,6 +62,7 @@ void UDialogueWidget::BindToSubsystem()
 	{
 		return;
 	}
+	DialogueSubSystem->OnDialogueEntryStarted.AddDynamic(this, &UDialogueWidget::OnDialogueEntryStarted);
 
 	DialogueSubSystem->OnDialogueTextUpdated.AddDynamic(this,&UDialogueWidget::OnDialogueTextUpdated);
 
@@ -75,6 +78,8 @@ void UDialogueWidget::UnbindFromSubsystem()
 	if (!DialogueSubSystem)
 		return;
 
+	DialogueSubSystem->OnDialogueEntryStarted.RemoveDynamic(this, &UDialogueWidget::OnDialogueEntryStarted);
+
 	DialogueSubSystem->OnDialogueTextUpdated.RemoveDynamic(this,&UDialogueWidget::OnDialogueTextUpdated);
 
 	DialogueSubSystem->OnDialogueImageUpdated.RemoveDynamic(this,&UDialogueWidget::OnDialogueImageUpdated);
@@ -82,6 +87,16 @@ void UDialogueWidget::UnbindFromSubsystem()
 	DialogueSubSystem->OnDialogueOptionsUpdated.RemoveDynamic(this,&UDialogueWidget::OnDialogueOptionsUpdated);
 
 	DialogueSubSystem->OnDialogueEnded.RemoveDynamic(this,&UDialogueWidget::OnDialogueEnded);
+}
+
+void UDialogueWidget::OnDialogueEntryStarted(const FDialogueRow& RowData)
+{
+	const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
+	if (Settings->bUseOverlayEffect)
+	{
+		const FDialogueEffectPreset* Preset = Settings->DialogueEffectPresets.Find(RowData.meta.Rarity);
+		DialogueEffectOverlay->PlayEffect(*Preset);
+	}
 }
 
 void UDialogueWidget::OnDialogueTextUpdated(const FText& NewText)
@@ -167,16 +182,6 @@ void UDialogueWidget::OnDialogueEnded()
 void UDialogueWidget::HandleOptionButtonClicked(int32 OptionIndex)
 {
 	DialogueSubSystem->SelectOption(OptionIndex);
-}
-
-void UDialogueWidget::StartTravelTime()
-{
-	TravelTimeSystem->StartTravelTime();
-}
-
-void UDialogueWidget::StopTravelTime()
-{
-	TravelTimeSystem->StopTravelTime();
 }
 
 bool UDialogueWidget::IsOptionSelectable(const FDialogueOption& Option) const

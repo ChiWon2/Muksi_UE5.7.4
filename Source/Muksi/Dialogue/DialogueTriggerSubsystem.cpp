@@ -9,8 +9,7 @@
 
 #include "DeveloperSettings/DialogueDeveloperSettings.h"
 
-UDialogueTriggerSubsystem*
-UDialogueTriggerSubsystem::Get(
+UDialogueTriggerSubsystem* UDialogueTriggerSubsystem::Get(
     const UObject* WorldContextObject)
 {
     if (!WorldContextObject)
@@ -18,12 +17,9 @@ UDialogueTriggerSubsystem::Get(
         return nullptr;
     }
 
-    UGameInstance* GI =
-        WorldContextObject->GetWorld()->GetGameInstance();
+    UGameInstance* GI = WorldContextObject->GetWorld()->GetGameInstance();
 
-    return GI
-        ? GI->GetSubsystem<UDialogueTriggerSubsystem>()
-        : nullptr;
+    return GI ? GI->GetSubsystem<UDialogueTriggerSubsystem>() : nullptr;
 }
 
 void UDialogueTriggerSubsystem::InitializeSubsystem()
@@ -54,9 +50,7 @@ void UDialogueTriggerSubsystem::InitializeSubsystem()
     }
 }
 
-void UDialogueTriggerSubsystem::FillUpTriggerKeys(
-    FName TableID,
-    UDataTable* DataTable)
+void UDialogueTriggerSubsystem::FillUpTriggerKeys(FName TableID,UDataTable* DataTable)
 {
     if (!DataTable)
     {

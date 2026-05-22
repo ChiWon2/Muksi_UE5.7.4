@@ -12,6 +12,7 @@ class UMuksiCharacterDataAsset;
 class UHandWidget;
 class UCharacterDataBase;
 class ATargetPoint;
+class ABattleGridManager;
 
 UENUM(BlueprintType)
 enum class EBattlePhase : uint8
@@ -286,6 +287,9 @@ public:
 	
 	TObjectPtr<ABattleCharacterBase> GetPlayerBattleCharacter(){return PlayerBattleCharacter;}
 	TObjectPtr<ABattleCharacterBase> GetEnemyBattleCharacter(){return EnemyBattleCharacter;}
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	TObjectPtr<ABattleGridManager> BattleGridManager;
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")

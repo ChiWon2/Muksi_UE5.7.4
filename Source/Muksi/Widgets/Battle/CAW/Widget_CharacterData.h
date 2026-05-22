@@ -10,8 +10,13 @@ class UCharacterDataPanelWidget_Enemy;
 class UCharacterDataPanelWidget_Player;
 class UButton;
 class UCharacterDeckData;
+
 class ABattleCharacter_Player;
 class ABattleCharacter_Enemy;
+
+class UCharacterDataBase;
+class UCharacterData_Player;
+class UCharacterData_Enemy;
 /**
  * 
  */
@@ -22,7 +27,7 @@ class MUKSI_API UWidget_CharacterData : public UWidget_ActivatableBase
 	
 public:
 	UFUNCTION(BlueprintCallable)
-	void CloseActivatabelWidget();
+	void CloseActivatableWidget();
 	
 	
 protected:
@@ -39,12 +44,29 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UCharacterDataPanelWidget_Player* PlayerDataPanelWidget;
 	UPROPERTY(meta = (BindWidget))
-	UCharacterDataPanelWidget_Enemy* EnemyDeckDataPanelWidget;
+	UCharacterDataPanelWidget_Enemy* EnemyDataPanelWidget;
 	//***** BindWidget *****	
 	
-	UPROPERTY()
+	/*UPROPERTY()
 	ABattleCharacter_Player* PlayerCharacterData;
 	UPROPERTY()
-	ABattleCharacter_Enemy* EnemyCharacterData;
+	ABattleCharacter_Enemy* EnemyCharacterData;*/
 	
+	
+	//Connect PlayerMode_Battle
+public:
+	void GetClickedActor(AActor* ClickedActor){SelectedActor = ClickedActor;};
+	
+	void GetCharacterData(UCharacterDataBase* CharacterData);
+protected:
+	UPROPERTY()
+	TObjectPtr<AActor> SelectedActor = nullptr;
+	
+	
+	UPROPERTY()
+	TObjectPtr<UCharacterData_Player> PlayerData = nullptr;
+	UPROPERTY()
+	TObjectPtr<UCharacterData_Enemy> EnemyData = nullptr;
+	
+	void SetWidgetVisible();
 };

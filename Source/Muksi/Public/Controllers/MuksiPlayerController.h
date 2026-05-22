@@ -52,7 +52,7 @@ public:
 	UPlayerModeBase* GetCurrentPlayerMode() const;
 	
 	UFUNCTION(BlueprintCallable)
-	void ChangePlayerMode(EPlayerModeType ModeType);
+	void ChangePlayerMode(TSubclassOf<UPlayerModeBase> NewPlayerModeClass);
 	
 	
 	
