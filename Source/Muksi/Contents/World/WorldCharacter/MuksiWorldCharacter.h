@@ -14,6 +14,8 @@ class UEnhancedInputComponent;
 class ATownInteractionPoint;
 
 class UStatComponent;
+class UInventoryComponent;
+class UEquipmentComponent;
 
 UCLASS()
 class MUKSI_API AMuksiWorldCharacter : public ACharacter
@@ -40,6 +42,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> InteractAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> InventoryEquipmentAction;
+
 protected:
 	/** True if the controlled character should navigate to the mouse cursor. */
 	uint32 bMoveToMouseCursor : 1;
@@ -61,6 +66,14 @@ protected:
 	//StatComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStatComponent> StatComponent = nullptr;
+
+	//InventoryComponent
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UInventoryComponent> InventoryComponent = nullptr;
+
+	//EquipmentComponent
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UEquipmentComponent> EquipmentComponent = nullptr;
 
 	/** Input handlers */
 	void OnInputStarted();
@@ -97,4 +110,14 @@ public:
 	//Component
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UStatComponent* GetStatComponent() const { return StatComponent; }
+
+	//InventoryComponent
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+	//EquipmentComponent
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UEquipmentComponent* GetEquipmentComponent() const { return EquipmentComponent; }
+
+	void OpenInventoryEquipment(const FInputActionValue& Value);
 };

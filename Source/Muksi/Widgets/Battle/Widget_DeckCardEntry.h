@@ -20,6 +20,9 @@ class MUKSI_API UWidget_DeckCardEntry : public UUserWidget
 public:
 	UFUNCTION(BlueprintCallable, Category = "Deck Card Entry")
 	void SetCardRowData(UDataTable* InCardDataTable, FName InCardRowName);
+	
+	UFUNCTION()
+	void SetCardDataAsset(UMuksiBattleCardDataAsset* InCardDataAsset);
 
 protected:
 	//~ Begin UUserWidget Interface
@@ -46,5 +49,10 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> CardNameText;
 	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> CardDescriptionText;
+	
 	//***** BindWidget *****
+	
+	
 };

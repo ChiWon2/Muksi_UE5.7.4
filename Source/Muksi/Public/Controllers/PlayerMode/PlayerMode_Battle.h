@@ -9,6 +9,7 @@
 class UDataTable;
 class UCharacterDataBase;
 class UMuksiCharacterDataAsset;
+class UWidget_ActivatableBase;
 
 /**
  * 
@@ -54,5 +55,11 @@ protected:
 	TObjectPtr<UCharacterDataBase> EnemyCharacterData = nullptr;
 	
 	
+private:
+	void PushCharacterDataWidget();
 	
+	UPROPERTY()
+	TObjectPtr<AActor> SelectedActor;
+	UPROPERTY(EditDefaultsOnly, Category = "Battle UI")
+	TSoftClassPtr<UWidget_ActivatableBase> WidgetCharacterDataClass;
 };

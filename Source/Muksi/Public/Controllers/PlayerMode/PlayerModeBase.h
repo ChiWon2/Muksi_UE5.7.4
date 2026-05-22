@@ -9,6 +9,7 @@
 
 class AMuksiPlayerController;
 class UInputMappingContext;
+class ACineCameraActor;
 
 /**
  * 
@@ -27,11 +28,19 @@ public:
 	virtual void HandleLeftClick(const FInputActionValue& Value);
 	virtual void HandleRightClick(const FInputActionValue& Value);
 	
+	TObjectPtr<ACineCameraActor> ApplyStartCamera();
 	
+	//TObjectPtr<ACineCameraActor> GetViewCameraActor()const{return ModeViewCamera;};
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> IMC = nullptr;
 	
 	UPROPERTY()
 	TObjectPtr<AMuksiPlayerController> PC;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")
+	TObjectPtr<ACineCameraActor> ModeViewCamera;
+	
+	
+	
 };

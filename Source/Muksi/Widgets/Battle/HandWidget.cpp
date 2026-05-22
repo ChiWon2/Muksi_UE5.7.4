@@ -223,7 +223,7 @@ void UHandWidget::ClearHandCards()
 {
 	if (HandCanvas)
 	{
-		HandCanvas->ClearChildren();
+		//HandCanvas->ClearChildren();
 	}
 	HoveredCard = nullptr;
 	BattleCards.Empty();
@@ -372,6 +372,8 @@ void UHandWidget::StartExchangeInput(int32 ExchangeNumber)
 
 void UHandWidget::InitializeExchangeSlots()
 {
+	
+	
 	ExchangeSlots.Empty();
 
 	ExchangeSlots.Add(CardEquipSlot_1);
@@ -393,9 +395,9 @@ void UHandWidget::InitializeExchangeSlots()
 
 		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
 		EquipSlot->ClearSlot();
-		/*EquipSlot->SetSlotEnabled(false);
+		EquipSlot->SetSlotEnabled(false);
 		EquipSlot->SetSlotHighlighted(false);
-		EquipSlot->SetSlotConfirmed(false);*/
+		EquipSlot->SetSlotConfirmed(false);
 	}
 }
 

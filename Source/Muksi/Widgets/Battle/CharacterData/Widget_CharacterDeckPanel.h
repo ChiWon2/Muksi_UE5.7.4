@@ -18,8 +18,14 @@ class MUKSI_API UWidget_CharacterDeckPanel : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	/*UFUNCTION(BlueprintCallable, Category = "Character Deck Panel")
+	void SetDeckData(UDataTable* InCardDataTable, const TArray<FName>& InDeckCardRowNames);*/
+	
 	UFUNCTION(BlueprintCallable, Category = "Character Deck Panel")
-	void SetDeckData(UDataTable* InCardDataTable, const TArray<FName>& InDeckCardRowNames);
+	void SetDeckData(TArray<UMuksiBattleCardDataAsset*> InCardDataArray);
+	
+	UFUNCTION(BlueprintCallable, Category = "Character Deck Panel")
+	void RefreshDeckPanelFromArray();
 
 	UFUNCTION(BlueprintCallable, Category = "Character Deck Panel")
 	void RefreshDeckPanel();
@@ -46,4 +52,7 @@ protected:
 
 	UPROPERTY(Transient)
 	TArray<FName> CachedDeckCardRowNames;
+	
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> CachedCardDataArray;
 };
