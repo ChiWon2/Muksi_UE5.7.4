@@ -37,14 +37,14 @@ void UDialogueWidget::NativeOnActivated()
 
 	BindToSubsystem();
 
-	StopTravelTime();
+	TravelTimeSystem->StopTravelTime();
 }
 
 void UDialogueWidget::NativeOnDeactivated()
 {
 	UnbindFromSubsystem();
 
-	StartTravelTime();
+	TravelTimeSystem->StartTravelTime();
 	Super::NativeOnDeactivated();
 }
 
@@ -182,16 +182,6 @@ void UDialogueWidget::OnDialogueEnded()
 void UDialogueWidget::HandleOptionButtonClicked(int32 OptionIndex)
 {
 	DialogueSubSystem->SelectOption(OptionIndex);
-}
-
-void UDialogueWidget::StartTravelTime()
-{
-	TravelTimeSystem->StartTravelTime();
-}
-
-void UDialogueWidget::StopTravelTime()
-{
-	TravelTimeSystem->StopTravelTime();
 }
 
 bool UDialogueWidget::IsOptionSelectable(const FDialogueOption& Option) const

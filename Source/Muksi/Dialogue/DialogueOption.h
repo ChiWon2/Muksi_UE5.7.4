@@ -12,7 +12,7 @@ struct FDialogueOption
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (TitleProperty = "RowID"))
 	FDialogueKey NextDialogueKey;
 
 	UPROPERTY(EditAnywhere, meta = (MultiLine = true))

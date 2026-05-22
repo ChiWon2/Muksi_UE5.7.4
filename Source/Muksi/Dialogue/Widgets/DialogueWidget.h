@@ -71,8 +71,6 @@ private:
 	void UnbindFromSubsystem();
 
 private:
-	void StartTravelTime();
-	void StopTravelTime();
 	bool IsOptionSelectable(const FDialogueOption& Option) const;
 private:
 	UPROPERTY()

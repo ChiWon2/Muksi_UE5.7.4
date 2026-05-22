@@ -1,79 +1,130 @@
 #include "QuestSubsystem.h"
 
+#include "Engine/DataTable.h"
+#include "DeveloperSettings/QuestDeveloperSettings.h"
+#include "QuestInstance_Base.h"
+#include "QuestDetailRow.h"
+
 UQuestSubsystem* UQuestSubsystem::Get(const UObject* WorldContextObject)
 {
-    if (!WorldContextObject) return nullptr;
+    if (!WorldContextObject)
+        return nullptr;
 
     UGameInstance* GI = WorldContextObject->GetWorld()->GetGameInstance();
+
     return GI ? GI->GetSubsystem<UQuestSubsystem>() : nullptr;
 }
 
-void UQuestSubsystem::InitializeQuestSubsystem(UDataTable* InQuestDataTable)
+void UQuestSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-    QuestDataTable = InQuestDataTable;
+    Super::Initialize(Collection);
+
+    InitializeSubsystem();
 }
 
-UBase_QuestInstance* UQuestSubsystem::AddNewQuest(const FName& QuestID)
+void UQuestSubsystem::InitializeSubsystem()
 {
-    if (ActiveQuests.Contains(QuestID) ||CompletedQuests.Contains(QuestID))
+    const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
+
+    if (!Settings)
+        return;
+
+    LoadedTables.Empty();
+
+    for (const FQuestTableEntry& Entry : Settings->QuestTables)
     {
-        UE_LOG(LogTemp, Error, TEXT("[QuestSubsystem] : Already Has QuestID : %s"), *QuestID.ToString());
+        if (Entry.TableID.IsNone())
+            continue;
+
+        if (UDataTable* Table = Entry.Table.LoadSynchronous())
+        {
+            LoadedTables.Add( Entry.TableID, Table);
+
+            UE_LOG( LogTemp, Warning, TEXT("[QuestSubsystem] Loaded Table : %s"), *Entry.TableID.ToString());
+        }
+    }
+}
+
+const FQuestDetailRow* UQuestSubsystem::GetQuestRow(const FQuestKey& QuestKey) const
+{
+    const TObjectPtr<UDataTable>* FoundTable = LoadedTables.Find(QuestKey.TableID);
+
+    if (!FoundTable)
+    {
+        UE_LOG( LogTemp, Error, TEXT("[QuestSubsystem] Cannot Find TableID : %s"), *QuestKey.TableID.ToString());
         return nullptr;
     }
 
-    if (!QuestDataTable)
+    return (*FoundTable)->FindRow<FQuestDetailRow>( QuestKey.RowID, TEXT("GetQuestRow"));
+}
+
+UQuestInstance_Base* UQuestSubsystem::AddNewQuest(const FQuestKey& QuestKey)
+{
+    if (!QuestKey.IsValid())
     {
-        UE_LOG(LogTemp, Error, TEXT("[QuestSubsystem] : There is No DataTable References!"));
+        UE_LOG( LogTemp, Error, TEXT("[QuestSubsystem] Invalid QuestKey"));
         return nullptr;
     }
 
-    const FQuestDetailRow* QuestRow =QuestDataTable->FindRow<FQuestDetailRow>(QuestID,TEXT("AddNewQuest"));
+    if (ActiveQuests.Contains(QuestKey) || CompletedQuests.Contains(QuestKey))
+    {
+        UE_LOG( LogTemp, Error, TEXT("[QuestSubsystem] Already Has Quest : %s"), *QuestKey.ToString());
+
+        return nullptr;
+    }
+
+    const FQuestDetailRow* QuestRow = GetQuestRow(QuestKey);
 
     if (!QuestRow)
     {
-        UE_LOG(LogTemp, Error, TEXT("[QuestSubsystem] : Cannot Found QuestID : %s in the DataTable Row"), *QuestID.ToString());
+        UE_LOG( LogTemp, Error, TEXT("[QuestSubsystem] Cannot Find QuestRow : %s"), *QuestKey.ToString());
+
         return nullptr;
     }
 
-    UBase_QuestInstance* NewQuest = NewObject<UBase_QuestInstance>(this);
+    UQuestInstance_Base* NewQuest = NewObject<UQuestInstance_Base>(this);
 
-    NewQuest->InitializeQuestInstance(QuestID, *QuestRow , this);
+    NewQuest->InitializeQuestInstance( QuestKey, *QuestRow, this);
 
-    ActiveQuests.Add(QuestID, NewQuest);
+    ActiveQuests.Add(QuestKey, NewQuest);
 
-    UE_LOG(LogTemp, Warning, TEXT("[QuestSubsystem] QuestID : %s is Accept !!"), *QuestID.ToString());
+    UE_LOG( LogTemp, Warning, TEXT("[QuestSubsystem] Quest Accepted : %s"), *QuestKey.ToString());
 
     return NewQuest;
 }
 
-void UQuestSubsystem::CompleteQuest(const FName& QuestID)
+void UQuestSubsystem::CompleteQuest( const FQuestKey& QuestKey)
 {
-    UBase_QuestInstance* Quest = ActiveQuests.FindRef(QuestID);
+    UQuestInstance_Base* Quest = ActiveQuests.FindRef(QuestKey);
 
     if (!Quest)
         return;
 
-    // TODO : Reward 지급 내가 나중에 할거임
-    UE_LOG(LogTemp,Warning,TEXT("[QuestSubsystem] : QuestID %s is Completed!! %i XPReward Achieved"), *QuestID.ToString(), Quest->QuestDetails.Reward.XPReward);
-    ActiveQuests.Remove(QuestID);
-    CompletedQuests.Add(QuestID);
+    UE_LOG( LogTemp, Warning, TEXT("[QuestSubsystem] Quest Completed : %s"), *QuestKey.ToString());
 
-    OnQuestCompleted.Broadcast(GetQuestInstance(QuestID));
+    ActiveQuests.Remove(QuestKey);
+
+    CompletedQuests.Add(QuestKey);
+
+    OnQuestCompleted.Broadcast(Quest);
 }
 
-bool UQuestSubsystem::IsQuestActive(const FName& QuestID) const
+bool UQuestSubsystem::IsQuestActive( const FQuestKey& QuestKey) const
 {
-    return ActiveQuests.Contains(QuestID);
+    return ActiveQuests.Contains(QuestKey);
 }
 
-bool UQuestSubsystem::IsQuestCompleted(const FName& QuestID) const
+bool UQuestSubsystem::IsQuestCompleted( const FQuestKey& QuestKey) const
 {
-    return CompletedQuests.Contains(QuestID);
+    return CompletedQuests.Contains(QuestKey);
 }
 
-UBase_QuestInstance* UQuestSubsystem::GetQuestInstance(const FName& QuestID) const
+UQuestInstance_Base* UQuestSubsystem::GetQuestInstance(const FQuestKey& QuestKey) const
 {
-    return ActiveQuests.FindRef(QuestID);
+    return ActiveQuests.FindRef(QuestKey);
 }
 
-
+const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& UQuestSubsystem::GetActiveQuests() const
+{
+    return ActiveQuests;
+}

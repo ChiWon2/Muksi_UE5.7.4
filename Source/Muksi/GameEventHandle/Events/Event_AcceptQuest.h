@@ -11,5 +11,8 @@ struct FEvent_AcceptQuest : public FEvent_Base
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FName QuestTableID;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FName QuestID;
 };
