@@ -8,6 +8,7 @@
 
 class UDialogueWidget;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueEntryStarted, const FDialogueRow&, RowData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueTextUpdated, const FText&, Text);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueOptionsUpdated, const TArray<FDialogueOption>&, Options);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDialogueEnded);
@@ -22,6 +23,8 @@ public:
     static UDialogueSubsystem* Get(const UObject* WorldContextObject);
     void InitializeSubsystem();
 public:
+    UPROPERTY(BlueprintAssignable)
+    FOnDialogueEntryStarted OnDialogueEntryStarted;
     UPROPERTY(BlueprintAssignable)
     FOnDialogueOptionsUpdated OnDialogueOptionsUpdated;
 

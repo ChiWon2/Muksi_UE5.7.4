@@ -63,6 +63,21 @@ void UDialogueSubsystem::StartDialogueByKey(const FDialogueKey& Key)
         {
             LoadDialogueByKey(Key);
             UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.0001f);
+
+            FName FinalTableID = Key.TableID.IsNone() ? CurrentTableID : Key.TableID;
+
+            if (FinalTableID.IsNone()) return;
+
+            UDataTable* Table = GetTableByID(FinalTableID);
+            if (!Table) return;
+
+            FDialogueRow* Row = Table->FindRow<FDialogueRow>(Key.RowID, TEXT(""));
+            if (!Row) return;
+
+            if (Row->meta.bIsEntry)
+            {
+                OnDialogueEntryStarted.Broadcast(*Row);
+            }
         }
     );
 
