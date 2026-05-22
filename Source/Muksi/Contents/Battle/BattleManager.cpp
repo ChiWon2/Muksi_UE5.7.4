@@ -3,6 +3,8 @@
 
 #include "Muksi/Contents/Battle/BattleManager.h"
 
+#include "CharacterData_Enemy.h"
+#include "CharacterData_Player.h"
 #include "TimerManager.h"
 #include "Muksi/Widgets/Battle/HandWidget.h"
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
@@ -932,7 +934,7 @@ void ABattleManager::CreateCharacter()
 	PlayerCharacterData = nullptr;
 	EnemyCharacterData = nullptr;
 
-	PlayerCharacterData = NewObject<UCharacterDataBase>(this);
+	PlayerCharacterData = NewObject<UCharacterData_Player>(this);
 	if (!PlayerCharacterData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: PlayerCharacterData create failed"));
@@ -970,7 +972,7 @@ void ABattleManager::CreateCharacter()
 	
 	PlayerBattleCharacter->SetCharacterData(PlayerCharacterData);
 	
-	EnemyCharacterData = NewObject<UCharacterDataBase>(this);
+	EnemyCharacterData = NewObject<UCharacterData_Enemy>(this);
 	if (!EnemyCharacterData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: EnemyCharacterData create failed"));

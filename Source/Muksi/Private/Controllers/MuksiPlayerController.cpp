@@ -9,6 +9,7 @@
 #include "MuksiSettings/MuksiWorldSettings.h"
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
+#include "CineCameraActor.h"
 
 #include "NativeGameplayTags.h"
 #include "Muksi/Widgets/Battle/CAW/Widget_CharacterData.h"
@@ -225,7 +226,7 @@ void AMuksiPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	PlayerModeMap.Empty();
+	/*PlayerModeMap.Empty();
 	for (const TPair<EPlayerModeType, TSubclassOf<UPlayerModeBase>>& Pair : PlayerModeClasses)
 	{
 		if (!Pair.Value){continue;}
@@ -234,15 +235,30 @@ void AMuksiPlayerController::BeginPlay()
 		if (!NewPlayerMode){continue;}
 		
 		PlayerModeMap.Add(Pair.Key, NewPlayerMode);
+	}*/
+	
+	
+	TSubclassOf<UPlayerModeBase> StartPlayerModeClass = nullptr;
+	
+	if (AMuksiWorldSettings* MuksiWorldSettings = Cast<AMuksiWorldSettings>(GetWorld()->GetWorldSettings()))
+	{
+		StartPlayerModeClass = MuksiWorldSettings->StartPlayerModeClass;
 	}
 	
-	ChangePlayerMode(StartModeType);
+	if (!StartPlayerModeClass)
+	{
+		StartPlayerModeClass = UPlayerModeBase::StaticClass();
+	}
+	
+	
+	ChangePlayerMode(StartPlayerModeClass);
 	
 }
 
 void AMuksiPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+	UE_LOG(LogTemp, Warning, TEXT("SetupInputComponent TEST"));
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		if (LeftClickAction)
@@ -370,9 +386,9 @@ UPlayerModeBase* AMuksiPlayerController::GetCurrentPlayerMode() const
 	return CurrentPlayerMode;
 }
 
-void AMuksiPlayerController::ChangePlayerMode(EPlayerModeType ModeType)
+void AMuksiPlayerController::ChangePlayerMode(TSubclassOf<UPlayerModeBase> NewPlayerModeClass)
 {
-	if (TObjectPtr<UPlayerModeBase>* FoundMode = PlayerModeMap.Find(ModeType))
+	/*if (TObjectPtr<UPlayerModeBase>* FoundMode = PlayerModeMap.Find(ModeType))
 	{
 		CurrentModeType = ModeType;
 		if (CurrentPlayerMode == *FoundMode){return;}
@@ -390,5 +406,40 @@ void AMuksiPlayerController::ChangePlayerMode(EPlayerModeType ModeType)
 	}else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Can't find Player Mode Type in Map"));
+	}*/
+	
+	if (!NewPlayerModeClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ChangePlayerMode failed: NewPlayerModeClass is null"));
+		return;
 	}
+
+	if (CurrentPlayerMode && CurrentPlayerMode->GetClass() == NewPlayerModeClass)
+	{
+		UE_LOG(LogTemp, Log, TEXT("ChangePlayerMode skipped: already current mode"));
+		return;
+	}
+
+	if (CurrentPlayerMode)
+	{
+		CurrentPlayerMode->ExitMode();
+		CurrentPlayerMode = nullptr;
+	}
+
+	UPlayerModeBase* NewPlayerMode = NewObject<UPlayerModeBase>(this, NewPlayerModeClass);
+	if (!NewPlayerMode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ChangePlayerMode failed: NewObject failed"));
+		return;
+	}
+
+	CurrentPlayerMode = NewPlayerMode;
+	CurrentPlayerMode->EnterMode(this);
+	
+	/*ACineCameraActor* ViewCamera = CurrentPlayerMode->ApplyStartCamera();
+	SetViewTargetWithBlend(ViewCamera, 0.0f);*/
+
+	ApplyCurrentPlayerModeIMC();
+
+	UE_LOG(LogTemp, Log, TEXT("Changed PlayerMode: %s"), *GetNameSafe(CurrentPlayerMode));
 }

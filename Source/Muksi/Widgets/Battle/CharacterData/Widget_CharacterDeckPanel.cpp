@@ -9,12 +9,76 @@
 
 
 
-void UWidget_CharacterDeckPanel::SetDeckData(UDataTable* InCardDataTable, const TArray<FName>& InDeckCardRowNames)
+/*void UWidget_CharacterDeckPanel::SetDeckData(UDataTable* InCardDataTable, const TArray<FName>& InDeckCardRowNames)
 {
 	CachedCardDataTable = InCardDataTable;
 	CachedDeckCardRowNames = InDeckCardRowNames;
 
 	RefreshDeckPanel();
+}*/
+
+void UWidget_CharacterDeckPanel::SetDeckData(TArray<UMuksiBattleCardDataAsset*> InCardDataArray)
+{
+	CachedCardDataArray.Reset();
+
+	for (UMuksiBattleCardDataAsset* CardData : InCardDataArray)
+	{
+		if (IsValid(CardData))
+		{
+			CachedCardDataArray.Add(CardData);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SetDeckDataFromArray - Invalid CardData"));
+		}
+	}
+
+	RefreshDeckPanelFromArray();
+}
+
+void UWidget_CharacterDeckPanel::RefreshDeckPanelFromArray()
+{
+	ClearDeckPanel();
+
+	if (!DeckWrapBox)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RefreshDeckPanelFromArray - DeckWrapBox is null"));
+		return;
+	}
+
+	if (!DeckCardEntryClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RefreshDeckPanelFromArray - DeckCardEntryClass is null"));
+		return;
+	}
+
+	for (UMuksiBattleCardDataAsset* CardData : CachedCardDataArray)
+	{
+		if (!IsValid(CardData))
+		{
+			continue;
+		}
+
+		UWidget_DeckCardEntry* CardEntry =
+			CreateWidget<UWidget_DeckCardEntry>(GetOwningPlayer(), DeckCardEntryClass);
+
+		if (!CardEntry)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("RefreshDeckPanelFromArray - Failed to create CardEntry"));
+			continue;
+		}
+
+		CardEntry->SetCardDataAsset(CardData);
+
+		DeckWrapBox->AddChildToWrapBox(CardEntry);
+
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT("Created Card Entry: %s"),
+			*CardData->CardName.ToString()
+		);
+	}
 }
 
 void UWidget_CharacterDeckPanel::RefreshDeckPanel()

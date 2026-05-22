@@ -2,11 +2,14 @@
 
 #pragma once
 
+#include "Controllers/MuksiPlayerController.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/WorldSettings.h"
 #include "MuksiGameplayTags.h"
 #include "MuksiWorldSettings.generated.h"
 
+class UPlayerModeBase;
 /**
  * 
  */
@@ -21,4 +24,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Start Widget", DisplayName = "Get Start Widget Tag")
 	FGameplayTag GetStartupWidgetTag() const;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Muksi|PlayerMode")
+	TSubclassOf<UPlayerModeBase> StartPlayerModeClass;
+	
+	TSubclassOf<UPlayerModeBase> GetStartPlayerModeClass() const
+	{
+		return StartPlayerModeClass;
+	};
 };

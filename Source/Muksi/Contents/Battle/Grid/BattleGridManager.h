@@ -1,0 +1,119 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "BattleGridManager.generated.h"
+
+class ABattleGridTile;
+
+USTRUCT(BlueprintType)
+struct FBattleGridCell
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
+	FIntPoint GridCoord = FIntPoint::ZeroValue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
+	FVector WorldLocation = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
+	bool bWalkable = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
+	bool bOccupied = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
+	TObjectPtr<AActor> OccupyingActor = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
+	TObjectPtr<ABattleGridTile> TileActor = nullptr;
+};
+
+
+UCLASS()
+class MUKSI_API ABattleGridManager : public AActor
+{
+	GENERATED_BODY()
+	
+public:	
+	// Sets default values for this actor's properties
+	ABattleGridManager();
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+	
+	virtual void OnConstruction(const FTransform& Transform) override;
+
+public:	
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	int32 GridWidth = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	int32 GridHeight = 5;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	int32 GridX = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	int32 GridY = 5;
+
+	// 중심에서 꼭짓점까지 거리
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	float HexRadius = 100.0f;
+
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	TSubclassOf<ABattleGridTile> TileClass;*/
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	TArray<TSubclassOf<ABattleGridTile>> TileClasses;
+	
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	TArray<TObjectPtr<ABattleGridTile>> GridTilesArray;*/
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	TArray<FBattleGridCell> GridCells;
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	void GenerateGrid();
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	void ClearGrid();
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
+	bool IsValidCoord(const FIntPoint& Coord) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
+	int32 CoordToIndex(const FIntPoint& Coord) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
+	FVector HexGridToWorld(const FIntPoint& Coord) const;
+
+	FBattleGridCell* GetCell(const FIntPoint& Coord);
+	const FBattleGridCell* GetCell(const FIntPoint& Coord) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	TArray<FIntPoint> GetHexNeighbors(const FIntPoint& Coord) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	TArray<FIntPoint> GetMovableCoords(const FIntPoint& StartCoord, int32 MoveRange) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	bool SetOccupied(const FIntPoint& Coord, AActor* Actor);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	bool ClearOccupied(const FIntPoint& Coord);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	bool MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoord, const FIntPoint& ToCoord);
+};

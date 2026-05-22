@@ -6,6 +6,8 @@
 #include "Muksi/Widgets/Battle/CharacterData/CharacterDataPanelWidget.h"
 #include "CharacterDataPanelWidget_Enemy.generated.h"
 
+class UCharacterData_Enemy;
+
 /**
  * 
  */
@@ -13,5 +15,13 @@ UCLASS()
 class MUKSI_API UCharacterDataPanelWidget_Enemy : public UCharacterDataPanelWidget
 {
 	GENERATED_BODY()
+	
+public:
+	UFUNCTION()
+	void ApplyEnemyData(UCharacterData_Enemy* InEnemyData);
+	
+private:
+	UPROPERTY()
+	UCharacterData_Enemy* EnemyData;
 	
 };
