@@ -72,6 +72,6 @@ public:
 	void SetMuksiCharacterDataAsset(UMuksiCharacterDataAsset* CharacterDataAsset_){CharacterDataAsset = CharacterDataAsset_;};
 	UFUNCTION(BlueprintCallable)
 	bool RemoveCard(UMuksiBattleCardDataAsset* CardData);
-	
-	
+
+
 };

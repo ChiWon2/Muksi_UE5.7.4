@@ -2,6 +2,8 @@
 #include "Muksi/Contents/World/TownInteractionPoint.h"
 #include "Controllers/MuksiPlayerController.h"
 #include "Components/StatComponent.h"
+#include "Items/Components/InventoryComponent.h"
+#include "Items/Components/EquipmentComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
@@ -54,6 +56,8 @@ AMuksiWorldCharacter::AMuksiWorldCharacter()
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));
 }
 
 void AMuksiWorldCharacter::BeginPlay()
@@ -89,6 +93,11 @@ void AMuksiWorldCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		if (InteractAction)
 		{
 			EnhancedInput->BindAction(InteractAction, ETriggerEvent::Started, this, &AMuksiWorldCharacter::Interact);
+		}
+
+		if (InventoryEquipmentAction)
+		{
+			EnhancedInput->BindAction(InventoryEquipmentAction, ETriggerEvent::Started, this, &AMuksiWorldCharacter::OpenInventoryEquipment);
 		}
 	}
 }
@@ -188,4 +197,16 @@ void AMuksiWorldCharacter::Interact(const FInputActionValue& Value)
 
 	CurrentInteractionTarget->Interact(this);
 
+}
+
+
+void AMuksiWorldCharacter::OpenInventoryEquipment(const FInputActionValue& Value)
+{
+	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	PC->OpenInventoryEquipmentUI();
 }

@@ -1,0 +1,113 @@
+#include "Subsystems/MuksiPlayerDataSubsystem.h"
+
+#include "Muksi/Contents/World/WorldCharacter/MuksiWorldCharacter.h"
+#include "Components/StatComponent.h"
+#include "Items/Components/InventoryComponent.h"
+#include "Items/Components/EquipmentComponent.h"
+#include "Items/Data/MuksiItemDataAsset.h"
+
+#include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
+
+UMuksiPlayerDataSubsystem* UMuksiPlayerDataSubsystem::Get(const UObject* WorldContextObject)
+{
+	if (!WorldContextObject || !GEngine)
+	{
+		return nullptr;
+	}
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	UGameInstance* GameInstance = World->GetGameInstance();
+	return GameInstance ? GameInstance->GetSubsystem<UMuksiPlayerDataSubsystem>() : nullptr;
+}
+
+bool UMuksiPlayerDataSubsystem::ShouldCreateSubsystem(UObject* Outer) const
+{
+	if (!CastChecked<UGameInstance>(Outer)->IsDedicatedServerInstance())
+	{
+		TArray<UClass*> FoundClasses;
+		GetDerivedClasses(GetClass(), FoundClasses);
+
+		return FoundClasses.IsEmpty();
+	}
+
+	return false;
+}
+
+AMuksiWorldCharacter* UMuksiPlayerDataSubsystem::GetPlayerPawn() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	const APlayerController* PlayerController = World->GetFirstPlayerController();
+	if (!PlayerController)
+	{
+		return nullptr;
+	}
+
+	return Cast<AMuksiWorldCharacter>(PlayerController->GetPawn());
+}
+
+UStatComponent* UMuksiPlayerDataSubsystem::GetPlayerStatComponent() const
+{
+	const AMuksiWorldCharacter* PlayerPawn = GetPlayerPawn();
+	return PlayerPawn ? PlayerPawn->GetStatComponent() : nullptr;
+}
+
+UInventoryComponent* UMuksiPlayerDataSubsystem::GetPlayerInventoryComponent() const
+{
+	const AMuksiWorldCharacter* PlayerPawn = GetPlayerPawn();
+	return PlayerPawn ? PlayerPawn->GetInventoryComponent() : nullptr;
+}
+
+UEquipmentComponent* UMuksiPlayerDataSubsystem::GetPlayerEquipmentComponent() const
+{
+	const AMuksiWorldCharacter* PlayerPawn = GetPlayerPawn();
+	return PlayerPawn ? PlayerPawn->GetEquipmentComponent() : nullptr;
+}
+
+bool UMuksiPlayerDataSubsystem::HasItem(FName ItemID, int32 Count) const
+{
+	const UInventoryComponent* InventoryComponent = GetPlayerInventoryComponent();
+	return InventoryComponent ? InventoryComponent->HasItem(ItemID, Count) : false;
+}
+
+bool UMuksiPlayerDataSubsystem::IsEquippedItem(FName ItemID) const
+{
+	if (ItemID.IsNone())
+	{
+		return false;
+	}
+
+	const UEquipmentComponent* EquipmentComponent = GetPlayerEquipmentComponent();
+	if (!EquipmentComponent)
+	{
+		return false;
+	}
+
+	for (const TPair<EMuksiEquipmentSlot, FGuid>& Pair : EquipmentComponent->GetEquippedItemIds())
+	{
+		FMuksiInventoryEntry EquippedEntry;
+		if (!EquipmentComponent->GetEquippedItem(Pair.Key, EquippedEntry))
+		{
+			continue;
+		}
+
+		if (EquippedEntry.ItemData && EquippedEntry.ItemData->ItemID == ItemID)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}

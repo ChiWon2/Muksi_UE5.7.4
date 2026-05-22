@@ -19,11 +19,16 @@
 #include "Muksi/Contents/World/Zone/ZoneActor.h"
 #include "MuksiFunctionLibrary.h"
 #include "Widgets/Widget_ActivatableBase.h"
-#include "Blueprint/UserWidget.h"
-#include "Muksi/Contents/World/Data/TownDataAsset.h"
-#include "Widgets/World/Widget_WorldTown.h"
+#include "World/Components/TownUIControllerComponent.h"
 //Test Zone, Town UI
 
+//Test Equipment
+#include "MuksiGameplayTags.h"
+#include "World/Components/InventoryEquipmentUIComponent.h"
+//Test Equipment
+
+//Test Data Subsystem
+#include "Subsystems/MuksiPlayerDataSubsystem.h"
 
 #include "MuksiDebugHelper.h"
 #include "AsyncActions/AsyncAction_PushSoftWidget.h"
@@ -33,6 +38,11 @@
 AMuksiPlayerController::AMuksiPlayerController()
 {
 	bShowMouseCursor = true;
+
+	TownUIControllerComponent =
+		CreateDefaultSubobject<UTownUIControllerComponent>(TEXT("TownUIControllerComponent"));
+	InventoryEquipmentUIController = CreateDefaultSubobject<UInventoryEquipmentUIComponent>(TEXT("InventoryEquipmentUIController"));
+
 }
 
 
@@ -81,146 +91,40 @@ FZoneData AMuksiPlayerController::GetCurrentZoneData() const
 
 void AMuksiPlayerController::OpenTownUI(UTownDataAsset* InTownData)
 {
-	UE_LOG(LogTemp, Log, TEXT("OpenTownUI entered"));
-
-	if (CurrentTownWidget)
+	UE_LOG(LogTemp, Warning, TEXT("PC OpenTownUI called. TownUIController=%s"),
+		*GetNameSafe(TownUIControllerComponent));
+	
+	if (TownUIControllerComponent)
 	{
-		UE_LOG(LogTemp, Log, TEXT("OpenTownUI skipped: already open"));
-		return;
+		TownUIControllerComponent->OpenTownUI(InTownData);
 	}
-
-	const FZoneData ZoneData = GetCurrentZoneData();
-	if (!ZoneData.bCanOpenTownUI)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("OpenTownUI blocked: current zone does not allow Town UI"));
-		return;
-	}
-
-	UMuksiUISubsystem* UISubsystem = UMuksiUISubsystem::Get(this);
-	if (!UISubsystem)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("OpenTownUI failed: UISubsystem is null"));
-		return;
-	}
-
-	TSoftClassPtr<UWidget_ActivatableBase> ResolvedTownWidgetClass = TownWidgetClass;
-	if (ResolvedTownWidgetClass.IsNull())
-	{
-		ResolvedTownWidgetClass = UMuksiFunctionLibrary::GetMuksiSoftWidgetClassByTag(
-			MuksiGameplayTag::Muksi_Widget_World_Town
-		);
-	}
-
-	if (ResolvedTownWidgetClass.IsNull())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("OpenTownUI failed: TownWidgetClass is null"));
-		return;
-	}
-
-	UISubsystem->PushSoftWidgetToStackAsync(
-		this,
-		MuksiGameplayTag::Muksi_WidgetStack_GameHud,
-		ResolvedTownWidgetClass,
-		true,
-		[this, InTownData](UWidget_ActivatableBase* CreatedWidget)
-		{
-			if (!CreatedWidget)
-			{
-				return;
-			}
-
-			CurrentTownWidget = CreatedWidget;
-
-			if (UWidget_WorldTown* TownWidget = Cast<UWidget_WorldTown>(CreatedWidget))
-			{
-				TownWidget->InitializeTown(InTownData);
-				UE_LOG(LogTemp, Warning, TEXT("Town UI initialized with DataAsset: %s"), *GetNameSafe(InTownData));
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("CreatedWidget is not UWidget_WorldTown: %s"), *GetNameSafe(CreatedWidget));
-			}
-
-			ApplyTownUIInputMode(CreatedWidget);
-
-			UE_LOG(LogTemp, Log, TEXT("Town UI created: %s"), *GetNameSafe(CreatedWidget));
-		},
-		[this](UWidget_ActivatableBase* PushedWidget)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Town UI pushed: %s"), *GetNameSafe(PushedWidget));
-		}
-	);
 }
 
 void AMuksiPlayerController::CloseTownUI()
 {
-	UE_LOG(LogTemp, Warning, TEXT("CloseTownUI entered"));
-
-	if (!CurrentTownWidget)
+	if (TownUIControllerComponent)
 	{
-		RestoreWorldInputMode();
-		UE_LOG(LogTemp, Warning, TEXT("CloseTownUI: null path done"));
-		return;
+		TownUIControllerComponent->CloseTownUI();
 	}
-
-	UWidget_ActivatableBase* TownWidget = CurrentTownWidget;
-	CurrentTownWidget = nullptr;
-
-	RestoreWorldInputMode();
-	UE_LOG(LogTemp, Warning, TEXT("CloseTownUI: after RestoreWorldInputMode"));
-
-	if (TownWidget)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CloseTownUI: before DeactivateWidget %s"), *GetNameSafe(TownWidget));
-		TownWidget->DeactivateWidget();
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Town UI closed"));
 }
 
-
-
-void AMuksiPlayerController::ApplyTownUIInputMode(UWidget_ActivatableBase* FocusWidget)
+bool AMuksiPlayerController::IsTownUIOpen() const
 {
-	FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-	if (FocusWidget)
-	{
-		InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
-	}
-
-	SetInputMode(InputMode);
-
-	bShowMouseCursor = true;
-	bEnableClickEvents = true;
-	bEnableMouseOverEvents = true;
-
-	UE_LOG(LogTemp, Log, TEXT("ApplyTownUIInputMode: Town UI focus applied"));
-}
-
-
-void AMuksiPlayerController::RestoreWorldInputMode()
-{
-	FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-	SetInputMode(InputMode);
-
-	bShowMouseCursor = true;
-	bEnableClickEvents = true;
-	bEnableMouseOverEvents = true;
-
-	SetIgnoreMoveInput(false);
-	SetIgnoreLookInput(false);
-
-	UE_LOG(LogTemp, Log, TEXT("RestoreWorldInputMode: GameAndUI applied, cursor visible, click events enabled"));
+	return TownUIControllerComponent && TownUIControllerComponent->IsTownUIOpen();
 }
 
 
 //Test Zone, Town UI
+
+//Test Equipment
+void AMuksiPlayerController::OpenInventoryEquipmentUI()
+{
+	if (InventoryEquipmentUIController)
+	{
+		InventoryEquipmentUIController->OpenInventoryEquipmentUI();
+	}
+}
+//Test Equipment
 
 void AMuksiPlayerController::BeginPlay()
 {

@@ -13,6 +13,8 @@
 class AZoneManager;
 class AZoneActor;
 class UTownDataAsset;
+class UTownUIControllerComponent;
+class UInventoryEquipmentUIComponent;
 struct FZoneData;
 //Test Zone
 
@@ -92,8 +94,19 @@ public:
 	void CloseTownUI();
 
 	UFUNCTION(BlueprintPure)
-	bool IsTownUIOpen() const { return CurrentTownWidget != nullptr; }
+	bool IsTownUIOpen() const;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World UI", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTownUIControllerComponent> TownUIControllerComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World UI")
+	TObjectPtr<UInventoryEquipmentUIComponent> InventoryEquipmentUIController = nullptr;
 	//Test Zone, Town UI
+
+	//Test Equipment
+	UFUNCTION(BlueprintCallable, Category = "Inventory Test")
+	void OpenInventoryEquipmentUI();
+
 
 protected:
 	//~ Begin AActor Interface
@@ -148,15 +161,6 @@ protected:
 	//Test Zone, Town UI
 	UPROPERTY()
 	TObjectPtr<AZoneManager> ZoneManager = nullptr;
-
-	UPROPERTY(EditAnywhere, Category = "World UI")
-	TSoftClassPtr<UWidget_ActivatableBase> TownWidgetClass;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UWidget_ActivatableBase> CurrentTownWidget = nullptr;
-
-	void ApplyTownUIInputMode(UWidget_ActivatableBase* FocusWidget);
-	void RestoreWorldInputMode();
 
 	//Test Zone, Town UI
 	

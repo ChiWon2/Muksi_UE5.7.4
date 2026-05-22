@@ -51,6 +51,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void RecalculateStats();
 
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void RefreshStats();
+
 	UFUNCTION(BlueprintCallable, Category = "Stat|Resource")
 	void Heal(float Amount);
 

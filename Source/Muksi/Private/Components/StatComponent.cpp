@@ -1,6 +1,7 @@
 #include "Components/StatComponent.h"
 #include "Data/CharacterStatDataAsset.h"
 #include "GameFramework/Actor.h"
+#include "Items/Components/EquipmentComponent.h"
 
 UStatComponent::UStatComponent()
 {
@@ -58,22 +59,42 @@ void UStatComponent::RecalculateStats()
 	const FCombatStat BaseCombatStat = StatDataAsset->BaseCombatStat;
 	const FTravelStat BaseTravelStat = StatDataAsset->BaseTravelStat;
 
-	ResourceStat.MaxHP = InitialResourceStat.MaxHP + BaseStat.Vitality * 10.f;
-	ResourceStat.MaxInternalEnergy = InitialResourceStat.MaxInternalEnergy + BaseStat.InternalEnergy * 8.f;
-	ResourceStat.InternalEnergyRegenPerTurn = InitialResourceStat.InternalEnergyRegenPerTurn + BaseStat.InternalEnergy * 0.2f;
-	ResourceStat.MaxStamina = InitialResourceStat.MaxStamina + BaseStat.LightnessSkill * 5.f;
+	FMuksiItemStatModifier EquipmentModifier;
+	if (const AActor* Owner = GetOwner())
+	{
+		if (const UEquipmentComponent* EquipmentComponent = Owner->FindComponentByClass<UEquipmentComponent>())
+		{
+			EquipmentComponent->GetTotalEquipmentStatModifier(EquipmentModifier);
+		}
+	}
 
-	CombatStat.AttackPower = BaseCombatStat.AttackPower;
-	CombatStat.DefensePower = BaseCombatStat.DefensePower + BaseStat.Vitality * 1.f;
-	CombatStat.HitRate = BaseCombatStat.HitRate;
-	CombatStat.CriticalRate = BaseCombatStat.CriticalRate;
-	CombatStat.MoveSpeed = BaseCombatStat.MoveSpeed + BaseStat.LightnessSkill * 2.f;
+	const int32 EffectiveLightnessSkill = BaseStat.LightnessSkill + EquipmentModifier.LightnessSkill;
+	const int32 EffectiveInternalEnergy = BaseStat.InternalEnergy + EquipmentModifier.InternalEnergy;
+	const int32 EffectiveVitality = BaseStat.Vitality + EquipmentModifier.Vitality;
+	const int32 EffectiveSense = SpecialStat.Sense + EquipmentModifier.Sense;
 
-	TravelStat.TravelMoveSpeed = BaseTravelStat.TravelMoveSpeed + BaseStat.LightnessSkill * 2.f;
-	TravelStat.FateEncounterChance = BaseTravelStat.FateEncounterChance + SpecialStat.Sense * 0.001f;
-	TravelStat.FateGradeBonus = BaseTravelStat.FateGradeBonus + SpecialStat.Sense * 0.001f;
+	ResourceStat.MaxHP = InitialResourceStat.MaxHP + EffectiveVitality * 10.f + EquipmentModifier.MaxHP;
+	ResourceStat.MaxInternalEnergy = InitialResourceStat.MaxInternalEnergy + EffectiveInternalEnergy * 8.f + EquipmentModifier.MaxInternalEnergy;
+	ResourceStat.InternalEnergyRegenPerTurn = InitialResourceStat.InternalEnergyRegenPerTurn + EffectiveInternalEnergy * 0.2f;
+	ResourceStat.MaxStamina = InitialResourceStat.MaxStamina + EffectiveLightnessSkill * 5.f + EquipmentModifier.MaxStamina;
+
+	CombatStat.AttackPower = BaseCombatStat.AttackPower + EquipmentModifier.AttackPower;
+	CombatStat.DefensePower = BaseCombatStat.DefensePower + EffectiveVitality * 1.f + EquipmentModifier.DefensePower;
+	CombatStat.HitRate = BaseCombatStat.HitRate + EquipmentModifier.HitRate;
+	CombatStat.CriticalRate = BaseCombatStat.CriticalRate + EquipmentModifier.CriticalRate;
+	CombatStat.MoveSpeed = BaseCombatStat.MoveSpeed + EffectiveLightnessSkill * 2.f + EquipmentModifier.MoveSpeed;
+
+	TravelStat.TravelMoveSpeed = BaseTravelStat.TravelMoveSpeed + EffectiveLightnessSkill * 2.f + EquipmentModifier.TravelMoveSpeed;
+	TravelStat.FateEncounterChance = BaseTravelStat.FateEncounterChance + EffectiveSense * 0.001f + EquipmentModifier.FateEncounterChance;
+	TravelStat.FateGradeBonus = BaseTravelStat.FateGradeBonus + EffectiveSense * 0.001f + EquipmentModifier.FateGradeBonus;
 
 	ClampResources();
+}
+
+void UStatComponent::RefreshStats()
+{
+	RecalculateStats();
+	BroadcastStatChanged();
 }
 
 void UStatComponent::ClampResources()
