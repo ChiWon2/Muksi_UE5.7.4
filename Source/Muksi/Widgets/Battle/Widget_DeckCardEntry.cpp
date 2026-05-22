@@ -3,9 +3,9 @@
 
 #include "Muksi/Widgets/Battle/Widget_DeckCardEntry.h"
 
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
 
 
 
@@ -18,6 +18,12 @@ void UWidget_DeckCardEntry::SetCardRowData(UDataTable* InCardDataTable, FName In
 	RefreshCardData();
 }
 
+void UWidget_DeckCardEntry::SetCardDataAsset(UMuksiBattleCardDataAsset* InCardDataAsset)
+{
+	CachedCardData = InCardDataAsset;
+	RefreshCardData();
+}
+
 void UWidget_DeckCardEntry::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -26,36 +32,47 @@ void UWidget_DeckCardEntry::NativeConstruct()
 
 void UWidget_DeckCardEntry::RefreshCardData()
 {
-	if (!CachedCardDataTable)
+	if (!IsValid(CachedCardData))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UWidget_CharacterDeckCardEntry::RefreshCardData - CachedCardDataTable is null"));
-		return;
-	}
-
-	if (CachedCardRowName.IsNone())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UWidget_CharacterDeckCardEntry::RefreshCardData - CachedCardRowName is None"));
-		return;
-	}
-
-	static const FString ContextString(TEXT("UWidget_CharacterDeckCardEntry::RefreshCardData"));
-	const FMMuksiBattleCardTableRow* CardRow =
-		CachedCardDataTable->FindRow<FMMuksiBattleCardTableRow>(CachedCardRowName, ContextString);
-
-	if (!CardRow)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UWidget_CharacterDeckCardEntry::RefreshCardData - CardRow not found: %s"), *CachedCardRowName.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("UWidget_DeckCardEntry::RefreshCardData - CachedCardDataAsset is invalid"));
 		return;
 	}
 
 	if (CardNameText)
 	{
-		CardNameText->SetText(CardRow->CardName);
+		CardNameText->SetText(CachedCardData->CardName);
 	}
-	
-
-	/*if (CardImage && CardRow->CardTexture)
+	else
 	{
-		CardImage->SetBrushFromTexture(CardRow->CardTexture);
-	}*/
+		UE_LOG(LogTemp, Warning, TEXT("UWidget_DeckCardEntry::RefreshCardData - CardNameText is null"));
+	}
+
+	if (CardDescriptionText)
+	{
+		CardDescriptionText->SetText(CachedCardData->CardDescription);
+	}
+
+	if (CardImage)
+	{
+		if (CachedCardData->CardTexture)
+		{
+			CardImage->SetBrushFromTexture(CachedCardData->CardTexture);
+		}
+		else
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("UWidget_DeckCardEntry::RefreshCardData - CardTexture is null: %s"),
+				*GetNameSafe(CachedCardData.Get())
+			);
+		}
+	}
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("UWidget_DeckCardEntry::RefreshCardData - Card Applied: %s"),
+		*CachedCardData->CardName.ToString()
+	);
 }

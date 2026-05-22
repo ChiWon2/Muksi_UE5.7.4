@@ -11,9 +11,11 @@
 #include "Muksi/Widgets/Battle/CharacterData/CharacterDataPanelWidget_Enemy.h"
 
 #include "MuksiDebugHelper.h"
+#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
+#include "Muksi/Contents/Battle/CharacterData_Player.h"
 
 
-void UWidget_CharacterData::CloseActivatabelWidget()
+void UWidget_CharacterData::CloseActivatableWidget()
 {
 	//TODO Close Effect
 	DeactivateWidget();
@@ -25,27 +27,10 @@ void UWidget_CharacterData::NativeConstruct()
 	
 	if (CloseBackgroundButton)
 	{
-		CloseBackgroundButton->OnClicked.AddDynamic(this, &UWidget_CharacterData::CloseActivatabelWidget);
+		CloseBackgroundButton->OnClicked.AddDynamic(this, &UWidget_CharacterData::CloseActivatableWidget);
 	}
+	SetWidgetVisible();
 	
-	AMuksiPlayerController* PC = GetOwningMuksiPlayerController();
-	if (ABattleCharacter_Player* Player = Cast<ABattleCharacter_Player>(PC->ClickedActor))
-	{
-		PlayerCharacterData = Player;
-		
-		Debug::Print(TEXT("Player Data Print"));
-		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
-		PlayerDataPanelWidget->InitializeFromPlayerMode();
-		EnemyDeckDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
-	}else if (ABattleCharacter_Enemy* Enemy = Cast<ABattleCharacter_Enemy>(PC->ClickedActor))
-	{
-		EnemyCharacterData = Enemy;
-		
-		Debug::Print(TEXT("Enemy Data Print"));
-		
-		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
-		EnemyDeckDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
-	}
 }
 
 void UWidget_CharacterData::NativeOnDeactivated()
@@ -69,3 +54,39 @@ void UWidget_CharacterData::NativeOnDeactivated()
 	Super::NativeOnDeactivated();
 	
 }
+
+void UWidget_CharacterData::GetCharacterData(UCharacterDataBase* CharacterData)
+{
+	PlayerData = nullptr;
+	EnemyData = nullptr;
+	
+	UE_LOG(LogTemp, Warning, TEXT("GetCharacterData this: %s / %p"), *GetNameSafe(this), this);
+	
+	if (UCharacterData_Player* Player = Cast<UCharacterData_Player>(CharacterData))
+	{
+		PlayerData = Player;
+	}else if (UCharacterData_Enemy* Enemy = Cast<UCharacterData_Enemy>(CharacterData))
+	{
+		EnemyData = Enemy;
+	}
+	
+	SetWidgetVisible();
+}
+
+void UWidget_CharacterData::SetWidgetVisible()
+{
+	if (PlayerData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Player Data Print"));
+		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
+		PlayerDataPanelWidget->InitializeFromPlayerMode();
+		PlayerDataPanelWidget->ApplyCharacterData(PlayerData);
+		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
+	}else if (EnemyData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy Data Print"));
+		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
+		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
