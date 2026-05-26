@@ -3,6 +3,8 @@
 
 #include "MuksiFunctionLibrary.h"
 
+#include "Controllers/MuksiPlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "MuksiSettings/MuksiDeveloperSettings.h"
 
 TSoftClassPtr<UWidget_ActivatableBase> UMuksiFunctionLibrary::GetMuksiSoftWidgetClassByTag(FGameplayTag InWidgetTag)
@@ -21,4 +23,26 @@ TSoftObjectPtr<UTexture2D> UMuksiFunctionLibrary::GetOptionsSoftImageByTag(FGame
 	checkf(MuksiDeveloperSettings->OptionsScreenSoftImageMap.Contains(InImageTag), TEXT("Could not find and image accociated with tag %s"), *InImageTag.ToString());
 	
 	return MuksiDeveloperSettings->OptionsScreenSoftImageMap.FindRef(InImageTag);
+}
+
+AMuksiPlayerController* UMuksiFunctionLibrary::GetMuksiPlayerController(const UObject* WorldContextObject)
+{
+	if (!WorldContextObject)
+	{
+		return nullptr;
+	}
+
+	return Cast<AMuksiPlayerController>(
+		UGameplayStatics::GetPlayerController(WorldContextObject, 0)
+	);
+}
+
+UPlayerModeBase* UMuksiFunctionLibrary::GetCurrentMuksiPlayerMode(const UObject* WorldContextObject)
+{
+	if (AMuksiPlayerController* PC = GetMuksiPlayerController(WorldContextObject))
+	{
+		return PC->GetCurrentPlayerMode();
+	}
+
+	return nullptr;
 }
