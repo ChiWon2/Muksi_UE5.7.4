@@ -29,6 +29,11 @@ class UWidget_BattleMainScreen;
 
 class UAsyncAction_PushSoftWidget;
 
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMuksiInputSimpleDelegate);
+
+
 UENUM(BlueprintType)
 enum class EPlayerModeType : uint8
 {
@@ -108,6 +113,10 @@ public:
 	void OpenInventoryEquipmentUI();
 
 
+public:
+	UPROPERTY(BlueprintAssignable, Category="Muksi|Input")
+	FMuksiInputSimpleDelegate OnPPressedInput;
+	
 protected:
 	//~ Begin AActor Interface
 	virtual void BeginPlay() override; //PlayerMode 인스턴스 초기화
@@ -123,10 +132,33 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> RightClickAction;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> PPressAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> EPressAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> QPressAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IPressAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> TabPressAction;
 	
 
 	void OnLeftClick(const FInputActionValue& Value);
 	void OnRightClick(const FInputActionValue& Value);
+	
+	
+	void OnEKeyPressed(const FInputActionValue& Value);
+	void OnQKeyPressed(const FInputActionValue& Value);
+	void OnIKeyPressed(const FInputActionValue& Value);
+	void OnTabKeyPressed(const FInputActionValue& Value);
+	
+	
+	void OnPKeyPressed(const FInputActionValue& Value);
 	
 	UPROPERTY()
 	TObjectPtr<UPlayerModeBase> CurrentPlayerMode = nullptr;

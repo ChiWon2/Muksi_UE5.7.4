@@ -170,11 +170,35 @@ void AMuksiPlayerController::SetupInputComponent()
 			EnhancedInput->BindAction(LeftClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnLeftClick);
 			UE_LOG(LogTemp, Log, TEXT("Bind LeftClickAction"));
 		}
-		
 		if (RightClickAction)
 		{
 			EnhancedInput->BindAction(RightClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnLeftClick);
 			UE_LOG(LogTemp, Log, TEXT("Bind LeftClickAction"));
+		}
+		if (PPressAction)
+		{
+			EnhancedInput->BindAction(PPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnPKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind PPressAction"));
+		}
+		if (QPressAction)
+		{
+			EnhancedInput->BindAction(QPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnQKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind QPressAction"));
+		}
+		if (EPressAction)
+		{
+			EnhancedInput->BindAction(EPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnEKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind EPressAction"));
+		}
+		if (IPressAction)
+		{
+			EnhancedInput->BindAction(IPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnIKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind IPressAction"));
+		}
+		if (TabPressAction)
+		{
+			EnhancedInput->BindAction(TabPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnTabKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind TabPressAction"));
 		}
 	}
 }
@@ -219,6 +243,39 @@ void AMuksiPlayerController::OnRightClick(const FInputActionValue& Value)
 	if (CurrentPlayerMode){CurrentPlayerMode->HandleRightClick(Value);}
 }
 
+
+
+void AMuksiPlayerController::OnEKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleEPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnQKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleQPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnIKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleIPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnTabKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleTabPressedKey(Value);}
+}
+
+
+//Test Bind Input
+void AMuksiPlayerController::OnPKeyPressed(const FInputActionValue& Value)
+{
+	//Blue print에서 Bind 해서 작동시키는 모드
+	OnPPressedInput.Broadcast();
+	
+	UE_LOG(LogTemp, Log, TEXT("OnPKeyPressed"));
+	//PlayerMode의 P 입력 모드
+	if (CurrentPlayerMode){CurrentPlayerMode->HandlePPressedKey(Value);}
+}
 
 void AMuksiPlayerController::ApplyInputMappingFromMode(UPlayerModeBase* InMode)
 {

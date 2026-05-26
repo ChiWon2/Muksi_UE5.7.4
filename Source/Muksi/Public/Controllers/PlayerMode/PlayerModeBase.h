@@ -28,6 +28,16 @@ public:
 	virtual void HandleLeftClick(const FInputActionValue& Value);
 	virtual void HandleRightClick(const FInputActionValue& Value);
 	
+	virtual void HandlePPressedKey(const FInputActionValue& Value);
+	virtual void HandleTabPressedKey(const FInputActionValue& Value);
+	virtual void HandleIPressedKey(const FInputActionValue& Value);
+	virtual void HandleEPressedKey(const FInputActionValue& Value);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void HandleQPressedKey(const FInputActionValue& Value);
+	
+	
+	
 	TObjectPtr<ACineCameraActor> ApplyStartCamera();
 	
 	//TObjectPtr<ACineCameraActor> GetViewCameraActor()const{return ModeViewCamera;};

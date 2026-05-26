@@ -28,6 +28,34 @@ void UPlayerModeBase::HandleRightClick(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleRightClick"));
 }
 
+void UPlayerModeBase::HandlePPressedKey(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandlePPressedKey"));
+}
+
+
+void UPlayerModeBase::HandleTabPressedKey(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleTabPressedKey"));
+}
+
+void UPlayerModeBase::HandleIPressedKey(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleIPressedKey"));
+}
+
+void UPlayerModeBase::HandleEPressedKey(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleEPressedKey"));
+}
+
+
+void UPlayerModeBase::HandleQPressedKey_Implementation(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleQPressedKey Blueprint Test"));
+}
+
+
 TObjectPtr<ACineCameraActor> UPlayerModeBase::ApplyStartCamera()
 {
 	if (!PC)

@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "MuksiFunctionLibrary.generated.h"
 
+class UPlayerModeBase;
+class AMuksiPlayerController;
 class UWidget_ActivatableBase;
 
 /**
@@ -23,4 +25,10 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "Frontend Function Library")
 	static TSoftObjectPtr<UTexture2D> GetOptionsSoftImageByTag(UPARAM(meta = (Categories = "Frontend.Image")) FGameplayTag InImageTag);
+	
+	UFUNCTION(BlueprintPure, Category = "Muksi|PlayerController", meta=(WorldContext="WorldContextObject"))
+	static AMuksiPlayerController* GetMuksiPlayerController(const UObject* WorldContextObject);
+	
+	UFUNCTION(BlueprintPure, Category = "Muksi|PlayerMode", meta=(WorldContext="WorldContextObject"))
+	static UPlayerModeBase* GetCurrentMuksiPlayerMode(const UObject* WorldContextObject);
 };
