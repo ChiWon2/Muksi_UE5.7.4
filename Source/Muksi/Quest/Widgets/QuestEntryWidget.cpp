@@ -12,12 +12,12 @@ void UQuestEntryWidget::NativeConstruct()
 
     if (BTN_QuestEntry)
     {
-        BTN_QuestEntry->OnClicked.AddDynamic( this, &UQuestEntryWidget::OnEntryButtonClicked);
+        BTN_QuestEntry->OnClicked.AddUniqueDynamic( this, &UQuestEntryWidget::OnEntryButtonClicked);
     }
 
     if (BTN_Track)
     {
-        BTN_Track->OnClicked.AddDynamic( this, &UQuestEntryWidget::OnTrackButtonClicked);
+        BTN_Track->OnClicked.AddUniqueDynamic( this, &UQuestEntryWidget::OnTrackButtonClicked);
     }
 
     if (CB_IsComplete)
@@ -35,6 +35,17 @@ void UQuestEntryWidget::NativeConstruct()
 
 void UQuestEntryWidget::NativeDestruct()
 {
+    if (BTN_QuestEntry)
+    {
+        BTN_QuestEntry->OnClicked.RemoveDynamic(this, &UQuestEntryWidget::OnEntryButtonClicked);
+    }
+
+    if (BTN_Track)
+    {
+        BTN_Track->OnClicked.RemoveDynamic(this, &UQuestEntryWidget::OnTrackButtonClicked);
+    }
+
+
     Super::NativeDestruct();
 }
 

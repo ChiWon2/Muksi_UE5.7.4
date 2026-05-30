@@ -21,12 +21,16 @@ void UQuestLogWidget::NativeConstruct()
 
     if (BT_CloseMenu)
     {
-        BT_CloseMenu->OnClicked.AddDynamic(this, &UQuestLogWidget::OnCloseButtonClicked);
+        BT_CloseMenu->OnClicked.AddUniqueDynamic(this, &UQuestLogWidget::OnCloseButtonClicked);
     }
 }
 
 void UQuestLogWidget::NativeDestruct()
 {
+    if (BT_CloseMenu)
+    {
+        BT_CloseMenu->OnClicked.RemoveDynamic(this, &UQuestLogWidget::OnCloseButtonClicked);
+    }
     Super::NativeDestruct();
 }
 
