@@ -21,10 +21,10 @@ class MUKSI_API UQuestLogWidget : public UWidget_ActivatableBase
 public:
 
     UPROPERTY(meta = (BindWidget))
-    UScrollBox* SB_MainQuest;
+    UScrollBox* SB_OnGoingQuests;
 
     UPROPERTY(meta = (BindWidget))
-    UScrollBox* SB_SideQuest;
+    UScrollBox* SB_CompleteQuests;
 
     UPROPERTY(meta = (BindWidget))
     UWidgetSwitcher* WS_ShowQuestDetail;

@@ -7,7 +7,7 @@ void UQuestInstance_Base::InitializeQuestInstance(const FQuestKey& InQuestKey, c
 
     QuestDetails = InQuestDetails;
 
-    bIsCompleted = false;
+    QuestState  = EQuestState::Active;
 
     QuestSubsystem = InQuestSubsystem;
 
@@ -40,13 +40,14 @@ void UQuestInstance_Base::HandleObjectiveIDCalled(FName  ObjectiveID, int32 Valu
 
     if (AreAllObjectivesComplete())
     {
-        bIsCompleted = true;
+        QuestState = EQuestState::ReadyToComplete;
 
+        /* Refactoring this Func Maybe
         if (QuestSubsystem)
         {
             QuestSubsystem->CompleteQuest(QuestKey);
         }
-
+        */
         UE_LOG(LogTemp, Warning, TEXT("[QuestInstance] Quest Completed : %s"), *QuestKey.ToString());
     }
 }

@@ -59,14 +59,14 @@ void UQuestLogWidget::RefreshQuestList()
     if (!QuestSubsystem)
         return;
 
-    if (SB_MainQuest)
+    if (SB_OnGoingQuests)
     {
-        SB_MainQuest->ClearChildren();
+        SB_OnGoingQuests->ClearChildren();
     }
 
-    if (SB_SideQuest)
+    if (SB_CompleteQuests)
     {
-        SB_SideQuest->ClearChildren();
+        SB_CompleteQuests->ClearChildren();
     }
 
     APlayerController* PC = GetOwningPlayer();
@@ -85,13 +85,13 @@ void UQuestLogWidget::RefreshQuestList()
 
         Entry->InitWidget(QuestInstance);
 
-        Entry->OnQuestSelected.AddDynamic( this, &UQuestLogWidget::HandleQuestSelected);
+        Entry->OnQuestSelected.AddDynamic(this, &UQuestLogWidget::HandleQuestSelected);
 
-        Entry->OnTrackSelected.AddDynamic( this, &UQuestLogWidget::HandleTrackSelected);
+        Entry->OnTrackSelected.AddDynamic(this, &UQuestLogWidget::HandleTrackSelected);
 
-        const bool bIsCompletedQuest = QuestInstance->bIsCompleted;
+        const bool bIsCompletedQuest = QuestInstance->QuestState == EQuestState::Active;
 
-        UScrollBox* TargetBox = bIsCompletedQuest ? SB_MainQuest : SB_SideQuest;
+        UScrollBox* TargetBox = bIsCompletedQuest ? SB_CompleteQuests : SB_OnGoingQuests;
 
         if (TargetBox)
         {

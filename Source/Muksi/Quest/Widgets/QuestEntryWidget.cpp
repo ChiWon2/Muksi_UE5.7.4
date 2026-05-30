@@ -30,7 +30,8 @@ void UQuestEntryWidget::NativeConstruct()
 
     TXT_QuestName->SetText( QuestInstance->QuestDetails.QuestName);
 
-    CB_IsComplete->SetIsChecked(QuestInstance->bIsCompleted);
+    bool bIsReadyToComplete = QuestInstance->QuestState == EQuestState::ReadyToComplete;
+    CB_IsComplete->SetIsChecked(bIsReadyToComplete);
 }
 
 void UQuestEntryWidget::NativeDestruct()

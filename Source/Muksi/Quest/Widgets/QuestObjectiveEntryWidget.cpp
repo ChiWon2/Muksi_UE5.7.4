@@ -40,6 +40,8 @@ void UQuestObjectiveEntryWidget::RefreshObjectiveState()
     {
         CurrentValue = *FoundValue;
     }
+    if (CurrentValue > ObjectiveDetail.RequiredQuantity)
+        CurrentValue = ObjectiveDetail.RequiredQuantity;
 
     FText FormatText = FText::Format( FText::FromString(TEXT("{0} {1}/{2}")), ObjectiveDetail.Description, FText::AsNumber(CurrentValue), FText::AsNumber(ObjectiveDetail.RequiredQuantity));
 
@@ -48,10 +50,10 @@ void UQuestObjectiveEntryWidget::RefreshObjectiveState()
         TXT_Description->SetText(FormatText);
     }
 
-    const bool bCompleted = CurrentValue >= ObjectiveDetail.RequiredQuantity;
+    const bool bReadyToComplete = CurrentValue >= ObjectiveDetail.RequiredQuantity;
 
     if (CB_IsComplete)
     {
-        CB_IsComplete->SetIsChecked(bCompleted);
+        CB_IsComplete->SetIsChecked(bReadyToComplete);
     }
 }
