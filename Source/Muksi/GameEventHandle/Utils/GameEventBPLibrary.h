@@ -18,5 +18,8 @@ public:
     static void ExecuteAcceptQuestEvent(UObject* WorldContextObject, FName QuestID);
 
     UFUNCTION(BlueprintCallable, Category = "Game Event", meta = (WorldContext = "WorldContextObject"))
+    static void ExecuteCompleteQuestEvent(UObject* WorldContextObject, FName QuestID);
+
+    UFUNCTION(BlueprintCallable, Category = "Game Event", meta = (WorldContext = "WorldContextObject"))
     static void ExecuteObjectiveComplete(UObject* WorldContextObject, FName ObjectiveID);
 };

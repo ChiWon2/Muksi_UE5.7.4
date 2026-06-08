@@ -17,6 +17,11 @@ namespace GameEventUtils
     FInstancedStruct MakeAcceptQuest(FName QuestID);
 
     void ExecuteAcceptQuest(UObject* WorldContext, FName QuestID);
+
+    //CompleteQuest
+    FInstancedStruct MakeCompleteQuest(FName QuestID);
+
+    void ExecuteCompleteQuest(UObject* WorldContext, FName QuestID);
     
     //ObjectiveComplete
     FInstancedStruct MakeObjectiveComplete(FName ObjectiveID);

@@ -11,6 +11,11 @@ void UGameEventBPLibrary::ExecuteAcceptQuestEvent(UObject* WorldContextObject, F
     GameEventUtils::ExecuteAcceptQuest(WorldContextObject, QuestID);
 }
 
+void UGameEventBPLibrary::ExecuteCompleteQuestEvent(UObject* WorldContextObject, FName QuestID)
+{
+    GameEventUtils::ExecuteCompleteQuest(WorldContextObject, QuestID);
+}
+
 void UGameEventBPLibrary::ExecuteObjectiveComplete(UObject* WorldContextObject, FName ObjectiveID)
 {
     GameEventUtils::ExecuteObjectiveComplete(WorldContextObject, ObjectiveID);
