@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/Widget_ActivatableBase.h"
+#include "Widgets/World/Widget_ForgeConfirmPopup.h"
 #include "Widget_Forge.generated.h"
 
 class UInventoryComponent;
