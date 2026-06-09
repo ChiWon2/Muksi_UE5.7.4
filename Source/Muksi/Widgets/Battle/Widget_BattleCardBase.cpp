@@ -157,19 +157,6 @@ void UWidget_BattleCardBase::OnMoveTimelineFinished()
 
 void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 {
-	//UE_LOG(LogTemp, Log, TEXT("StartDragging"));
-	/*bIsDragging = true;
-	MoveTimeline.Stop();
-
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
-	{
-		CachedHandPosition = CanvasSlot->GetPosition();
-		CanvasSlot->SetZOrder(9999);
-
-		const FVector2D LocalMousePos = GetCachedGeometry().AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-		DragOffset = LocalMousePos;
-	}*/
-	
 	bIsDragging = true;
 	MoveTimeline.Stop();
 
@@ -177,7 +164,10 @@ void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 	{
 		return;
 	}
-
+	
+	// 드래그 중에는 카드 똑바로 보이게
+	SetRenderTransformAngle(0.0f);
+	
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
 	{
 		CachedHandPosition = CanvasSlot->GetPosition();
@@ -193,52 +183,37 @@ void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 
 void UWidget_BattleCardBase::StopDragging()
 {
-	
 	bIsDragging = false;
 	
-	if (OwningHandWidget && OwningHandWidget->GetEquipSlot())
+	/*if (OwningHandWidget)
 	{
-		UWidget_CardEquipSlot* EquipSlot = OwningHandWidget->GetEquipSlot();
-
-		if (EquipSlot->IsCardOverlappingSlot(this))
+		UWidget_CardEquipSlot* OverlappedSlot =
+		OwningHandWidget->FindOverlappedEquipSlot(this);
+		UE_LOG(LogTemp, Log, TEXT("FindOverlappedEquipLSlot check Test1"));
+		if (OverlappedSlot)
 		{
+			UE_LOG(LogTemp, Log, TEXT("FindOverlappedEquipLSlot check Test2"));
 			if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
 			{
-				const FVector2D SlotCenter = EquipSlot->GetSlotCenterInHandCanvas();
+				UE_LOG(LogTemp, Log, TEXT("FindOverlappedEquipLSlot check Test3"));
+				const FVector2D SlotCenter = OverlappedSlot->GetSlotCenterInHandCanvas();
 				const FVector2D CardSize = GetCachedGeometry().GetLocalSize();
 
 				const FVector2D SnapPos = SlotCenter - (CardSize * 0.5f);
 				MoveToCanvasPosition(SnapPos);
-				EquipSlot->EquipCard(this);
+
+				OverlappedSlot->EquipCard(this);
 			}
+
 			OwningHandWidget->RemoveBattleCards(this);
+			if (OwningHandWidget)
+			{
+				OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
+			}
 			return;
 		}
 	}
-
-	/*if (OwningHandWidget && OwningHandWidget->GetEquipSlot())
-	{
-		const FVector2D MouseScreenPos = FSlateApplication::Get().GetCursorPos();
-		UWidget_CardEquipSlot* EquipSlot = OwningHandWidget->GetEquipSlot();
-		
-		
-		if (EquipSlot->IsPointInsideSlot(MouseScreenPos))
-		{
-			
-			EquipSlot->EquipCard(this);
-
-			// 일단은 슬롯 위치 중심으로 이동시키는 식으로 처리
-			const FGeometry& SlotGeometry = EquipSlot->GetCachedGeometry();
-			const FVector2D SlotCenterLocal = SlotGeometry.GetLocalSize() * 0.5f;
-			const FVector2D SlotCenterScreen = SlotGeometry.LocalToAbsolute(SlotCenterLocal);
-
-			const FGeometry& HandGeometry = OwningHandWidget->GetHandCanvasGeometry();
-			const FVector2D SlotCenterInHand = HandGeometry.AbsoluteToLocal(SlotCenterScreen);
-
-			MoveToCanvasPosition(SlotCenterInHand);
-			return;
-		}
-	}*/
+	
 
 	// 장착 실패면 원위치 복귀
 	MoveToCanvasPosition(CachedHandPosition);
@@ -246,6 +221,69 @@ void UWidget_BattleCardBase::StopDragging()
 	if (OwningHandWidget)
 	{
 		OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
+	}*/
+	
+	/*if (OwningHandWidget)
+	{
+		UWidget_CardEquipSlot* OverlappedSlot =
+			OwningHandWidget->FindOverlappedEquipSlot(this);
+
+		if (OverlappedSlot)
+		{
+			const FVector2D SlotCenter =
+				OverlappedSlot->GetSlotCenterInHandCanvas(OwningHandWidget);
+
+			const FVector2D CardSize =
+				GetCachedGeometry().GetLocalSize();
+
+			const FVector2D SnapPos =
+				SlotCenter - CardSize * 0.5f;
+
+			if (OverlappedSlot->EquipCard(this))
+			{
+				MoveToCanvasPosition(SnapPos);
+
+				OwningHandWidget->RemoveBattleCards(this);
+				OwningHandWidget->OrganizeCards(
+					OwningHandWidget->GetDefaultCardSpacing()
+				);
+
+				return;
+			}
+		}
+	}
+
+	MoveToCanvasPosition(CachedHandPosition);
+
+	if (OwningHandWidget)
+	{
+		OwningHandWidget->OrganizeCards(
+			OwningHandWidget->GetDefaultCardSpacing()
+		);
+	}*/
+	bIsDragging = false;
+
+	if (OwningHandWidget)
+	{
+		UWidget_CardEquipSlot* OverlappedSlot =
+			OwningHandWidget->FindOverlappedEquipSlot(this);
+		if (OverlappedSlot && OverlappedSlot->EquipCard(this))
+		{
+			OwningHandWidget->RemoveBattleCards(this);
+			OwningHandWidget->OrganizeCards(
+				OwningHandWidget->GetDefaultCardSpacing()
+			);
+			return;
+		}
+	}
+
+	MoveToCanvasPosition(CachedHandPosition);
+
+	if (OwningHandWidget)
+	{
+		OwningHandWidget->OrganizeCards(
+			OwningHandWidget->GetDefaultCardSpacing()
+		);
 	}
 }
 

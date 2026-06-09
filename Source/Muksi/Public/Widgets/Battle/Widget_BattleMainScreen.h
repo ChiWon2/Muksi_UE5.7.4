@@ -11,6 +11,7 @@ class UWidget_CharacterData;
 class UHandWidget;
 class UInkLineWidget;
 class UCharacterDataBase;
+class UCharacterData_Enemy;
 
 class UButton;
 
@@ -70,11 +71,27 @@ private:
 	UFUNCTION()
 	void HandleBattlePhaseChanged(EBattlePhase NewPhase);
 	
+	UPROPERTY()
+	int32 CurrentExchange = 0;
+	int32 CurrentAttack = 0;
+	
 	
 public:
 	//Handle HandWidget UI
 	UFUNCTION(BlueprintCallable)
-	void HandleExchangedStarted(int32 ExchangeNumber);
+	void HandleExchangedStarted_(int32 ExchangeNumber);
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleRoundStarted();
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleExchangedStarted();
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleAttackStarted();
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleAttackCoundData(int32 AttackNumber);
 	
 	UFUNCTION(BlueprintCallable)
 	void HandleTurnEnd();
@@ -89,15 +106,22 @@ public:
 	void UnbindHandWidgetEvents();
 	
 	bool CanRequestEndExchange();
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EquipBattleCardArray;
 
 protected:
+
 	UPROPERTY()
 	TObjectPtr<UCharacterDataBase> PlayerBattleCharacter;
 	UPROPERTY()
-	TObjectPtr<UCharacterDataBase> EnemyBattleCharacter;
+	TObjectPtr<UCharacterData_Enemy> EnemyBattleCharacter;
 	
 	UPROPERTY()
 	TObjectPtr<UMuksiCharacterDataAsset> PlayerDataAsset = nullptr;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EnemySelectBattleCard;
 
 	//Send Info to BattleManager
 public:

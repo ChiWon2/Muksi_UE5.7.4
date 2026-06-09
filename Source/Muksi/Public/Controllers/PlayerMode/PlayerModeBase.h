@@ -22,6 +22,7 @@ class MUKSI_API UPlayerModeBase : public UObject
 public:
 	virtual void EnterMode(AMuksiPlayerController* PlayerController);
 	virtual void ExitMode();
+	virtual void TickPlayerMode();
 	virtual UInputMappingContext* GetInputMappingContext() const {return IMC;};
 	virtual int32 GetInputMappingPriority() const { return 0; }
 	

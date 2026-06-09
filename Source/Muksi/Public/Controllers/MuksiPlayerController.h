@@ -53,6 +53,8 @@ class MUKSI_API AMuksiPlayerController : public APlayerController
 public:
 	AMuksiPlayerController();
 	
+	virtual void Tick(float DeltaTime) override;
+	
 	UFUNCTION(BlueprintPure)
 	UPlayerModeBase* GetCurrentPlayerMode() const;
 	
@@ -64,17 +66,18 @@ public:
 	
 	
 	//Test
-	UPROPERTY()
+	/*UPROPERTY()
 	UWidget_BattleMainScreen* TestWidgetScreen;
 	UPROPERTY()
-	TObjectPtr<AActor> ClickedActor = nullptr;
+	TObjectPtr<AActor> ClickedActor = nullptr;*/
+	
 	UFUNCTION()
 	UPlayerMode_Battle* GetPlayerMode(){return Cast<UPlayerMode_Battle>(CurrentPlayerMode);}
 
 	
 	//Test Push soft widget
-	UFUNCTION()
-	void PushSoftWidget();
+	/*UFUNCTION()
+	void PushSoftWidget();*/
 
 	//Test Zone, Town UI
 	UFUNCTION(BlueprintCallable, Category = "Zone")
@@ -162,10 +165,7 @@ protected:
 	
 	UPROPERTY()
 	TObjectPtr<UPlayerModeBase> CurrentPlayerMode = nullptr;
-	UPROPERTY(EditDefaultsOnly, Category = "PlayerMode")
-	EPlayerModeType StartModeType = EPlayerModeType::MainMenu;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerMode")
-	EPlayerModeType CurrentModeType = EPlayerModeType::MainMenu;
+
 	
 	UPROPERTY()
 	TObjectPtr<UInputMappingContext> CurrentMappingContext;
@@ -177,11 +177,7 @@ protected:
 	UPROPERTY()
 	TMap<EPlayerModeType, TObjectPtr<UPlayerModeBase>> PlayerModeMap;
 	
-	UPROPERTY(EditAnywhere, Category = "BattleTest")
-	TSoftClassPtr<UWidget_CharacterData> WidgetCharacterDataClass;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "PlayerMode")
-	TMap<EPlayerModeType, TSubclassOf<UPlayerModeBase>> PlayerModeClasses;
 	
 	UFUNCTION(BlueprintPure)
 	FGameplayTag GetStartupWidgetTag() const;
