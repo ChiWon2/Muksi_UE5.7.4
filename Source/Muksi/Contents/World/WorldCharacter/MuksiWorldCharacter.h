@@ -35,10 +35,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> SetDestinationClickAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	float ShortPressThreshold = 0.2f;
-
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> InteractAction;
 
@@ -61,7 +58,6 @@ protected:
 	//Interact
 	UPROPERTY(VisibleInstanceOnly, Category = "Interaction")
 	TObjectPtr<ATownInteractionPoint> CurrentInteractionTarget = nullptr;
-	void Interact(const FInputActionValue& Value);
 
 	//StatComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -79,7 +75,8 @@ protected:
 	void OnInputStarted();
 	void OnSetDestinationTriggered();
 	void OnSetDestinationReleased();
-
+	void Interact(const FInputActionValue& Value);
+	void OpenInventoryEquipment(const FInputActionValue& Value);	
 
 public:
 
@@ -90,8 +87,6 @@ public:
 	virtual void BeginPlay() override;
 
 	/** Update */
-	virtual void Tick(float DeltaSeconds) override;
-
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	/** Returns the camera component **/
@@ -100,7 +95,6 @@ public:
 	/** Returns the Camera Boom component **/
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom.Get(); }
 
-	bool TryGetCursorHitLocation(FVector& OutLocation) const;
 
 	//Interact
 	void SetCurrentInteractionTarget(ATownInteractionPoint* NewTarget);
@@ -109,15 +103,12 @@ public:
 
 	//Component
 	UFUNCTION(BlueprintPure, Category = "Components")
-	UStatComponent* GetStatComponent() const { return StatComponent; }
+	UStatComponent* GetStatComponent() const;
 
 	//InventoryComponent
 	UFUNCTION(BlueprintPure, Category = "Components")
-	UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
-
+	UInventoryComponent* GetInventoryComponent() const;
 	//EquipmentComponent
 	UFUNCTION(BlueprintPure, Category = "Components")
-	UEquipmentComponent* GetEquipmentComponent() const { return EquipmentComponent; }
-
-	void OpenInventoryEquipment(const FInputActionValue& Value);
+	UEquipmentComponent* GetEquipmentComponent() const;
 };

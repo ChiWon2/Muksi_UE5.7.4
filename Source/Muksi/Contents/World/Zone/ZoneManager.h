@@ -5,7 +5,6 @@
 #include "ZoneActor.h"
 #include "ZoneManager.generated.h"
 
-class AMuksiPlayerController;
 class AZoneActor;
 
 UCLASS()

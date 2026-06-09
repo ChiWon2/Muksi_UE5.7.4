@@ -12,7 +12,7 @@ bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
 	{
 		return false;
 	}
-
+		
 	if (ItemData->bStackable)
 	{
 		for (FMuksiInventoryEntry& Entry : Items)
@@ -39,6 +39,13 @@ bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
 		NewEntry.InstanceId = FGuid::NewGuid();
 		NewEntry.ItemData = ItemData;
 		NewEntry.Quantity = 1;
+
+		if (ItemData->ItemType == EMuksiItemType::Equipment)
+		{
+			NewEntry.Durability = 0.5f;
+		}
+
+
 		Items.Add(NewEntry);
 	}
 
@@ -126,4 +133,280 @@ bool UInventoryComponent::FindItemByInstanceId(FGuid InstanceId, FMuksiInventory
 	}
 
 	return false;
+}
+
+FMuksiInventoryEntry* UInventoryComponent::FindMutableItemByInstanceId(FGuid InstanceId)
+{
+	if (!InstanceId.IsValid())
+	{
+		return nullptr;
+	}
+
+	for (FMuksiInventoryEntry& Entry : Items)
+	{
+		if (Entry.InstanceId == InstanceId)
+		{
+			return &Entry;
+		}
+	}
+
+	return nullptr;
+}
+
+bool UInventoryComponent::IsRepairableItem(FGuid InstanceId) const
+{
+	FMuksiInventoryEntry Entry;
+	if (!FindItemByInstanceId(InstanceId, Entry))
+	{
+		return false;
+	}
+
+	if (!Entry.ItemData)
+	{
+		return false;
+	}
+
+	if (Entry.ItemData->ItemType != EMuksiItemType::Equipment)
+	{
+		return false;
+	}
+
+	const bool bRepairableSlot =
+		Entry.ItemData->EquipmentSlot == EMuksiEquipmentSlot::Weapon ||
+		Entry.ItemData->EquipmentSlot == EMuksiEquipmentSlot::Armor;
+
+	if (!bRepairableSlot)
+	{
+		return false;
+	}
+
+	return Entry.Durability < 1.f;
+}
+
+int32 UInventoryComponent::GetRepairCost(FGuid InstanceId) const
+{
+	FMuksiInventoryEntry Entry;
+	if (!FindItemByInstanceId(InstanceId, Entry))
+	{
+		return 0;
+	}
+
+	if (!IsRepairableItem(InstanceId) || !Entry.ItemData)
+	{
+		return 0;
+	}
+
+	const float ClampedDurability = FMath::Clamp(Entry.Durability, 0.f, 1.f);
+	const float MissingRatio = 1.f - ClampedDurability;
+
+	constexpr float RepairRate = 0.35f;
+	const float EnhanceMultiplier = 1.f + static_cast<float>(Entry.EnhanceLevel) * 0.15f;
+
+	const int32 RawCost = FMath::CeilToInt(
+		static_cast<float>(Entry.ItemData->Price) * MissingRatio * RepairRate * EnhanceMultiplier
+	);
+
+	return FMath::Max(1, RawCost);
+}
+
+bool UInventoryComponent::RepairItem(FGuid InstanceId, int32& OutRepairCost)
+{
+	OutRepairCost = 0;
+
+	FMuksiInventoryEntry* Entry = FindMutableItemByInstanceId(InstanceId);
+	if (!Entry || !Entry->ItemData)
+	{
+		return false;
+	}
+
+	if (!IsRepairableItem(InstanceId))
+	{
+		return false;
+	}
+
+	OutRepairCost = GetRepairCost(InstanceId);
+	if (OutRepairCost <= 0)
+	{
+		return false;
+	}
+
+	Entry->Durability = 1.f;
+	return true;
+
+}
+
+namespace
+{
+	constexpr int32 MaxEnhanceLevel = 10;
+
+	bool IsForgeEnhanceSlot(EMuksiEquipmentSlot Slot)
+	{
+		return Slot == EMuksiEquipmentSlot::Weapon ||
+			Slot == EMuksiEquipmentSlot::Armor;
+	}
+}
+
+bool UInventoryComponent::IsEnhanceableItem(FGuid InstanceId) const
+{
+	FMuksiInventoryEntry Entry;
+	if (!FindItemByInstanceId(InstanceId, Entry))
+	{
+		return false;
+	}
+
+	if (!Entry.ItemData)
+	{
+		return false;
+	}
+
+	if (Entry.ItemData->ItemType != EMuksiItemType::Equipment)
+	{
+		return false;
+	}
+
+	if (!IsForgeEnhanceSlot(Entry.ItemData->EquipmentSlot))
+	{
+		return false;
+	}
+
+	if (Entry.EnhanceLevel >= MaxEnhanceLevel)
+	{
+		return false;
+	}
+
+	return Entry.Durability > 0.f;
+}
+
+int32 UInventoryComponent::GetEnhanceCost(FGuid InstanceId) const
+{
+	FMuksiInventoryEntry Entry;
+	if (!FindItemByInstanceId(InstanceId, Entry))
+	{
+		return 0;
+	}
+
+	if (!IsEnhanceableItem(InstanceId) || !Entry.ItemData)
+	{
+		return 0;
+	}
+
+	const float BaseRate = 0.5f;
+	const float LevelMultiplier = FMath::Pow(1.45f, static_cast<float>(Entry.EnhanceLevel));
+
+	const int32 RawCost = FMath::CeilToInt(
+		static_cast<float>(Entry.ItemData->Price) * BaseRate * LevelMultiplier
+	);
+
+	return FMath::Max(1, RawCost);
+}
+
+float UInventoryComponent::GetEnhanceSuccessRate(FGuid InstanceId) const
+{
+	FMuksiInventoryEntry Entry;
+	if (!FindItemByInstanceId(InstanceId, Entry))
+	{
+		return 0.f;
+	}
+
+	if (!IsEnhanceableItem(InstanceId))
+	{
+		return 0.f;
+	}
+
+	const float RawRate = 0.95f - static_cast<float>(Entry.EnhanceLevel) * 0.05f;
+	return FMath::Clamp(RawRate, 0.30f, 0.95f);
+}
+
+bool UInventoryComponent::EnhanceItem(
+	FGuid InstanceId,
+	int32& OutEnhanceCost,
+	EMuksiEnhanceResult& OutResult)
+{
+	OutEnhanceCost = 0;
+	OutResult = EMuksiEnhanceResult::None;
+
+	FMuksiInventoryEntry* Entry = FindMutableItemByInstanceId(InstanceId);
+	if (!Entry || !Entry->ItemData)
+	{
+		return false;
+	}
+
+	if (!IsEnhanceableItem(InstanceId))
+	{
+		return false;
+	}
+
+	OutEnhanceCost = GetEnhanceCost(InstanceId);
+	if (OutEnhanceCost <= 0)
+	{
+		return false;
+	}
+
+	const float SuccessRate = GetEnhanceSuccessRate(InstanceId);
+	const bool bSuccess = FMath::FRand() <= SuccessRate;
+
+	if (bSuccess)
+	{
+		++Entry->EnhanceLevel;
+		OutResult = EMuksiEnhanceResult::Success;
+		return true;
+	}
+
+	if (Entry->EnhanceLevel >= 6)
+	{
+		Entry->EnhanceLevel = FMath::Max(0, Entry->EnhanceLevel - 1);
+		Entry->Durability = FMath::Clamp(Entry->Durability - 0.20f, 0.f, 1.f);
+		OutResult = EMuksiEnhanceResult::FailedDowngrade;
+		return true;
+	}
+
+	Entry->Durability = FMath::Clamp(Entry->Durability - 0.15f, 0.f, 1.f);
+	OutResult = EMuksiEnhanceResult::FailedNoChange;
+	return true;
+}
+
+TArray<FMuksiInventoryEntry> UInventoryComponent::GetRepairableItems() const
+{
+	TArray<FMuksiInventoryEntry> RepairableItems;
+
+	for (const FMuksiInventoryEntry& Entry : Items)
+	{
+		if (IsRepairableItem(Entry.InstanceId))
+		{
+			RepairableItems.Add(Entry);
+		}
+	}
+
+	return RepairableItems;
+}
+
+TArray<FMuksiInventoryEntry> UInventoryComponent::GetForgeableEquipmentItems() const
+{
+	TArray<FMuksiInventoryEntry> ForgeableItems;
+
+	for (const FMuksiInventoryEntry& Entry : Items)
+	{
+		if (!Entry.ItemData)
+		{
+			continue;
+		}
+
+		if (Entry.ItemData->ItemType != EMuksiItemType::Equipment)
+		{
+			continue;
+		}
+
+		const bool bForgeableSlot =
+			Entry.ItemData->EquipmentSlot == EMuksiEquipmentSlot::Weapon ||
+			Entry.ItemData->EquipmentSlot == EMuksiEquipmentSlot::Armor;
+
+		if (!bForgeableSlot)
+		{
+			continue;
+		}
+
+		ForgeableItems.Add(Entry);
+	}
+
+	return ForgeableItems;
 }
