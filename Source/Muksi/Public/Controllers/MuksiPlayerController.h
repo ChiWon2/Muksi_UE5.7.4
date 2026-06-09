@@ -9,14 +9,6 @@
 #include "GameFramework/PlayerController.h"
 #include "MuksiPlayerController.generated.h"
 
-//Test Zone
-class AZoneManager;
-class AZoneActor;
-class UTownDataAsset;
-class UTownUIControllerComponent;
-class UInventoryEquipmentUIComponent;
-struct FZoneData;
-//Test Zone
 
 class UPlayerMode_Battle;
 class UWidget_ActivatableBase;
@@ -71,41 +63,6 @@ public:
 	UFUNCTION()
 	void PushSoftWidget();
 
-	//Test Zone, Town UI
-	UFUNCTION(BlueprintCallable, Category = "Zone")
-	void SetZoneManager(AZoneManager* InZoneManager) { ZoneManager = InZoneManager; }
-
-	UFUNCTION(BlueprintPure, Category = "Zone")
-	AZoneManager* GetZoneManager() const { return ZoneManager.Get(); }
-
-	UFUNCTION(BlueprintCallable, Category = "Zone")
-	void SetCurrentZone(AZoneActor* NewZone);
-
-	UFUNCTION(BlueprintPure, Category = "Zone")
-	AZoneActor* GetCurrentZone() const;
-
-	UFUNCTION(BlueprintPure, Category = "Zone")
-	FZoneData GetCurrentZoneData() const;
-
-	UFUNCTION(BlueprintCallable)
-	void OpenTownUI(UTownDataAsset* InTownData);
-
-	UFUNCTION(BlueprintCallable)
-	void CloseTownUI();
-
-	UFUNCTION(BlueprintPure)
-	bool IsTownUIOpen() const;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World UI", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UTownUIControllerComponent> TownUIControllerComponent = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World UI")
-	TObjectPtr<UInventoryEquipmentUIComponent> InventoryEquipmentUIController = nullptr;
-	//Test Zone, Town UI
-
-	//Test Equipment
-	UFUNCTION(BlueprintCallable, Category = "Inventory Test")
-	void OpenInventoryEquipmentUI();
 
 
 protected:
@@ -155,14 +112,7 @@ protected:
 	FGameplayTag GetStartupWidgetTag() const;
 	
 	
-	void ApplyCurrentPlayerModeIMC();
-	
-
-	//Test Zone, Town UI
-	UPROPERTY()
-	TObjectPtr<AZoneManager> ZoneManager = nullptr;
-
-	//Test Zone, Town UI
+	void ApplyCurrentPlayerModeIMC();	
 	
 	
 	

@@ -5,6 +5,7 @@
 #include "InventoryEquipmentUIComponent.generated.h"
 
 class UWidget_ActivatableBase;
+class AMuksiPlayerController;
 
 UCLASS(ClassGroup = (World), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UInventoryEquipmentUIComponent : public UActorComponent
@@ -25,4 +26,7 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget_ActivatableBase> CurrentInventoryEquipmentWidget = nullptr;
+
+private:
+	AMuksiPlayerController* GetMuksiPlayerController() const;
 };

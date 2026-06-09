@@ -6,7 +6,12 @@
 #include "Widgets/Widget_ActivatableBase.h"
 #include "Widget_Forge.generated.h"
 
+class UInventoryComponent;
+class UWidget_ItemSlot;
+class UWidget_ForgeConfirmPopup;
+
 class UButton;
+class UUniformGridPanel;
 
 UCLASS()
 class MUKSI_API UWidget_Forge : public UWidget_ActivatableBase
@@ -26,6 +31,20 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> BackButton;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UUniformGridPanel> ForgeItemGridPanel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Forge")
+	TSubclassOf<UWidget_ItemSlot> ForgeItemSlotClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Forge")
+	int32 ForgeItemColumnCount = 6;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Forge")
+	TSoftClassPtr<UWidget_ActivatableBase> ForgeConfirmPopupClass;
+
+
+private:
 	UFUNCTION()
 	void HandleRepairButtonClicked();
 
@@ -35,7 +54,15 @@ protected:
 	UFUNCTION()
 	void HandleBackButtonClicked();
 
-private:
-	void RepairWeapon();
-	void EnhanceWeapon();
+	UFUNCTION()
+	void HandleForgeItemClicked(FGuid InstanceId);
+
+	void HandleForgeActionCompleted(FGuid InstanceId, EMuksiForgeActionType ActionType);
+
+	void RefreshForgeItemList();
+	void PushForgeConfirmPopup(FGuid InstanceId, EMuksiForgeActionType ActionType);
+
+	UInventoryComponent* GetInventoryComponent() const;
+
+	FGuid SelectedForgeItemInstanceId;
 };

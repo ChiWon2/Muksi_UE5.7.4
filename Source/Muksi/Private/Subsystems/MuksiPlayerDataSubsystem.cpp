@@ -43,6 +43,11 @@ bool UMuksiPlayerDataSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 
 AMuksiWorldCharacter* UMuksiPlayerDataSubsystem::GetPlayerPawn() const
 {
+	return GetPlayerWorldCharacter();
+}
+
+AMuksiWorldCharacter* UMuksiPlayerDataSubsystem::GetPlayerWorldCharacter() const
+{
 	const UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -61,8 +66,14 @@ AMuksiWorldCharacter* UMuksiPlayerDataSubsystem::GetPlayerPawn() const
 UStatComponent* UMuksiPlayerDataSubsystem::GetPlayerStatComponent() const
 {
 	const AMuksiWorldCharacter* PlayerPawn = GetPlayerPawn();
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[PlayerDataSubsystem] Pawn=%s Class=%s"),
+		*GetNameSafe(PlayerPawn),
+		PlayerPawn ? *PlayerPawn->GetClass()->GetName() : TEXT("None"));
+
 	return PlayerPawn ? PlayerPawn->GetStatComponent() : nullptr;
-}
+}	
 
 UInventoryComponent* UMuksiPlayerDataSubsystem::GetPlayerInventoryComponent() const
 {

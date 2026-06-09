@@ -25,6 +25,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player Data")
 	AMuksiWorldCharacter* GetPlayerPawn() const;
 
+	UFUNCTION(BlueprintPure, Category = "Player Data")
+	AMuksiWorldCharacter* GetPlayerWorldCharacter() const;
+
 	UFUNCTION(BlueprintPure, Category = "Player Data|Component")
 	UStatComponent* GetPlayerStatComponent() const;
 

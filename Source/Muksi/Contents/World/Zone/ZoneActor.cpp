@@ -1,8 +1,10 @@
 #include "ZoneActor.h"
-#include "Controllers/MuksiPlayerController.h"
+
+#include "ZoneManager.h"
 #include "GameFramework/Pawn.h"
 #include "Components/BoxComponent.h"
 #include "Components/BillboardComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AZoneActor::AZoneActor()
 {
@@ -32,8 +34,43 @@ void AZoneActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (AZoneManager* Manager = ResolveZoneManager())
+	{
+		Manager->RegisterZone(this);
+	}
+
 	ZoneBounds->OnComponentBeginOverlap.AddDynamic(this, &AZoneActor::OnZoneBeginOverlap);
 	ZoneBounds->OnComponentEndOverlap.AddDynamic(this, &AZoneActor::OnZoneEndOverlap);
+}
+
+void AZoneActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (ZoneManager)
+	{
+		ZoneManager->UnregisterZone(this);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+AZoneManager* AZoneActor::ResolveZoneManager()
+{
+	if (ZoneManager)
+	{
+		return ZoneManager;
+	}
+
+	ZoneManager = Cast<AZoneManager>(
+		UGameplayStatics::GetActorOfClass(this, AZoneManager::StaticClass())
+	);
+
+	if (!ZoneManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ZoneActor failed: ZoneManager not found. Actor=%s"),
+			*GetNameSafe(this));
+	}
+
+	return ZoneManager;
 }
 
 void AZoneActor::OnZoneBeginOverlap(UPrimitiveComponent* OverlappedComponent,
@@ -44,16 +81,21 @@ void AZoneActor::OnZoneBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 	const FHitResult& SweepResult)
 {
 	APawn* Pawn = Cast<APawn>(OtherActor);
-	if (!Pawn)
+	if (!Pawn || !Pawn->IsPlayerControlled())
 	{
 		return;
 	}
 
-	if (AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(Pawn->GetController()))
+	AZoneManager* Manager = ResolveZoneManager();
+	if (!Manager)
 	{
-		PC->SetCurrentZone(this);
-		UE_LOG(LogTemp, Warning, TEXT("Entered Zone: %s"), *ZoneData.ZoneDisplayName.ToString());
+		return;
 	}
+
+	Manager->SetCurrentZone(this);
+
+	UE_LOG(LogTemp, Warning, TEXT("Entered Zone: %s"),
+		*ZoneData.ZoneDisplayName.ToString());
 }
 
 void AZoneActor::OnZoneEndOverlap(UPrimitiveComponent* OverlappedComponent,
@@ -62,18 +104,22 @@ void AZoneActor::OnZoneEndOverlap(UPrimitiveComponent* OverlappedComponent,
 	int32 OtherBodyIndex)
 {
 	APawn* Pawn = Cast<APawn>(OtherActor);
-	if (!Pawn)
+	if (!Pawn || !Pawn->IsPlayerControlled())
 	{
 		return;
 	}
 
-	if (AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(Pawn->GetController()))
+	AZoneManager* Manager = ResolveZoneManager();
+	if (!Manager)
 	{
-		if (PC->GetCurrentZone() == this)
-		{
-			PC->SetCurrentZone(nullptr);
-		}
-
-		UE_LOG(LogTemp, Warning, TEXT("Left Zone: %s"), *ZoneData.ZoneDisplayName.ToString());
+		return;
 	}
+
+	if (Manager->GetCurrentZone() == this)
+	{
+		Manager->SetCurrentZone(nullptr);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Left Zone: %s"),
+		*ZoneData.ZoneDisplayName.ToString());
 }

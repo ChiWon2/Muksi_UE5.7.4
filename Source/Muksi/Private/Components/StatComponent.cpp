@@ -43,6 +43,15 @@ void UStatComponent::InitializeStat()
 	UE_LOG(LogTemp, Log, TEXT("StatComponent Initialized: Owner=%s"), *OwnerName);
 
 	BroadcastStatChanged();
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[StatComponent] Initialized Ptr=%p Owner=%s HP=%.0f MaxHP=%.0f ATK=%.0f DEF=%.0f"),
+		this,
+		*GetNameSafe(GetOwner()),
+		ResourceStat.CurrentHP,
+		ResourceStat.MaxHP,
+		CombatStat.AttackPower,
+		CombatStat.DefensePower);
 }
 
 

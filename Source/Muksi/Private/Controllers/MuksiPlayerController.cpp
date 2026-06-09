@@ -14,18 +14,6 @@
 #include "NativeGameplayTags.h"
 #include "Muksi/Widgets/Battle/CAW/Widget_CharacterData.h"
 
-//Test Zone, Town UI
-#include "Muksi/Contents/World/Zone/ZoneManager.h"
-#include "Muksi/Contents/World/Zone/ZoneActor.h"
-#include "MuksiFunctionLibrary.h"
-#include "Widgets/Widget_ActivatableBase.h"
-#include "World/Components/TownUIControllerComponent.h"
-//Test Zone, Town UI
-
-//Test Equipment
-#include "MuksiGameplayTags.h"
-#include "World/Components/InventoryEquipmentUIComponent.h"
-//Test Equipment
 
 //Test Data Subsystem
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
@@ -38,10 +26,6 @@
 AMuksiPlayerController::AMuksiPlayerController()
 {
 	bShowMouseCursor = true;
-
-	TownUIControllerComponent =
-		CreateDefaultSubobject<UTownUIControllerComponent>(TEXT("TownUIControllerComponent"));
-	InventoryEquipmentUIController = CreateDefaultSubobject<UInventoryEquipmentUIComponent>(TEXT("InventoryEquipmentUIController"));
 
 }
 
@@ -69,62 +53,6 @@ void AMuksiPlayerController::PushSoftWidget()
 		);
 	}
 }
-
-//Test Zone, Town UI
-void AMuksiPlayerController::SetCurrentZone(AZoneActor* NewZone)
-{
-	if (ZoneManager)
-	{
-		ZoneManager->SetCurrentZone(NewZone);
-	}
-}
-
-AZoneActor* AMuksiPlayerController::GetCurrentZone() const
-{
-	return ZoneManager ? ZoneManager->GetCurrentZone() : nullptr;
-}
-
-FZoneData AMuksiPlayerController::GetCurrentZoneData() const
-{
-	return ZoneManager ? ZoneManager->GetCurrentZoneData() : FZoneData();
-}
-
-void AMuksiPlayerController::OpenTownUI(UTownDataAsset* InTownData)
-{
-	UE_LOG(LogTemp, Warning, TEXT("PC OpenTownUI called. TownUIController=%s"),
-		*GetNameSafe(TownUIControllerComponent));
-	
-	if (TownUIControllerComponent)
-	{
-		TownUIControllerComponent->OpenTownUI(InTownData);
-	}
-}
-
-void AMuksiPlayerController::CloseTownUI()
-{
-	if (TownUIControllerComponent)
-	{
-		TownUIControllerComponent->CloseTownUI();
-	}
-}
-
-bool AMuksiPlayerController::IsTownUIOpen() const
-{
-	return TownUIControllerComponent && TownUIControllerComponent->IsTownUIOpen();
-}
-
-
-//Test Zone, Town UI
-
-//Test Equipment
-void AMuksiPlayerController::OpenInventoryEquipmentUI()
-{
-	if (InventoryEquipmentUIController)
-	{
-		InventoryEquipmentUIController->OpenInventoryEquipmentUI();
-	}
-}
-//Test Equipment
 
 void AMuksiPlayerController::BeginPlay()
 {

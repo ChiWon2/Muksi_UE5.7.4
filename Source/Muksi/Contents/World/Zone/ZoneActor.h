@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "ZoneActor.generated.h"
 
+class AZoneManager;
 class UBoxComponent;
 class UBillboardComponent;
 
@@ -45,6 +46,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Zone")
@@ -61,10 +63,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Zone")
 	FZoneData ZoneData;
 
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Zone")
+	TObjectPtr<AZoneManager> ZoneManager = nullptr;
+
 	UFUNCTION(BlueprintCallable, Category = "Zone")
 	const FZoneData& GetZoneData() const { return ZoneData; }
 
 protected:
+	AZoneManager* ResolveZoneManager();
+
 	UFUNCTION()
 	void OnZoneBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 		AActor* OtherActor,
