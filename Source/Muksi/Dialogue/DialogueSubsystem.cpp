@@ -55,7 +55,7 @@ void UDialogueSubsystem::StartDialogueByKey(const FDialogueKey& Key)
 
     UMuksiUISubsystem::Get(this)->PushSoftWidgetToStackAsync(
         PC,
-        MuksiGameplayTag::Muksi_WidgetStack_GameHud,
+        MuksiGameplayTag::Muksi_WidgetStack_Modal,
         WidgetClass,
         true,
         nullptr,

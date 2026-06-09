@@ -2,6 +2,8 @@
 #include "../GameEventHandleSubsystem.h"
 #include "../Events/Event_StartBattle.h"
 #include "../Events/Event_AcceptQuest.h"
+#include "../Events/Event_CompleteQuest.h"
+#include "../Events/Event_ObjectiveComplete.h"
 
 
 FInstancedStruct GameEventUtils::MakeStartBattle(int32 BattleID)
@@ -33,4 +35,34 @@ void GameEventUtils::ExecuteAcceptQuest(UObject* WorldContext, FName QuestID)
 {
     UGameEventHandleSubsystem* Subsystem = UGameEventHandleSubsystem::Get(WorldContext);
     Subsystem->ExecuteEvent(WorldContext, MakeAcceptQuest(QuestID));
+}
+
+FInstancedStruct GameEventUtils::MakeCompleteQuest(FName QuestID)
+{
+    FEvent_CompleteQuest Event;
+
+    Event.QuestID = QuestID;
+
+    return FInstancedStruct::Make(Event);
+}
+
+void GameEventUtils::ExecuteCompleteQuest(UObject* WorldContext, FName QuestID)
+{
+    UGameEventHandleSubsystem* Subsystem = UGameEventHandleSubsystem::Get(WorldContext);
+    Subsystem->ExecuteEvent(WorldContext, MakeCompleteQuest(QuestID));
+}
+
+FInstancedStruct GameEventUtils::MakeObjectiveComplete(FName ObjectiveID)
+{
+    FEvent_ObjectiveComplete Event;
+        
+    Event.ObjectiveID = ObjectiveID;
+
+    return FInstancedStruct::Make(Event);
+}
+
+void GameEventUtils::ExecuteObjectiveComplete(UObject* WorldContext, FName ObjectiveID)
+{
+    UGameEventHandleSubsystem* Subsystem = UGameEventHandleSubsystem::Get(WorldContext);
+    Subsystem->ExecuteEvent(WorldContext, MakeObjectiveComplete(ObjectiveID));
 }

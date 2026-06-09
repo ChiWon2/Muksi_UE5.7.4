@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "QuestKey.h"
+#include"QuestState.h"
 #include "QuestDetailRow.h"
 #include "QuestInstance_Base.generated.h"
 
@@ -41,7 +42,7 @@ public:
     FQuestDetailRow QuestDetails;
 
     UPROPERTY(BlueprintReadOnly)
-    bool bIsCompleted = false;
+    EQuestState QuestState = EQuestState::Active;
 
     UPROPERTY(BlueprintReadOnly)
     TMap<FName, int32> ObjectiveProgress;

@@ -44,6 +44,7 @@ public:
     UQuestInstance_Base* GetQuestInstance(const FQuestKey& QuestKey) const;
 
     const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& GetActiveQuests() const;
+    const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& GetCompletedQuests() const;
 
     const FQuestDetailRow* GetQuestRow(const FQuestKey& QuestKey) const;
 
@@ -65,5 +66,5 @@ private:
     TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>> ActiveQuests;
 
     UPROPERTY()
-    TSet<FQuestKey> CompletedQuests;
+    TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>> CompletedQuests;
 };
