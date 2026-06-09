@@ -102,9 +102,11 @@ void UQuestSubsystem::CompleteQuest( const FQuestKey& QuestKey)
 
     UE_LOG( LogTemp, Warning, TEXT("[QuestSubsystem] Quest Completed : %s"), *QuestKey.ToString());
 
+    Quest->QuestState = EQuestState::Completed;
+
     ActiveQuests.Remove(QuestKey);
 
-    CompletedQuests.Add(QuestKey);
+    CompletedQuests.Add(QuestKey,Quest);
 
     OnQuestCompleted.Broadcast(Quest);
 }
@@ -127,4 +129,9 @@ UQuestInstance_Base* UQuestSubsystem::GetQuestInstance(const FQuestKey& QuestKey
 const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& UQuestSubsystem::GetActiveQuests() const
 {
     return ActiveQuests;
+}
+
+const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& UQuestSubsystem::GetCompletedQuests() const
+{
+    return CompletedQuests;
 }

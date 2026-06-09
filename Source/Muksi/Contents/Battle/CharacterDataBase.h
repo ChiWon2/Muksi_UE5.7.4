@@ -47,6 +47,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Character")
 	bool IsDead() const { return CurrentHP <= 0; }
+	
+	UPROPERTY()
+	FIntPoint CurrentPosition = FIntPoint(0);
 protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiCharacterDataAsset> SourceCharacterAsset = nullptr;

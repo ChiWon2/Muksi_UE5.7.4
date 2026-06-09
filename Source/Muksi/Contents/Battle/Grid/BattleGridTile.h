@@ -43,6 +43,12 @@ public:
 	UFUNCTION()
 	FTransform GetCharacterSpawnTransform() const;
 	
+	UFUNCTION()
+	void OnHoverBegin();
+	UFUNCTION()
+	void OnHoverEnd();
+
+	
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

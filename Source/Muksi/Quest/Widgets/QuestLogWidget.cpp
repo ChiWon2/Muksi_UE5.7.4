@@ -12,21 +12,38 @@
 #include "../Quest/QuestInstance_Base.h"
 #include "../QuestSubsystem.h"
 #include"../TravelTime/TravelTimeSubsystem.h"
+#include "TabButton.h"
 #include "QuestEntryWidget.h"
 #include "QuestObjectiveEntryWidget.h"
+
+
 
 void UQuestLogWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    if (BT_CloseMenu)
-    {
-        BT_CloseMenu->OnClicked.AddDynamic(this, &UQuestLogWidget::OnCloseButtonClicked);
-    }
+    TAB_Ongoing->SetTabText(FText::FromString("Quests"));
+    TAB_Completed->SetTabText(FText::FromString("Completed"));
+    TAB_Ongoing->SetSelected(true);
+    TAB_Completed->SetSelected(false);
+
+    WS_QuestList->SetActiveWidgetIndex(0);
+
+    TAB_Ongoing->OnTabClicked.AddUniqueDynamic( this, &ThisClass::HandleTabClicked);
+
+    TAB_Completed->OnTabClicked.AddUniqueDynamic( this, &ThisClass::HandleTabClicked);
+
+    BT_CloseMenu->OnClicked.AddUniqueDynamic(this, &UQuestLogWidget::OnCloseButtonClicked);
+
 }
 
 void UQuestLogWidget::NativeDestruct()
 {
+    TAB_Ongoing->OnTabClicked.RemoveDynamic(this, &ThisClass::HandleTabClicked);
+    TAB_Completed->OnTabClicked.RemoveDynamic(this, &ThisClass::HandleTabClicked);
+
+    BT_CloseMenu->OnClicked.RemoveDynamic(this, &UQuestLogWidget::OnCloseButtonClicked);
+
     Super::NativeDestruct();
 }
 
@@ -55,44 +72,34 @@ void UQuestLogWidget::RefreshQuestList()
     if (!QuestSubsystem)
         return;
 
-    if (SB_MainQuest)
+    SB_ActiveQuests->ClearChildren();
+    SB_CompletedQuests->ClearChildren();
+    
+
+    for (const auto& Pair : QuestSubsystem->GetActiveQuests())
     {
-        SB_MainQuest->ClearChildren();
+        AddQuestToList(Pair.Value, SB_ActiveQuests);
     }
-
-    if (SB_SideQuest)
+    for (const auto& Pair : QuestSubsystem->GetCompletedQuests())
     {
-        SB_SideQuest->ClearChildren();
+        AddQuestToList(Pair.Value, SB_CompletedQuests);
     }
+}
 
-    APlayerController* PC = GetOwningPlayer();
+void UQuestLogWidget::HandleTabClicked(UTabButton* ClickedTab)
+{
+    TAB_Ongoing->SetSelected(false);
+    TAB_Completed->SetSelected(false);
 
-    for (const TPair<FQuestKey, TObjectPtr<UQuestInstance_Base>>&Pair : QuestSubsystem->GetActiveQuests())
+    ClickedTab->SetSelected(true);
+
+    if (ClickedTab == TAB_Ongoing)
     {
-        UQuestInstance_Base* QuestInstance = Pair.Value;
-
-        if (!QuestInstance)
-            continue;
-
-        UQuestEntryWidget* Entry = CreateWidget<UQuestEntryWidget>(PC, QuestEntryWidgetClass);
-
-        if (!Entry)
-            continue;
-
-        Entry->InitWidget(QuestInstance);
-
-        Entry->OnQuestSelected.AddDynamic( this, &UQuestLogWidget::HandleQuestSelected);
-
-        Entry->OnTrackSelected.AddDynamic( this, &UQuestLogWidget::HandleTrackSelected);
-
-        const bool bIsCompletedQuest = QuestInstance->bIsCompleted;
-
-        UScrollBox* TargetBox = bIsCompletedQuest ? SB_MainQuest : SB_SideQuest;
-
-        if (TargetBox)
-        {
-            TargetBox->AddChild(Entry);
-        }
+        WS_QuestList->SetActiveWidgetIndex(0);
+    }
+    else
+    {
+        WS_QuestList->SetActiveWidgetIndex(1);
     }
 }
 
@@ -155,4 +162,28 @@ void UQuestLogWidget::HandleTrackSelected(
 
     // TODO:
     // Make Quest Tracker 
+}
+
+void UQuestLogWidget::AddQuestToList( UQuestInstance_Base* QuestInstance,UScrollBox* TargetBox)
+{
+    if (!QuestInstance || !TargetBox)
+        return;
+
+    APlayerController* PC = GetOwningPlayer();
+
+    UQuestEntryWidget* Entry =
+        CreateWidget<UQuestEntryWidget>(
+            PC,
+            QuestEntryWidgetClass);
+
+    if (!Entry)
+        return;
+
+    Entry->InitWidget(QuestInstance);
+
+    Entry->OnQuestSelected.AddDynamic(this, &ThisClass::HandleQuestSelected);
+
+    Entry->OnTrackSelected.AddDynamic( this, &ThisClass::HandleTrackSelected);
+
+    TargetBox->AddChild(Entry);
 }

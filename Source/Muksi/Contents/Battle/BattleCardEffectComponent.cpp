@@ -1,0 +1,113 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Muksi/Contents/Battle/BattleCardEffectComponent.h"
+
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "BattleCardPreviewComponent.h"
+#include "BattleManager.h"
+#include "Data/MuksiBattleCardEffectData.h"
+#include "Grid/BattleGridManager.h"
+#include "Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/CharacterDataBase.h"
+#include "Muksi/Contents/Battle/CharacterData_Player.h"
+#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
+
+
+// Sets default values for this component's properties
+UBattleCardEffectComponent::UBattleCardEffectComponent()
+{
+	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
+	// off to improve performance if you don't need them.
+	PrimaryComponentTick.bCanEverTick = false;
+
+	// ...
+}
+
+void UBattleCardEffectComponent::InitializePreviewComponent(ABattleManager* InBattleManager,
+	ABattleGridManager* InGridManager,
+	UBattleCardPreviewComponent* InCardPreviewComponent)
+{
+	BattleManager = InBattleManager;
+	GridManager = InGridManager;
+	BattleCardPreviewComponent = InCardPreviewComponent;
+}
+
+void UBattleCardEffectComponent::CardEffectUpdate(UCharacterDataBase* CharacterDataBase, UMuksiBattleCardDataAsset* InCardData)
+{
+	if (UCharacterData_Player* PlayerData = Cast<UCharacterData_Player>(CharacterDataBase)) //플레이어 전용
+	{
+		for (FMuksiBattleCardEffectData Effect : InCardData->Effects)
+		{
+			if (Effect.EffectType == EMuksiBattleCardEffectType::Rush)
+			{
+				BattleManager->bIsCardTargeting = true;
+				BattleManager->SetCardRange(Effect.RangeValue);
+				PlayerEffect = Effect;
+			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Defense)
+			{
+			
+			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Heal)
+			{
+			
+			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Move)
+			{
+			
+			}
+		}
+	}
+	else if (UCharacterData_Enemy* EnemyData = Cast<UCharacterData_Enemy>(CharacterDataBase))// 적 전용
+	{
+		for (FMuksiBattleCardEffectData Effect : InCardData->Effects)
+		{
+			if (Effect.EffectType == EMuksiBattleCardEffectType::Rush)
+			{
+			
+			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Defense)
+			{
+			
+			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Heal)
+			{
+			
+			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Move)
+			{
+			
+			}
+		}
+	}
+	else
+	{
+		//Error 
+		UE_LOG(LogTemp, Error, TEXT("Character Data Error!!!"));
+		return;
+	}
+	//TODO 적이 사용하는 경우
+}
+
+void UBattleCardEffectComponent::SelectTargetGrid(ABattleGridTile* TargetGrid)
+{
+	if (PlayerEffect.EffectType == EMuksiBattleCardEffectType::Rush)
+	{
+		BattleManager->BattleGridManager->RushPosition(BattleManager->GetPlayerBattleCharacter(), TargetGrid->GetGridCoord());
+	}
+}
+
+
+// Called when the game starts
+void UBattleCardEffectComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// ...
+	
+}
+
+
+// Called every frame
+void UBattleCardEffectComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// ...
+}
+

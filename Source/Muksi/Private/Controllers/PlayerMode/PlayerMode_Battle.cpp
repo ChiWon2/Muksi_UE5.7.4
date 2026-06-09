@@ -10,7 +10,10 @@
 
 #include "MuksiDebugHelper.h"
 #include "MuksiGameplayTags.h"
+#include "Kismet/GameplayStatics.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 
@@ -33,6 +36,19 @@ void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 
 	UE_LOG(LogTemp, Warning, TEXT("PlayerMode_Battle"));
 	
+	BattleManager = Cast<ABattleManager>(
+		UGameplayStatics::GetActorOfClass(
+			this,
+			ABattleManager::StaticClass()
+		)
+	);
+
+	if (!BattleManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UPlayerMode_Battle::EnterMode - BattleManager not found"));
+		return;
+	}
+	
 	
 	InitializeBattleTestData();
 }
@@ -46,6 +62,14 @@ void UPlayerMode_Battle::ExitMode()
 	PC->bShowMouseCursor = false;
 	PC->bEnableClickEvents = false;
 	PC->bEnableMouseOverEvents = false;
+}
+
+void UPlayerMode_Battle::TickPlayerMode()
+{
+	Super::TickPlayerMode();
+	
+	//Hover GridTile Test
+	UpdateHoveredGridTile();
 }
 
 
@@ -62,9 +86,8 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 		UE_LOG(LogTemp, Warning, TEXT("PlayerMode_Battle::HandleLeftClick - PC is nullptr"));
 		return;
 	}
-
+	
 	FHitResult HitResult;
-
 	const bool bHit = PC->GetHitResultUnderCursorByChannel(
 		UEngineTypes::ConvertToTraceType(ECC_Visibility),
 		true,
@@ -83,20 +106,50 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 		Debug::Print(TEXT("Hit, But No Actor"));
 		return;
 	}
+	if (BattleManager->bIsCardTargeting) // 공격 카드 타겟팅 시
+	{
+		if (HitActor->GetClass()->ImplementsInterface(USelectGridInterface::StaticClass()))
+		{
+			BattleManager->TargetGridCell(Cast<ABattleGridTile>(HitActor));
+		}
+	}else
+	{
+		if (HitActor->GetClass()->ImplementsInterface(USelectableCharacterInterface::StaticClass()))
+		{
+			SelectedActor = HitActor;
+			PushCharacterDataWidget();
+		}
+		else if (HitActor->GetClass()->ImplementsInterface(USelectGridInterface::StaticClass()))
+		{
+			ISelectGridInterface::Execute_OnGridSelected(HitActor);
+		}
+		else
+		{
+			Debug::Print(FString::Printf(TEXT("Not Selectable : %s"), *HitActor->GetName()));
+		}
+	}
+	
+	
+}
 
-	if (HitActor->GetClass()->ImplementsInterface(USelectableCharacterInterface::StaticClass()))
+void UPlayerMode_Battle::UpdateHoveredGridTile()
+{
+	
+	if (!PC)
 	{
-		SelectedActor = HitActor;
-		PushCharacterDataWidget();
+		return;
 	}
-	else if (HitActor->GetClass()->ImplementsInterface(USelectGridInterface::StaticClass()))
+
+	FHitResult HitResult;
+	ABattleGridTile* NewHoveredTile = nullptr;
+
+	if (PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
 	{
-		ISelectGridInterface::Execute_OnGridSelected(HitActor);
+		NewHoveredTile = Cast<ABattleGridTile>(HitResult.GetActor());
 	}
-	else
-	{
-		Debug::Print(FString::Printf(TEXT("Not Selectable : %s"), *HitActor->GetName()));
-	}
+	
+	BattleManager->OnHoveredGridTileChanged(NewHoveredTile);
+	
 }
 
 void UPlayerMode_Battle::InitializeBattleTestData()

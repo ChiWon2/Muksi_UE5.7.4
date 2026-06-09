@@ -7,6 +7,8 @@
 #include "BattleGridManager.generated.h"
 
 class ABattleGridTile;
+class UCharacterDataBase;
+class ABattleCharacterBase;
 
 USTRUCT(BlueprintType)
 struct FBattleGridCell
@@ -84,6 +86,10 @@ protected:
 	TArray<FBattleGridCell> GridCells;
 	
 public:
+	
+	UFUNCTION(BlueprintCallable, Category = "Battle|Character")
+	void MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint);
+	
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	void GenerateGrid();
 
@@ -116,4 +122,23 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	bool MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoord, const FIntPoint& ToCoord);
+	
+protected:
+	UPROPERTY(EditAnywhere, Category = "Battle|Character")
+	FIntPoint PlayerStartPoint = FIntPoint(0, 0);
+	UPROPERTY(EditAnywhere, Category = "Battle|Character")
+	FIntPoint EnemyStartPoint = FIntPoint(4, 4);
+	
+public:
+	UFUNCTION()
+	FTransform GetTransformToPosition(FIntPoint InPosition);
+	UFUNCTION()
+	bool CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range);
+	
+	//Card Effect Active 
+public:
+	void RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint);
+	void MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
+	void RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
+	
 };
