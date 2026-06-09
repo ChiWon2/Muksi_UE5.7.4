@@ -1,6 +1,4 @@
 #include "ZoneManager.h"
-#include "Controllers/MuksiPlayerController.h"
-#include "Kismet/GameplayStatics.h"
 
 AZoneManager::AZoneManager()
 {
@@ -11,10 +9,6 @@ void AZoneManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
-	{
-		PC->SetZoneManager(this);
-	}
 }
 
 void AZoneManager::RegisterZone(AZoneActor* Zone)

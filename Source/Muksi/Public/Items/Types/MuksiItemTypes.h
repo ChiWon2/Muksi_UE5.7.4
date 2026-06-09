@@ -24,6 +24,23 @@ enum class EMuksiEquipmentSlot : uint8
 	Accessory	UMETA(DisplayName = "Accessory")
 };
 
+UENUM(BlueprintType)
+enum class EMuksiForgeActionType : uint8
+{
+	Repair	UMETA(DisplayName = "Repair"),
+	Enhance	UMETA(DisplayName = "Enhance")
+};
+
+UENUM(BlueprintType)
+enum class EMuksiEnhanceResult : uint8
+{
+	None			UMETA(DisplayName = "None"),
+	Success			UMETA(DisplayName = "Success"),
+	FailedNoChange	UMETA(DisplayName = "Failed No Change"),
+	FailedDowngrade	UMETA(DisplayName = "Failed Downgrade"),
+	FailedBroken	UMETA(DisplayName = "Failed Broken")
+};
+
 USTRUCT(BlueprintType)
 struct MUKSI_API FMuksiItemStatModifier
 {

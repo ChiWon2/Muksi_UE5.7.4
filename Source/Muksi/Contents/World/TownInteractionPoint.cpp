@@ -1,8 +1,6 @@
 #include "TownInteractionPoint.h"
+
 #include "Muksi/Contents/World/WorldCharacter/MuksiWorldCharacter.h"
-#include "Muksi/Contents/World/Zone/ZoneActor.h"
-#include "Controllers/MuksiPlayerController.h"
-#include "GameFramework/Pawn.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -84,20 +82,22 @@ void ATownInteractionPoint::Interact(AActor* Interactor)
 		return;
 	}
 
-	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(Pawn->GetController());
-	if (!PC)
+	if (!Interactor)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("TownInteractionPoint failed: Interactor is null. Actor=%s"),
+			*GetNameSafe(this));
 		return;
 	}
 
 	if (!TownDataAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TownInteractionPoint failed: TownDataAsset is null"));
+		UE_LOG(LogTemp, Warning, TEXT("TownInteractionPoint failed: TownDataAsset is null. Actor=%s"),
+			*GetNameSafe(this));
 		return;
 	}
 
 	bUsed = true;
 
-	UE_LOG(LogTemp, Log, TEXT("TownInteractionPoint: OpenTownUI with TownDataAsset"));
-	PC->OpenTownUI(TownDataAsset);
+	UE_LOG(LogTemp, Log, TEXT("TownInteractionPoint interacted. TownDataAsset=%s"),
+		*GetNameSafe(TownDataAsset));
 }

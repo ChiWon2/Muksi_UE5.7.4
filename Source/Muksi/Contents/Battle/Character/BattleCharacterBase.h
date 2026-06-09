@@ -38,14 +38,23 @@ protected:
 	UFUNCTION()
 	void HandleClicked(AActor* TouchedActor, FKey ButtonPressed);
 	
+	
+	UPROPERTY()
+	FIntPoint CharacterPosition = FIntPoint(0,0);
 	//FCharacterDisplayData CharacterDisplayData;
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	void SetCharacterData(UCharacterDataBase* InCharacterData);
+	virtual void SetCharacterData(UCharacterDataBase* InCharacterData);
 	
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
 	UCharacterDataBase* GetCharacterData() const {return CharacterData;};
+	
+	UFUNCTION()
+	FIntPoint GetCharacterPosition(){return CharacterPosition;};
+	
+	UFUNCTION()
+	void SetCharacterPosition(FIntPoint NewPosition){CharacterPosition = NewPosition;};
 	
 protected:
 	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;	

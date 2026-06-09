@@ -18,7 +18,8 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 #include "MuksiDebugHelper.h"
-
+#include "Components/VerticalBox.h"
+#include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 
 FWidgetCard::FWidgetCard()
@@ -303,6 +304,55 @@ void UHandWidget::DeActiveInkLine()
 	InkLine->SetVisibility(ESlateVisibility::Hidden);
 }
 
+UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const
+{
+	
+	if (!Card)
+	{
+		return nullptr;
+	}
+	
+	for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
+	{
+		
+		if (!EquipSlot)
+		{
+			continue;
+		}
+
+		if (EquipSlot->IsCardOverlappingSlot(Card))
+		{
+			if (!EquipSlot->CheckEmptySlot())return nullptr;
+			return EquipSlot;
+		}
+	}
+	return nullptr;
+}
+
+void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard)
+{
+	UWidget_BattleCardBase* CardWidget =
+		CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
+
+	if (!CardWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed"));
+		return;
+	}
+	CardWidget->SetCardData(SelectCard);
+	
+	CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	
+	EnemySelectCardVerticalBox->AddChildToVerticalBox(CardWidget);
+}
+
+void UHandWidget::ClearEnemySelectCard()
+{
+	//임시로 Vertical Box 사용
+	EnemySelectCardVerticalBox->ClearChildren();
+}
+
+
 void UHandWidget::ShowTurnEndButton(bool bShow)
 {
 	if (!Button_TurnEnd)
@@ -336,13 +386,45 @@ FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber(int32 InIndex)
 
 void UHandWidget::ConfirmExchangeInput(int32 InIndex)
 {
-	UWidget_CardEquipSlot* EquipSlot = GetSlotByExchangeNumber(InIndex);
-
-	if (!EquipSlot)
+	if (InIndex >= 3)
 	{
-		return;
-	}
+		for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
+		{
+			if (!EquipSlot){continue;}
+			EquipSlot->ConfirmSlot();
+			EquipSlot->SetSlotEnabled(false);
+			EquipSlot->SetSlotHighlighted(false);
+			EquipSlot->SetSlotConfirmed(false);
+			BattleMainScreen->EquipBattleCardArray[InIndex - 1] = EquipSlot->GetSlotData().CardData;
+		}
+	}else
+	{
+		UWidget_CardEquipSlot* EquipSlot = GetSlotByExchangeNumber(InIndex);
 
+		if (!EquipSlot)
+		{
+			return;
+		}
+		EquipSlot->ConfirmSlot();
+		EquipSlot->SetSlotEnabled(false);
+		EquipSlot->SetSlotHighlighted(false);
+		EquipSlot->SetSlotConfirmed(true);
+		BattleMainScreen->EquipBattleCardArray[InIndex - 1] = EquipSlot->GetSlotData().CardData;
+		
+		
+		UWidget_CardEquipSlot* EquipSlot_ = GetSlotByExchangeNumber(InIndex + 1);
+
+		if (!EquipSlot)
+		{
+			return;
+		}
+		//EquipSlot_->ConfirmSlot();
+		UE_LOG(LogTemp, Log, TEXT("Confirmed Equip slot"));
+		EquipSlot_->SetSlotEnabled(true);
+		EquipSlot_->SetSlotHighlighted(true);
+		EquipSlot_->SetSlotConfirmed(false);
+	}
+	
 	/*EquipSlot->ConfirmSlot();
 	EquipSlot->SetSlotEnabled(false);
 	EquipSlot->SetSlotHighlighted(false);
@@ -398,6 +480,7 @@ void UHandWidget::InitializeExchangeSlots()
 		EquipSlot->SetSlotEnabled(false);
 		EquipSlot->SetSlotHighlighted(false);
 		EquipSlot->SetSlotConfirmed(false);
+		EquipSlot->OwningHandWidget = this;
 	}
 }
 
@@ -513,6 +596,8 @@ void UHandWidget::BuildHandFromCharacterData(TArray<UMuksiBattleCardDataAsset*> 
 		*GetNameSafe(CharacterData),
 		BattleCards.Num()
 	);	*/
+	
+	
 }
 
 void UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* CardData)
@@ -543,11 +628,37 @@ void UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* CardData)
 		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed"));
 		return;
 	}
-
-	CardWidget->SetOwningHandWidget(this);
 	CardWidget->SetCardData(CardData);
+	PlaceCardInHand(CardWidget);
 
-	if (UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(CardWidget))
+	
+
+	UE_LOG(LogTemp, Log, TEXT("AddCardToHand: %s"), *GetNameSafe(CardData));
+}
+
+void UHandWidget::PlaceCardInHand(UWidget_BattleCardBase* InCardWidget)
+{
+	if (!InCardWidget)
+	{
+		return;
+	}
+
+	if (!HandCanvas)
+	{
+		return;
+	}
+	
+	if (BattleCards.Contains(InCardWidget))
+	{
+		return;
+	}
+
+	InCardWidget->RemoveFromParent();
+	
+	InCardWidget->SetOwningHandWidget(this);
+	
+
+	if (UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(InCardWidget))
 	{
 		CanvasSlot->SetAutoSize(true);
 		CanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
@@ -557,13 +668,11 @@ void UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* CardData)
 	}
 
 	FWidgetCard WidgetCard;
-	WidgetCard.Cards = CardWidget;
+	WidgetCard.Cards = InCardWidget;
 	WidgetCard.ZIndex = BattleCards.Num();
 
 	CardsStructArray.Add(WidgetCard);
-	BattleCards.Add(CardWidget);
-
-	UE_LOG(LogTemp, Log, TEXT("AddCardToHand: %s"), *GetNameSafe(CardData));
+	BattleCards.Add(InCardWidget);
 }
 
 void UHandWidget::BuildHandBattleStart()

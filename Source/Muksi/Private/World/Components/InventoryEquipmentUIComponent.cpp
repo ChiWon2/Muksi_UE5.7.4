@@ -20,10 +20,10 @@ void UInventoryEquipmentUIComponent::OpenInventoryEquipmentUI()
 		return;
 	}
 
-	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(GetOwner());
+	AMuksiPlayerController* PC = GetMuksiPlayerController();
 	if (!PC)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[InventoryEquipment] Open failed: owner is not MuksiPlayerController"));
+		UE_LOG(LogTemp, Warning, TEXT("[InventoryEquipment] Open failed: MuksiPlayerController is null"));
 		return;
 	}
 
@@ -96,4 +96,15 @@ void UInventoryEquipmentUIComponent::CloseInventoryEquipmentUI()
 	WidgetToClose->DeactivateWidget();
 
 	UE_LOG(LogTemp, Log, TEXT("[InventoryEquipment] Closed"));
+}
+
+AMuksiPlayerController* UInventoryEquipmentUIComponent::GetMuksiPlayerController() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	return Cast<AMuksiPlayerController>(World->GetFirstPlayerController());
 }

@@ -17,6 +17,16 @@ class MUKSI_API ATownInteractionPoint : public AActor
 public:
 	ATownInteractionPoint();
 
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	virtual void Interact(AActor* Interactor);
+
+	UFUNCTION(BlueprintPure, Category = "Town")
+	UTownDataAsset* GetTownDataAsset() const { return TownDataAsset.Get(); }
+
+	UFUNCTION(BlueprintPure, Category = "Town")
+	bool HasTownDataAsset() const { return TownDataAsset != nullptr; }
+
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -55,7 +65,4 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
-public:
-	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	virtual void Interact(AActor* Interactor);
 };

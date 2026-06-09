@@ -38,6 +38,26 @@ namespace
 	}
 }
 
+FMuksiItemStatModifier MakeEnhancedModifier(
+	const FMuksiItemStatModifier& BaseModifier,
+	int32 EnhanceLevel)
+{
+	FMuksiItemStatModifier Result = BaseModifier;
+
+	const float Multiplier = 1.f + static_cast<float>(FMath::Max(0, EnhanceLevel)) * 0.10f;
+
+	Result.MaxHP *= Multiplier;
+	Result.MaxInternalEnergy *= Multiplier;
+	Result.MaxStamina *= Multiplier;
+	Result.AttackPower *= Multiplier;
+	Result.DefensePower *= Multiplier;
+	Result.HitRate *= Multiplier;
+	Result.CriticalRate *= Multiplier;
+	Result.MoveSpeed *= Multiplier;
+
+	return Result;
+}
+
 UEquipmentComponent::UEquipmentComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -214,7 +234,12 @@ bool UEquipmentComponent::GetTotalEquipmentStatModifier(FMuksiItemStatModifier& 
 			continue;
 		}
 
-		AddStatModifier(OutModifier, EquippedEntry.ItemData->EquipmentStatModifier);
+		const FMuksiItemStatModifier EnhancedModifier = MakeEnhancedModifier(
+			EquippedEntry.ItemData->EquipmentStatModifier,
+			EquippedEntry.EnhanceLevel
+		);
+
+		AddStatModifier(OutModifier, EnhancedModifier);
 		bHasValidEquipment = true;
 	}
 

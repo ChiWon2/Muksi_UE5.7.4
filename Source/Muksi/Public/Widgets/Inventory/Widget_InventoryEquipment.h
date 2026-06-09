@@ -6,13 +6,24 @@
 #include "Widget_InventoryEquipment.generated.h"
 
 class UButton;
-class UTextBlock;
-class UVerticalBox;
+class UHorizontalBox;
+class UPanelWidget;
+class UUniformGridPanel;
+class UWidget;
+class UMuksiPlayerDataSubsystem;
 class UInventoryComponent;
 class UEquipmentComponent;
-class UStatComponent;
-class UWidget_InventoryItemEntry;
-class UWidget_EquipmentSlotEntry;
+class UWidget_CharacterInfoPanel;
+class UWidget_EquipmentSlot;
+class UWidget_ItemSlot;
+
+UENUM(BlueprintType)
+enum class EInventoryCategoryFilter : uint8
+{
+	Equipment	UMETA(DisplayName = "Equipment"),
+	Consumable	UMETA(DisplayName = "Consumable"),
+	Special		UMETA(DisplayName = "Special")
+};
 
 UCLASS()
 class MUKSI_API UWidget_InventoryEquipment : public UWidget_ActivatableBase
@@ -21,58 +32,99 @@ class MUKSI_API UWidget_InventoryEquipment : public UWidget_ActivatableBase
 
 protected:
 	virtual void NativeOnActivated() override;
+	virtual void NativeOnDeactivated() override;
+
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> InventoryListBox;
+	TObjectPtr<UUniformGridPanel> InventoryGridPanel;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> EquipmentSlotListBox;
+	TObjectPtr<UHorizontalBox> EquipmentSlotBox;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> SelectedItemText;
+	TObjectPtr<UButton> EquipmentCategoryButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> StatPreviewText;
+	TObjectPtr<UButton> ConsumableCategoryButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> RefreshButton;
+	TObjectPtr<UButton> SpecialCategoryButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget_CharacterInfoPanel> CharacterInfoPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> CharacterInfoButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> BackButton;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	TSubclassOf<UWidget_InventoryItemEntry> InventoryItemEntryClass;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> WindowRoot;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget> TitleBar;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	TSubclassOf<UWidget_EquipmentSlotEntry> EquipmentSlotEntryClass;
+	TSubclassOf<UWidget_ItemSlot> ItemSlotClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<UWidget_EquipmentSlot> EquipmentSlotClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	int32 InventoryColumnCount = 8;
 
 private:
-	UFUNCTION()
-	void HandleRefreshClicked();
-
 	UFUNCTION()
 	void HandleBackClicked();
 
 	UFUNCTION()
-	void HandleInventoryItemSelected(FGuid InstanceId);
+	void HandleEquipmentCategoryClicked();
 
 	UFUNCTION()
-	void HandleInventoryItemEquipRequested(FGuid InstanceId);
+	void HandleConsumableCategoryClicked();
 
 	UFUNCTION()
-	void HandleEquipmentSlotUnequipRequested(EMuksiEquipmentSlot EquipmentSlot);
+	void HandleSpecialCategoryClicked();
+
+	UFUNCTION()
+	void HandleItemSlotClicked(FGuid InstanceId);
+
+	UFUNCTION()
+	void HandleItemSlotRightClicked(FGuid InstanceId);
+
+	UFUNCTION()
+	void HandleEquipmentSlotClicked(EMuksiEquipmentSlot EquipmentSlot);
+
+	UFUNCTION()
+	void HandleEquipmentSlotRightClicked(EMuksiEquipmentSlot EquipmentSlot);
+
+	UFUNCTION()
+	void HandleCharacterInfoButtonClicked();
+
+	void SetCategoryFilter(EInventoryCategoryFilter NewFilter);
 
 	void RefreshAll();
-	void RefreshInventoryList();
+	void RefreshInventoryGrid();
 	void RefreshEquipmentSlots();
-	void RefreshSelectedItemText();
-	void RefreshStatPreviewText();
+	void RefreshCharacterInfo();
 
-	void CreateEquipmentSlotEntry(EMuksiEquipmentSlot EquipmentSlot);
+	void AddEquipmentSlot(EMuksiEquipmentSlot EquipmentSlot);
 
-	UInventoryComponent* GetPlayerInventoryComponent() const;
-	UEquipmentComponent* GetPlayerEquipmentComponent() const;
-	UStatComponent* GetPlayerStatComponent() const;
+	bool DoesItemPassCategoryFilter(const FMuksiInventoryEntry& Entry) const;
+
+	UMuksiPlayerDataSubsystem* GetPlayerDataSubsystem() const;
+	UInventoryComponent* GetInventoryComponent() const;
+	UEquipmentComponent* GetEquipmentComponent() const;
+
+	EInventoryCategoryFilter CurrentCategoryFilter = EInventoryCategoryFilter::Equipment;
 
 	FGuid SelectedInstanceId;
+	EMuksiEquipmentSlot SelectedEquipmentSlot = EMuksiEquipmentSlot::None;
+
+	bool bDraggingWindow = false;
+	FVector2D DragOffset = FVector2D::ZeroVector;
 };

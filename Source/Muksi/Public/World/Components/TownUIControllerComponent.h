@@ -4,8 +4,10 @@
 #include "Components/ActorComponent.h"
 #include "TownUIControllerComponent.generated.h"
 
+class AZoneManager;
 class UTownDataAsset;
 class UWidget_ActivatableBase;
+class AMuksiPlayerController;
 
 UCLASS(ClassGroup=(World), meta=(BlueprintSpawnableComponent))
 class MUKSI_API UTownUIControllerComponent : public UActorComponent
@@ -27,4 +29,8 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget_ActivatableBase> CurrentTownWidget = nullptr;
 
+private:
+	AZoneManager* FindZoneManager() const;
+
+	AMuksiPlayerController* GetMuksiPlayerController() const;
 };
