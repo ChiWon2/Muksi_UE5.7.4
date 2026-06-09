@@ -56,6 +56,17 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 	return GetActorTransform();
 }
 
+void ABattleGridTile::OnHoverBegin()
+{
+	
+}
+
+void ABattleGridTile::OnHoverEnd()
+{
+	
+}
+
+
 void ABattleGridTile::OnGridSelected_Implementation()
 {
 	ISelectGridInterface::OnGridSelected_Implementation();

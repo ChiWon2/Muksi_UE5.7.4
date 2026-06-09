@@ -19,6 +19,7 @@ class UVerticalBox;
 
 class UMuksiCharacterDataAsset;
 class UMuksiBattleCardDataAsset;
+class UWidget_BattleMainScreen;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndTurnRequested);
 
@@ -32,7 +33,7 @@ public:
 	UPROPERTY()
 	TObjectPtr<UWidget_BattleCardBase> Cards = nullptr;
 	UPROPERTY()
-	UCanvasPanelSlot* CanvasSlot;
+	UCanvasPanelSlot* CanvasSlot = nullptr;
 	UPROPERTY()
 	int32 ZIndex = 0;
 	
@@ -118,9 +119,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DeActiveInkLine();
 	
+	UFUNCTION(BlueprintCallable)
+	UWidget_CardEquipSlot* FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const;
 
 	
-
+	UPROPERTY()
+	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
+	
+	UFUNCTION()
+	void PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard);
+	UFUNCTION()
+	void ClearEnemySelectCard();
+	
 protected:
 	//****** Bind Widget ******
 	UPROPERTY(meta = (BindWidget))
@@ -148,6 +158,8 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_CardEquipSlot>> ExchangeSlots;
 	//****** Bind Widget ******
+	
+	
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
 	TSubclassOf<UWidget_BattleCardBase> BattleCardClass;
@@ -166,6 +178,8 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCardBase>> BattleCards;
+	
+
 
 	UPROPERTY()
 	TArray<FWidgetCard> CardsStructArray;
@@ -184,6 +198,10 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_CardEquipSlot>> EnemyEquipSlots;
+	
+	//Test BindWidget
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UVerticalBox> EnemySelectCardVerticalBox;
 	
 	
 	//***** Turn Changed UI Function *****
@@ -232,6 +250,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
 	void AddCardToHand(UMuksiBattleCardDataAsset* CardData);
+	
+	void PlaceCardInHand(UWidget_BattleCardBase* CardWidget);
 	
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
 	void BuildHandBattleStart();

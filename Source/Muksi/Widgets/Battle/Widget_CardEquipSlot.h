@@ -11,6 +11,8 @@ class UMuksiBattleCardDataAsset;
 class UBorder;
 class UWidget_BattleCardBase;
 class UCharacterDataBase;
+class UHandWidget;
+class UOverlay;
 
 /**
  * 
@@ -20,13 +22,18 @@ class MUKSI_API UWidget_CardEquipSlot : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	virtual FReply NativeOnMouseButtonDown(
+		const FGeometry& InGeometry,
+		const FPointerEvent& InMouseEvent
+	) override;
+	
 	bool IsPointInsideSlot(const FVector2D& ScreenPosition) const;
 
 	// 카드 위젯 자체를 슬롯에 장착
-	void EquipCard(UWidget_BattleCardBase* InCard);
+	bool EquipCard(UWidget_BattleCardBase* InCard);
 
 	UFUNCTION(BlueprintPure)
-	FVector2D GetSlotCenterInHandCanvas() const;
+	FVector2D GetSlotCenterInHandCanvas(UHandWidget* InHandWidget) const;
 
 	UFUNCTION(BlueprintPure)
 	FVector2D GetSlotSize() const;
@@ -36,6 +43,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool ClearEquipSlot();
+	
+	UFUNCTION(BlueprintCallable)
+	bool CheckEmptySlot();
+
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
@@ -87,15 +98,22 @@ public:
 
 protected:
 	void RefreshSlotVisual();
+	
+	bool UnequipCard(UHandWidget* HandWidget);
 
 protected:
 	//***** BindWidget *****
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> SlotBorder;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UOverlay> CardHostOverlay;
 	//***** BindWidget *****
 
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget_BattleCardBase> EquippedCard = nullptr;
+	
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	FCardEquipSlotData SlotData;
@@ -105,4 +123,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	bool bHighlighted = false;
+	
+public:
+	UPROPERTY()
+	TObjectPtr<UHandWidget> OwningHandWidget = nullptr;
 };

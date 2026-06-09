@@ -4,6 +4,12 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+
+#include "Muksi/Contents/Battle/CharacterData_Player.h"
+#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 
 // Sets default values
 ABattleGridManager::ABattleGridManager()
@@ -26,6 +32,7 @@ void ABattleGridManager::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	GenerateGrid();
+	
 }
 
 // Called every frame
@@ -34,6 +41,16 @@ void ABattleGridManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	
 	
+}
+
+
+
+void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint)
+{
+	int32 Index = InPoint.X + InPoint.Y * GridWidth;
+	UE_LOG(LogTemp, Log, TEXT("Move Character Index = %d"), Index);
+	CharacterBase->SetActorTransform(GridCells[Index].TileActor->GetCharacterSpawnTransform());
+	CharacterBase->SetCharacterPosition(InPoint);
 }
 
 void ABattleGridManager::GenerateGrid()
@@ -416,9 +433,76 @@ bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoo
 
 	ToCell->bOccupied = true;
 	ToCell->OccupyingActor = Actor;
-
-	Actor->SetActorLocation(ToCell->WorldLocation);
+	
+	
+	FTransform TargetTransform = GetTransformToPosition(ToCoord);
+	Actor->SetActorLocation(TargetTransform.GetLocation());
 
 	return true;
+}
+
+FTransform ABattleGridManager::GetTransformToPosition(FIntPoint InPosition)
+{
+	int32 Index = InPosition.X + InPosition.Y * GridWidth;
+	ABattleGridTile* Target = GridCells[Index].TileActor;
+	return Target->GetCharacterSpawnTransform();
+}
+
+bool ABattleGridManager::CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range)
+{
+
+	// A 좌표 Offset -> Cube 변환
+	const int32 ACol = A.X;
+	const int32 ARow = A.Y;
+
+	const int32 AX = ACol - (ARow - (ARow & 1)) / 2;
+	const int32 AZ = ARow;
+	const int32 AY = -AX - AZ;
+
+	// B 좌표 Offset -> Cube 변환
+	const int32 BCol = B.X;
+	const int32 BRow = B.Y;
+
+	const int32 BX = BCol - (BRow - (BRow & 1)) / 2;
+	const int32 BZ = BRow;
+	const int32 BY = -BX - BZ;
+
+	// Cube 좌표 거리 계산
+	const int32 Distance = FMath::Max3(
+		FMath::Abs(AX - BX),
+		FMath::Abs(AY - BY),
+		FMath::Abs(AZ - BZ)
+	);
+
+	UE_LOG(LogTemp, Log, TEXT("Distance : %d / Range : %d"), Distance, Range);
+
+	return Distance <= Range;
+}
+
+void ABattleGridManager::RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint)
+{
+	//일단 Move와 똑같이
+	if (ABattleCharacter_Player* PlayerCharacter = Cast<ABattleCharacter_Player>(BattleCharacter))
+	{
+		
+		if (MoveActorOnGrid(PlayerCharacter, PlayerCharacter->GetCharacterPosition(), TargetPoint))
+		{
+			UE_LOG(LogTemp, Error, TEXT("TEst123"));
+		}else UE_LOG(LogTemp, Error, TEXT("TEst1"));
+		
+	}else if (ABattleCharacter_Enemy* EnemyCharacter = Cast<ABattleCharacter_Enemy>(BattleCharacter))
+	{
+		MoveActorOnGrid(EnemyCharacter, EnemyCharacter->GetCharacterPosition(), TargetPoint);
+	}
+}
+
+void ABattleGridManager::MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
+{
+	
+}
+
+void ABattleGridManager::RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
+{
+	
 }
 

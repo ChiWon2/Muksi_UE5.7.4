@@ -8,30 +8,23 @@
 #include "Muksi/Widgets/Battle/HandWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 
 
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
 void UWidget_BattleMainScreen::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	
-	GetOwningMuksiPlayerController()->TestWidgetScreen = this;
-	
 	BindBattleManagerEvents();
 	BindHandWidgetEvents();
-	
-	//Debug::Print(TEXT("TestNativeConstruct"));
-	/*if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
-	{
-		Debug::Print(TEXT("TestNativeConstruct"));
-		//FInputModeUIOnly InputMode;
-		FInputModeGameAndUI InputMode;
-		PC->SetInputMode(InputMode);
-	}*/
+	EquipBattleCardArray.SetNum(3);
+	if (HandWidget)HandWidget->BattleMainScreen = this;
+
 	
 	CachedBattleManager->StartBattle();
 }
@@ -77,7 +70,7 @@ void UWidget_BattleMainScreen::BindBattleManagerEvents()
 
 	if (!CachedBattleManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: BattleManager not found"));
+		//UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: BattleManager not found"));
 		return;
 	}
 
@@ -118,6 +111,16 @@ void UWidget_BattleMainScreen::BindBattleManagerEvents()
 		&UWidget_BattleMainScreen::HandleBattlePhaseChanged
 	);
 	
+	//국 시작 시 이벤트
+	CachedBattleManager->OnRoundStarted.RemoveDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleRoundStarted
+	);
+	
+	CachedBattleManager->OnRoundStarted.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleRoundStarted
+	);
 	
 	//합 시작 시 이벤트
 	CachedBattleManager->OnExchangeStarted.RemoveDynamic(
@@ -130,7 +133,26 @@ void UWidget_BattleMainScreen::BindBattleManagerEvents()
 		&UWidget_BattleMainScreen::HandleExchangedStarted
 	);
 	
+	//공격 시작 시 이벤트
+	CachedBattleManager->OnAttackStarted.RemoveDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleAttackStarted
+	);
 	
+	CachedBattleManager->OnAttackStarted.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleAttackStarted
+	);
+	
+	CachedBattleManager->OnAttack.RemoveDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleAttackCoundData
+	);
+	
+	CachedBattleManager->OnAttack.AddDynamic(
+		this,
+		&UWidget_BattleMainScreen::HandleAttackCoundData
+	);
 
 	// 이벤트를 놓쳤을 수도 있으니 현재 페이즈와 UI를 즉시 동기화
 	HandleBattlePhaseChanged(CachedBattleManager->GetCurrentPhase());
@@ -206,13 +228,19 @@ void UWidget_BattleMainScreen::HandleBattlePhaseChanged(EBattlePhase NewPhase)
 	}*/
 }
 
-void UWidget_BattleMainScreen::HandleExchangedStarted(int32 ExchangeNumber)
+
+
+void UWidget_BattleMainScreen::HandleExchangedStarted_(int32 ExchangeNumber)
 {
+	UE_LOG(LogTemp, Error, TEXT("ExchangeNumber %d"), ExchangeNumber);
 	if (ExchangeNumber == 1)
 	{
 		HandWidget->BuildHandFromCharacterData(PlayerBattleCharacter->GetCharacterDeck());
 		/*UE_LOG(LogTemp, Log, TEXT("Exchange Test"));
 		return;*/
+		EnemySelectBattleCard.Empty();
+		HandWidget->StartExchangeInput(ExchangeNumber);
+		HandWidget->ClearEnemySelectCard();
 	}
 	
 	if (!HandWidget)
@@ -225,9 +253,49 @@ void UWidget_BattleMainScreen::HandleExchangedStarted(int32 ExchangeNumber)
 	);
 
 	HandWidget->ActiveInkLine(DisplayText, 3.f);
-	HandWidget->StartExchangeInput(ExchangeNumber);
+	
 	HandWidget->EnableExchangeSlots(ExchangeNumber);
+	
+	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
+	
+	UE_LOG(LogTemp,Error, TEXT("Enemy Select Card is %s"), *EnemySelectBattleCard[ExchangeNumber - 1]->GetName());
+	//HandWidget->ShowTurnEndButton(true);
+}
+
+void UWidget_BattleMainScreen::HandleRoundStarted()
+{
+	//TODO Round 시작 UI 옵션
+	CachedBattleManager->NotifyRoundReadyFinished();
+}
+
+void UWidget_BattleMainScreen::HandleExchangedStarted()
+{
+	//합 종료까지 BattleManager와 통신 없음 
+	//1합 2합 3합 전부 여기서 처리
+	//TODO 턴 종료 버튼 활성화
 	HandWidget->ShowTurnEndButton(true);
+	
+	//TODO 합 시작 UI 표시
+	//CachedBattleManager->GetCurrentRound();
+	
+	//TODO 합 전용 카드 칸 활성화
+	//UE_LOG(LogTemp, Log, TEXT("Handle ExchangedStart_ Test round %d"), CachedBattleManager->GetCurrentExchange());
+	HandleExchangedStarted_(CachedBattleManager->GetCurrentExchange());
+}
+
+void UWidget_BattleMainScreen::HandleAttackStarted()
+{
+	//TODO Attack 관련 UI
+	CachedBattleManager->NotifyAttackReadyFinish();
+}
+
+void UWidget_BattleMainScreen::HandleAttackCoundData(int32 AttackNumber)
+{
+	CachedBattleManager->AttackBattleCardDataAsset = EquipBattleCardArray[AttackNumber-1];
+	//TODO 공격 시작 UI 시스템
+	
+	
+	CachedBattleManager->AttackActive();
 }
 
 void UWidget_BattleMainScreen::HandleTurnEnd()
@@ -253,22 +321,36 @@ void UWidget_BattleMainScreen::FinishCurrentExchange()
 	{
 		return;
 	}
-
-	const int32 ExchangeNumber = CachedBattleManager->GetCurrentExchange();
+	
+	CurrentExchange += 1;
+	if (CurrentExchange >= 3)
+	{
+		HandWidget->ConfirmExchangeInput(CurrentExchange);
+		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1]);
+		CachedBattleManager->RequestEndExchange();
+	}else
+	{
+		HandWidget->ConfirmExchangeInput(CurrentExchange);
+		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1]);
+		HandleExchangedStarted_(CurrentExchange + 1);
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("CurrentExchange Test %d"), CurrentExchange);
+	/*const int32 ExchangeNumber = CachedBattleManager->GetCurrentExchange();
 
 	FCardEquipSlotData SlotData =
-		HandWidget->GetSlotDataByExchangeNumber(ExchangeNumber);
+		HandWidget->GetSlotDataByExchangeNumber(ExchangeNumber);*/
 
-	HandWidget->ConfirmExchangeInput(ExchangeNumber);
+	
 
-	CachedBattleManager->RequestEndExchange();
+	//
 }
 
 void UWidget_BattleMainScreen::BindHandWidgetEvents()
 {
 	if (!HandWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: HandWidget is null"));
+		//UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: HandWidget is null"));
 		return;
 	}
 
@@ -301,29 +383,29 @@ bool UWidget_BattleMainScreen::CanRequestEndExchange()
 {
 	if (!CachedBattleManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: BattleManager is null"));
+		//UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: BattleManager is null"));
 		return false;
 	}
 
 	if (!HandWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: HandWidget is null"));
+		//UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: HandWidget is null"));
 		return false;
 	}
 
 	if (!CachedBattleManager->IsBattleStarted())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: battle is not started"));
+		//UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: battle is not started"));
 		return false;
 	}
 
 	if (CachedBattleManager->GetCurrentPhase() != EBattlePhase::Exchange)
 	{
-		UE_LOG(
+		/*UE_LOG(
 			LogTemp,
 			Warning,
 			TEXT("CanRequestEndExchange failed: CurrentPhase is not Exchange")
-		);
+		);*/
 		return false;
 	}
 
@@ -331,12 +413,12 @@ bool UWidget_BattleMainScreen::CanRequestEndExchange()
 
 	if (ExchangeNumber < 1 || ExchangeNumber > 3)
 	{
-		UE_LOG(
+		/*UE_LOG(
 			LogTemp,
 			Warning,
 			TEXT("CanRequestEndExchange failed: invalid ExchangeNumber %d"),
 			ExchangeNumber
-		);
+		);*/
 		return false;
 	}
 
@@ -361,17 +443,17 @@ void UWidget_BattleMainScreen::HandleBattleReady()
 	
 	
 	//return;
-	UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleReady"));
+	//UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleReady"));
 
 	if (!CachedBattleManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: CachedBattleManager is null"));
+		//UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: CachedBattleManager is null"));
 		return;
 	}
 
 	if (!HandWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: HandWidget is null"));
+		//UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: HandWidget is null"));
 		return;
 	}
 
@@ -379,7 +461,7 @@ void UWidget_BattleMainScreen::HandleBattleReady()
 	HandWidget->ShowTurnEndButton(false);
 	PlayerBattleCharacter = CachedBattleManager->GetPlayerCharacterData();
 	
-	UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady successfully"));
+	//UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady successfully"));
 	CachedBattleManager->NotifyBattleReadyFinished();
 
 }

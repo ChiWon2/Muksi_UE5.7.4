@@ -29,28 +29,12 @@ AMuksiPlayerController::AMuksiPlayerController()
 
 }
 
-
-void AMuksiPlayerController::PushSoftWidget()
+void AMuksiPlayerController::Tick(float DeltaTime)
 {
-	if (UMuksiUISubsystem* UISubsystem = UMuksiUISubsystem::Get(this))
+	Super::Tick(DeltaTime);
+	if (CurrentPlayerMode)
 	{
-		UISubsystem->PushSoftWidgetToStackAsync(
-			this, MuksiGameplayTag::Muksi_WidgetStack_GameHud,
-			WidgetCharacterDataClass,
-			true,
-			[this](UWidget_ActivatableBase* CreateWidget)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Before Push : %s"), *GetNameSafe(CreateWidget));
-				if (UWidget_CharacterData* CharacterData = Cast<UWidget_CharacterData>(CreateWidget))
-				{
-					//초기화
-				}
-			},
-			[this](UWidget_ActivatableBase* PushedWidget)
-			{
-				UE_LOG(LogTemp, Log, TEXT("After Push: %s"), *GetNameSafe(PushedWidget));
-			}
-		);
+		CurrentPlayerMode->TickPlayerMode();
 	}
 }
 
@@ -100,8 +84,8 @@ void AMuksiPlayerController::SetupInputComponent()
 		}
 		if (RightClickAction)
 		{
-			EnhancedInput->BindAction(RightClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnLeftClick);
-			UE_LOG(LogTemp, Log, TEXT("Bind LeftClickAction"));
+			EnhancedInput->BindAction(RightClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnRightClick);
+			UE_LOG(LogTemp, Log, TEXT("Bind RightClickAction"));
 		}
 		if (PPressAction)
 		{

@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "MuksiCharacterDataAsset.generated.h"
 
+class UEnemyCardSelectStrategyBase;
 class UMuksiBattleCardDataAsset;
 class ABattleCharacterBase;
 
@@ -45,10 +46,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Deck")
 	TArray<UMuksiBattleCardDataAsset*> CharacterDeck;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|AI")
+	TSubclassOf<UEnemyCardSelectStrategyBase> CardSelectStrategyClass;
+	
 public:
 	//캐릭터 모델, 클래스 등등.
 	//나중에 통합 클래스로 변경 예정 <- 나중에는 Player전용으로 만들예정 그 때에는 ABattleCharacter_Enemy로 변경
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Model")
 	TSubclassOf<ABattleCharacterBase> BattleCharacterClass = nullptr;
 	
+	
+
 };
