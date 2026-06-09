@@ -93,6 +93,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stat|Special")
 	void AddNegotiation(int32 Value);
 
+	//Getter
 	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
 	float GetCurrentHP() const { return ResourceStat.CurrentHP; }
 
@@ -128,6 +129,39 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
 	float GetFateGradeBonus() const { return TravelStat.FateGradeBonus; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetLightnessSkill() const { return BaseStat.LightnessSkill; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetInternalEnergy() const { return BaseStat.InternalEnergy; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetVitality() const { return BaseStat.Vitality; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetSwordMastery() const { return WeaponMasteryStat.SwordMastery; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetSpearMastery() const { return WeaponMasteryStat.SpearMastery; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetHiddenWeaponMastery() const { return WeaponMasteryStat.HiddenWeaponMastery; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetFistMastery() const { return WeaponMasteryStat.FistMastery; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetSense() const { return SpecialStat.Sense; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetNegotiation() const { return SpecialStat.Negotiation; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	float GetCurrentStamina() const { return ResourceStat.CurrentStamina; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	float GetMaxStamina() const { return ResourceStat.MaxStamina; }
 
 private:
 	void ClampResources();

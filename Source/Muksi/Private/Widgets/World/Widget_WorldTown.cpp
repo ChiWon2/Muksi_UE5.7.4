@@ -1,4 +1,5 @@
 #include "Widgets/World/Widget_WorldTown.h"
+
 #include "Widgets/World/Widget_TownInteractionButton.h"
 #include "Muksi/Contents/World/Data/TownDataAsset.h"
 #include "Subsystems/MuksiUISubsystem.h"
@@ -9,6 +10,9 @@
 #include "Components/PanelWidget.h"
 #include "CommonTextBlock.h"
 #include "Controllers/MuksiPlayerController.h"
+#include "World/Components/TownUIControllerComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "World/WorldUIManager.h"
 
 void UWidget_WorldTown::InitializeTown(UTownDataAsset* InTownData)
 {
@@ -334,12 +338,16 @@ void UWidget_WorldTown::OpenCustomInteraction(const FTownInteractionData& Intera
 
 void UWidget_WorldTown::HandleCloseButtonClicked()
 {
-	if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
+	AWorldUIManager* WorldUIManager = Cast<AWorldUIManager>(
+		UGameplayStatics::GetActorOfClass(this, AWorldUIManager::StaticClass())
+	);
+
+	if (WorldUIManager)
 	{
-		PC->CloseTownUI();
+		WorldUIManager->CloseTownUI();
+		return;
 	}
-	else
-	{
-		DeactivateWidget();
-	}
+
+	UE_LOG(LogTemp, Warning, TEXT("HandleCloseButtonClicked: WorldUIManager not found. Fallback DeactivateWidget."));
+	DeactivateWidget();
 }

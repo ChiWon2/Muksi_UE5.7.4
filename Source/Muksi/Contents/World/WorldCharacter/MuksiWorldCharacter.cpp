@@ -1,12 +1,16 @@
 #include "Muksi/Contents/World/WorldCharacter/MuksiWorldCharacter.h"
-#include "Muksi/Contents/World/TownInteractionPoint.h"
+
 #include "Controllers/MuksiPlayerController.h"
+#include "Controllers/PlayerMode/PlayerMode_World.h"
+#include "Muksi/Contents/World/TownInteractionPoint.h"
+
 #include "Components/StatComponent.h"
 #include "Items/Components/InventoryComponent.h"
 #include "Items/Components/EquipmentComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
+
 #include "GameFramework/Controller.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 
@@ -52,7 +56,7 @@ AMuksiWorldCharacter::AMuksiWorldCharacter()
 	TopDownCameraComponent->bUsePawnControlRotation = false;
 
 	// Activate ticking in order to update the cursor every frame.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
@@ -67,12 +71,6 @@ void AMuksiWorldCharacter::BeginPlay()
 	// stub
 }
 
-void AMuksiWorldCharacter::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	// stub
-}
 
 void AMuksiWorldCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -104,69 +102,46 @@ void AMuksiWorldCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 void AMuksiWorldCharacter::OnInputStarted()
 {
-	FollowTime = 0.0f;
-
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(GetController());
+	if (!PC)
 	{
-		PC->StopMovement();
+		return;
+	}
+
+	if (UPlayerMode_World* WorldMode = Cast<UPlayerMode_World>(PC->GetCurrentPlayerMode()))
+	{
+		WorldMode->HandleWorldInputStarted(this);
 	}
 }
 
 void AMuksiWorldCharacter::OnSetDestinationTriggered()
 {
-	APlayerController* PC = Cast<APlayerController>(GetController());
+	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(GetController());
 	if (!PC)
 	{
 		return;
 	}
 
-	FollowTime += GetWorld()->GetDeltaSeconds();
-
-	FVector HitLocation;
-	if (TryGetCursorHitLocation(HitLocation))
+	if (UPlayerMode_World* WorldMode = Cast<UPlayerMode_World>(PC->GetCurrentPlayerMode()))
 	{
-		CachedDestination = HitLocation;
-		UAIBlueprintHelperLibrary::SimpleMoveToLocation(PC, CachedDestination);
+		WorldMode->HandleSetDestinationTriggered(this);
 	}
 }
 
 void AMuksiWorldCharacter::OnSetDestinationReleased()
 {
-	APlayerController* PC = Cast<APlayerController>(GetController());
+	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(GetController());
 	if (!PC)
 	{
-		FollowTime = 0.0f;
 		return;
 	}
 
-	if (FollowTime <= ShortPressThreshold)
+	if (UPlayerMode_World* WorldMode = Cast<UPlayerMode_World>(PC->GetCurrentPlayerMode()))
 	{
-		FVector HitLocation;
-		if (TryGetCursorHitLocation(HitLocation))
-		{
-			CachedDestination = HitLocation;
-		}
-
-		UAIBlueprintHelperLibrary::SimpleMoveToLocation(PC, CachedDestination);
+		WorldMode->HandleSetDestinationReleased(this);
 	}
-
-	FollowTime = 0.0f;
 }
 
-bool AMuksiWorldCharacter::TryGetCursorHitLocation(FVector& OutLocation) const
-{
-	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		FHitResult Hit;
-		if (PC->GetHitResultUnderCursor(ECC_Visibility, true, Hit))
-		{
-			OutLocation = Hit.Location;
-			return true;
-		}
-	}
-
-	return false;
-}
 
 //Interaction
 void AMuksiWorldCharacter::SetCurrentInteractionTarget(ATownInteractionPoint* NewTarget)
@@ -184,19 +159,16 @@ void AMuksiWorldCharacter::ClearCurrentInteractionTarget(ATownInteractionPoint* 
 
 void AMuksiWorldCharacter::Interact(const FInputActionValue& Value)
 {
-	if (!CurrentInteractionTarget)
-	{
-		return;
-	}
-
 	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(GetController());
 	if (!PC)
 	{
 		return;
 	}
 
-	CurrentInteractionTarget->Interact(this);
-
+	if (UPlayerMode_World* WorldMode = Cast<UPlayerMode_World>(PC->GetCurrentPlayerMode()))
+	{
+		WorldMode->HandleInteract(this);
+	}
 }
 
 
@@ -208,5 +180,23 @@ void AMuksiWorldCharacter::OpenInventoryEquipment(const FInputActionValue& Value
 		return;
 	}
 
-	PC->OpenInventoryEquipmentUI();
+	if (UPlayerMode_World* WorldMode = Cast<UPlayerMode_World>(PC->GetCurrentPlayerMode()))
+	{
+		WorldMode->HandleOpenInventoryEquipment(this);
+	}
+}
+
+UStatComponent* AMuksiWorldCharacter::GetStatComponent() const
+{
+	return StatComponent;
+}
+
+UInventoryComponent* AMuksiWorldCharacter::GetInventoryComponent() const
+{
+	return InventoryComponent;
+}
+
+UEquipmentComponent* AMuksiWorldCharacter::GetEquipmentComponent() const
+{
+	return EquipmentComponent;
 }

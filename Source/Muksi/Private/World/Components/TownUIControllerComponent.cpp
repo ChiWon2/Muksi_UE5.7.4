@@ -1,8 +1,10 @@
 #include "World/Components/TownUIControllerComponent.h"
 
 #include "Controllers/MuksiPlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "Muksi/Contents/World/Data/TownDataAsset.h"
 #include "Muksi/Contents/World/Zone/ZoneActor.h"
+#include "Muksi/Contents/World/Zone/ZoneManager.h"
 #include "MuksiFunctionLibrary.h"
 #include "MuksiGameplayTags.h"
 #include "Subsystems/MuksiUISubsystem.h"
@@ -24,14 +26,23 @@ void UTownUIControllerComponent::OpenTownUI(UTownDataAsset* InTownData)
 		return;
 	}
 
-	AMuksiPlayerController* PC = Cast<AMuksiPlayerController>(GetOwner());
+	AMuksiPlayerController* PC = GetMuksiPlayerController();
 	if (!PC)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("OpenTownUI failed: owner is not MuksiPlayerController"));
+		UE_LOG(LogTemp, Warning, TEXT("OpenTownUI failed: MuksiPlayerController is null"));
 		return;
 	}
 
-	const FZoneData ZoneData = PC->GetCurrentZoneData();
+	const AZoneManager* ZoneManager = FindZoneManager();
+	const FZoneData ZoneData = ZoneManager
+		? ZoneManager->GetCurrentZoneData()
+		: FZoneData();
+
+	if (!ZoneManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("OpenTownUI warning: ZoneManager is null. Using default ZoneData."));
+	}
+
 	if (!ZoneData.bCanOpenTownUI)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("OpenTownUI blocked: current zone does not allow Town UI"));
@@ -105,3 +116,20 @@ void UTownUIControllerComponent::CloseTownUI()
 	TownWidget->DeactivateWidget();
 }
 
+AZoneManager* UTownUIControllerComponent::FindZoneManager() const
+{
+	return Cast<AZoneManager>(
+		UGameplayStatics::GetActorOfClass(this, AZoneManager::StaticClass())
+	);
+}
+
+AMuksiPlayerController* UTownUIControllerComponent::GetMuksiPlayerController() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	return Cast<AMuksiPlayerController>(World->GetFirstPlayerController());
+}
