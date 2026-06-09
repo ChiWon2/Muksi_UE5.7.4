@@ -105,10 +105,6 @@ private:
 	UFUNCTION()
 	void HandleCharacterInfoButtonClicked();
 
-	void SetCharacterInfoPanelVisible(bool bVisible);
-
-	bool bCharacterInfoPanelVisible = false;
-
 	void SetCategoryFilter(EInventoryCategoryFilter NewFilter);
 
 	void RefreshAll();

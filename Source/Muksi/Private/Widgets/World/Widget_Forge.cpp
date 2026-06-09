@@ -95,9 +95,7 @@ void UWidget_Forge::HandleForgeItemClicked(FGuid InstanceId)
 	RefreshForgeItemList();
 }
 
-void UWidget_Forge::HandleForgeActionCompleted(
-	FGuid InstanceId,
-	EMuksiForgeActionType ActionType)
+void UWidget_Forge::HandleForgeActionCompleted(FGuid InstanceId, EMuksiForgeActionType ActionType)
 {
 	if (ActionType == EMuksiForgeActionType::Enhance)
 	{
@@ -155,9 +153,7 @@ void UWidget_Forge::RefreshForgeItemList()
 	}
 }
 
-void UWidget_Forge::PushForgeConfirmPopup(
-	FGuid InstanceId,
-	EMuksiForgeActionType ActionType)
+void UWidget_Forge::PushForgeConfirmPopup(FGuid InstanceId, EMuksiForgeActionType ActionType)
 {
 	if (!InstanceId.IsValid() || ForgeConfirmPopupClass.IsNull())
 	{

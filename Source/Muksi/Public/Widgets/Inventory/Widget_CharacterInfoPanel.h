@@ -9,17 +9,40 @@ class UScrollBox;
 class UStatComponent;
 class UTextBlock;
 
+UENUM(BlueprintType)
+enum class ECharacterInfoDisplayMode : uint8
+{
+	Compact UMETA(DisplayName = "Compact"),
+	Detail UMETA(DisplayName = "Detail")
+};
+
 UCLASS()
 class MUKSI_API UWidget_CharacterInfoPanel : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "Character Info")
+	void RefreshCharacterInfo();
+
+	UFUNCTION(BlueprintCallable, Category = "Character Info")
 	void RefreshStats();
+
+	UFUNCTION(BlueprintCallable, Category = "Character Info")
+	void SetDisplayMode(ECharacterInfoDisplayMode NewDisplayMode);
+
+	UFUNCTION(BlueprintPure, Category = "Character Info")
+	ECharacterInfoDisplayMode GetDisplayMode() const { return DisplayMode; }
+
+	UFUNCTION(BlueprintCallable, Category = "Character Info")
+	void ToggleDisplayMode();
 
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Info")
+	ECharacterInfoDisplayMode DisplayMode = ECharacterInfoDisplayMode::Compact;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> SummaryStatText;
@@ -43,9 +66,9 @@ private:
 	UStatComponent* GetPlayerStatComponent() const;
 	void BindStatComponent(UStatComponent* NewStatComponent);
 	void SetTextIfValid(UTextBlock* TextBlock, const FText& Text) const;
+	void ApplyDisplayModeVisibility();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStatComponent> CachedStatComponent = nullptr;
 
-	bool bDetailVisible = false;
 };

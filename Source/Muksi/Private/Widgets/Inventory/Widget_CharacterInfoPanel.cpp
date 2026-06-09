@@ -16,14 +16,8 @@ void UWidget_CharacterInfoPanel::NativeConstruct()
 		DetailInfoButton->OnClicked.AddDynamic(this, &ThisClass::HandleDetailInfoClicked);
 	}
 
-	bDetailVisible = false;
-
-	if (DetailStatScrollBox)
-	{
-		DetailStatScrollBox->SetVisibility(ESlateVisibility::Collapsed);
-	}
-
-	RefreshStats();
+	ApplyDisplayModeVisibility();
+	RefreshCharacterInfo();
 }
 
 void UWidget_CharacterInfoPanel::NativeDestruct()
@@ -73,11 +67,6 @@ void UWidget_CharacterInfoPanel::BindStatComponent(UStatComponent* NewStatCompon
 	}
 }
 
-void UWidget_CharacterInfoPanel::HandleStatChanged()
-{
-	RefreshStats();
-}
-
 void UWidget_CharacterInfoPanel::SetTextIfValid(UTextBlock* TextBlock, const FText& Text) const
 {
 	if (TextBlock)
@@ -86,7 +75,62 @@ void UWidget_CharacterInfoPanel::SetTextIfValid(UTextBlock* TextBlock, const FTe
 	}
 }
 
+void UWidget_CharacterInfoPanel::ApplyDisplayModeVisibility()
+{
+	const bool bDetailMode = DisplayMode == ECharacterInfoDisplayMode::Detail;
+
+	if (SummaryStatText)
+	{
+		SummaryStatText->SetVisibility(bDetailMode ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+
+	if (DetailStatScrollBox)
+	{
+		DetailStatScrollBox->SetVisibility(bDetailMode ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+	else if (DetailStatText)
+	{
+		DetailStatText->SetVisibility(bDetailMode ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+}
+
+void UWidget_CharacterInfoPanel::HandleStatChanged()
+{
+	RefreshCharacterInfo();
+}
+
+void UWidget_CharacterInfoPanel::HandleDetailInfoClicked()
+{
+	ToggleDisplayMode();
+}
+
 void UWidget_CharacterInfoPanel::RefreshStats()
+{
+	RefreshCharacterInfo();
+}
+
+void UWidget_CharacterInfoPanel::SetDisplayMode(ECharacterInfoDisplayMode NewDisplayMode)
+{
+	if (DisplayMode == NewDisplayMode)
+	{
+		return;
+	}
+
+	DisplayMode = NewDisplayMode;
+	ApplyDisplayModeVisibility();
+	RefreshCharacterInfo();
+}
+
+void UWidget_CharacterInfoPanel::ToggleDisplayMode()
+{
+	SetDisplayMode(
+		DisplayMode == ECharacterInfoDisplayMode::Compact
+		? ECharacterInfoDisplayMode::Detail
+		: ECharacterInfoDisplayMode::Compact
+	);
+}
+
+void UWidget_CharacterInfoPanel::RefreshCharacterInfo()
 {
 	UStatComponent* StatComponent = GetPlayerStatComponent();
 	BindStatComponent(StatComponent);
@@ -95,64 +139,32 @@ void UWidget_CharacterInfoPanel::RefreshStats()
 	{
 		SetTextIfValid(SummaryStatText, FText::FromString(TEXT("StatComponent: None")));
 		SetTextIfValid(DetailStatText, FText::GetEmpty());
+		ApplyDisplayModeVisibility();
 		return;
 	}
 
 	SetTextIfValid(SummaryStatText, FText::FromString(FString::Printf(
-		TEXT("HP: %.0f / %.0f\nIE: %.0f / %.0f\nATK: %.0f\nDEF: %.0f"),
+		TEXT("HP: %.0f / %.0f\nATK: %.0f\nDEF: %.0f"),
 		StatComponent->GetCurrentHP(),
 		StatComponent->GetMaxHP(),
-		StatComponent->GetCurrentInternalEnergy(),
-		StatComponent->GetMaxInternalEnergy(),
 		StatComponent->GetAttackPower(),
 		StatComponent->GetDefensePower()
 	)));
 
 	SetTextIfValid(DetailStatText, FText::FromString(FString::Printf(
-		TEXT("Lightness: %d\nInternal Energy: %d\nVitality: %d\nSword: %d\nSpear: %d\nHidden Weapon: %d\nFist: %d\nSense: %d\nNegotiation: %d\n\nHP: %.0f / %.0f\nIE: %.0f / %.0f\nStamina: %.0f / %.0f\n\nAttack: %.0f\nDefense: %.0f\nHit Rate: %.2f\nCritical Rate: %.2f\nMove Speed: %.0f\nTravel Speed: %.0f\nFate Chance: %.3f\nFate Grade Bonus: %.3f"),
-		StatComponent->GetLightnessSkill(),
-		StatComponent->GetInternalEnergy(),
-		StatComponent->GetVitality(),
-		StatComponent->GetSwordMastery(),
-		StatComponent->GetSpearMastery(),
-		StatComponent->GetHiddenWeaponMastery(),
-		StatComponent->GetFistMastery(),
-		StatComponent->GetSense(),
-		StatComponent->GetNegotiation(),
+		TEXT("HP: %.0f / %.0f\nInternal Energy: %.0f / %.0f\nAttack: %.0f\nDefense: %.0f\nHit Rate: %.2f\nEvasion: %.2f\nCritical Rate: %.2f\nMove Speed: %.0f"),
 		StatComponent->GetCurrentHP(),
 		StatComponent->GetMaxHP(),
 		StatComponent->GetCurrentInternalEnergy(),
 		StatComponent->GetMaxInternalEnergy(),
-		StatComponent->GetCurrentStamina(),
-		StatComponent->GetMaxStamina(),
 		StatComponent->GetAttackPower(),
 		StatComponent->GetDefensePower(),
 		StatComponent->GetHitRate(),
+		0.0f,
 		StatComponent->GetCriticalRate(),
-		StatComponent->GetMoveSpeed(),
-		StatComponent->GetTravelMoveSpeed(),
-		StatComponent->GetFateEncounterChance(),
-		StatComponent->GetFateGradeBonus()
-
-
+		StatComponent->GetMoveSpeed()
 	)));
 
-	UE_LOG(LogTemp, Warning,
-		TEXT("[CharacterInfoPanel] Ptr=%p Owner=%s HP=%.0f MaxHP=%.0f ATK=%.0f DEF=%.0f"),
-		StatComponent,
-		StatComponent ? *GetNameSafe(StatComponent->GetOwner()) : TEXT("None"),
-		StatComponent ? StatComponent->GetCurrentHP() : -1.f,
-		StatComponent ? StatComponent->GetMaxHP() : -1.f,
-		StatComponent ? StatComponent->GetAttackPower() : -1.f,
-		StatComponent ? StatComponent->GetDefensePower() : -1.f);
+	ApplyDisplayModeVisibility();
 }
 
-void UWidget_CharacterInfoPanel::HandleDetailInfoClicked()
-{
-	bDetailVisible = !bDetailVisible;
-
-	if (DetailStatScrollBox)
-	{
-		DetailStatScrollBox->SetVisibility(bDetailVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-	}
-}

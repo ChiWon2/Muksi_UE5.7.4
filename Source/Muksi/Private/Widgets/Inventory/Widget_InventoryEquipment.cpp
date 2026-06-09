@@ -49,7 +49,12 @@ void UWidget_InventoryEquipment::NativeOnActivated()
 		CharacterInfoButton->OnClicked.AddDynamic(this, &ThisClass::HandleCharacterInfoButtonClicked);
 	}
 
-	SetCharacterInfoPanelVisible(false);
+	if (CharacterInfoPanel)
+	{
+		CharacterInfoPanel->SetVisibility(ESlateVisibility::Visible);
+		CharacterInfoPanel->SetDisplayMode(ECharacterInfoDisplayMode::Compact);
+	}
+
 	RefreshAll();
 }
 
@@ -180,32 +185,13 @@ void UWidget_InventoryEquipment::HandleEquipmentSlotRightClicked(EMuksiEquipment
 
 void UWidget_InventoryEquipment::HandleCharacterInfoButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("[InventoryEquipment] CharacterInfoButton clicked. Panel=%s Visible=%s"),
-		*GetNameSafe(CharacterInfoPanel),
-		bCharacterInfoPanelVisible ? TEXT("true") : TEXT("false"));
-
-	SetCharacterInfoPanelVisible(!bCharacterInfoPanelVisible);
-}
-
-void UWidget_InventoryEquipment::SetCharacterInfoPanelVisible(bool bVisible)
-{
-	bCharacterInfoPanelVisible = bVisible;
-
-	UE_LOG(LogTemp, Log, TEXT("[InventoryEquipment] SetCharacterInfoPanelVisible=%s Panel=%s"),
-		bVisible ? TEXT("true") : TEXT("false"),
-		*GetNameSafe(CharacterInfoPanel))
-
-	if (CharacterInfoPanel)
+	if (!CharacterInfoPanel)
 	{
-		CharacterInfoPanel->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-
-		if (bVisible)
-		{
-			CharacterInfoPanel->RefreshStats();
-		}
+		return;
 	}
-}
 
+	CharacterInfoPanel->ToggleDisplayMode();
+}
 
 void UWidget_InventoryEquipment::SetCategoryFilter(EInventoryCategoryFilter NewFilter)
 {
@@ -292,7 +278,7 @@ void UWidget_InventoryEquipment::RefreshCharacterInfo()
 {
 	if (CharacterInfoPanel)
 	{
-		CharacterInfoPanel->RefreshStats();
+		CharacterInfoPanel->RefreshCharacterInfo();
 	}
 }
 
