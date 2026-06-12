@@ -107,6 +107,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> TabPressAction;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> RPressAction;
+	
 
 	void OnLeftClick(const FInputActionValue& Value);
 	void OnRightClick(const FInputActionValue& Value);
@@ -116,6 +119,7 @@ protected:
 	void OnQKeyPressed(const FInputActionValue& Value);
 	void OnIKeyPressed(const FInputActionValue& Value);
 	void OnTabKeyPressed(const FInputActionValue& Value);
+	void OnRKeyPressed(const FInputActionValue& Value);
 	
 	
 	void OnPKeyPressed(const FInputActionValue& Value);

@@ -21,6 +21,7 @@ class ABattleGridTile;
 
 //Test
 class UMuksiBattleCardDataAsset;
+class UMuksiCardRangeDataAsset;
 
 UENUM(BlueprintType)
 enum class EBattlePhase : uint8
@@ -370,4 +371,16 @@ public:
 	void OnHoveredGridTileChanged(ABattleGridTile* InChangeTile);
 	void TargetGridCell(ABattleGridTile* TargetGrid);
 	
+	
+	
+	//Attack Range Type Test
+	void TestSetAttackRangeType(UMuksiCardRangeDataAsset* DataAsset){TestAttackRangeDataAsset = DataAsset;};
+	UPROPERTY()
+	TObjectPtr<UMuksiCardRangeDataAsset> TestAttackRangeDataAsset = nullptr;
+	
+	void TestCalAttackRangeType(ABattleGridTile* TargetGrid);
+	
+	UPROPERTY()
+	int32 AttackDir = 0;
+	void SetAttackDir();
 };

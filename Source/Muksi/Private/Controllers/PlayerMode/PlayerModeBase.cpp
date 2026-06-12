@@ -53,6 +53,11 @@ void UPlayerModeBase::HandleEPressedKey(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleEPressedKey"));
 }
 
+void UPlayerModeBase::HandleRPressedKey(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleRPressedKey"));
+}
+
 
 void UPlayerModeBase::HandleQPressedKey_Implementation(const FInputActionValue& Value)
 {
