@@ -19,6 +19,8 @@
 #include "Grid/BattleGridManager.h"
 #include "Grid/BattleGridTile.h"
 
+//공격 범위 계산 테스트
+#include "Muksi/Contents/Battle/Grid/CardRange/CardRangeDataAssetBase.h"
 
 ABattleManager::ABattleManager()
 {
@@ -701,6 +703,23 @@ void ABattleManager::TargetGridCell(ABattleGridTile* TargetGrid)
 {
 	UE_LOG(LogTemp, Error, TEXT("Target Grid Cell Test!! %d , %d"), TargetGrid->GetGridCoord().X, TargetGrid->GetGridCoord().Y);
 	CardEffectComponent->SelectTargetGrid(TargetGrid);
+}
+
+
+
+
+//공격 범위 계산 테스트 용도
+
+void ABattleManager::TestCalAttackRangeType(ABattleGridTile* TargetGrid)
+{
+	TArray<FIntPoint> TestTargetPoints = TestAttackRangeDataAsset->GetRangeCoords(BattleGridManager, TargetGrid->GetGridCoord(), AttackDir);
+}
+
+void ABattleManager::SetAttackDir()
+{
+	UE_LOG(LogTemp, Log, TEXT("R Press"));
+	AttackDir += 1;
+	if (AttackDir >= 6)AttackDir = 0;
 }
 
 

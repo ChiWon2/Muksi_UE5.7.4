@@ -110,7 +110,11 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 	{
 		if (HitActor->GetClass()->ImplementsInterface(USelectGridInterface::StaticClass()))
 		{
-			BattleManager->TargetGridCell(Cast<ABattleGridTile>(HitActor));
+			//공격 범위 계산 테스트
+			
+			BattleManager->TestCalAttackRangeType(Cast<ABattleGridTile>(HitActor));
+			//테스트 용도 
+			//BattleManager->TargetGridCell(Cast<ABattleGridTile>(HitActor));
 		}
 	}else
 	{
@@ -130,6 +134,13 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 	}
 	
 	
+}
+
+void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
+{
+	Super::HandleRPressedKey(Value);
+	
+	BattleManager->SetAttackDir();
 }
 
 void UPlayerMode_Battle::UpdateHoveredGridTile()

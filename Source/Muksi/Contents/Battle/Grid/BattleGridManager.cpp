@@ -43,7 +43,108 @@ void ABattleGridManager::Tick(float DeltaTime)
 	
 }
 
+FCubeCoord ABattleGridManager::OddQToCube(const FIntPoint& Coord) const
+{
+	const int32 Col = Coord.X;
+	const int32 Row = Coord.Y;
 
+	const int32 CubeX = Col;
+	const int32 CubeZ = Row - (Col - (Col & 1)) / 2;
+	const int32 CubeY = -CubeX - CubeZ;
+
+	return FCubeCoord(CubeX, CubeY, CubeZ);
+}
+
+FIntPoint ABattleGridManager::CubeToOddQ(const FCubeCoord& Cube) const
+{
+	const int32 Col = Cube.X;
+	const int32 Row = Cube.Z + (Cube.X - (Cube.X & 1)) / 2;
+
+	return FIntPoint(Col, Row);
+}
+
+FCubeCoord ABattleGridManager::GetCubeDirection(int32 Direction) const
+{
+	Direction = ((Direction % 6) + 6) % 6;
+
+	switch (Direction)
+	{
+	case 0:
+		// 오른쪽
+		return FCubeCoord(1, -1, 0);
+
+	case 1:
+		// 오른쪽 아래
+		return FCubeCoord(1, 0, -1);
+
+	case 2:
+		// 왼쪽 아래
+		return FCubeCoord(0, 1, -1);
+
+	case 3:
+		// 왼쪽
+		return FCubeCoord(-1, 1, 0);
+
+	case 4:
+		// 왼쪽 위
+		return FCubeCoord(-1, 0, 1);
+
+	case 5:
+		// 오른쪽 위
+		return FCubeCoord(0, -1, 1);
+
+	default:
+		return FCubeCoord(1, -1, 0);
+	}
+}
+
+FCubeCoord ABattleGridManager::RotateCubeRight60(const FCubeCoord& Cube) const
+{
+	// 시계 방향 60도
+	return FCubeCoord(
+		-Cube.Z,
+		-Cube.X,
+		-Cube.Y
+	);
+}
+
+FCubeCoord ABattleGridManager::RotateCubeLeft60(const FCubeCoord& Cube) const
+{
+	// 반시계 방향 60도
+	return FCubeCoord(
+		-Cube.Y,
+		-Cube.Z,
+		-Cube.X
+	);
+}
+
+bool ABattleGridManager::IsValidGridCoord(const FIntPoint& Coord) const
+{
+	return Coord.X >= 0 &&
+		Coord.X < GridWidth &&
+		Coord.Y >= 0 &&
+		Coord.Y < GridHeight;
+}
+
+ABattleGridTile* ABattleGridManager::GetTileByCoord(const FIntPoint& Coord) const
+{
+	if (!IsValidGridCoord(Coord))
+	{
+		return nullptr;
+	}
+
+	const int32 Index = Coord.Y * GridWidth + Coord.X;
+
+	if (!GridCells.IsValidIndex(Index))
+	{
+		return nullptr;
+	}
+
+	return GridCells[Index].TileActor;
+}
+
+
+//Test Hex Cell Dir Cal
 
 void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint)
 {
@@ -474,7 +575,7 @@ bool ABattleGridManager::CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range)
 		FMath::Abs(AZ - BZ)
 	);
 
-	UE_LOG(LogTemp, Log, TEXT("Distance : %d / Range : %d"), Distance, Range);
+	//UE_LOG(LogTemp, Log, TEXT("Distance : %d / Range : %d"), Distance, Range);
 
 	return Distance <= Range;
 }

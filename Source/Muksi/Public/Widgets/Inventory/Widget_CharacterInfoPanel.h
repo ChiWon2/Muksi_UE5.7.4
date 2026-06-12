@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Character Info")
 	void SetDisplayMode(ECharacterInfoDisplayMode NewDisplayMode);
 
+	UFUNCTION(BlueprintCallable, Category = "Character Info")
+	void SetShowDetailButton(bool bInShowDetailButton);
+
 	UFUNCTION(BlueprintPure, Category = "Character Info")
 	ECharacterInfoDisplayMode GetDisplayMode() const { return DisplayMode; }
 
@@ -50,6 +53,9 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> DetailInfoButton;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Info")
+	bool bShowDetailButton = false;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UScrollBox> DetailStatScrollBox;
 
@@ -67,6 +73,7 @@ private:
 	void BindStatComponent(UStatComponent* NewStatComponent);
 	void SetTextIfValid(UTextBlock* TextBlock, const FText& Text) const;
 	void ApplyDisplayModeVisibility();
+	void ApplyDetailButtonVisibility();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStatComponent> CachedStatComponent = nullptr;

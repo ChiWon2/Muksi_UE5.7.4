@@ -6,6 +6,8 @@
 
 class UTexture2D;
 
+class UShopDataAsset;
+
 USTRUCT(BlueprintType)
 struct MUKSI_API FTownInteractionData
 {
@@ -28,6 +30,9 @@ struct MUKSI_API FTownInteractionData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town Interaction")
 	bool bUnlockedByDefault = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town Interaction|Shop")
+	TObjectPtr<UShopDataAsset> ShopData = nullptr;
 
 	bool IsValid() const
 	{
