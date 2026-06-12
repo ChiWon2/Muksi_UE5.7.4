@@ -112,6 +112,12 @@ void AMuksiPlayerController::SetupInputComponent()
 			EnhancedInput->BindAction(TabPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnTabKeyPressed);
 			UE_LOG(LogTemp, Log, TEXT("Bind TabPressAction"));
 		}
+		
+		if (RPressAction)
+		{
+			EnhancedInput->BindAction(RPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnRKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind RPressAction"));
+		}
 	}
 }
 
@@ -175,6 +181,11 @@ void AMuksiPlayerController::OnIKeyPressed(const FInputActionValue& Value)
 void AMuksiPlayerController::OnTabKeyPressed(const FInputActionValue& Value)
 {
 	if (CurrentPlayerMode){CurrentPlayerMode->HandleTabPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnRKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleRPressedKey(Value);}
 }
 
 
