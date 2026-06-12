@@ -55,6 +55,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Town|TangClan")
 	TSoftClassPtr<UWidget_ActivatableBase> TangClanWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Town|Shop")
+	TSoftClassPtr<UWidget_ActivatableBase> ShopWidgetClass;
+
+
 	UFUNCTION()
 	void HandleCloseButtonClicked();
 
@@ -70,5 +74,6 @@ private:
 	void OpenForge(const FTownInteractionData& InteractionData);
 	void OpenShrine(const FTownInteractionData& InteractionData);
 	void OpenTangClan(const FTownInteractionData& InteractionData);
+	void OpenShop(const FTownInteractionData& InteractionData);
 	void OpenCustomInteraction(const FTownInteractionData& InteractionData);
 };

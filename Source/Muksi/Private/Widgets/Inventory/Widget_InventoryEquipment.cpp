@@ -52,6 +52,7 @@ void UWidget_InventoryEquipment::NativeOnActivated()
 	if (CharacterInfoPanel)
 	{
 		CharacterInfoPanel->SetVisibility(ESlateVisibility::Visible);
+		CharacterInfoPanel->SetShowDetailButton(true);
 		CharacterInfoPanel->SetDisplayMode(ECharacterInfoDisplayMode::Compact);
 	}
 
