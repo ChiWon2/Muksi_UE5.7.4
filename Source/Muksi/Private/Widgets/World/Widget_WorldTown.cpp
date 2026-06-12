@@ -1,5 +1,6 @@
 #include "Widgets/World/Widget_WorldTown.h"
 
+#include "Widgets/World/Widget_Shop.h"
 #include "Widgets/World/Widget_TownInteractionButton.h"
 #include "Muksi/Contents/World/Data/TownDataAsset.h"
 #include "Subsystems/MuksiUISubsystem.h"
@@ -148,6 +149,11 @@ void UWidget_WorldTown::HandleInteractionClicked(const FTownInteractionData& Int
 	case ETownInteractionType::Custom:
 		OpenCustomInteraction(InteractionData);
 		break;
+
+	case ETownInteractionType::Shop:
+		OpenShop(InteractionData);
+		break;
+
 
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("[TownInteraction] Unsupported interaction type. Id=%s"),
@@ -322,6 +328,53 @@ void UWidget_WorldTown::OpenTangClan(const FTownInteractionData& InteractionData
 		[](UWidget_ActivatableBase* PushedWidget)
 		{
 			UE_LOG(LogTemp, Log, TEXT("[TangClan] PushedWidget=%s"),
+				*GetNameSafe(PushedWidget));
+		}
+	);
+}
+
+void UWidget_WorldTown::OpenShop(const FTownInteractionData& InteractionData)
+{
+	UE_LOG(LogTemp, Log, TEXT("[Shop] Opened"));
+
+	if (ShopWidgetClass.IsNull())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Shop] Open failed: ShopClass is null"));
+		return;
+	}
+
+	AMuksiPlayerController* PC = GetOwningMuksiPlayerController();
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Shop] Open failed: PlayerController is null"));
+		return;
+	}
+
+	UMuksiUISubsystem* UISubsystem = UMuksiUISubsystem::Get(this);
+	if (!UISubsystem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Shop] Open failed: UISubsystem is null"));
+		return;
+	}
+
+	UISubsystem->PushSoftWidgetToStackAsync(
+		PC,
+		MuksiGameplayTag::Muksi_WidgetStack_GameHud,
+		ShopWidgetClass,
+		true,
+		[InteractionData](UWidget_ActivatableBase* CreatedWidget)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Shop] CreatedWidget=%s"),
+				*GetNameSafe(CreatedWidget));
+
+			if (UWidget_Shop* ShopWidget = Cast<UWidget_Shop>(CreatedWidget))
+			{
+				ShopWidget->SetShopData(InteractionData.ShopData);
+			}
+		},
+		[](UWidget_ActivatableBase* PushedWidget)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Shop] PushedWidget=%s"),
 				*GetNameSafe(PushedWidget));
 		}
 	);

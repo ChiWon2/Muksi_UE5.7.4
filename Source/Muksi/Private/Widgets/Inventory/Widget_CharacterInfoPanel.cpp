@@ -16,6 +16,7 @@ void UWidget_CharacterInfoPanel::NativeConstruct()
 		DetailInfoButton->OnClicked.AddDynamic(this, &ThisClass::HandleDetailInfoClicked);
 	}
 
+	ApplyDetailButtonVisibility();
 	ApplyDisplayModeVisibility();
 	RefreshCharacterInfo();
 }
@@ -119,6 +120,22 @@ void UWidget_CharacterInfoPanel::SetDisplayMode(ECharacterInfoDisplayMode NewDis
 	DisplayMode = NewDisplayMode;
 	ApplyDisplayModeVisibility();
 	RefreshCharacterInfo();
+}
+
+void UWidget_CharacterInfoPanel::SetShowDetailButton(bool bInShowDetailButton)
+{
+	bShowDetailButton = bInShowDetailButton;
+	ApplyDetailButtonVisibility();
+}
+
+void UWidget_CharacterInfoPanel::ApplyDetailButtonVisibility()
+{
+	if (DetailInfoButton)
+	{
+		DetailInfoButton->SetVisibility(
+			bShowDetailButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+		);
+	}
 }
 
 void UWidget_CharacterInfoPanel::ToggleDisplayMode()
