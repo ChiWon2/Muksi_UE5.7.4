@@ -33,6 +33,7 @@ public:
 	virtual void HandleTabPressedKey(const FInputActionValue& Value);
 	virtual void HandleIPressedKey(const FInputActionValue& Value);
 	virtual void HandleEPressedKey(const FInputActionValue& Value);
+	virtual void HandleRPressedKey(const FInputActionValue& Value);
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void HandleQPressedKey(const FInputActionValue& Value);

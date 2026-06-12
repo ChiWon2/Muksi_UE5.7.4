@@ -4,6 +4,8 @@
 #include "CoreMinimal.h"
 #include "MuksiBattleCardEffectData.generated.h"
 
+class UMuksiCardRangeDataAsset;
+
 UENUM(BlueprintType)
 enum class EMuksiBattleCardEffectType : uint8
 {
@@ -69,4 +71,8 @@ struct FMuksiBattleCardEffectData
 	// Effect MoveRange(공격 범위)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Range Value")
 	int32 RangeValue = 0;
+	
+	// Effect AttackRange
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Attack Range Type")
+	UMuksiCardRangeDataAsset* RangeDataAsset = nullptr;
 };

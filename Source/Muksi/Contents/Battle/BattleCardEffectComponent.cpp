@@ -12,6 +12,7 @@
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "Muksi/Contents/Battle/CharacterData_Player.h"
 #include "Muksi/Contents/Battle/CharacterData_Enemy.h"
+#include "Muksi/Contents/Battle/Grid/CardRange/CardRangeDataAssetBase.h"
 
 
 // Sets default values for this component's properties
@@ -43,6 +44,7 @@ void UBattleCardEffectComponent::CardEffectUpdate(UCharacterDataBase* CharacterD
 			{
 				BattleManager->bIsCardTargeting = true;
 				BattleManager->SetCardRange(Effect.RangeValue);
+				BattleManager->TestSetAttackRangeType(Effect.RangeDataAsset);
 				PlayerEffect = Effect;
 			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Defense)
 			{
