@@ -41,7 +41,7 @@ public:
     bool IsQuestCompleted(const FQuestKey& QuestKey) const;
 
     UFUNCTION(BlueprintCallable)
-    UQuestInstance_Base* GetQuestInstance(const FQuestKey& QuestKey) const;
+    UQuestInstance_Base* GetActiveQuestInstance(const FQuestKey& QuestKey) const;
 
     const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& GetActiveQuests() const;
     const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& GetCompletedQuests() const;

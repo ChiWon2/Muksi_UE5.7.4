@@ -41,14 +41,7 @@ void UQuestInstance_Base::HandleObjectiveIDCalled(FName  ObjectiveID, int32 Valu
     if (AreAllObjectivesComplete())
     {
         QuestState = EQuestState::ReadyToComplete;
-
-        /* Refactoring this Func Maybe
-        if (QuestSubsystem)
-        {
-            QuestSubsystem->CompleteQuest(QuestKey);
-        }
-        */
-        UE_LOG(LogTemp, Warning, TEXT("[QuestInstance] Quest Completed : %s"), *QuestKey.ToString());
+        UE_LOG(LogTemp, Warning, TEXT("[QuestInstance] Quest is ReadyToComplete : %s"), *QuestKey.ToString());
     }
 }
 

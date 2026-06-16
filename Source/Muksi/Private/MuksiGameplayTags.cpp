@@ -37,6 +37,8 @@ namespace MuksiGameplayTag
 
 	//Muksi Quest Widgets
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Quest_Log, "Muksi.Widget.Quest.Log");
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Quest_Giver, "Muksi.Widget.Quest.Giver");
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_Quest_Reward, "Muksi.Widget.Quest.Reward");
 	
 	//Muksi Options Image
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Image_TestImage, "Muksi.Image.TestImage")

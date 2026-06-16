@@ -99,6 +99,11 @@ void UQuestSubsystem::CompleteQuest( const FQuestKey& QuestKey)
 
     if (!Quest)
         return;
+    if (Quest->QuestState != EQuestState::ReadyToComplete)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[QuestSubsystem] Quest Objective is not Completed Yet!!!!: %s"), *QuestKey.ToString());
+        return;
+    }
 
     UE_LOG( LogTemp, Warning, TEXT("[QuestSubsystem] Quest Completed : %s"), *QuestKey.ToString());
 
@@ -121,7 +126,7 @@ bool UQuestSubsystem::IsQuestCompleted( const FQuestKey& QuestKey) const
     return CompletedQuests.Contains(QuestKey);
 }
 
-UQuestInstance_Base* UQuestSubsystem::GetQuestInstance(const FQuestKey& QuestKey) const
+UQuestInstance_Base* UQuestSubsystem::GetActiveQuestInstance(const FQuestKey& QuestKey) const
 {
     return ActiveQuests.FindRef(QuestKey);
 }
