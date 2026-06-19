@@ -9,6 +9,7 @@
 #include "Controllers/MuksiPlayerController.h"
 #include "MuksiGameplayTags.h"
 #include "Subsystems/MuksiUISubsystem.h"
+#include "Subsystems/MuksiPlayerDataSubsystem.h"
 #include "Components/StatComponent.h"
 
 #include "GameFramework/Pawn.h"
@@ -20,6 +21,11 @@ void UWidget_Forge::NativeOnActivated()
 	Super::NativeOnActivated();
 
 	UE_LOG(LogTemp, Log, TEXT("[Forge] NativeOnActivated"));
+
+	if (UMuksiPlayerDataSubsystem* PlayerDataSubsystem = UMuksiPlayerDataSubsystem::Get(this))
+	{
+		PlayerDataSubsystem->LogPlayerDataComponents();
+	}
 
 	if (RepairButton)
 	{
@@ -41,6 +47,7 @@ void UWidget_Forge::NativeOnActivated()
 	}
 
 	RefreshForgeItemList();
+	RefreshGoldText();
 }
 
 void UWidget_Forge::NativeOnDeactivated()
@@ -112,6 +119,7 @@ void UWidget_Forge::HandleForgeActionCompleted(FGuid InstanceId, EMuksiForgeActi
 	}
 
 	RefreshForgeItemList();
+	RefreshGoldText();
 }
 
 void UWidget_Forge::RefreshForgeItemList()
@@ -189,7 +197,33 @@ void UWidget_Forge::PushForgeConfirmPopup(FGuid InstanceId, EMuksiForgeActionTyp
 
 UInventoryComponent* UWidget_Forge::GetInventoryComponent() const
 {
-	const APlayerController* PC = GetOwningPlayer();
-	const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
-	return Pawn ? Pawn->FindComponentByClass<UInventoryComponent>() : nullptr;
+	if (UMuksiPlayerDataSubsystem* PlayerDataSubsystem = UMuksiPlayerDataSubsystem::Get(this))
+	{
+		return PlayerDataSubsystem->GetPlayerInventoryComponent();
+	}
+
+	return nullptr;
+}
+
+UPlayerCurrencyComponent* UWidget_Forge::GetCurrencyComponent() const
+{
+	if (UMuksiPlayerDataSubsystem* PlayerDataSubsystem = UMuksiPlayerDataSubsystem::Get(this))
+	{
+		return PlayerDataSubsystem->GetPlayerCurrencyComponent();
+	}
+
+	return nullptr;
+}
+
+void UWidget_Forge::RefreshGoldText()
+{
+	if (!GoldText)
+	{
+		return;
+	}
+
+	const UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent();
+	const int32 Gold = CurrencyComponent ? CurrencyComponent->GetGold() : 0;
+
+	GoldText->SetText(FText::FromString(FString::Printf(TEXT("Gold: %d"), Gold)));
 }

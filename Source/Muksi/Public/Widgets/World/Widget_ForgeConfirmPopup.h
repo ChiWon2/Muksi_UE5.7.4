@@ -5,9 +5,11 @@
 #include "Items/Types/MuksiItemTypes.h"
 #include "Widget_ForgeConfirmPopup.generated.h"
 
+class UInventoryComponent;
+class UPlayerCurrencyComponent;
+
 class UButton;
 class UTextBlock;
-class UInventoryComponent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnForgeActionCompleted, FGuid, EMuksiForgeActionType);
 
@@ -35,6 +37,12 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> EnhanceLevelText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> GoldText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> NotEnoughGoldText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> CostText;
@@ -73,6 +81,11 @@ private:
 	FText GetEnhanceResultText(EMuksiEnhanceResult Result) const;
 
 	UInventoryComponent* GetInventoryComponent() const;
+	UPlayerCurrencyComponent* GetCurrencyComponent() const;
+
+	int32 GetCurrentActionCost(const UInventoryComponent* InventoryComponent) const;
+	bool CanAffordCurrentAction(const UInventoryComponent* InventoryComponent) const;
+	void RefreshGoldInfo(const UInventoryComponent* InventoryComponent);
 
 	FGuid InstanceId;
 	EMuksiForgeActionType ActionType = EMuksiForgeActionType::Repair;

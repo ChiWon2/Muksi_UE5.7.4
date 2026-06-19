@@ -2,6 +2,7 @@
 
 #include "Muksi/Contents/World/WorldCharacter/MuksiWorldCharacter.h"
 #include "Components/StatComponent.h"
+#include "Components/PlayerCurrencyComponent.h"
 #include "Items/Components/InventoryComponent.h"
 #include "Items/Components/EquipmentComponent.h"
 #include "Items/Data/MuksiItemDataAsset.h"
@@ -85,6 +86,30 @@ UEquipmentComponent* UMuksiPlayerDataSubsystem::GetPlayerEquipmentComponent() co
 {
 	const AMuksiWorldCharacter* PlayerPawn = GetPlayerPawn();
 	return PlayerPawn ? PlayerPawn->GetEquipmentComponent() : nullptr;
+}
+
+UPlayerCurrencyComponent* UMuksiPlayerDataSubsystem::GetPlayerCurrencyComponent() const
+{
+	const AMuksiWorldCharacter* PlayerPawn = GetPlayerPawn();
+	return PlayerPawn ? PlayerPawn->GetPlayerCurrencyComponent() : nullptr;
+}
+
+void UMuksiPlayerDataSubsystem::LogPlayerDataComponents() const
+{
+	const AMuksiWorldCharacter* PlayerCharacter = GetPlayerWorldCharacter();
+	const UStatComponent* StatComponent = GetPlayerStatComponent();
+	const UInventoryComponent* InventoryComponent = GetPlayerInventoryComponent();
+	const UEquipmentComponent* EquipmentComponent = GetPlayerEquipmentComponent();
+	const UPlayerCurrencyComponent* CurrencyComponent = GetPlayerCurrencyComponent();
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[PlayerDataTest] Pawn=%s Stat=%s Inventory=%s Equipment=%s Currency=%s Gold=%d"),
+		*GetNameSafe(PlayerCharacter),
+		*GetNameSafe(StatComponent),
+		*GetNameSafe(InventoryComponent),
+		*GetNameSafe(EquipmentComponent),
+		*GetNameSafe(CurrencyComponent),
+		CurrencyComponent ? CurrencyComponent->GetGold() : -1);
 }
 
 bool UMuksiPlayerDataSubsystem::HasItem(FName ItemID, int32 Count) const

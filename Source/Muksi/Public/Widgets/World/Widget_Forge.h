@@ -10,9 +10,11 @@
 class UInventoryComponent;
 class UWidget_ItemSlot;
 class UWidget_ForgeConfirmPopup;
+class UPlayerCurrencyComponent;
 
 class UButton;
 class UUniformGridPanel;
+class UTextBlock;
 
 UCLASS()
 class MUKSI_API UWidget_Forge : public UWidget_ActivatableBase
@@ -34,6 +36,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UUniformGridPanel> ForgeItemGridPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> GoldText;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Forge")
 	TSubclassOf<UWidget_ItemSlot> ForgeItemSlotClass;
@@ -63,7 +68,10 @@ private:
 	void RefreshForgeItemList();
 	void PushForgeConfirmPopup(FGuid InstanceId, EMuksiForgeActionType ActionType);
 
+	void RefreshGoldText();
+
 	UInventoryComponent* GetInventoryComponent() const;
+	UPlayerCurrencyComponent* GetCurrencyComponent() const;
 
 	FGuid SelectedForgeItemInstanceId;
 };
