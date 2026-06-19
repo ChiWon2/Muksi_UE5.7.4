@@ -112,7 +112,7 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 		{
 			//공격 범위 계산 테스트
 			
-			BattleManager->TestCalAttackRangeType(Cast<ABattleGridTile>(HitActor));
+			//BattleManager->TestCalAttackRangeType(Cast<ABattleGridTile>(HitActor));
 			//테스트 용도 
 			//BattleManager->TargetGridCell(Cast<ABattleGridTile>(HitActor));
 		}

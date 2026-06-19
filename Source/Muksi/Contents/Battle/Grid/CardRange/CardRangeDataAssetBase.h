@@ -32,8 +32,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range")
 	EMuksiCardRangeShape RangeShape = EMuksiCardRangeShape::None;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range")
+	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range")
 	int32 Range = 1;
+	*/
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range")
 	bool bIncludeOrigin = false;

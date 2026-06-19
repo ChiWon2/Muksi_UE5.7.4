@@ -199,8 +199,19 @@ public:
 	UFUNCTION()
 	bool CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range);
 	
-	//Card Effect Active 
+	
+	
+	//카드 효과 관련 public
 public:
+	//카드 공격 범위 관련
+	UPROPERTY()
+	TArray<FIntPoint> TargetGridArray;
+	void SetGridHovered(TArray<FIntPoint> NewGridArray);
+	void ClearGridHovered();
+	void AllClearGridHovered();
+	//
+	
+	//카드 효과 실행 관련
 	void RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint);
 	void MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
 	void RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);

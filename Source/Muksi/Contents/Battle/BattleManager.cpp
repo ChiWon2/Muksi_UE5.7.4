@@ -496,6 +496,8 @@ void ABattleManager::StartBattle()
 	CurrentRound = 0;
 	CurrentExchange = 0;
 	CurrentAttack = 0;
+	
+	BattleGridManager->AllClearGridHovered();
 
 	StartBattleReady();
 }
@@ -697,6 +699,13 @@ void ABattleManager::OnHoveredGridTileChanged(ABattleGridTile* InChangeTile)
 	//UE_LOG(LogTemp, Log, TEXT("Player X : %d Y : %d , TargetGrid X : %d, Y : %d"), PlayerBattleCharacter->GetCharacterPosition().X, PlayerBattleCharacter->GetCharacterPosition().Y, InChangeTile->GetGridCoord().X, InChangeTile->GetGridCoord().Y);
 
 	CardPreviewComponent->UpdateHoveredTile(StartTransform, EndTransform, BattleGridManager->CheckGridInRange(PlayerBattleCharacter->GetCharacterPosition(), InChangeTile->GetGridCoord(), CardRange));
+	if (InChangeTile != SelectTargetGrid)
+	{
+		BattleGridManager->ClearGridHovered();
+		SelectTargetGrid = InChangeTile;
+		TArray<FIntPoint> TargetPoints = AttackRangeDataAsset->GetRangeCoords(BattleGridManager, SelectTargetGrid->GetGridCoord(), AttackDir);
+		BattleGridManager->SetGridHovered(TargetPoints);
+	}
 }
 
 void ABattleManager::TargetGridCell(ABattleGridTile* TargetGrid)
@@ -710,9 +719,9 @@ void ABattleManager::TargetGridCell(ABattleGridTile* TargetGrid)
 
 //공격 범위 계산 테스트 용도
 
-void ABattleManager::TestCalAttackRangeType(ABattleGridTile* TargetGrid)
+void ABattleManager::CalAttackRangeType(ABattleGridTile* TargetGrid)
 {
-	TArray<FIntPoint> TestTargetPoints = TestAttackRangeDataAsset->GetRangeCoords(BattleGridManager, TargetGrid->GetGridCoord(), AttackDir);
+	TArray<FIntPoint> TestTargetPoints = AttackRangeDataAsset->GetRangeCoords(BattleGridManager, TargetGrid->GetGridCoord(), AttackDir);
 }
 
 void ABattleManager::SetAttackDir()
