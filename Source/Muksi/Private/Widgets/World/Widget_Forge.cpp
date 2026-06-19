@@ -11,6 +11,7 @@
 #include "Subsystems/MuksiUISubsystem.h"
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
 #include "Components/StatComponent.h"
+#include "Components/PlayerCurrencyComponent.h"
 
 #include "GameFramework/Pawn.h"
 #include "Components/Button.h"
