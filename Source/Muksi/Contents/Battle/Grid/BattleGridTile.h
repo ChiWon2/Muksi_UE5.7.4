@@ -38,6 +38,9 @@ public:
 	FIntPoint GetGridCoord()const{return GridCoord;};
 	
 	UFUNCTION()
+	void SetTargetIndicatorVisible(bool bVisible);
+	
+	UFUNCTION()
 	FVector GetGridCenterWorldLocation()const;
 	
 	UFUNCTION()
@@ -60,6 +63,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UStaticMeshComponent> TargetIndicatorMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	FIntPoint GridCoord = FIntPoint::ZeroValue;

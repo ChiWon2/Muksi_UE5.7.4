@@ -12,7 +12,7 @@ class UInputAction;
 class UEnhancedInputComponent;
 
 class ATownInteractionPoint;
-
+class UPlayerCurrencyComponent;
 class UStatComponent;
 class UInventoryComponent;
 class UEquipmentComponent;
@@ -71,6 +71,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UEquipmentComponent> EquipmentComponent = nullptr;
 
+	//CurrencyComponent
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UPlayerCurrencyComponent> PlayerCurrencyComponent = nullptr;
+
 	/** Input handlers */
 	void OnInputStarted();
 	void OnSetDestinationTriggered();
@@ -111,4 +115,7 @@ public:
 	//EquipmentComponent
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UEquipmentComponent* GetEquipmentComponent() const;
+	//CurrencyComponent
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UPlayerCurrencyComponent* GetPlayerCurrencyComponent() const;
 };

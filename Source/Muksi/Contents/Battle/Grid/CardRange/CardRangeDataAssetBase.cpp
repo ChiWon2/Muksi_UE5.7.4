@@ -19,7 +19,9 @@ TArray<FIntPoint> UMuksiCardRangeDataAsset::GetRangeCoords(const ABattleGridMana
 	const FCubeCoord DirectionCube = GridManager->GetCubeDirection(Direction);
 
 	const int32 StartStep = bIncludeOrigin ? 0 : 1;
-
+	
+	constexpr int32 Range = 1;
+	
 	for (int32 Step = StartStep; Step <= Range; ++Step)
 	{
 		const FCubeCoord CurrentCube(
@@ -56,6 +58,8 @@ TArray<FIntPoint> UMuksiCardRangeDataAsset::GetLineRangeCoords(const ABattleGrid
 
 	const int32 StartStep = bIncludeOrigin ? 0 : 1;
 
+	constexpr int32 Range = 1;
+	
 	for (int32 Step = StartStep; Step <= Range; ++Step)
 	{
 		const FCubeCoord CurrentCube(
@@ -89,6 +93,8 @@ TArray<FIntPoint> UMuksiCardRangeDataAsset::GetAroundRangeCoords(const ABattleGr
 
 	const FCubeCoord OriginCube = GridManager->OddQToCube(OriginCoord);
 
+	constexpr int32 Range = 1;
+	
 	for (int32 DX = -Range; DX <= Range; ++DX)
 	{
 		for (int32 DY = FMath::Max(-Range, -DX - Range);

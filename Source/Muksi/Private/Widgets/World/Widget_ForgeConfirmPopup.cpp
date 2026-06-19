@@ -1,14 +1,15 @@
 #include "Widgets/World/Widget_ForgeConfirmPopup.h"
 
+#include "Items/Components/InventoryComponent.h"
+#include "Items/Data/MuksiItemDataAsset.h"
+#include "Components/PlayerCurrencyComponent.h"
+#include "Subsystems/MuksiPlayerDataSubsystem.h"
+
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
-#include "Items/Components/InventoryComponent.h"
-#include "Items/Data/MuksiItemDataAsset.h"
 
-void UWidget_ForgeConfirmPopup::InitializeForgePopup(
-	FGuid InInstanceId,
-	EMuksiForgeActionType InActionType)
+void UWidget_ForgeConfirmPopup::InitializeForgePopup(FGuid InInstanceId, EMuksiForgeActionType InActionType)
 {
 	InstanceId = InInstanceId;
 	ActionType = InActionType;
@@ -108,19 +109,21 @@ void UWidget_ForgeConfirmPopup::RefreshInfo()
 	}
 }
 
-void UWidget_ForgeConfirmPopup::RefreshRepairInfo(
-	const FMuksiInventoryEntry& Entry,
-	const UInventoryComponent* InventoryComponent)
+void UWidget_ForgeConfirmPopup::RefreshRepairInfo(const FMuksiInventoryEntry& Entry, const UInventoryComponent* InventoryComponent)
 {
 	if (!InventoryComponent)
 	{
 		return;
 	}
 
+	const int32 RepairCost = InventoryComponent->GetRepairCost(InstanceId);
+	const bool bCanRepair = InventoryComponent->IsRepairableItem(InstanceId);
+	const bool bCanAfford = CanAffordCurrentAction(InventoryComponent);
+
 	if (CostText)
 	{
 		CostText->SetText(FText::FromString(
-			FString::Printf(TEXT("Repair Cost: %d"), InventoryComponent->GetRepairCost(InstanceId))
+			FString::Printf(TEXT("Repair Cost: %d"), RepairCost)
 		));
 	}
 
@@ -136,25 +139,29 @@ void UWidget_ForgeConfirmPopup::RefreshRepairInfo(
 		FailureInfoText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
+	RefreshGoldInfo(InventoryComponent);
+
 	if (ConfirmButton)
 	{
-		ConfirmButton->SetIsEnabled(InventoryComponent->IsRepairableItem(InstanceId));
+		ConfirmButton->SetIsEnabled(bCanRepair && bCanAfford);
 	}
 }
 
-void UWidget_ForgeConfirmPopup::RefreshEnhanceInfo(
-	const FMuksiInventoryEntry& Entry,
-	const UInventoryComponent* InventoryComponent)
+void UWidget_ForgeConfirmPopup::RefreshEnhanceInfo(const FMuksiInventoryEntry& Entry, const UInventoryComponent* InventoryComponent)
 {
 	if (!InventoryComponent)
 	{
 		return;
 	}
 
+	const int32 EnhanceCost = InventoryComponent->GetEnhanceCost(InstanceId);
+	const bool bCanEnhance = InventoryComponent->IsEnhanceableItem(InstanceId);
+	const bool bCanAfford = CanAffordCurrentAction(InventoryComponent);
+
 	if (CostText)
 	{
 		CostText->SetText(FText::FromString(
-			FString::Printf(TEXT("Enhance Cost: %d"), InventoryComponent->GetEnhanceCost(InstanceId))
+			FString::Printf(TEXT("Enhance Cost: %d"), EnhanceCost)
 		));
 	}
 
@@ -179,9 +186,11 @@ void UWidget_ForgeConfirmPopup::RefreshEnhanceInfo(
 		FailureInfoText->SetText(FText::FromString(FailureInfo));
 	}
 
+	RefreshGoldInfo(InventoryComponent);
+
 	if (ConfirmButton)
 	{
-		ConfirmButton->SetIsEnabled(InventoryComponent->IsEnhanceableItem(InstanceId));
+		ConfirmButton->SetIsEnabled(bCanEnhance && bCanAfford);
 	}
 }
 
@@ -195,11 +204,24 @@ void UWidget_ForgeConfirmPopup::HandleConfirmButtonClicked()
 
 	if (ActionType == EMuksiForgeActionType::Repair)
 	{
-		int32 RepairCost = 0;
-		if (InventoryComponent->RepairItem(InstanceId, RepairCost))
+		const int32 RepairCost = InventoryComponent->GetRepairCost(InstanceId);
+		UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent();
+
+		if (RepairCost <= 0 || !CurrencyComponent || !CurrencyComponent->HasEnoughGold(RepairCost))
 		{
-			OnForgeActionCompleted.Broadcast(InstanceId, ActionType);
-			DeactivateWidget();
+			UE_LOG(LogTemp, Warning, TEXT("[ForgeCurrency] Repair failed. Not enough Gold. Cost=%d"), RepairCost);
+			RefreshInfo();
+			return;
+		}
+
+		int32 OutRepairCost = 0;
+		if (InventoryComponent->RepairItem(InstanceId, OutRepairCost))
+		{
+			if (CurrencyComponent->SpendGold(OutRepairCost))
+			{
+				OnForgeActionCompleted.Broadcast(InstanceId, ActionType);
+				DeactivateWidget();
+			}
 		}
 
 		return;
@@ -207,23 +229,41 @@ void UWidget_ForgeConfirmPopup::HandleConfirmButtonClicked()
 
 	if (ActionType == EMuksiForgeActionType::Enhance)
 	{
-		int32 EnhanceCost = 0;
+		const int32 EnhanceCost = InventoryComponent->GetEnhanceCost(InstanceId);
+		UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent();
+
+		if (!CurrencyComponent || !InventoryComponent->IsEnhanceableItem(InstanceId) || EnhanceCost <= 0 || 
+			!CurrencyComponent->HasEnoughGold(EnhanceCost))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ForgeCurrency] Enhance failed. Not enough Gold. Cost=%d"), EnhanceCost);
+			RefreshInfo();
+			return;
+		}
+
+		if (!CurrencyComponent->SpendGold(EnhanceCost))
+		{
+			RefreshInfo();
+			return;
+		}
+
+		int32 OutEnhanceCost = 0;
 		EMuksiEnhanceResult EnhanceResult = EMuksiEnhanceResult::None;
 
-		if (InventoryComponent->EnhanceItem(InstanceId, EnhanceCost, EnhanceResult))
+		if (!InventoryComponent->EnhanceItem(InstanceId, OutEnhanceCost, EnhanceResult))
 		{
-			if (ResultText)
-			{
-				ResultText->SetVisibility(ESlateVisibility::Visible);
-				ResultText->SetText(GetEnhanceResultText(EnhanceResult));
-			}
-
+			UE_LOG(LogTemp, Warning, TEXT("[ForgeCurrency] EnhanceItem failed after gold spent. Cost=%d"), EnhanceCost);
 			OnForgeActionCompleted.Broadcast(InstanceId, ActionType);
-
-			// 결과를 보여주고 싶으면 닫지 않고 RefreshInfo만 호출.
-			// 바로 닫는 Repair와 같은 흐름을 원하면 아래 DeactivateWidget 사용.
 			RefreshInfo();
+			return;
 		}
+
+		UE_LOG(LogTemp, Log, TEXT("[ForgeCurrency] Enhance attempted. Cost=%d Remain=%d Result=%d"),
+			EnhanceCost,
+			CurrencyComponent->GetGold(),
+			static_cast<int32>(EnhanceResult));
+
+		OnForgeActionCompleted.Broadcast(InstanceId, ActionType);
+		RefreshInfo();
 	}
 }
 
@@ -274,4 +314,58 @@ UInventoryComponent* UWidget_ForgeConfirmPopup::GetInventoryComponent() const
 	const APlayerController* PC = GetOwningPlayer();
 	const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
 	return Pawn ? Pawn->FindComponentByClass<UInventoryComponent>() : nullptr;
+}
+
+UPlayerCurrencyComponent* UWidget_ForgeConfirmPopup::GetCurrencyComponent() const
+{
+	if (UMuksiPlayerDataSubsystem* PlayerDataSubsystem = UMuksiPlayerDataSubsystem::Get(this))
+	{
+		return PlayerDataSubsystem->GetPlayerCurrencyComponent();
+	}
+
+	return nullptr;
+}
+
+int32 UWidget_ForgeConfirmPopup::GetCurrentActionCost(const UInventoryComponent* InventoryComponent) const
+{
+	if (!InventoryComponent)
+	{
+		return 0;
+	}
+
+	if (ActionType == EMuksiForgeActionType::Enhance)
+	{
+		return InventoryComponent->GetEnhanceCost(InstanceId);
+	}
+
+	return InventoryComponent->GetRepairCost(InstanceId);
+}
+
+bool UWidget_ForgeConfirmPopup::CanAffordCurrentAction(const UInventoryComponent* InventoryComponent) const
+{
+	const UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent();
+	const int32 Cost = GetCurrentActionCost(InventoryComponent);
+
+	return CurrencyComponent && CurrencyComponent->HasEnoughGold(Cost);
+}
+
+void UWidget_ForgeConfirmPopup::RefreshGoldInfo(const UInventoryComponent* InventoryComponent)
+{
+	const UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent();
+	const int32 CurrentGold = CurrencyComponent ? CurrencyComponent->GetGold() : 0;
+	const int32 Cost = GetCurrentActionCost(InventoryComponent);
+	const bool bCanAfford = CurrencyComponent && CurrencyComponent->HasEnoughGold(Cost);
+
+	if (GoldText)
+	{
+		GoldText->SetText(FText::FromString(
+			FString::Printf(TEXT("Gold: %d / Cost: %d"), CurrentGold, Cost)
+		));
+	}
+
+	if (NotEnoughGoldText)
+	{
+		NotEnoughGoldText->SetVisibility(bCanAfford ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		NotEnoughGoldText->SetText(FText::FromString(TEXT("Not enough Gold.")));
+	}
 }
