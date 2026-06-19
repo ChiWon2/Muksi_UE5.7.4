@@ -13,27 +13,20 @@ void UQuestEntryWidget_ForTown::NativeConstruct()
 
     if (BTN_QuestEntry)
     {
-        BTN_QuestEntry->OnClicked.AddUniqueDynamic( this, &UQuestEntryWidget_ForTown::OnEntryButtonClicked);
+        BTN_QuestEntry->OnClicked.AddUniqueDynamic(this, &UQuestEntryWidget_ForTown::OnEntryButtonClicked);
     }
 
-    if (CB_IsComplete)
-    {
-        CB_IsComplete->SetIsEnabled(false);
-    }
-
-    TXT_QuestName->SetText(QuestDetails.QuestName);
-
-    //bool bIsReadyToComplete = QuestInstance->QuestState == EQuestState::ReadyToComplete;
-    //CB_IsComplete->SetIsChecked(bIsReadyToComplete);
+    UQuestSubsystem* QuestSubsys = UQuestSubsystem::Get(this);
+    QuestSubsys->OnQuestAccept.AddUniqueDynamic(this, &UQuestEntryWidget_ForTown::RefreshUIContent);
+    
+    RefreshUIContent();
 }
 
 void UQuestEntryWidget_ForTown::NativeDestruct()
 {
-    if (BTN_QuestEntry)
-    {
-        BTN_QuestEntry->OnClicked.RemoveDynamic(this, &UQuestEntryWidget_ForTown::OnEntryButtonClicked);
-    }
-
+    BTN_QuestEntry->OnClicked.RemoveDynamic(this, &UQuestEntryWidget_ForTown::OnEntryButtonClicked);
+    UQuestSubsystem* QuestSubsys = UQuestSubsystem::Get(this);
+    QuestSubsys->OnQuestAccept.RemoveDynamic(this, &UQuestEntryWidget_ForTown::RefreshUIContent);
     Super::NativeDestruct();
 }
 
@@ -48,4 +41,42 @@ void UQuestEntryWidget_ForTown::InitWidget(const FQuestKey& InQuestKey)
     QuestDetails = *UQuestSubsystem::Get(this)->GetQuestRow(QuestKey);
 
 
+}
+
+void UQuestEntryWidget_ForTown::RefreshUIContent(UQuestInstance_Base* InInstance)
+{
+    if (TXT_QuestName)
+    {
+        TXT_QuestName->SetText(QuestDetails.QuestName);
+    }
+
+    if (!TXT_QuestProgress)
+    {
+        return;
+    }
+
+    UQuestInstance_Base* QuestInstance =
+        UQuestSubsystem::Get(this)->GetActiveQuestInstance(QuestKey);
+
+    if (QuestInstance)
+    {
+        if (QuestInstance->QuestState == EQuestState::ReadyToComplete)
+        {
+            TXT_QuestProgress->SetText(FText::FromString(TEXT("Complete")));
+            TXT_QuestProgress->SetColorAndOpacity(
+                FSlateColor(FLinearColor(0.0f, 1.0f, 0.0f))
+            );
+        }
+        else
+        {
+            TXT_QuestProgress->SetText(FText::FromString(TEXT("Progress")));
+            TXT_QuestProgress->SetColorAndOpacity(
+                FSlateColor(FLinearColor(1.0f, 1.0f, 0.0f))
+            );
+        }
+    }
+    else
+    {
+        TXT_QuestProgress->SetText(FText::GetEmpty());
+    }
 }

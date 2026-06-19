@@ -17,6 +17,10 @@ class MUKSI_API UWidget_ActivatableBase : public UCommonActivatableWidget
 protected:
 	UFUNCTION(BlueprintPure)
 	AMuksiPlayerController* GetOwningMuksiPlayerController();
+
+	virtual void NativeOnActivated() override;
+	virtual void NativeOnDeactivated() override;
+
 	
 private:
 	TWeakObjectPtr<AMuksiPlayerController> CachedOwningMuksiPlayerController;

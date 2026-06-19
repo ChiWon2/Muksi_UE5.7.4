@@ -25,22 +25,28 @@ void UWidget_TangClan::NativeOnActivated()
 #pragma region ForTest
 	TestQuestKeys.Empty();
 
-	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest"));
+	TestQuestKeys.Add(FQuestKey("ForTest", "TestTest"));
 	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_0"));
 	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_1"));
 
 	SB_QuestEntries->ClearChildren();
 
 	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
+	UQuestSubsystem* QuestSubsys = UQuestSubsystem::Get(this);
 
 	for (const FQuestKey& QuestKey : TestQuestKeys)
 	{
+		if (QuestSubsys->GetCompleteQuestInstance(QuestKey))
+		{
+			continue;
+		}
 		const FQuestDetailRow* QuestRow =UQuestSubsystem::Get(this)->GetQuestRow(QuestKey);
 
 		if (!QuestRow)
 		{
 			continue;
 		}
+		
 
 		UQuestEntryWidget_ForTown* Entry = CreateWidget<UQuestEntryWidget_ForTown>( GetOwningPlayer(), Settings->QuestEntry_ForTownWidgetClass);
 

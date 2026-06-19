@@ -35,7 +35,7 @@ public:
     UTextBlock* TXT_QuestName;
 
     UPROPERTY(meta = (BindWidget))
-    UCheckBox* CB_IsComplete;
+    UTextBlock* TXT_QuestProgress;
 
 public:
     UPROPERTY()
@@ -53,4 +53,6 @@ public:
     void OnEntryButtonClicked();
 
     void InitWidget(const FQuestKey& InQuestKey);
+    UFUNCTION()
+    void RefreshUIContent(UQuestInstance_Base* InInstance = nullptr);
 };
