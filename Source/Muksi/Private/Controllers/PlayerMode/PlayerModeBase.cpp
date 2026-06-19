@@ -58,11 +58,16 @@ void UPlayerModeBase::HandleRPressedKey(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleRPressedKey"));
 }
 
-
-void UPlayerModeBase::HandleQPressedKey_Implementation(const FInputActionValue& Value)
+void UPlayerModeBase::HandleQPressedKey(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleQPressedKey Blueprint Test"));
 }
+
+
+/*void UPlayerModeBase::HandleQPressedKey_Implementation(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleQPressedKey Blueprint Test"));
+}*/
 
 
 TObjectPtr<ACineCameraActor> UPlayerModeBase::ApplyStartCamera()

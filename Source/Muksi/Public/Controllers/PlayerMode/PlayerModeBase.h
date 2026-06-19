@@ -35,8 +35,8 @@ public:
 	virtual void HandleEPressedKey(const FInputActionValue& Value);
 	virtual void HandleRPressedKey(const FInputActionValue& Value);
 	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void HandleQPressedKey(const FInputActionValue& Value);
+	
+	virtual void HandleQPressedKey(const FInputActionValue& Value);
 	
 	
 	
