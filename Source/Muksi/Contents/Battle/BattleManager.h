@@ -371,14 +371,17 @@ public:
 	void OnHoveredGridTileChanged(ABattleGridTile* InChangeTile);
 	void TargetGridCell(ABattleGridTile* TargetGrid);
 	
+	UPROPERTY()
+	TObjectPtr<ABattleGridTile> SelectTargetGrid = nullptr;
+	
 	
 	
 	//Attack Range Type Test
-	void TestSetAttackRangeType(UMuksiCardRangeDataAsset* DataAsset){TestAttackRangeDataAsset = DataAsset;};
+	void SetAttackRangeType(UMuksiCardRangeDataAsset* DataAsset){AttackRangeDataAsset = DataAsset;};
 	UPROPERTY()
-	TObjectPtr<UMuksiCardRangeDataAsset> TestAttackRangeDataAsset = nullptr;
+	TObjectPtr<UMuksiCardRangeDataAsset> AttackRangeDataAsset = nullptr;
 	
-	void TestCalAttackRangeType(ABattleGridTile* TargetGrid);
+	void CalAttackRangeType(ABattleGridTile* TargetGrid);
 	
 	UPROPERTY()
 	int32 AttackDir = 0;

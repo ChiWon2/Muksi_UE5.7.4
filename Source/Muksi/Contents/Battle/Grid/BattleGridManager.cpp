@@ -580,6 +580,39 @@ bool ABattleGridManager::CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range)
 	return Distance <= Range;
 }
 
+void ABattleGridManager::SetGridHovered(TArray<FIntPoint> NewGridArray)
+{
+	TargetGridArray = NewGridArray;
+	for (FIntPoint Cell : TargetGridArray)
+	{
+		int32 Index = Cell.X + Cell.Y * GridWidth;
+		ABattleGridTile* TargetGrid = GridCells[Index].TileActor;
+		TargetGrid->SetTargetIndicatorVisible(true);
+	}
+}
+
+void ABattleGridManager::ClearGridHovered()
+{
+	if (TargetGridArray.IsEmpty())return;
+	
+	for (FIntPoint& Cell : TargetGridArray)
+	{
+		int32 Index = Cell.X + Cell.Y * GridWidth;
+		ABattleGridTile* TargetGrid = GridCells[Index].TileActor;
+		TargetGrid->SetTargetIndicatorVisible(false);
+	}
+	TargetGridArray.Empty();
+}
+
+void ABattleGridManager::AllClearGridHovered()
+{
+	for (FBattleGridCell Cell : GridCells)
+	{
+		Cell.TileActor->SetTargetIndicatorVisible(false);
+	}
+}
+
+
 void ABattleGridManager::RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint)
 {
 	//일단 Move와 똑같이

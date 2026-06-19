@@ -171,10 +171,7 @@ void UQuestLogWidget::AddQuestToList( UQuestInstance_Base* QuestInstance,UScroll
 
     APlayerController* PC = GetOwningPlayer();
 
-    UQuestEntryWidget* Entry =
-        CreateWidget<UQuestEntryWidget>(
-            PC,
-            QuestEntryWidgetClass);
+    UQuestEntryWidget* Entry =CreateWidget<UQuestEntryWidget>( PC, QuestEntryWidgetClass);
 
     if (!Entry)
         return;

@@ -43,8 +43,8 @@ void UBattleCardEffectComponent::CardEffectUpdate(UCharacterDataBase* CharacterD
 			if (Effect.EffectType == EMuksiBattleCardEffectType::Rush)
 			{
 				BattleManager->bIsCardTargeting = true;
+				BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
 				BattleManager->SetCardRange(Effect.RangeValue);
-				BattleManager->TestSetAttackRangeType(Effect.RangeDataAsset);
 				PlayerEffect = Effect;
 			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Defense)
 			{
@@ -84,6 +84,8 @@ void UBattleCardEffectComponent::CardEffectUpdate(UCharacterDataBase* CharacterD
 		return;
 	}
 	//TODO 적이 사용하는 경우
+	//이거 갈아엎긴 해야 함
+	
 }
 
 void UBattleCardEffectComponent::SelectTargetGrid(ABattleGridTile* TargetGrid)
