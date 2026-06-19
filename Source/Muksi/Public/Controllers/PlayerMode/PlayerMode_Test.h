@@ -1,23 +1,27 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Controllers/PlayerMode/PlayerModeBase.h"
+#include "PlayerMode_World.h"
 #include "PlayerMode_Test.generated.h"
 
-/**
- * 
- */
+class AMuksiWorldCharacter;
+class AZoneActor;
+class ATownInteractionPoint;
+class UTownDataAsset;
+class AWorldUIManager;
+struct FZoneData;
+
 UCLASS()
-class MUKSI_API UPlayerMode_Test : public UPlayerModeBase
+class MUKSI_API UPlayerMode_Test : public UPlayerMode_World
 {
 	GENERATED_BODY()
-	
-	//~ Begin UPlayerModeBase Interface
-	virtual void EnterMode(AMuksiPlayerController* PlayerController)override;
-	virtual void ExitMode()override;
-	virtual int32 GetInputMappingPriority() const override { return 10; }
 
-	//~ End UPlayerModeBase Interface
+public:
+	virtual void EnterMode(class AMuksiPlayerController* PlayerController) override;
+	virtual void ExitMode() override;
+
+
+
+	virtual void HandleQPressedKey(const FInputActionValue& Value) override;
 };
