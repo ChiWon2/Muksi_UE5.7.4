@@ -7,6 +7,7 @@
 #include "Components/StatComponent.h"
 #include "Items/Components/InventoryComponent.h"
 #include "Items/Components/EquipmentComponent.h"
+#include "Components/PlayerCurrencyComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
@@ -59,9 +60,11 @@ AMuksiWorldCharacter::AMuksiWorldCharacter()
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
+	//Component
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));
+	PlayerCurrencyComponent = CreateDefaultSubobject<UPlayerCurrencyComponent>(TEXT("PlayerCurrencyComponent"));
 }
 
 void AMuksiWorldCharacter::BeginPlay()
@@ -199,4 +202,9 @@ UInventoryComponent* AMuksiWorldCharacter::GetInventoryComponent() const
 UEquipmentComponent* AMuksiWorldCharacter::GetEquipmentComponent() const
 {
 	return EquipmentComponent;
+}
+
+UPlayerCurrencyComponent* AMuksiWorldCharacter::GetPlayerCurrencyComponent() const
+{
+	return PlayerCurrencyComponent;
 }

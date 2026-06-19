@@ -113,13 +113,8 @@ struct MUKSI_API FMuksiInventoryEntry
 {
 	GENERATED_BODY()
 
-	FMuksiInventoryEntry()
-		: InstanceId(FGuid::NewGuid())
-	{
-	}
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	FGuid InstanceId;
+	FGuid InstanceId = FGuid();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	TObjectPtr<UMuksiItemDataAsset> ItemData = nullptr;

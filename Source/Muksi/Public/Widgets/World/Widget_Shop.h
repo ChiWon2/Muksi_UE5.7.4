@@ -10,8 +10,12 @@
 class UButton;
 class UTextBlock;
 class UUniformGridPanel;
+
 class UInventoryComponent;
+class UPlayerCurrencyComponent;
+class UMuksiShopSubsystem;
 class UMuksiItemDataAsset;
+
 class UWidget_ShopItemEntry;
 
 UENUM(BlueprintType)
@@ -34,6 +38,7 @@ public:
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeOnActivated() override;
+	virtual void NativeOnDeactivated() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
 	TObjectPtr<UShopDataAsset> ShopData;
@@ -43,9 +48,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Shop")
 	bool bHasSelectedItem = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop|Test")
-	int32 CurrentGold = 10000;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")
 	TSubclassOf<UWidget_ShopItemEntry> ShopItemEntryClass;
@@ -110,6 +112,9 @@ protected:
 	UFUNCTION()
 	void HandleRebuyTabClicked();
 
+	UFUNCTION()
+	void HandleGoldChanged(int32 NewGold);
+
 	void RefreshShop();
 	void RefreshSelection();
 	void SelectShopItem(const FShopItemEntry& Entry);
@@ -123,4 +128,8 @@ protected:
 	bool TryBuySelectedItem();
 
 	UInventoryComponent* GetInventoryComponent() const;
+	UPlayerCurrencyComponent* GetCurrencyComponent() const;
+
+	UMuksiShopSubsystem* GetShopSubsystem() const;
+	int32 GetRemainingStock(const FShopItemEntry& Entry) const;
 };
