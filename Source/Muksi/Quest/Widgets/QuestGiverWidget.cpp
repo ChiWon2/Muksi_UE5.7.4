@@ -21,16 +21,8 @@ void UQuestGiverWidget::NativeConstruct()
 	BTN_Accept->OnClicked.AddUniqueDynamic(this, &UQuestGiverWidget::OnAcceptButtonClicked);
 	BTN_Decline->OnClicked.AddUniqueDynamic(this, &UQuestGiverWidget::OnDeclineButtonClicked);
 
-	APlayerController* PC = GetOwningPlayer();
-	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
 
-	for (FObjectiveDetails Objective : Details.Objectives)
-	{
-		UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>(PC, Settings->QuestObjectiveEntryWidgetClass);
 
-		Entry->InitWidget(Objective);
-		VB_Objectives->AddChild(Entry);
-	}
 }
 
 void UQuestGiverWidget::NativeDestruct()
@@ -65,6 +57,16 @@ void UQuestGiverWidget::InitWidget(const FQuestKey& InQuestKey)
 	if (TXT_QuestDescription)
 	{
 		TXT_QuestDescription->SetText(Details.Description);
+	}
+
+	APlayerController* PC = GetOwningPlayer();
+	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
+	for (FObjectiveDetails Objective : Details.Objectives)
+	{
+		UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>(PC, Settings->QuestObjectiveEntryWidgetClass);
+
+		Entry->InitWidget(Objective);
+		VB_Objectives->AddChild(Entry);
 	}
 }
 
