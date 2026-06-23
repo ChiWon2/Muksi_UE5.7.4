@@ -6,13 +6,47 @@
 #include "Components/PanelWidget.h"
 #include "Components/UniformGridPanel.h"
 #include "Input/Reply.h"
+#include "Components/TextBlock.h"
+
 #include "Items/Components/EquipmentComponent.h"
 #include "Items/Components/InventoryComponent.h"
 #include "Items/Data/MuksiItemDataAsset.h"
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
+#include "Components/PlayerCurrencyComponent.h"
+
 #include "Widgets/Inventory/Widget_CharacterInfoPanel.h"
 #include "Widgets/Inventory/Widget_EquipmentSlot.h"
 #include "Widgets/Inventory/Widget_ItemSlot.h"
+
+void UWidget_InventoryEquipment::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	CachedCurrencyComponent = GetCurrencyComponent();
+
+	if (CachedCurrencyComponent)
+	{
+		CachedCurrencyComponent->OnGoldChanged.AddUniqueDynamic(
+			this,
+			&ThisClass::HandleGoldChanged);
+	}
+
+	RefreshGold();
+}
+
+void UWidget_InventoryEquipment::NativeDestruct()
+{
+	if (CachedCurrencyComponent)
+	{
+		CachedCurrencyComponent->OnGoldChanged.RemoveDynamic(
+			this,
+			&ThisClass::HandleGoldChanged);
+
+		CachedCurrencyComponent = nullptr;
+	}
+
+	Super::NativeDestruct();
+}
 
 void UWidget_InventoryEquipment::NativeOnActivated()
 {
@@ -194,6 +228,14 @@ void UWidget_InventoryEquipment::HandleCharacterInfoButtonClicked()
 	CharacterInfoPanel->ToggleDisplayMode();
 }
 
+void UWidget_InventoryEquipment::HandleGoldChanged(int32 NewGold)
+{
+	if (Text_Gold)
+	{
+		Text_Gold->SetText(FText::AsNumber(NewGold));
+	}
+}
+
 void UWidget_InventoryEquipment::SetCategoryFilter(EInventoryCategoryFilter NewFilter)
 {
 	if (CurrentCategoryFilter == NewFilter)
@@ -210,6 +252,7 @@ void UWidget_InventoryEquipment::RefreshAll()
 	RefreshInventoryGrid();
 	RefreshEquipmentSlots();
 	RefreshCharacterInfo();
+	RefreshGold();
 }
 
 void UWidget_InventoryEquipment::RefreshInventoryGrid()
@@ -283,6 +326,20 @@ void UWidget_InventoryEquipment::RefreshCharacterInfo()
 	}
 }
 
+void UWidget_InventoryEquipment::RefreshGold()
+{
+	const UPlayerCurrencyComponent* CurrencyComponent =
+		CachedCurrencyComponent
+		? CachedCurrencyComponent.Get()
+		: GetCurrencyComponent();
+
+	if (Text_Gold)
+	{
+		Text_Gold->SetText(FText::AsNumber(
+			CurrencyComponent ? CurrencyComponent->GetGold() : 0));
+	}
+}
+
 void UWidget_InventoryEquipment::AddEquipmentSlot(EMuksiEquipmentSlot EquipmentSlot)
 {
 	if (!EquipmentSlotBox || !EquipmentSlotClass)
@@ -351,4 +408,14 @@ UEquipmentComponent* UWidget_InventoryEquipment::GetEquipmentComponent() const
 {
 	const UMuksiPlayerDataSubsystem* PlayerDataSubsystem = GetPlayerDataSubsystem();
 	return PlayerDataSubsystem ? PlayerDataSubsystem->GetPlayerEquipmentComponent() : nullptr;
+}
+
+UPlayerCurrencyComponent* UWidget_InventoryEquipment::GetCurrencyComponent() const
+{
+	const UMuksiPlayerDataSubsystem* PlayerDataSubsystem =
+		GetPlayerDataSubsystem();
+
+	return PlayerDataSubsystem
+		? PlayerDataSubsystem->GetPlayerCurrencyComponent()
+		: nullptr;
 }

@@ -10,6 +10,9 @@ class UHorizontalBox;
 class UPanelWidget;
 class UUniformGridPanel;
 class UWidget;
+class UTextBlock;
+
+class UPlayerCurrencyComponent;
 class UMuksiPlayerDataSubsystem;
 class UInventoryComponent;
 class UEquipmentComponent;
@@ -31,6 +34,8 @@ class MUKSI_API UWidget_InventoryEquipment : public UWidget_ActivatableBase
 	GENERATED_BODY()
 
 protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual void NativeOnActivated() override;
 	virtual void NativeOnDeactivated() override;
 
@@ -77,6 +82,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	int32 InventoryColumnCount = 8;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Gold;
+
 private:
 	UFUNCTION()
 	void HandleBackClicked();
@@ -105,12 +113,17 @@ private:
 	UFUNCTION()
 	void HandleCharacterInfoButtonClicked();
 
+	UFUNCTION()
+	void HandleGoldChanged(int32 NewGold);
+
 	void SetCategoryFilter(EInventoryCategoryFilter NewFilter);
 
 	void RefreshAll();
 	void RefreshInventoryGrid();
 	void RefreshEquipmentSlots();
 	void RefreshCharacterInfo();
+
+	void RefreshGold();
 
 	void AddEquipmentSlot(EMuksiEquipmentSlot EquipmentSlot);
 
@@ -119,6 +132,7 @@ private:
 	UMuksiPlayerDataSubsystem* GetPlayerDataSubsystem() const;
 	UInventoryComponent* GetInventoryComponent() const;
 	UEquipmentComponent* GetEquipmentComponent() const;
+	UPlayerCurrencyComponent* GetCurrencyComponent() const;
 
 	EInventoryCategoryFilter CurrentCategoryFilter = EInventoryCategoryFilter::Equipment;
 
@@ -127,4 +141,7 @@ private:
 
 	bool bDraggingWindow = false;
 	FVector2D DragOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UPlayerCurrencyComponent> CachedCurrencyComponent;
 };

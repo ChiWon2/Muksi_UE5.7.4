@@ -1,6 +1,8 @@
 #include "Widgets/World/Widget_Shop.h"
 
 #include "Widgets/World/Widget_ShopItemEntry.h"
+#include "Widgets/Inventory/Widget_ShopInventoryPanel.h"
+
 #include "Items/Data/MuksiItemDataAsset.h"
 #include "Items/Components/InventoryComponent.h"
 #include "Items/Components/EquipmentComponent.h"
@@ -82,6 +84,11 @@ void UWidget_Shop::NativeOnActivated()
 
 	RefreshShop();
 	RefreshSelection();
+
+	if (ShopInventoryPanel)
+	{
+		ShopInventoryPanel->Refresh();
+	}
 }
 
 void UWidget_Shop::NativeOnDeactivated()
@@ -536,29 +543,19 @@ bool UWidget_Shop::TryBuySelectedItem()
 
 void UWidget_Shop::HandleBuyClicked()
 {
-	const bool bPurchaseSucceeded =
-		TryBuySelectedItem();
-
-	if (!bPurchaseSucceeded)
+	if (!TryBuySelectedItem())
 	{
 		RefreshSelection();
-
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("[Widget_Shop] Buy Click Result=Failed RefreshSelection=1")
-		);
 		return;
 	}
 
 	RefreshShop();
 	RefreshSelection();
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("[Widget_Shop] Buy Click Result=Success RefreshShop=1 RefreshSelection=1")
-	);
+	if (ShopInventoryPanel)
+	{
+		ShopInventoryPanel->Refresh();
+	}
 }
 
 void UWidget_Shop::HandleCloseClicked()

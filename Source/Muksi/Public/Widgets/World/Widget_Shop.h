@@ -15,6 +15,7 @@ class UInventoryComponent;
 class UPlayerCurrencyComponent;
 class UMuksiShopSubsystem;
 class UMuksiItemDataAsset;
+class UWidget_ShopInventoryPanel;
 
 class UWidget_ShopItemEntry;
 
@@ -96,6 +97,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_EmptyMessage;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget_ShopInventoryPanel> ShopInventoryPanel;
 
 	UFUNCTION()
 	void HandleBuyClicked();
