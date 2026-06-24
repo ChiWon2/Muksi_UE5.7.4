@@ -7,6 +7,7 @@
 #include"../DeveloperSettings/QuestDeveloperSettings.h"
 #include"GameFramework/PlayerController.h"
 #include"QuestObjectiveEntryWidget.h"
+#include"RewardsWidget.h"
 #include"../QuestInstance_Base.h"
 #include"Components/Button.h"
 #include"Components/TextBlock.h"
@@ -20,9 +21,6 @@ void UQuestGiverWidget::NativeConstruct()
 
 	BTN_Accept->OnClicked.AddUniqueDynamic(this, &UQuestGiverWidget::OnAcceptButtonClicked);
 	BTN_Decline->OnClicked.AddUniqueDynamic(this, &UQuestGiverWidget::OnDeclineButtonClicked);
-
-
-
 }
 
 void UQuestGiverWidget::NativeDestruct()
@@ -58,6 +56,8 @@ void UQuestGiverWidget::InitWidget(const FQuestKey& InQuestKey)
 	{
 		TXT_QuestDescription->SetText(Details.Description);
 	}
+
+	RewardsWidget->InitializeReward(QuestKey);
 
 	APlayerController* PC = GetOwningPlayer();
 	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();

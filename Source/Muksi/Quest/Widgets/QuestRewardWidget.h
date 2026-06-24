@@ -6,6 +6,7 @@
 #include "../../Public/Widgets/Widget_ActivatableBase.h"
 #include"../QuestDetailRow.h"
 #include"../QuestKey.h"
+#include"../QuestReward.h"
 #include "QuestRewardWidget.generated.h"
 
 class UTextBlock;
@@ -13,6 +14,8 @@ class UVerticalBox;
 class UButton;
 class UQuestObjectiveEntryWidget;
 class UQuestInstance_Base;
+class URewardsWidget;
+
 /**
  * 
  */
@@ -47,6 +50,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UQuestInstance_Base* CurrentQuestInstance;
 
+	UPROPERTY(meta = (BindWidget))
+	URewardsWidget* RewardsWidget;
+
+private:
+	FQuestReward QuestReward;
+
 public:
     virtual void NativeConstruct() override;
     virtual void NativeDestruct() override;
@@ -60,5 +69,7 @@ public:
 	void OnClearQuestButtonClicked();
 	UFUNCTION()
 	void OnCancelButtonClicked();
-	
+private:
+	void RefreshObjectives();
+	void GiveReward();
 };

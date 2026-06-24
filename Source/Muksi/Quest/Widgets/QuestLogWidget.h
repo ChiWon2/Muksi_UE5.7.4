@@ -13,6 +13,8 @@ class UTextBlock;
 class UButton;
 class UQuestInstance_Base;
 class UTabButton;
+class URewardsWidget;
+
 
 UCLASS()
 class MUKSI_API UQuestLogWidget : public UWidget_ActivatableBase
@@ -45,10 +47,15 @@ public:
     UTextBlock* TXT_QuestDescription;
 
     UPROPERTY(meta = (BindWidget))
+    UVerticalBox* VB_Objectives;
+
+    UPROPERTY(meta = (BindWidget))
     UButton* BT_CloseMenu;
 
     UPROPERTY(meta = (BindWidget))
-    UVerticalBox* VB_Objectives;
+    URewardsWidget* RewardsWidget;
+
+
 
 public:
 
@@ -87,4 +94,7 @@ private:
     void RefreshQuestDetails(UQuestInstance_Base* QuestInstance);
 
     void AddQuestToList( UQuestInstance_Base* QuestInstance, UScrollBox* TargetBox);
+private:
+    void ClearQuestDetail();
+
 };

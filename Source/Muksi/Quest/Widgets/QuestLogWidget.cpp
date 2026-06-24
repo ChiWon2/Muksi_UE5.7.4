@@ -15,6 +15,7 @@
 #include "TabButton.h"
 #include "QuestEntryWidget.h"
 #include "QuestObjectiveEntryWidget.h"
+#include "RewardsWidget.h"
 
 
 
@@ -93,6 +94,8 @@ void UQuestLogWidget::HandleTabClicked(UTabButton* ClickedTab)
 
     ClickedTab->SetSelected(true);
 
+    ClearQuestDetail();
+
     if (ClickedTab == TAB_Ongoing)
     {
         WS_QuestList->SetActiveWidgetIndex(0);
@@ -112,6 +115,8 @@ void UQuestLogWidget::RefreshQuestDetails(UQuestInstance_Base* QuestInstance)
 {
     if (!QuestInstance)
         return;
+
+    FQuestKey& QuestKey = QuestInstance->QuestKey;
 
     SelectedQuestInstance = QuestInstance;
 
@@ -150,6 +155,8 @@ void UQuestLogWidget::RefreshQuestDetails(UQuestInstance_Base* QuestInstance)
 
         VB_Objectives->AddChild(Entry);
     }
+
+    RewardsWidget->InitializeReward(QuestKey);
 }
 
 void UQuestLogWidget::HandleTrackSelected(
@@ -183,4 +190,9 @@ void UQuestLogWidget::AddQuestToList( UQuestInstance_Base* QuestInstance,UScroll
     Entry->OnTrackSelected.AddDynamic( this, &ThisClass::HandleTrackSelected);
 
     TargetBox->AddChild(Entry);
+}
+
+void UQuestLogWidget::ClearQuestDetail()
+{
+    WS_ShowQuestDetail->SetActiveWidgetIndex(0);
 }

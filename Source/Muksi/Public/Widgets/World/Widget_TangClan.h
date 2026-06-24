@@ -47,6 +47,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "ForTest")
 	TSubclassOf<UQuestRewardWidget> QuestRewardWidgetClass;
+
+	void RefreshTangClanWidget();
 #pragma endregion
 
 
@@ -55,5 +57,7 @@ protected:
 	void HandleBackButtonClicked();
 	UFUNCTION()
 	void HandleQuestEntryClicked(FQuestKey QuestKey);
+	UFUNCTION()
+	void HandleQuestCompleted(UQuestInstance_Base* QuestBase);
 
 };

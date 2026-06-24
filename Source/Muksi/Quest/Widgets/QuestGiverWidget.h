@@ -13,6 +13,7 @@ class UVerticalBox;
 class UButton;
 class UQuestObjectiveEntryWidget;
 class UQuestInstance_Base;
+class URewardsWidget;
 /**
  * 
  */
@@ -40,6 +41,9 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UVerticalBox* VB_Objectives;
+
+	UPROPERTY(meta = (BindWidget))
+	URewardsWidget* RewardsWidget;
 
 public:
     virtual void NativeConstruct() override;

@@ -10,6 +10,8 @@
 #include"Components/Button.h"
 #include"Components/TextBlock.h"
 #include"Components/VerticalBox.h"
+#include"../Quest/DeveloperSettings/QuestDeveloperSettings.h"
+#include"RewardsWidget.h"
 
 void UQuestRewardWidget::NativeConstruct()
 {
@@ -19,15 +21,6 @@ void UQuestRewardWidget::NativeConstruct()
 		BTN_ClearQuest->OnClicked.AddUniqueDynamic(this, &UQuestRewardWidget::OnClearQuestButtonClicked);
 	if (BTN_Cancel)
 		BTN_Cancel->OnClicked.AddUniqueDynamic(this, &UQuestRewardWidget::OnCancelButtonClicked);
-
-	APlayerController* PC = GetOwningPlayer();
-
-	for (FObjectiveDetails Objective : Details.Objectives)
-	{
-		UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>(PC, QuestObjectiveEntryWidgetClass);
-		Entry->InitWidget(Objective, CurrentQuestInstance);
-		VB_Objectives->AddChild(Entry);
-	}
 }
 
 void UQuestRewardWidget::NativeDestruct()
@@ -56,6 +49,8 @@ void UQuestRewardWidget::InitWidget(const FQuestKey& InQuestKey)
 	
 	CurrentQuestInstance = UQuestSubsystem::Get(this)->GetActiveQuestInstance(QuestKey);
 
+	QuestReward = Details.Reward;
+
 	if (TXT_QuestName)
 	{
 		TXT_QuestName->SetText(Details.QuestName);
@@ -65,17 +60,72 @@ void UQuestRewardWidget::InitWidget(const FQuestKey& InQuestKey)
 	{
 		TXT_QuestDescription->SetText(Details.Description);
 	}
+
+	RewardsWidget->InitializeReward(QuestKey);
+
+
+	APlayerController* PC = GetOwningPlayer();
+	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
+
+	for (FObjectiveDetails Objective : Details.Objectives)
+	{
+		UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>(PC, Settings->QuestObjectiveEntryWidgetClass);
+
+		Entry->InitWidget(Objective, CurrentQuestInstance);
+		VB_Objectives->AddChild(Entry);
+	}
 }
 
 void UQuestRewardWidget::OnClearQuestButtonClicked()
 {
 	//GetPlayerCharacter -> GetComponent By Class(QuestLogComponent) -> is Valid -> QuestLogComponent->AddNewQuest(QuestID); -> RemoveFromParent;
 
+
 	UQuestSubsystem::Get(this)->CompleteQuest(QuestKey);
+	GiveReward();
+
 	DeactivateWidget();
 }
 
 void UQuestRewardWidget::OnCancelButtonClicked()
 {
 	DeactivateWidget();
+}
+
+void UQuestRewardWidget::RefreshObjectives()
+{
+	if (!VB_Objectives)
+	{
+		return;
+	}
+
+	VB_Objectives->ClearChildren();
+
+	APlayerController* PC = GetOwningPlayer();
+
+	for (const FObjectiveDetails& Objective : Details.Objectives)
+	{
+		UQuestObjectiveEntryWidget* Entry =
+			CreateWidget<UQuestObjectiveEntryWidget>(
+				PC,
+				QuestObjectiveEntryWidgetClass);
+
+		Entry->InitWidget(Objective, CurrentQuestInstance);
+
+		VB_Objectives->AddChild(Entry);
+	}
+}
+
+void UQuestRewardWidget::GiveReward()
+{
+	UE_LOG(LogTemp,Warning,TEXT("[QuestRewardWidget] : TODO :: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Add Gold : %d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"), QuestReward.CurrencyRewards);
+	UE_LOG(LogTemp,Warning,TEXT("[QuestRewardWidget] : TODO :: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Add XP : %d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"), QuestReward.XPReward);
+	for (const FItemReward& ItemReward : QuestReward.ItemRewards)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[QuestRewardWidget]TODO :: !!!!!!!!!!!!!!!!!!!!!!!!!!!!! Add Item To Inventory | ItemID=%s Count=%d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"),
+			*ItemReward.ItemID.ToString(),
+			ItemReward.ItemCount);
+	}
+
 }
