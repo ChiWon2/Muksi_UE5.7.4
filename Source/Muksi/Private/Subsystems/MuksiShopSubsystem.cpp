@@ -1,6 +1,6 @@
 #include "Subsystems/MuksiShopSubsystem.h"
 
-#include "Data/ShopDataAsset.h"
+#include "Muksi/Contents/Travel/Public/Data/Shops/ShopDataAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
