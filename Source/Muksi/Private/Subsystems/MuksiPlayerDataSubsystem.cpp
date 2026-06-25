@@ -1,11 +1,11 @@
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
 
-#include "Muksi/Contents/World/WorldCharacter/MuksiWorldCharacter.h"
-#include "Components/StatComponent.h"
-#include "Components/PlayerCurrencyComponent.h"
-#include "Items/Components/InventoryComponent.h"
-#include "Items/Components/EquipmentComponent.h"
-#include "Items/Data/MuksiItemDataAsset.h"
+#include "Muksi/Contents/Travel/Public/Characters/MuksiWorldCharacter.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/StatComponent.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/PlayerCurrencyComponent.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/InventoryComponent.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/EquipmentComponent.h"
+#include "Muksi/Contents/Travel/Public/Data/Items/MuksiItemDataAsset.h"
 
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"

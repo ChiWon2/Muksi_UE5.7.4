@@ -1,0 +1,1 @@
+#include "Muksi/Contents/Travel/Public/Data/Shops/ShopDataAsset.h"
