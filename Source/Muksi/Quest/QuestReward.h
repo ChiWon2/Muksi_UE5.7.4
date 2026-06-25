@@ -6,6 +6,18 @@
 #include "QuestReward.generated.h"
 
 USTRUCT(BlueprintType)
+struct FItemReward
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ItemID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ItemCount = 1;
+};
+
+USTRUCT(BlueprintType)
 struct FQuestReward
 {
 	GENERATED_BODY()
@@ -17,7 +29,7 @@ struct FQuestReward
 	int CurrencyRewards;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FName, int> ItemRewards;
+	TArray<FItemReward> ItemRewards;
 
 	FQuestReward()
 		: XPReward(0)

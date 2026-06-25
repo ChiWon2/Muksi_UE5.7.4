@@ -3,7 +3,8 @@
 #include "Components/CheckBox.h"
 #include "Components/TextBlock.h"
 
-#include "../Quest/QuestInstance_Base.h"
+#include "../QuestInstance_Base.h"
+#include"../QuestSubsystem.h"
 
 void UQuestObjectiveEntryWidget::NativeConstruct()
 {
@@ -14,11 +15,15 @@ void UQuestObjectiveEntryWidget::NativeConstruct()
         CB_IsComplete->SetIsEnabled(false);
     }
 
+    UQuestSubsystem::Get(this)->OnObjectiveIDCalled.AddUniqueDynamic(this, &UQuestObjectiveEntryWidget::HandleObjectiveIDCalled);
+
     RefreshObjectiveState();
 }
 
 void UQuestObjectiveEntryWidget::NativeDestruct()
 {
+    UQuestSubsystem::Get(this)->OnObjectiveIDCalled.RemoveDynamic(this, &UQuestObjectiveEntryWidget::HandleObjectiveIDCalled);
+
     Super::NativeDestruct();
 }
 
@@ -40,7 +45,6 @@ void UQuestObjectiveEntryWidget::RefreshObjectiveState()
         }
         if (CurrentValue > ObjectiveDetail.RequiredQuantity)
             CurrentValue = ObjectiveDetail.RequiredQuantity;
-
     }
 
     FText FormatText = FText::Format( FText::FromString(TEXT("{0} {1}/{2}")), ObjectiveDetail.Description, FText::AsNumber(CurrentValue), FText::AsNumber(ObjectiveDetail.RequiredQuantity));
@@ -56,4 +60,12 @@ void UQuestObjectiveEntryWidget::RefreshObjectiveState()
     {
         CB_IsComplete->SetIsChecked(bReadyToComplete);
     }
+}
+
+void UQuestObjectiveEntryWidget::HandleObjectiveIDCalled(FName ObjectiveID, int32 Value)
+{
+    if (ObjectiveID != ObjectiveDetail.ObjectiveID)
+        return;
+
+    RefreshObjectiveState();
 }

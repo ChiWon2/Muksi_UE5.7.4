@@ -21,14 +21,14 @@ class MUKSI_API UQuestObjectiveEntryWidget : public UUserWidget
 
 public:
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FObjectiveDetails ObjectiveDetail;
-
     UPROPERTY(meta = (BindWidget))
     UCheckBox* CB_IsComplete;
 
     UPROPERTY(meta = (BindWidget))
     UTextBlock* TXT_Description;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FObjectiveDetails ObjectiveDetail;
 
     UPROPERTY(BlueprintReadOnly)
     TObjectPtr<UQuestInstance_Base> QuestInstance;
@@ -41,6 +41,8 @@ public:
 
     void InitWidget( const FObjectiveDetails& InDetails, UQuestInstance_Base* InQuestInstance = nullptr);
 
+    UFUNCTION()
+    void HandleObjectiveIDCalled(FName ObjectiveID, int32 Value);
 private:
 
     void RefreshObjectiveState();
