@@ -14,18 +14,6 @@
 #include "NativeGameplayTags.h"
 #include "Muksi/Widgets/Battle/CAW/Widget_CharacterData.h"
 
-//Test Zone, Town UI
-#include "Muksi/Contents/World/Zone/ZoneManager.h"
-#include "Muksi/Contents/World/Zone/ZoneActor.h"
-#include "MuksiFunctionLibrary.h"
-#include "Widgets/Widget_ActivatableBase.h"
-#include "World/Components/TownUIControllerComponent.h"
-//Test Zone, Town UI
-
-//Test Equipment
-#include "MuksiGameplayTags.h"
-#include "World/Components/InventoryEquipmentUIComponent.h"
-//Test Equipment
 
 //Test Data Subsystem
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
@@ -39,92 +27,16 @@ AMuksiPlayerController::AMuksiPlayerController()
 {
 	bShowMouseCursor = true;
 
-	TownUIControllerComponent =
-		CreateDefaultSubobject<UTownUIControllerComponent>(TEXT("TownUIControllerComponent"));
-	InventoryEquipmentUIController = CreateDefaultSubobject<UInventoryEquipmentUIComponent>(TEXT("InventoryEquipmentUIController"));
-
 }
 
-
-void AMuksiPlayerController::PushSoftWidget()
+void AMuksiPlayerController::Tick(float DeltaTime)
 {
-	if (UMuksiUISubsystem* UISubsystem = UMuksiUISubsystem::Get(this))
+	Super::Tick(DeltaTime);
+	if (CurrentPlayerMode)
 	{
-		UISubsystem->PushSoftWidgetToStackAsync(
-			this, MuksiGameplayTag::Muksi_WidgetStack_GameHud,
-			WidgetCharacterDataClass,
-			true,
-			[this](UWidget_ActivatableBase* CreateWidget)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Before Push : %s"), *GetNameSafe(CreateWidget));
-				if (UWidget_CharacterData* CharacterData = Cast<UWidget_CharacterData>(CreateWidget))
-				{
-					//초기화
-				}
-			},
-			[this](UWidget_ActivatableBase* PushedWidget)
-			{
-				UE_LOG(LogTemp, Log, TEXT("After Push: %s"), *GetNameSafe(PushedWidget));
-			}
-		);
+		CurrentPlayerMode->TickPlayerMode();
 	}
 }
-
-//Test Zone, Town UI
-void AMuksiPlayerController::SetCurrentZone(AZoneActor* NewZone)
-{
-	if (ZoneManager)
-	{
-		ZoneManager->SetCurrentZone(NewZone);
-	}
-}
-
-AZoneActor* AMuksiPlayerController::GetCurrentZone() const
-{
-	return ZoneManager ? ZoneManager->GetCurrentZone() : nullptr;
-}
-
-FZoneData AMuksiPlayerController::GetCurrentZoneData() const
-{
-	return ZoneManager ? ZoneManager->GetCurrentZoneData() : FZoneData();
-}
-
-void AMuksiPlayerController::OpenTownUI(UTownDataAsset* InTownData)
-{
-	UE_LOG(LogTemp, Warning, TEXT("PC OpenTownUI called. TownUIController=%s"),
-		*GetNameSafe(TownUIControllerComponent));
-	
-	if (TownUIControllerComponent)
-	{
-		TownUIControllerComponent->OpenTownUI(InTownData);
-	}
-}
-
-void AMuksiPlayerController::CloseTownUI()
-{
-	if (TownUIControllerComponent)
-	{
-		TownUIControllerComponent->CloseTownUI();
-	}
-}
-
-bool AMuksiPlayerController::IsTownUIOpen() const
-{
-	return TownUIControllerComponent && TownUIControllerComponent->IsTownUIOpen();
-}
-
-
-//Test Zone, Town UI
-
-//Test Equipment
-void AMuksiPlayerController::OpenInventoryEquipmentUI()
-{
-	if (InventoryEquipmentUIController)
-	{
-		InventoryEquipmentUIController->OpenInventoryEquipmentUI();
-	}
-}
-//Test Equipment
 
 void AMuksiPlayerController::BeginPlay()
 {
@@ -170,11 +82,41 @@ void AMuksiPlayerController::SetupInputComponent()
 			EnhancedInput->BindAction(LeftClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnLeftClick);
 			UE_LOG(LogTemp, Log, TEXT("Bind LeftClickAction"));
 		}
-		
 		if (RightClickAction)
 		{
-			EnhancedInput->BindAction(RightClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnLeftClick);
-			UE_LOG(LogTemp, Log, TEXT("Bind LeftClickAction"));
+			EnhancedInput->BindAction(RightClickAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnRightClick);
+			UE_LOG(LogTemp, Log, TEXT("Bind RightClickAction"));
+		}
+		if (PPressAction)
+		{
+			EnhancedInput->BindAction(PPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnPKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind PPressAction"));
+		}
+		if (QPressAction)
+		{
+			EnhancedInput->BindAction(QPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnQKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind QPressAction"));
+		}
+		if (EPressAction)
+		{
+			EnhancedInput->BindAction(EPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnEKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind EPressAction"));
+		}
+		if (IPressAction)
+		{
+			EnhancedInput->BindAction(IPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnIKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind IPressAction"));
+		}
+		if (TabPressAction)
+		{
+			EnhancedInput->BindAction(TabPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnTabKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind TabPressAction"));
+		}
+		
+		if (RPressAction)
+		{
+			EnhancedInput->BindAction(RPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnRKeyPressed);
+			UE_LOG(LogTemp, Log, TEXT("Bind RPressAction"));
 		}
 	}
 }
@@ -219,6 +161,44 @@ void AMuksiPlayerController::OnRightClick(const FInputActionValue& Value)
 	if (CurrentPlayerMode){CurrentPlayerMode->HandleRightClick(Value);}
 }
 
+
+
+void AMuksiPlayerController::OnEKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleEPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnQKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleQPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnIKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleIPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnTabKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleTabPressedKey(Value);}
+}
+
+void AMuksiPlayerController::OnRKeyPressed(const FInputActionValue& Value)
+{
+	if (CurrentPlayerMode){CurrentPlayerMode->HandleRPressedKey(Value);}
+}
+
+
+//Test Bind Input
+void AMuksiPlayerController::OnPKeyPressed(const FInputActionValue& Value)
+{
+	//Blue print에서 Bind 해서 작동시키는 모드
+	OnPPressedInput.Broadcast();
+	
+	UE_LOG(LogTemp, Log, TEXT("OnPKeyPressed"));
+	//PlayerMode의 P 입력 모드
+	if (CurrentPlayerMode){CurrentPlayerMode->HandlePPressedKey(Value);}
+}
 
 void AMuksiPlayerController::ApplyInputMappingFromMode(UPlayerModeBase* InMode)
 {

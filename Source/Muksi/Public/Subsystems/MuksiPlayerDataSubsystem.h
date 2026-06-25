@@ -8,6 +8,7 @@ class AMuksiWorldCharacter;
 class UStatComponent;
 class UInventoryComponent;
 class UEquipmentComponent;
+class UPlayerCurrencyComponent;
 
 UCLASS()
 class MUKSI_API UMuksiPlayerDataSubsystem : public UGameInstanceSubsystem
@@ -25,6 +26,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player Data")
 	AMuksiWorldCharacter* GetPlayerPawn() const;
 
+	UFUNCTION(BlueprintPure, Category = "Player Data")
+	AMuksiWorldCharacter* GetPlayerWorldCharacter() const;
+
 	UFUNCTION(BlueprintPure, Category = "Player Data|Component")
 	UStatComponent* GetPlayerStatComponent() const;
 
@@ -33,6 +37,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player Data|Component")
 	UEquipmentComponent* GetPlayerEquipmentComponent() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player Data|Component")
+	UPlayerCurrencyComponent* GetPlayerCurrencyComponent() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Player Data|Debug")
+	void LogPlayerDataComponents() const;
 
 	UFUNCTION(BlueprintPure, Category = "Player Data|Inventory")
 	bool HasItem(FName ItemID, int32 Count = 1) const;

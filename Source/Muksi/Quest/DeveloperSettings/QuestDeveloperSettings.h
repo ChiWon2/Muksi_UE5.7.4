@@ -8,7 +8,9 @@ class UDataTable;
 class UQuestLogWidget;
 class UQuestEntryWidget;
 class UQuestObjectiveEntryWidget;
-
+class UQuestGiverWidget;
+class UQuestRewardWidget;
+class UQuestEntryWidget_ForTown;
 
 USTRUCT(BlueprintType)
 struct FQuestTableEntry
@@ -36,12 +38,21 @@ public:
 
 	// Widgets
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Quest|Widgets")
-	TSoftClassPtr<UQuestLogWidget> QuestLogWidgetClass;
+	TSubclassOf<UQuestLogWidget> QuestLogWidgetClass;
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Quest|Widgets")
-	TSoftClassPtr<UQuestEntryWidget> QuestEntryWidgetClass;
+	TSubclassOf<UQuestEntryWidget> QuestEntryWidgetClass;
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Quest|Widgets")
-	TSoftClassPtr<UQuestObjectiveEntryWidget> QuestObjectiveEntryWidgetClass;
+	TSubclassOf<UQuestEntryWidget_ForTown> QuestEntry_ForTownWidgetClass;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Quest|Widgets")
+	TSubclassOf<UQuestObjectiveEntryWidget> QuestObjectiveEntryWidgetClass;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Quest|Widgets")
+	TSubclassOf<UQuestGiverWidget> QuestGiverWidgetClass;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Quest|Widgets")
+	TSubclassOf<UQuestRewardWidget> QuestRewardWidgetClass;
 
 };

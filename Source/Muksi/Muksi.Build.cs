@@ -23,6 +23,7 @@ public class Muksi : ModuleRules
             "PropertyPath",
             "NavigationSystem",
             "StructUtils",
+            "Landscape",
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]

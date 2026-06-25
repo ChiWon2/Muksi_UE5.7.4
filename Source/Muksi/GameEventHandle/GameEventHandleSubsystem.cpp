@@ -1,6 +1,8 @@
 #include "GameEventHandleSubsystem.h"
 #include "EventHandlers/Handle_StartBattle.h"
 #include "EventHandlers/Handle_AcceptQuest.h"
+#include "EventHandlers/Handle_CompleteQuest.h"
+#include "EventHandlers/Handle_ObjectiveComplete.h"
 
 UGameEventHandleSubsystem* UGameEventHandleSubsystem::Get(const UObject* WorldContextObject)
 {
@@ -48,5 +50,6 @@ void UGameEventHandleSubsystem::AllEventRegister()
 {
     FHandle_StartBattle::Register(*this);
     FHandle_AcceptQuest::Register(*this);
-
+    FHandle_CompleteQuest::Register(*this);
+    FHandle_ObjectiveComplete::Register(*this);
 }

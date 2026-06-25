@@ -39,7 +39,7 @@ public:
 
     virtual void NativeDestruct() override;
 
-    void InitWidget( const FObjectiveDetails& InDetails, UQuestInstance_Base* InQuestInstance);
+    void InitWidget( const FObjectiveDetails& InDetails, UQuestInstance_Base* InQuestInstance = nullptr);
 
 private:
 

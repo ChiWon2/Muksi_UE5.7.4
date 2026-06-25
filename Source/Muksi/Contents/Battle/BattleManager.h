@@ -7,12 +7,21 @@
 #include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
 #include "BattleManager.generated.h"
 
+class ABattleCharacter_Enemy;
+class UBattleCardEffectComponent;
 class ABattleCharacterBase;
 class UMuksiCharacterDataAsset;
 class UHandWidget;
 class UCharacterDataBase;
 class ATargetPoint;
 class ABattleGridManager;
+class UBattleCardPreviewComponent;
+
+class ABattleGridTile;
+
+//Test
+class UMuksiBattleCardDataAsset;
+class UMuksiCardRangeDataAsset;
 
 UENUM(BlueprintType)
 enum class EBattlePhase : uint8
@@ -43,29 +52,35 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(
 	FOnBattleStarted
 );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnRoundStarted,
-	int32,
-	RoundNumber
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(
+	FOnRoundStarted
 );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(
+	FOnExchangeStarted
+);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(
+FOnAttackStarted
+);
+
+/*DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnExchangeStarted,
 	int32,
 	ExchangeNumber
-);
+);*/
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnExchangeEnded,
-	int32,
-	ExchangeNumber
-);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnAttackStarted,
+	FOnAttack,
 	int32,
 	AttackNumber
 );
+
+/*DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnAttackStarted,
+	int32,
+	AttackNumber
+);*/
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnAttackEnded,
@@ -110,6 +125,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Battle")
 	void StartAttack();
+	
+	UFUNCTION(BlueprintCallable, Category = "Battle")
+	void AttackActive();
 
 	UFUNCTION(BlueprintCallable, Category = "Battle")
 	void EndAttack();
@@ -198,7 +216,7 @@ public:
 	FOnExchangeStarted OnExchangeStarted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnExchangeEnded OnExchangeEnded;
+	FOnAttack OnAttack;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnAttackStarted OnAttackStarted;
@@ -234,7 +252,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
 	void NotifyBattleStartFinished();
 	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
+	void NotifyRoundReadyFinished();
+	
+	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
 	void NotifyRoundFinished();
+	
+	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
+	void NotifyAttackReadyFinish();
 public:
 	//Start Battle Ready Check
 	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
@@ -253,6 +277,11 @@ public:
 	//*****Ready Battle Settings
 
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Battle|Preview")
+	TObjectPtr<UBattleCardPreviewComponent> CardPreviewComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Battle|CardEffectCal")
+	TObjectPtr<UBattleCardEffectComponent> CardEffectComponent;
+	
 public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Data")
 	UMuksiCharacterDataAsset* GetPlayerCharacterDataAsset() const{return TestPlayerCharacterDataAsset;}
@@ -265,7 +294,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Event")
 	void StartBattlePhase();
 	
+	UPROPERTY(EditAnywhere, Category = "Battle|Test")
+	TObjectPtr<UMuksiBattleCardDataAsset> TestBattleCardDataAsset = nullptr;
 	
+	UPROPERTY(BlueprintReadOnly, Category = "Battle|Attack")
+	TObjectPtr<UMuksiBattleCardDataAsset> AttackBattleCardDataAsset = nullptr;
 	
 protected:
 	bool CanStartBattle() const;
@@ -286,7 +319,7 @@ public:
 	TObjectPtr<UCharacterDataBase> GetEnemyCharacterData(){return EnemyCharacterData;};
 	
 	TObjectPtr<ABattleCharacterBase> GetPlayerBattleCharacter(){return PlayerBattleCharacter;}
-	TObjectPtr<ABattleCharacterBase> GetEnemyBattleCharacter(){return EnemyBattleCharacter;}
+	TObjectPtr<ABattleCharacter_Enemy> GetEnemyBattleCharacter(){return EnemyBattleCharacter;}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	TObjectPtr<ABattleGridManager> BattleGridManager;
@@ -295,7 +328,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacterBase> PlayerBattleCharacter  = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
-	TObjectPtr<ABattleCharacterBase> EnemyBattleCharacter   = nullptr;
+	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter   = nullptr;
 	
 	//아래 데이터는 테스트 용도로 넣는 데이터 에셋
 	//원래 기획대로라면 다른 곳에서 생성 후 받는 형식
@@ -316,4 +349,41 @@ protected:
 	//위의 데이터 에셋을 기반으로 생성되는 캐릭터 데이터(적)
 	UPROPERTY()
 	TObjectPtr<UCharacterDataBase> EnemyCharacterData = nullptr;
+	
+	UPROPERTY(EditAnywhere, Category = "Grid|Character")
+	FIntPoint StartPlayerPoint = FIntPoint(0,0);
+	
+	UPROPERTY(EditAnywhere, Category = "Grid|Character")
+	FIntPoint StartEnemyPoint = FIntPoint(4,4);
+	
+	//Battle 실행 관련 캐릭터 이동
+public:
+	
+	
+	
+	//Battle Mouse 관련 함수
+public:
+	UPROPERTY()
+	bool bIsCardTargeting = false; //일단 true
+	UPROPERTY()
+	int32 CardRange = 0;
+	void SetCardRange(int32 NewCardRange){CardRange = NewCardRange;};
+	void OnHoveredGridTileChanged(ABattleGridTile* InChangeTile);
+	void TargetGridCell(ABattleGridTile* TargetGrid);
+	
+	UPROPERTY()
+	TObjectPtr<ABattleGridTile> SelectTargetGrid = nullptr;
+	
+	
+	
+	//Attack Range Type Test
+	void SetAttackRangeType(UMuksiCardRangeDataAsset* DataAsset){AttackRangeDataAsset = DataAsset;};
+	UPROPERTY()
+	TObjectPtr<UMuksiCardRangeDataAsset> AttackRangeDataAsset = nullptr;
+	
+	void CalAttackRangeType(ABattleGridTile* TargetGrid);
+	
+	UPROPERTY()
+	int32 AttackDir = 0;
+	void SetAttackDir();
 };

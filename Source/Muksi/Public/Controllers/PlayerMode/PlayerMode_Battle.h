@@ -11,6 +11,9 @@ class UCharacterDataBase;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
 
+class ABattleGridTile;
+class ABattleManager;
+
 /**
  * 
  */
@@ -22,12 +25,17 @@ public:
 	//~ Begin UPlayerModeBase Interface
 	virtual void EnterMode(AMuksiPlayerController* PlayerController)override;
 	virtual void ExitMode()override;
+	virtual void TickPlayerMode() override;
 	virtual int32 GetInputMappingPriority() const override { return 10; }
 	
 	virtual void HandleLeftClick(const FInputActionValue& Value) override;
+	virtual void HandleRPressedKey(const FInputActionValue& Value) override;
 	//~ End UPlayerModeBase Interface
 	
 	//TEST
+	void UpdateHoveredGridTile();
+	UPROPERTY()
+	TObjectPtr<ABattleGridTile> HoveredGridTile = nullptr;
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle Test")
 	void InitializeBattleTestData();
@@ -53,6 +61,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCharacterDataBase> EnemyCharacterData = nullptr;
+	
+	UPROPERTY()
+	TObjectPtr<ABattleManager> BattleManager = nullptr;
 	
 	
 private:

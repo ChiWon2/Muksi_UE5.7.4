@@ -14,13 +14,6 @@ AMuksiTestActor::AMuksiTestActor()
 // Called when the game starts or when spawned
 void AMuksiTestActor::BeginPlay()
 {
-	Super::BeginPlay();
-	if (ConditionUtils::CheckTravelTime(this, FTravelDate(1857, 3, 2, 14), EConditionCompareOp::Less))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[MuksiTestActor]TravelTime Check Complete"));
-	}
-	FName TestQuestID = FName("questID111");
-	GameEventUtils::ExecuteAcceptQuest(this, TestQuestID);
 }
 
 // Called every frame

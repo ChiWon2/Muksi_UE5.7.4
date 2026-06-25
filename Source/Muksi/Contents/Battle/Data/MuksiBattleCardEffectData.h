@@ -4,14 +4,17 @@
 #include "CoreMinimal.h"
 #include "MuksiBattleCardEffectData.generated.h"
 
+class UMuksiCardRangeDataAsset;
+
 UENUM(BlueprintType)
 enum class EMuksiBattleCardEffectType : uint8
 {
 	None		UMETA(DisplayName = "None"),
-	Attack		UMETA(DisplayName = "Attack"),
+	Rush		UMETA(DisplayName = "Rush"),
+	RangeAttack	UMETA(DisplayName = "Range Attack"),
 	Defense		UMETA(DisplayName = "Defense"),
 	Heal		UMETA(DisplayName = "Heal"),
-	MoveCard	UMETA(DisplayName = "Move Card"),
+	Move		UMETA(DisplayName = "Move"),
 };
 
 UENUM(BlueprintType)
@@ -64,4 +67,12 @@ struct FMuksiBattleCardEffectData
 	// EffectType이 Move 때만 의미 있음
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	EMuksiBattleCardMoveRangeType MoveRangeType = EMuksiBattleCardMoveRangeType::None;
+	
+	// Effect MoveRange(공격 범위)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Range Value")
+	int32 RangeValue = 0;
+	
+	// Effect AttackRange
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Attack Range Type")
+	UMuksiCardRangeDataAsset* RangeDataAsset = nullptr;
 };

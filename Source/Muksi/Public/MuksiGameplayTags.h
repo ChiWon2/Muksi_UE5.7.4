@@ -29,6 +29,8 @@ namespace MuksiGameplayTag
 
 	//Muksi Quest Widgets
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Quest_Log);
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Quest_Giver);
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Quest_Reward);
 
 	
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_Test);

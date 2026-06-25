@@ -4,6 +4,12 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+
+#include "Muksi/Contents/Battle/CharacterData_Player.h"
+#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 
 // Sets default values
 ABattleGridManager::ABattleGridManager()
@@ -26,6 +32,7 @@ void ABattleGridManager::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	GenerateGrid();
+	
 }
 
 // Called every frame
@@ -34,6 +41,117 @@ void ABattleGridManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	
 	
+}
+
+FCubeCoord ABattleGridManager::OddQToCube(const FIntPoint& Coord) const
+{
+	const int32 Col = Coord.X;
+	const int32 Row = Coord.Y;
+
+	const int32 CubeX = Col;
+	const int32 CubeZ = Row - (Col - (Col & 1)) / 2;
+	const int32 CubeY = -CubeX - CubeZ;
+
+	return FCubeCoord(CubeX, CubeY, CubeZ);
+}
+
+FIntPoint ABattleGridManager::CubeToOddQ(const FCubeCoord& Cube) const
+{
+	const int32 Col = Cube.X;
+	const int32 Row = Cube.Z + (Cube.X - (Cube.X & 1)) / 2;
+
+	return FIntPoint(Col, Row);
+}
+
+FCubeCoord ABattleGridManager::GetCubeDirection(int32 Direction) const
+{
+	Direction = ((Direction % 6) + 6) % 6;
+
+	switch (Direction)
+	{
+	case 0:
+		// 오른쪽
+		return FCubeCoord(1, -1, 0);
+
+	case 1:
+		// 오른쪽 아래
+		return FCubeCoord(1, 0, -1);
+
+	case 2:
+		// 왼쪽 아래
+		return FCubeCoord(0, 1, -1);
+
+	case 3:
+		// 왼쪽
+		return FCubeCoord(-1, 1, 0);
+
+	case 4:
+		// 왼쪽 위
+		return FCubeCoord(-1, 0, 1);
+
+	case 5:
+		// 오른쪽 위
+		return FCubeCoord(0, -1, 1);
+
+	default:
+		return FCubeCoord(1, -1, 0);
+	}
+}
+
+FCubeCoord ABattleGridManager::RotateCubeRight60(const FCubeCoord& Cube) const
+{
+	// 시계 방향 60도
+	return FCubeCoord(
+		-Cube.Z,
+		-Cube.X,
+		-Cube.Y
+	);
+}
+
+FCubeCoord ABattleGridManager::RotateCubeLeft60(const FCubeCoord& Cube) const
+{
+	// 반시계 방향 60도
+	return FCubeCoord(
+		-Cube.Y,
+		-Cube.Z,
+		-Cube.X
+	);
+}
+
+bool ABattleGridManager::IsValidGridCoord(const FIntPoint& Coord) const
+{
+	return Coord.X >= 0 &&
+		Coord.X < GridWidth &&
+		Coord.Y >= 0 &&
+		Coord.Y < GridHeight;
+}
+
+ABattleGridTile* ABattleGridManager::GetTileByCoord(const FIntPoint& Coord) const
+{
+	if (!IsValidGridCoord(Coord))
+	{
+		return nullptr;
+	}
+
+	const int32 Index = Coord.Y * GridWidth + Coord.X;
+
+	if (!GridCells.IsValidIndex(Index))
+	{
+		return nullptr;
+	}
+
+	return GridCells[Index].TileActor;
+}
+
+
+//Test Hex Cell Dir Cal
+
+void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint)
+{
+	int32 Index = InPoint.X + InPoint.Y * GridWidth;
+	UE_LOG(LogTemp, Log, TEXT("Move Character Index = %d"), Index);
+	CharacterBase->SetActorTransform(GridCells[Index].TileActor->GetCharacterSpawnTransform());
+	CharacterBase->SetCharacterPosition(InPoint);
 }
 
 void ABattleGridManager::GenerateGrid()
@@ -416,9 +534,109 @@ bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoo
 
 	ToCell->bOccupied = true;
 	ToCell->OccupyingActor = Actor;
-
-	Actor->SetActorLocation(ToCell->WorldLocation);
+	
+	
+	FTransform TargetTransform = GetTransformToPosition(ToCoord);
+	Actor->SetActorLocation(TargetTransform.GetLocation());
 
 	return true;
+}
+
+FTransform ABattleGridManager::GetTransformToPosition(FIntPoint InPosition)
+{
+	int32 Index = InPosition.X + InPosition.Y * GridWidth;
+	ABattleGridTile* Target = GridCells[Index].TileActor;
+	return Target->GetCharacterSpawnTransform();
+}
+
+bool ABattleGridManager::CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range)
+{
+
+	// A 좌표 Offset -> Cube 변환
+	const int32 ACol = A.X;
+	const int32 ARow = A.Y;
+
+	const int32 AX = ACol - (ARow - (ARow & 1)) / 2;
+	const int32 AZ = ARow;
+	const int32 AY = -AX - AZ;
+
+	// B 좌표 Offset -> Cube 변환
+	const int32 BCol = B.X;
+	const int32 BRow = B.Y;
+
+	const int32 BX = BCol - (BRow - (BRow & 1)) / 2;
+	const int32 BZ = BRow;
+	const int32 BY = -BX - BZ;
+
+	// Cube 좌표 거리 계산
+	const int32 Distance = FMath::Max3(
+		FMath::Abs(AX - BX),
+		FMath::Abs(AY - BY),
+		FMath::Abs(AZ - BZ)
+	);
+
+	//UE_LOG(LogTemp, Log, TEXT("Distance : %d / Range : %d"), Distance, Range);
+
+	return Distance <= Range;
+}
+
+void ABattleGridManager::SetGridHovered(TArray<FIntPoint> NewGridArray)
+{
+	TargetGridArray = NewGridArray;
+	for (FIntPoint Cell : TargetGridArray)
+	{
+		int32 Index = Cell.X + Cell.Y * GridWidth;
+		ABattleGridTile* TargetGrid = GridCells[Index].TileActor;
+		TargetGrid->SetTargetIndicatorVisible(true);
+	}
+}
+
+void ABattleGridManager::ClearGridHovered()
+{
+	if (TargetGridArray.IsEmpty())return;
+	
+	for (FIntPoint& Cell : TargetGridArray)
+	{
+		int32 Index = Cell.X + Cell.Y * GridWidth;
+		ABattleGridTile* TargetGrid = GridCells[Index].TileActor;
+		TargetGrid->SetTargetIndicatorVisible(false);
+	}
+	TargetGridArray.Empty();
+}
+
+void ABattleGridManager::AllClearGridHovered()
+{
+	for (FBattleGridCell Cell : GridCells)
+	{
+		Cell.TileActor->SetTargetIndicatorVisible(false);
+	}
+}
+
+
+void ABattleGridManager::RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint)
+{
+	//일단 Move와 똑같이
+	if (ABattleCharacter_Player* PlayerCharacter = Cast<ABattleCharacter_Player>(BattleCharacter))
+	{
+		
+		if (MoveActorOnGrid(PlayerCharacter, PlayerCharacter->GetCharacterPosition(), TargetPoint))
+		{
+			UE_LOG(LogTemp, Error, TEXT("TEst123"));
+		}else UE_LOG(LogTemp, Error, TEXT("TEst1"));
+		
+	}else if (ABattleCharacter_Enemy* EnemyCharacter = Cast<ABattleCharacter_Enemy>(BattleCharacter))
+	{
+		MoveActorOnGrid(EnemyCharacter, EnemyCharacter->GetCharacterPosition(), TargetPoint);
+	}
+}
+
+void ABattleGridManager::MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
+{
+	
+}
+
+void ABattleGridManager::RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
+{
+	
 }
 

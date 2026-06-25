@@ -23,6 +23,11 @@ ABattleGridTile::ABattleGridTile()
 	
 	CenterPointComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("CenterPointComponent"));
 	CenterPointComponent->SetupAttachment(SceneRoot);
+	
+	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(
+		TEXT("TargetIndicatorMesh")
+	);
+	TargetIndicatorMesh->SetupAttachment(SceneRoot);
 }
 
 // Called when the game starts or when spawned
@@ -37,6 +42,16 @@ void ABattleGridTile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void ABattleGridTile::SetTargetIndicatorVisible(bool bVisible)
+{
+	if (!TargetIndicatorMesh)
+	{
+		return;
+	}
+
+	TargetIndicatorMesh->SetVisibility(bVisible);
 }
 
 FVector ABattleGridTile::GetGridCenterWorldLocation() const
@@ -55,6 +70,17 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 
 	return GetActorTransform();
 }
+
+void ABattleGridTile::OnHoverBegin()
+{
+	
+}
+
+void ABattleGridTile::OnHoverEnd()
+{
+	
+}
+
 
 void ABattleGridTile::OnGridSelected_Implementation()
 {

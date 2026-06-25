@@ -87,6 +87,8 @@ UQuestInstance_Base* UQuestSubsystem::AddNewQuest(const FQuestKey& QuestKey)
     NewQuest->InitializeQuestInstance( QuestKey, *QuestRow, this);
 
     ActiveQuests.Add(QuestKey, NewQuest);
+    
+    OnQuestAccept.Broadcast(NewQuest);
 
     UE_LOG( LogTemp, Warning, TEXT("[QuestSubsystem] Quest Accepted : %s"), *QuestKey.ToString());
 
@@ -99,12 +101,19 @@ void UQuestSubsystem::CompleteQuest( const FQuestKey& QuestKey)
 
     if (!Quest)
         return;
+    if (Quest->QuestState != EQuestState::ReadyToComplete)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[QuestSubsystem] Quest Objective is not Completed Yet!!!!: %s"), *QuestKey.ToString());
+        return;
+    }
 
     UE_LOG( LogTemp, Warning, TEXT("[QuestSubsystem] Quest Completed : %s"), *QuestKey.ToString());
 
+    Quest->QuestState = EQuestState::Completed;
+
     ActiveQuests.Remove(QuestKey);
 
-    CompletedQuests.Add(QuestKey);
+    CompletedQuests.Add(QuestKey,Quest);
 
     OnQuestCompleted.Broadcast(Quest);
 }
@@ -119,12 +128,22 @@ bool UQuestSubsystem::IsQuestCompleted( const FQuestKey& QuestKey) const
     return CompletedQuests.Contains(QuestKey);
 }
 
-UQuestInstance_Base* UQuestSubsystem::GetQuestInstance(const FQuestKey& QuestKey) const
+UQuestInstance_Base* UQuestSubsystem::GetActiveQuestInstance(const FQuestKey& QuestKey) const
 {
     return ActiveQuests.FindRef(QuestKey);
+}
+
+UQuestInstance_Base* UQuestSubsystem::GetCompleteQuestInstance(const FQuestKey& QuestKey) const
+{
+    return CompletedQuests.FindRef(QuestKey);
 }
 
 const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& UQuestSubsystem::GetActiveQuests() const
 {
     return ActiveQuests;
+}
+
+const TMap<FQuestKey, TObjectPtr<UQuestInstance_Base>>& UQuestSubsystem::GetCompletedQuests() const
+{
+    return CompletedQuests;
 }

@@ -25,20 +25,22 @@ void UQuestObjectiveEntryWidget::NativeDestruct()
 void UQuestObjectiveEntryWidget::InitWidget(const FObjectiveDetails& InDetails, UQuestInstance_Base* InQuestInstance)
 {
     ObjectiveDetail = InDetails;
-
     QuestInstance = InQuestInstance;
 }
 
 void UQuestObjectiveEntryWidget::RefreshObjectiveState()
 {
-    if (!QuestInstance)
-        return;
-
     int32 CurrentValue = 0;
 
-    if (const int32* FoundValue = QuestInstance->ObjectiveProgress.Find(ObjectiveDetail.ObjectiveID))
+    if (QuestInstance)
     {
-        CurrentValue = *FoundValue;
+        if (const int32* FoundValue = QuestInstance->ObjectiveProgress.Find(ObjectiveDetail.ObjectiveID))
+        {
+            CurrentValue = *FoundValue;
+        }
+        if (CurrentValue > ObjectiveDetail.RequiredQuantity)
+            CurrentValue = ObjectiveDetail.RequiredQuantity;
+
     }
 
     FText FormatText = FText::Format( FText::FromString(TEXT("{0} {1}/{2}")), ObjectiveDetail.Description, FText::AsNumber(CurrentValue), FText::AsNumber(ObjectiveDetail.RequiredQuantity));
@@ -48,10 +50,10 @@ void UQuestObjectiveEntryWidget::RefreshObjectiveState()
         TXT_Description->SetText(FormatText);
     }
 
-    const bool bCompleted = CurrentValue >= ObjectiveDetail.RequiredQuantity;
+    const bool bReadyToComplete = CurrentValue >= ObjectiveDetail.RequiredQuantity;
 
     if (CB_IsComplete)
     {
-        CB_IsComplete->SetIsChecked(bCompleted);
+        CB_IsComplete->SetIsChecked(bReadyToComplete);
     }
 }

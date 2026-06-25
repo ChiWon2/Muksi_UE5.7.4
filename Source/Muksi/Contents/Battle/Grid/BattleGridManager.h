@@ -7,6 +7,35 @@
 #include "BattleGridManager.generated.h"
 
 class ABattleGridTile;
+class UCharacterDataBase;
+class ABattleCharacterBase;
+
+
+USTRUCT(BlueprintType)
+struct FCubeCoord
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 X = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Y = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Z = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bInRange = true;
+
+	FCubeCoord() {}
+
+	FCubeCoord(int32 InX, int32 InY, int32 InZ)
+		: X(InX), Y(InY), Z(InZ)
+	{
+	}
+};
+
 
 USTRUCT(BlueprintType)
 struct FBattleGridCell
@@ -53,6 +82,43 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
+	//HexGrid System Test
+public:
+	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
+	FCubeCoord OddQToCube(const FIntPoint& Coord) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
+	FIntPoint CubeToOddQ(const FCubeCoord& Cube) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
+	FCubeCoord GetCubeDirection(int32 Direction) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
+	FCubeCoord RotateCubeRight60(const FCubeCoord& Cube) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
+	FCubeCoord RotateCubeLeft60(const FCubeCoord& Cube) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle Grid")
+	bool IsValidGridCoord(const FIntPoint& Coord) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle Grid")
+	ABattleGridTile* GetTileByCoord(const FIntPoint& Coord) const;
+
+/*
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
+	int32 GridWidth = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
+	int32 GridHeight = 5;
+	*/
+
+	/*// 네 프로젝트에 이미 비슷한 배열이 있다면 그걸 쓰면 됨
+	UPROPERTY()
+	TArray<TObjectPtr<ABattleGridTile>> GridTiles;*/
+	
+	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	int32 GridWidth = 5;
@@ -84,6 +150,10 @@ protected:
 	TArray<FBattleGridCell> GridCells;
 	
 public:
+	
+	UFUNCTION(BlueprintCallable, Category = "Battle|Character")
+	void MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint);
+	
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	void GenerateGrid();
 
@@ -116,4 +186,34 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	bool MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoord, const FIntPoint& ToCoord);
+	
+protected:
+	UPROPERTY(EditAnywhere, Category = "Battle|Character")
+	FIntPoint PlayerStartPoint = FIntPoint(0, 0);
+	UPROPERTY(EditAnywhere, Category = "Battle|Character")
+	FIntPoint EnemyStartPoint = FIntPoint(4, 4);
+	
+public:
+	UFUNCTION()
+	FTransform GetTransformToPosition(FIntPoint InPosition);
+	UFUNCTION()
+	bool CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range);
+	
+	
+	
+	//카드 효과 관련 public
+public:
+	//카드 공격 범위 관련
+	UPROPERTY()
+	TArray<FIntPoint> TargetGridArray;
+	void SetGridHovered(TArray<FIntPoint> NewGridArray);
+	void ClearGridHovered();
+	void AllClearGridHovered();
+	//
+	
+	//카드 효과 실행 관련
+	void RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint);
+	void MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
+	void RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
+	
 };

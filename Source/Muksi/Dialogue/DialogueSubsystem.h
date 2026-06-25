@@ -37,8 +37,6 @@ public:
     UPROPERTY(BlueprintAssignable)
     FOnDialogueEnded OnDialogueEnded;
 
-
-
 public:
     UFUNCTION(BlueprintCallable)
     void StartDialogueByKey(const FDialogueKey& Key);

@@ -24,8 +24,7 @@ UDialogueTriggerSubsystem* UDialogueTriggerSubsystem::Get(
 
 void UDialogueTriggerSubsystem::InitializeSubsystem()
 {
-    const UDialogueDeveloperSettings* Settings =
-        GetDefault<UDialogueDeveloperSettings>();
+    const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
 
     if (!Settings)
     {
@@ -35,18 +34,14 @@ void UDialogueTriggerSubsystem::InitializeSubsystem()
     for (const FDialogueTableEntry& Entry :
         Settings->DialogueTables)
     {
-        UDataTable* Table =
-            Entry.Table.LoadSynchronous();
+        UDataTable* Table = Entry.Table.LoadSynchronous();
 
         if (!Table)
         {
             continue;
         }
 
-        FillUpTriggerKeys(
-            Entry.TableID,
-            Table
-        );
+        FillUpTriggerKeys( Entry.TableID, Table );
     }
 }
 
@@ -57,15 +52,13 @@ void UDialogueTriggerSubsystem::FillUpTriggerKeys(FName TableID,UDataTable* Data
         return;
     }
 
-    const TMap<FName, uint8*>& RowMap =
-        DataTable->GetRowMap();
+    const TMap<FName, uint8*>& RowMap = DataTable->GetRowMap();
 
     for (const auto& Pair : RowMap)
     {
         const FName& RowName = Pair.Key;
 
-        const FDialogueRow* Row =
-            reinterpret_cast<FDialogueRow*>(Pair.Value);
+        const FDialogueRow* Row = reinterpret_cast<FDialogueRow*>(Pair.Value);
 
         if (!Row)
         {
@@ -100,20 +93,16 @@ void UDialogueTriggerSubsystem::FillUpTriggerKeys(FName TableID,UDataTable* Data
         GetTotalPoolCount(ForTownTriggerPools));
 }
 
-FDialogueKey
-UDialogueTriggerSubsystem::ExtractRandomTriggerKey(
-    EDialogueTriggerType Type)
+FDialogueKey UDialogueTriggerSubsystem::ExtractRandomTriggerKey(EDialogueTriggerType Type)
 {
-    UDialogueSubsystem* DialogueSubsys =
-        UDialogueSubsystem::Get(this);
+    UDialogueSubsystem* DialogueSubsys = UDialogueSubsystem::Get(this);
 
     if (!DialogueSubsys)
     {
         return FDialogueKey();
     }
 
-    TMap<EDialogueRarity, TArray<FDialogueKey>>* TriggerPool =
-        GetTriggerPool(Type);
+    TMap<EDialogueRarity, TArray<FDialogueKey>>* TriggerPool = GetTriggerPool(Type);
 
     if (!TriggerPool)
     {
@@ -192,28 +181,23 @@ UDialogueTriggerSubsystem::ExtractRandomTriggerKey(
     return Result;
 }
 
-void UDialogueTriggerSubsystem::RetrieveTriggerKey(
-    const FDialogueKey& Key,
-    EDialogueTriggerType Type)
+void UDialogueTriggerSubsystem::RetrieveTriggerKey( const FDialogueKey& Key, EDialogueTriggerType Type)
 {
-    UDialogueSubsystem* DialogueSubsys =
-        UDialogueSubsystem::Get(this);
+    UDialogueSubsystem* DialogueSubsys = UDialogueSubsystem::Get(this);
 
     if (!DialogueSubsys)
     {
         return;
     }
 
-    const FDialogueRow* Row =
-        DialogueSubsys->GetDialogueRow(Key);
+    const FDialogueRow* Row = DialogueSubsys->GetDialogueRow(Key);
 
     if (!Row)
     {
         return;
     }
 
-    TMap<EDialogueRarity, TArray<FDialogueKey>>* Pool =
-        GetTriggerPool(Type);
+    TMap<EDialogueRarity, TArray<FDialogueKey>>* Pool = GetTriggerPool(Type);
 
     if (!Pool)
     {
@@ -230,19 +214,15 @@ void UDialogueTriggerSubsystem::RetrieveTriggerKey(
 
     if (Type == EDialogueTriggerType::Reusable)
     {
-        TArray<FDialogueKey>& RecyclePool =
-            RecycleKeyPools.FindOrAdd(
-                Row->meta.Rarity);
+        TArray<FDialogueKey>& RecyclePool = RecycleKeyPools.FindOrAdd( Row->meta.Rarity);
 
         RecyclePool.Remove(Key);
     }
 }
 
-bool UDialogueTriggerSubsystem::IsTriggerIDsEmpty(
-    EDialogueTriggerType Type)
+bool UDialogueTriggerSubsystem::IsTriggerIDsEmpty(EDialogueTriggerType Type)
 {
-    TMap<EDialogueRarity, TArray<FDialogueKey>>* Pool =
-        GetTriggerPool(Type);
+    TMap<EDialogueRarity, TArray<FDialogueKey>>* Pool = GetTriggerPool(Type);
 
     if (!Pool)
     {
@@ -284,12 +264,9 @@ void UDialogueTriggerSubsystem::ClearReusableTriggerIDs()
     RecycleKeyPools.Empty();
 }
 
-EDialogueRarity
-UDialogueTriggerSubsystem::SelectRandomRarity(
-    float Perception)
+EDialogueRarity UDialogueTriggerSubsystem::SelectRandomRarity(float Perception)
 {
-    const UDialogueDeveloperSettings* Settings =
-        GetDefault<UDialogueDeveloperSettings>();
+    const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
 
     if (!Settings)
     {
@@ -298,11 +275,9 @@ UDialogueTriggerSubsystem::SelectRandomRarity(
 
     TMap<EDialogueRarity, float> Weights;
 
-    for (const auto& Pair :
-        Settings->RarityWeights)
+    for (const auto& Pair :Settings->RarityWeights)
     {
-        const FRichCurve* Curve =
-            Pair.Value.GetRichCurveConst();
+        const FRichCurve* Curve = Pair.Value.GetRichCurveConst();
 
         if (!Curve)
         {
@@ -352,9 +327,7 @@ UDialogueTriggerSubsystem::SelectRandomRarity(
     return EDialogueRarity::Common;
 }
 
-bool UDialogueTriggerSubsystem::
-TryGetValidTriggerKeysByRarity(
-    TMap<EDialogueRarity, TArray<FDialogueKey>>* Pool,
+bool UDialogueTriggerSubsystem::TryGetValidTriggerKeysByRarity( TMap<EDialogueRarity, TArray<FDialogueKey>>* Pool,
     EDialogueRarity StartRarity,
     EDialogueRarity& OutResolvedRarity,
     TArray<FDialogueKey>& OutValidKeys)
@@ -432,9 +405,7 @@ TryGetValidTriggerKeysByRarity(
     return false;
 }
 
-TMap<EDialogueRarity, TArray<FDialogueKey>>*
-UDialogueTriggerSubsystem::GetTriggerPool(
-    EDialogueTriggerType Type)
+TMap<EDialogueRarity, TArray<FDialogueKey>>* UDialogueTriggerSubsystem::GetTriggerPool(EDialogueTriggerType Type)
 {
     switch (Type)
     {
@@ -451,9 +422,7 @@ UDialogueTriggerSubsystem::GetTriggerPool(
     return nullptr;
 }
 
-int32 UDialogueTriggerSubsystem::GetTotalPoolCount(
-    const TMap<EDialogueRarity,
-    TArray<FDialogueKey>>&Pool) const
+int32 UDialogueTriggerSubsystem::GetTotalPoolCount( const TMap<EDialogueRarity, TArray<FDialogueKey>>&Pool) const
 {
     int32 Total = 0;
 
