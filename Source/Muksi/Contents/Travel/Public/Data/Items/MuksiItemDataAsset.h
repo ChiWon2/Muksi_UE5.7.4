@@ -16,8 +16,6 @@ public:
 	UMuksiItemDataAsset();
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
-	FName ItemID = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	FText DisplayName;

@@ -116,6 +116,9 @@ struct MUKSI_API FMuksiInventoryEntry
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FGuid InstanceId = FGuid();
 
+	UPROPERTY(BlueprintReadOnly)
+	FName ItemID = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	TObjectPtr<UMuksiItemDataAsset> ItemData = nullptr;
 

@@ -21,7 +21,7 @@ public:
 	FOnInventoryChanged OnInventoryChanged;
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity);
+	bool AddItem(FName ItemID, UMuksiItemDataAsset* ItemData, int32 Quantity);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItemByInstanceId(FGuid InstanceId, int32 Quantity);
