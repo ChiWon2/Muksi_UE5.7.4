@@ -4,7 +4,6 @@
 #include "Engine/DataAsset.h"
 #include "ShopDataAsset.generated.h"
 
-class UMuksiItemDataAsset;
 
 USTRUCT(BlueprintType)
 struct FShopItemEntry
@@ -15,7 +14,7 @@ struct FShopItemEntry
 	FName ShopEntryId;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<UMuksiItemDataAsset> ItemData = nullptr;
+	FName ItemID = NAME_None;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ClampMin = "0"))
 	int32 Price = 0;

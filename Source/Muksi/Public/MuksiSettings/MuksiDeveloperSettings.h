@@ -9,6 +9,10 @@
 
 class UWidget_ActivatableBase;
 
+//ItemDataBase
+class UMuksiItemDatabase;
+//ItemDataBase
+
 /**
  * 
  */
@@ -22,4 +26,9 @@ public:
 	
 	UPROPERTY(Config, EditAnywhere, Category = "Options Image Reference", meta = (ForceInlineRow, Categories = "Frontend.Image"))
 	TMap<FGameplayTag, TSoftObjectPtr<UTexture2D>> OptionsScreenSoftImageMap;
+
+	//ItemDataBase
+	UPROPERTY(Config, EditAnywhere, Category = "Item Data")
+	TSoftObjectPtr<UMuksiItemDatabase> ItemDatabase;
+	//ItemDataBase
 };

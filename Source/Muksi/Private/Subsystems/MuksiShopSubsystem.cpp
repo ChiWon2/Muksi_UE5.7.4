@@ -52,7 +52,7 @@ void UMuksiShopSubsystem::InitializeShopIfNeeded(
 
     for (const FShopItemEntry& Entry : ShopData->SellItems)
     {
-        if (!Entry.ItemData || Entry.bUnlimitedStock)
+        if (Entry.ItemID.IsNone() || Entry.bUnlimitedStock)
         {
             continue;
         }
@@ -60,8 +60,8 @@ void UMuksiShopSubsystem::InitializeShopIfNeeded(
         if (Entry.ShopEntryId.IsNone())
         {
             UE_LOG(LogTemp, Warning,
-                TEXT("[ShopStock] Entry skipped: ShopEntryId is None Item=%s"),
-                *GetNameSafe(Entry.ItemData));
+                TEXT("[ShopStock] Entry skipped: ShopEntryId is None ItemID=%s"),
+                *Entry.ItemID.ToString());
             continue;
         }
 
