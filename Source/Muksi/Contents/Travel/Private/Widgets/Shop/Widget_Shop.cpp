@@ -506,7 +506,7 @@ bool UWidget_Shop::TryBuySelectedItem()
 
 	//Add Item
 	const bool bAddItemSucceeded =
-		InventoryComponent->AddItem(ItemData, 1);
+		InventoryComponent->AddItem(SelectedShopItem.ItemID, ItemData, 1);
 
 	UE_LOG(LogTemp, Log,
 		TEXT("[Widget_Shop] AddItem Result=%d ItemID=%s Item=%s"),

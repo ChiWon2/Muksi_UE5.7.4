@@ -1,6 +1,6 @@
 #include "Subsystems/MuksiItemDataSubsystem.h"
 
-#include "MuksiSettings/MuksiDeveloperSettings.h"
+#include "MuksiSettings/MuksiSubsystemSettings.h"
 #include "Muksi/Contents/Travel/Public/Data/Items/MuksiItemDatabase.h"
 #include "Muksi/Contents/Travel/Public/Data/Items/MuksiItemDataAsset.h"
 
@@ -25,7 +25,7 @@ void UMuksiItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	const UMuksiDeveloperSettings* Settings = GetDefault<UMuksiDeveloperSettings>();
+	const UMuksiSubsystemSettings* Settings = GetDefault<UMuksiSubsystemSettings>();
 	if (Settings && !Settings->ItemDatabase.IsNull())
 	{
 		ItemDatabase = Settings->ItemDatabase.LoadSynchronous();
@@ -45,5 +45,5 @@ UMuksiItemDataAsset* UMuksiItemDataSubsystem::FindItemData(FName ItemID) const
 		return nullptr;
 	}
 
-	return ItemDatabase->FindItemData(ItemID);
+	return ItemDatabase ? ItemDatabase->FindItemData(ItemID) : nullptr;
 }

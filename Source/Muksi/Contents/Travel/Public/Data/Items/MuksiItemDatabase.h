@@ -23,15 +23,6 @@ public:
 #endif
 
 private:
-	void BuildItemDataMap() const;
-
-private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Database", meta = (AllowPrivateAccess = "true"))
-	TArray<TObjectPtr<UMuksiItemDataAsset>> ItemAssets;
-
-	UPROPERTY(Transient)
-	mutable TMap<FName, TObjectPtr<UMuksiItemDataAsset>> ItemDataMap;
-
-	UPROPERTY(Transient)
-	mutable bool bItemDataMapBuilt = false;
+	TMap<FName, TObjectPtr<UMuksiItemDataAsset>> ItemDataMap;
 };

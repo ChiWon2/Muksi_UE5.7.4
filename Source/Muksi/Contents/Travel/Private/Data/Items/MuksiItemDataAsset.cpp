@@ -2,7 +2,6 @@
 
 UMuksiItemDataAsset::UMuksiItemDataAsset()
 {
-	ItemID = NAME_None;
 	ItemType = EMuksiItemType::None;
 	EquipmentSlot = EMuksiEquipmentSlot::None;
 	MaxStackCount = 1;

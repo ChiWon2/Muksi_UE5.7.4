@@ -6,20 +6,20 @@ UInventoryComponent::UInventoryComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
+bool UInventoryComponent::AddItem(FName ItemID, UMuksiItemDataAsset* ItemData, int32 Quantity)
 {
-	if (!ItemData || Quantity <= 0)
+	if (ItemID.IsNone() || !ItemData || Quantity <= 0)
 	{
 		return false;
 	}
 
-	int32 OldQuantity = GetItemCountByItemID(ItemData->ItemID);
+	const int32 OldQuantity = GetItemCountByItemID(ItemID);
 		
 	if (ItemData->bStackable)
 	{
 		for (FMuksiInventoryEntry& Entry : Items)
 		{
-			if (Entry.ItemData == ItemData)
+			if (Entry.ItemID == ItemID)
 			{
 				Entry.Quantity += Quantity;
 				return true;
@@ -27,10 +27,13 @@ bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
 		}
 
 		FMuksiInventoryEntry NewEntry;
+		NewEntry.ItemID = ItemID;
 		NewEntry.InstanceId = FGuid::NewGuid();
 		NewEntry.ItemData = ItemData;
 		NewEntry.Quantity = Quantity;
 		Items.Add(NewEntry);
+
+		OnInventoryChanged.Broadcast(ItemID, OldQuantity, GetItemCountByItemID(ItemID));
 
 		return true;
 	}
@@ -38,6 +41,7 @@ bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
 	for (int32 Index = 0; Index < Quantity; ++Index)
 	{
 		FMuksiInventoryEntry NewEntry;
+		NewEntry.ItemID = ItemID;
 		NewEntry.InstanceId = FGuid::NewGuid();
 		NewEntry.ItemData = ItemData;
 		NewEntry.Quantity = 1;
@@ -51,7 +55,7 @@ bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
 		Items.Add(NewEntry);
 	}
 
-	OnInventoryChanged.Broadcast(ItemData->ItemID, OldQuantity ,GetItemCountByItemID(ItemData->ItemID));
+	OnInventoryChanged.Broadcast(ItemID, OldQuantity, GetItemCountByItemID(ItemID));
 
 	return true;
 }
@@ -76,7 +80,7 @@ bool UInventoryComponent::RemoveItemByInstanceId(FGuid InstanceId, int32 Quantit
 			return false;
 		}
 
-		const FName ItemID = Entry.ItemData->ItemID;
+		const FName ItemID = Entry.ItemID;
 		const int32 OldQuantity = GetItemCountByItemID(ItemID);
 
 		if (Entry.Quantity < Quantity)
@@ -119,7 +123,7 @@ int32 UInventoryComponent::GetItemCountByItemID(const FName& ItemID) const
 			continue;
 		}
 
-		if (Entry.ItemData->ItemID == ItemID)
+		if (Entry.ItemID == ItemID)
 		{
 			TotalQuantity += Entry.Quantity;
 		}

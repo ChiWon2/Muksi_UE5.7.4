@@ -139,7 +139,7 @@ bool UMuksiPlayerDataSubsystem::IsEquippedItem(FName ItemID) const
 			continue;
 		}
 
-		if (EquippedEntry.ItemData && EquippedEntry.ItemData->ItemID == ItemID)
+		if (EquippedEntry.ItemData && EquippedEntry.ItemID == ItemID)
 		{
 			return true;
 		}
