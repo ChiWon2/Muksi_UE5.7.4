@@ -19,7 +19,7 @@ void URewardsWidget::NativeDestruct()
     Super::NativeDestruct();
 }
 
-void URewardsWidget::InitializeReward(const FQuestKey& QuestKey)
+void URewardsWidget::InitWidget(const FQuestKey& QuestKey)
 {
     const FQuestDetailRow* QuestRow = UQuestSubsystem::Get(this)->GetQuestRow(QuestKey);
     const FQuestReward& Reward = QuestRow->Reward;

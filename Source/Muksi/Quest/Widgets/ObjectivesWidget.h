@@ -17,12 +17,13 @@ class MUKSI_API UObjectivesWidget : public UUserWidget
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void InitializeObjectives(const TArray<FObjectiveDetails>& Objectives, UQuestInstance_Base* QuestInstance = nullptr);
+	void InitWidget(const TArray<FObjectiveDetails>& Objectives, UQuestInstance_Base* QuestInstance = nullptr);
 
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> VB_Objectives;
 
+protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Quest")
 	TSubclassOf<UQuestObjectiveEntryWidget> QuestObjectiveEntryWidgetClass;
 };

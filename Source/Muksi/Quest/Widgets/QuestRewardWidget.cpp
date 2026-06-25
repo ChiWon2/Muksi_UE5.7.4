@@ -12,6 +12,11 @@
 #include"../Quest/DeveloperSettings/QuestDeveloperSettings.h"
 #include"RewardsWidget.h"
 #include"ObjectivesWidget.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/InventoryComponent.h"
+
+#include "Subsystems/MuksiPlayerDataSubsystem.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/PlayerCurrencyComponent.h"
+
 
 void UQuestRewardWidget::NativeConstruct()
 {
@@ -57,8 +62,8 @@ void UQuestRewardWidget::InitWidget(const FQuestKey& InQuestKey)
 		TXT_QuestDescription->SetText(Details.Description);
 	}
 
-	RewardsWidget->InitializeReward(QuestKey);
-	ObjectivesWidget->InitializeObjectives(Details.Objectives, CurrentQuestInstance);
+	RewardsWidget->InitWidget(QuestKey);
+	ObjectivesWidget->InitWidget(Details.Objectives, CurrentQuestInstance);
 }
 
 void UQuestRewardWidget::OnClearQuestButtonClicked()
@@ -77,8 +82,12 @@ void UQuestRewardWidget::OnCancelButtonClicked()
 
 void UQuestRewardWidget::GiveReward()
 {
-	UE_LOG(LogTemp,Warning,TEXT("[QuestRewardWidget] : TODO :: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Add Gold : %d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"), QuestReward.CurrencyRewards);
+	UMuksiPlayerDataSubsystem* PlayerData = UMuksiPlayerDataSubsystem::Get(this);
+	UPlayerCurrencyComponent* Currency = PlayerData ? PlayerData->GetPlayerCurrencyComponent() : nullptr;
+
+	Currency->AddGold(QuestReward.CurrencyRewards);
 	UE_LOG(LogTemp,Warning,TEXT("[QuestRewardWidget] : TODO :: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Add XP : %d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"), QuestReward.XPReward);
+	
 	for (const FItemReward& ItemReward : QuestReward.ItemRewards)
 	{
 		UE_LOG(LogTemp, Warning,
@@ -86,5 +95,4 @@ void UQuestRewardWidget::GiveReward()
 			*ItemReward.ItemID.ToString(),
 			ItemReward.ItemCount);
 	}
-
 }

@@ -29,6 +29,12 @@ public:
 	UTextBlock* TXT_QuestDescription;
 
 	UPROPERTY(meta = (BindWidget))
+	UObjectivesWidget* ObjectivesWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	URewardsWidget* RewardsWidget;
+
+	UPROPERTY(meta = (BindWidget))
 	UButton* BTN_Accept;
 	UPROPERTY(meta = (BindWidget))
 	UButton* BTN_Decline;
@@ -39,11 +45,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = true))
 	FQuestKey QuestKey;
 
-	UPROPERTY(meta = (BindWidget))
-	UObjectivesWidget* ObjectivesWidget;
 
-	UPROPERTY(meta = (BindWidget))
-	URewardsWidget* RewardsWidget;
 
 public:
     virtual void NativeConstruct() override;

@@ -12,6 +12,8 @@ bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
 	{
 		return false;
 	}
+
+	int32 OldQuantity = GetItemCountByItemID(ItemData->ItemID);
 		
 	if (ItemData->bStackable)
 	{
@@ -49,6 +51,8 @@ bool UInventoryComponent::AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity)
 		Items.Add(NewEntry);
 	}
 
+	OnInventoryChanged.Broadcast(ItemData->ItemID, OldQuantity ,GetItemCountByItemID(ItemData->ItemID));
+
 	return true;
 }
 
@@ -67,6 +71,13 @@ bool UInventoryComponent::RemoveItemByInstanceId(FGuid InstanceId, int32 Quantit
 		{
 			continue;
 		}
+		if (!Entry.ItemData)
+		{
+			return false;
+		}
+
+		const FName ItemID = Entry.ItemData->ItemID;
+		const int32 OldQuantity = GetItemCountByItemID(ItemID);
 
 		if (Entry.Quantity < Quantity)
 		{
@@ -80,20 +91,26 @@ bool UInventoryComponent::RemoveItemByInstanceId(FGuid InstanceId, int32 Quantit
 			Items.RemoveAt(Index);
 		}
 
+		OnInventoryChanged.Broadcast(ItemID, OldQuantity, GetItemCountByItemID(ItemID));
+
 		return true;
 	}
-
 	return false;
 }
 
 bool UInventoryComponent::HasItem(FName ItemID, int32 RequiredQuantity) const
 {
-	if (ItemID.IsNone() || RequiredQuantity <= 0)
+	return GetItemCountByItemID(ItemID) >= RequiredQuantity;
+}
+
+int32 UInventoryComponent::GetItemCountByItemID(const FName& ItemID) const
+{
+	if (ItemID.IsNone())
 	{
-		return false;
+		return 0;
 	}
 
-	int32 FoundQuantity = 0;
+	int32 TotalQuantity = 0;
 
 	for (const FMuksiInventoryEntry& Entry : Items)
 	{
@@ -104,16 +121,11 @@ bool UInventoryComponent::HasItem(FName ItemID, int32 RequiredQuantity) const
 
 		if (Entry.ItemData->ItemID == ItemID)
 		{
-			FoundQuantity += Entry.Quantity;
-
-			if (FoundQuantity >= RequiredQuantity)
-			{
-				return true;
-			}
+			TotalQuantity += Entry.Quantity;
 		}
 	}
 
-	return false;
+	return TotalQuantity;
 }
 
 bool UInventoryComponent::FindItemByInstanceId(FGuid InstanceId, FMuksiInventoryEntry& OutEntry) const

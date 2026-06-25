@@ -18,7 +18,7 @@ public:
     virtual void NativeConstruct() override;
     virtual void NativeDestruct() override;
 
-    void InitializeReward(const FQuestKey& QuestKey);
+    void InitWidget(const FQuestKey& QuestKey);
 
 protected:
     UPROPERTY(meta = (BindWidget))

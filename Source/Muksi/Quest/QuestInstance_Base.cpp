@@ -1,7 +1,9 @@
 #include "QuestInstance_Base.h"
 #include "QuestSubsystem.h"
-//#include"../Inventory/InventorySubsystem.h"
-
+#include"Subsystems/MuksiPlayerDataSubsystem.h"
+#include "../Contents/Travel/Public/Components/Player/InventoryComponent.h"
+#include "../Contents/Travel/Public/MuksiTypes/MuksiItemTypes.h"
+#include "../Contents/Travel/Public/Data/Items/MuksiItemDataAsset.h"
 
 void UQuestInstance_Base::InitializeQuestInstance(const FQuestKey& InQuestKey,const FQuestDetailRow& InQuestDetails,UQuestSubsystem* InQuestSubsystem)
 {
@@ -10,20 +12,18 @@ void UQuestInstance_Base::InitializeQuestInstance(const FQuestKey& InQuestKey,co
     QuestDetails = InQuestDetails;
 
     QuestState = EQuestState::Active;
-
-    QuestSubsystem = InQuestSubsystem;
-
+    
+    QuestSubsystem = UQuestSubsystem::Get(this);
     if (QuestSubsystem)
     {
-        QuestSubsystem->OnObjectiveIDCalled.AddDynamic(this,&UQuestInstance_Base::HandleObjectiveIDCalled);
+        QuestSubsystem->OnObjectiveIDCalled.AddUniqueDynamic(this,&UQuestInstance_Base::HandleObjectiveIDCalled);
     }
 
-    //InventorySubsystem = UInventorySubsystem::Get(this);
-
-    //if (InventorySubsystem)
-    //{
-    //    InventorySubsystem->OnItemChanged.AddDynamic(this,&UQuestInstance_Base::HandleItemChanged);
-    //}
+    PlayerInventory = UMuksiPlayerDataSubsystem::Get(this)->GetPlayerInventoryComponent();
+    if (PlayerInventory)
+    {
+        PlayerInventory->OnInventoryChanged.AddUniqueDynamic(this,&UQuestInstance_Base::HandlePlayerInventoryChanged);
+    }
 
     InitializeObjectiveProgress(QuestDetails);
 }
@@ -33,6 +33,10 @@ void UQuestInstance_Base::BeginDestroy()
     if (QuestSubsystem)
     {
         QuestSubsystem->OnObjectiveIDCalled.RemoveDynamic(this,&UQuestInstance_Base::HandleObjectiveIDCalled);
+    }
+    if (PlayerInventory)
+    {
+        PlayerInventory->OnInventoryChanged.RemoveDynamic(this, &UQuestInstance_Base::HandlePlayerInventoryChanged);
     }
 
     Super::BeginDestroy();
@@ -73,20 +77,38 @@ void UQuestInstance_Base::HandleObjectiveIDCalled(FName ObjectiveID,int32 Value)
     }
 }
 
+void UQuestInstance_Base::HandlePlayerInventoryChanged(FName ItemID, int32 OldCount, int32 NewCount)
+{
+    for (const FObjectiveDetails& Obj : QuestDetails.Objectives)
+    {
+        if (Obj.Type != EObjectiveType::Collect)
+        {
+            continue;
+        }
+        if (Obj.ObjectiveID != ItemID)
+        {
+            continue;
+        }
+        ObjectiveProgress.FindOrAdd(Obj.ObjectiveID) = NewCount;
+
+        OnObjectiveUpdated.Broadcast(Obj.ObjectiveID, NewCount);
+    }
+
+    if (AreAllObjectivesComplete())
+    {
+        QuestState = EQuestState::ReadyToComplete;
+    }
+}
+
 int32 UQuestInstance_Base::GetCurrentObjectiveProgress(const FObjectiveDetails& Objective) const
 {
-    // !!!!!!!!!!!!!!!!!TODO::InventorySubsystem에서 Item Count 조회!!!!!!!!!!!!!!!!!!!!!!
     if (Objective.Type == EObjectiveType::Collect)
     {
-        /*UInventorySubsystem* InventorySubsystem =UInventorySubsystem::Get(this);*/
-
-        /*if (!InventorySubsystem)
-            return 0;*/
-
-        //return InventorySubsystem->GetItemCount(Objective.TargetID);
-
-
-        return 0;
+        if (PlayerInventory == nullptr)
+        {
+            return 0;
+        }
+        return PlayerInventory->GetItemCountByItemID(Objective.ObjectiveID);
     }
 
     else
@@ -138,14 +160,16 @@ void UQuestInstance_Base::InitializeObjectiveProgress(const FQuestDetailRow& InQ
 {
     ObjectiveProgress.Empty();
 
-    for (const FObjectiveDetails& Obj :InQuestDetails.Objectives)
+    for (const FObjectiveDetails& Obj : InQuestDetails.Objectives)
     {
-        // Collect는 실시간 조회 방식
-        if (Obj.Type == EObjectiveType::Collect)
+        int32 InitialProgress = 0;
+
+        if (Obj.Type == EObjectiveType::Collect && PlayerInventory)
         {
-            continue;
+            InitialProgress = PlayerInventory->GetItemCountByItemID(Obj.ObjectiveID);
         }
 
-        ObjectiveProgress.Add(Obj.ObjectiveID,0);
+        ObjectiveProgress.Add(Obj.ObjectiveID,InitialProgress);
     }
 }
+

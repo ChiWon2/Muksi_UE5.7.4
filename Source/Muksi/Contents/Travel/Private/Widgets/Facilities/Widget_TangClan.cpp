@@ -28,6 +28,7 @@ void UWidget_TangClan::NativeOnActivated()
 	TestQuestKeys.Add(FQuestKey("ForTest", "TestTest"));
 	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_0"));
 	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_1"));
+	TestQuestKeys.Add(FQuestKey("ForTest", "TestInventory"));
 
 	RefreshTangClanWidget();
 #pragma endregion

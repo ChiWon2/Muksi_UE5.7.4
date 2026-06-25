@@ -55,8 +55,8 @@ void UQuestGiverWidget::InitWidget(const FQuestKey& InQuestKey)
 		TXT_QuestDescription->SetText(Details.Description);
 	}
 
-	ObjectivesWidget->InitializeObjectives(Details.Objectives);
-	RewardsWidget->InitializeReward(QuestKey);
+	ObjectivesWidget->InitWidget(Details.Objectives);
+	RewardsWidget->InitWidget(QuestKey);
 }
 
 void UQuestGiverWidget::OnAcceptButtonClicked()

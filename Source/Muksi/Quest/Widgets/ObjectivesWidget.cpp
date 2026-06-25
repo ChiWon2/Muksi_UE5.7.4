@@ -6,7 +6,7 @@
 #include "../QuestInstance_Base.h"
 #include "../QuestDetailRow.h"
 
-void UObjectivesWidget::InitializeObjectives(const TArray<FObjectiveDetails>& Objectives, UQuestInstance_Base* QuestInstance)
+void UObjectivesWidget::InitWidget(const TArray<FObjectiveDetails>& Objectives, UQuestInstance_Base* QuestInstance)
 {
 	VB_Objectives->ClearChildren();
 
@@ -15,11 +15,6 @@ void UObjectivesWidget::InitializeObjectives(const TArray<FObjectiveDetails>& Ob
 	for (const FObjectiveDetails& Objective : Objectives)
 	{
 		UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>(PC,QuestObjectiveEntryWidgetClass);
-
-		if (!Entry)
-		{
-			continue;
-		}
 
 		Entry->InitWidget(Objective, QuestInstance);
 		VB_Objectives->AddChild(Entry);
