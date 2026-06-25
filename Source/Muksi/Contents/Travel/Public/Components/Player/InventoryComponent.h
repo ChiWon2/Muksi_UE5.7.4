@@ -7,6 +7,8 @@
 
 class UMuksiItemDataAsset;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryChanged, FName, ItemID, int32, OldQuantity, int32, NewQuantity);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UInventoryComponent : public UActorComponent
 {
@@ -14,7 +16,9 @@ class MUKSI_API UInventoryComponent : public UActorComponent
 
 public:
 	UInventoryComponent();
-
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnInventoryChanged OnInventoryChanged;
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AddItem(UMuksiItemDataAsset* ItemData, int32 Quantity);
@@ -24,6 +28,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	bool HasItem(FName ItemID, int32 RequiredQuantity) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	int32 GetItemCountByItemID(const FName& ItemID) const;
 
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	const TArray<FMuksiInventoryEntry>& GetItems() const { return Items; }

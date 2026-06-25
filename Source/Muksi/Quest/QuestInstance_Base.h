@@ -8,6 +8,7 @@
 #include "QuestInstance_Base.generated.h"
 
 class UQuestSubsystem;
+class UInventoryComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnObjectiveUpdated, FName, ObjectiveID, int32, CurrentValue);
 
@@ -24,6 +25,8 @@ private:
 
     UFUNCTION()
     void HandleObjectiveIDCalled(FName ObjectiveID, int32 Value);
+    UFUNCTION()
+    void HandlePlayerInventoryChanged(FName ItemID, int32 OldCount,int32 NewCount);
 
 public:
 
@@ -32,6 +35,11 @@ public:
     bool AreAllObjectivesComplete() const;
 
     void InitializeObjectiveProgress(const FQuestDetailRow& InQuestDetails);
+
+protected:
+    int32 GetCurrentObjectiveProgress(const FObjectiveDetails& Objective) const;
+private:
+    const FObjectiveDetails* FindObjective(const FName& ObjectiveID) const;
 
 public:
 
@@ -50,7 +58,9 @@ public:
     UPROPERTY(BlueprintAssignable)
     FOnObjectiveUpdated OnObjectiveUpdated;
 
-private:
+public:
     UPROPERTY()
     TObjectPtr<UQuestSubsystem> QuestSubsystem;
+    UPROPERTY()
+    TObjectPtr<UInventoryComponent> PlayerInventory;
 };

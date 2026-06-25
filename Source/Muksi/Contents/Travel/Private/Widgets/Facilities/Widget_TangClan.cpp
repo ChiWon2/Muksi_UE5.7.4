@@ -28,34 +28,9 @@ void UWidget_TangClan::NativeOnActivated()
 	TestQuestKeys.Add(FQuestKey("ForTest", "TestTest"));
 	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_0"));
 	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_1"));
+	TestQuestKeys.Add(FQuestKey("ForTest", "TestInventory"));
 
-	SB_QuestEntries->ClearChildren();
-
-	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
-	UQuestSubsystem* QuestSubsys = UQuestSubsystem::Get(this);
-
-	for (const FQuestKey& QuestKey : TestQuestKeys)
-	{
-		if (QuestSubsys->GetCompleteQuestInstance(QuestKey))
-		{
-			continue;
-		}
-		const FQuestDetailRow* QuestRow =UQuestSubsystem::Get(this)->GetQuestRow(QuestKey);
-
-		if (!QuestRow)
-		{
-			continue;
-		}
-		
-
-		UQuestEntryWidget_ForTown* Entry = CreateWidget<UQuestEntryWidget_ForTown>( GetOwningPlayer(), Settings->QuestEntry_ForTownWidgetClass);
-
-		Entry->InitWidget(QuestKey);
-
-		Entry->OnQuestSelected.AddDynamic(this,&ThisClass::HandleQuestEntryClicked);
-
-		SB_QuestEntries->AddChild(Entry);
-	}
+	RefreshTangClanWidget();
 #pragma endregion
 
 
@@ -71,6 +46,39 @@ void UWidget_TangClan::NativeOnActivated()
 		BackButton->OnClicked.RemoveAll(this);
 		BackButton->OnClicked.AddDynamic(this, &UWidget_TangClan::HandleBackButtonClicked);
 		BackButton->SetFocus();
+	}
+	UQuestSubsystem* QuestSubsys = UQuestSubsystem::Get(this);
+	QuestSubsys->OnQuestCompleted.AddUniqueDynamic(this, &UWidget_TangClan::HandleQuestCompleted);
+}
+
+void UWidget_TangClan::RefreshTangClanWidget()
+{
+	SB_QuestEntries->ClearChildren();
+
+	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
+	UQuestSubsystem* QuestSubsys = UQuestSubsystem::Get(this);
+
+	for (const FQuestKey& QuestKey : TestQuestKeys)
+	{
+		if (QuestSubsys->GetCompleteQuestInstance(QuestKey))
+		{
+			continue;
+		}
+		const FQuestDetailRow* QuestRow = UQuestSubsystem::Get(this)->GetQuestRow(QuestKey);
+
+		if (!QuestRow)
+		{
+			continue;
+		}
+
+
+		UQuestEntryWidget_ForTown* Entry = CreateWidget<UQuestEntryWidget_ForTown>(GetOwningPlayer(), Settings->QuestEntry_ForTownWidgetClass);
+
+		Entry->InitWidget(QuestKey);
+
+		Entry->OnQuestSelected.AddDynamic(this, &ThisClass::HandleQuestEntryClicked);
+
+		SB_QuestEntries->AddChild(Entry);
 	}
 }
 
@@ -146,4 +154,9 @@ void UWidget_TangClan::HandleQuestEntryClicked(FQuestKey QuestKey)
 	}
 
 
+}
+
+void UWidget_TangClan::HandleQuestCompleted(UQuestInstance_Base* QuestBase)
+{
+	RefreshTangClanWidget();
 }
