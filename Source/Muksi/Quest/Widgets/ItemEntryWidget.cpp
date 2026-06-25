@@ -62,19 +62,13 @@ void UItemEntryWidget::InitializeItem(const FName& ItemID, int32 Count, int32 En
     //}
 }
 
-void UItemEntryWidget::NativeOnMouseEnter(
-    const FGeometry& InGeometry,
-    const FPointerEvent& InMouseEvent)
+void UItemEntryWidget::NativeOnMouseEnter(const FGeometry& InGeometry,const FPointerEvent& InMouseEvent)
 {
     Super::NativeOnMouseEnter(
         InGeometry,
         InMouseEvent);
 
-    UE_LOG(
-        LogTemp,
-        Log,
-        TEXT("Hover Item : %s"),
-        *CachedItemID.ToString());
+    UE_LOG(LogTemp, Warning, TEXT("Hover Item : %s"),*CachedItemID.ToString());
 
     /*
         나중에
@@ -89,11 +83,9 @@ void UItemEntryWidget::NativeOnMouseEnter(
     */
 }
 
-void UItemEntryWidget::NativeOnMouseLeave(
-    const FPointerEvent& InMouseEvent)
+void UItemEntryWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
-    Super::NativeOnMouseLeave(
-        InMouseEvent);
+    Super::NativeOnMouseLeave(InMouseEvent);
 
     /*
         Tooltip 숨기기

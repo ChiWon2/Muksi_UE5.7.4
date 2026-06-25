@@ -3,7 +3,6 @@
 #include "Components/Button.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
 #include "Components/WidgetSwitcher.h"
 
 #include "Kismet/GameplayStatics.h"
@@ -16,8 +15,7 @@
 #include "QuestEntryWidget.h"
 #include "QuestObjectiveEntryWidget.h"
 #include "RewardsWidget.h"
-
-
+#include "ObjectivesWidget.h"
 
 void UQuestLogWidget::NativeConstruct()
 {
@@ -42,7 +40,6 @@ void UQuestLogWidget::NativeDestruct()
 {
     TAB_Ongoing->OnTabClicked.RemoveDynamic(this, &ThisClass::HandleTabClicked);
     TAB_Completed->OnTabClicked.RemoveDynamic(this, &ThisClass::HandleTabClicked);
-
     BT_CloseMenu->OnClicked.RemoveDynamic(this, &UQuestLogWidget::OnCloseButtonClicked);
 
     Super::NativeDestruct();
@@ -120,47 +117,20 @@ void UQuestLogWidget::RefreshQuestDetails(UQuestInstance_Base* QuestInstance)
 
     SelectedQuestInstance = QuestInstance;
 
-    if (VB_Objectives)
-    {
-        VB_Objectives->ClearChildren();
-    }
-
-    if (WS_ShowQuestDetail)
-    {
-        WS_ShowQuestDetail->SetActiveWidgetIndex(1);
-    }
+    WS_ShowQuestDetail->SetActiveWidgetIndex(1);
 
     const FQuestDetailRow& QuestDetails = QuestInstance->QuestDetails;
 
-    if (TXT_QuestName)
-    {
-        TXT_QuestName->SetText(QuestDetails.QuestName);
-    }
+    TXT_QuestName->SetText(QuestDetails.QuestName);
 
-    if (TXT_QuestDescription)
-    {
-        TXT_QuestDescription->SetText(QuestDetails.Description);
-    }
-
-    APlayerController* PC = GetOwningPlayer();
-
-    for (const FObjectiveDetails& Objective : QuestDetails.Objectives)
-    {
-        UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>( PC, QuestObjectiveEntryWidgetClass);
-
-        if (!Entry)
-            continue;
-
-        Entry->InitWidget( Objective, QuestInstance);
-
-        VB_Objectives->AddChild(Entry);
-    }
+    TXT_QuestDescription->SetText(QuestDetails.Description);
 
     RewardsWidget->InitializeReward(QuestKey);
+
+    ObjectivesWidget->InitializeObjectives(QuestDetails.Objectives,QuestInstance);
 }
 
-void UQuestLogWidget::HandleTrackSelected(
-    UQuestInstance_Base* QuestInstance)
+void UQuestLogWidget::HandleTrackSelected(UQuestInstance_Base* QuestInstance)
 {
     if (!QuestInstance)
         return;

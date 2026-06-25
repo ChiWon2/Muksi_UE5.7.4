@@ -7,17 +7,16 @@
 #include"../DeveloperSettings/QuestDeveloperSettings.h"
 #include"GameFramework/PlayerController.h"
 #include"QuestObjectiveEntryWidget.h"
-#include"RewardsWidget.h"
 #include"../QuestInstance_Base.h"
 #include"Components/Button.h"
 #include"Components/TextBlock.h"
-#include"Components/VerticalBox.h"
+#include"ObjectivesWidget.h"
+#include"RewardsWidget.h"
+
 
 void UQuestGiverWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	VB_Objectives->ClearChildren();
 
 	BTN_Accept->OnClicked.AddUniqueDynamic(this, &UQuestGiverWidget::OnAcceptButtonClicked);
 	BTN_Decline->OnClicked.AddUniqueDynamic(this, &UQuestGiverWidget::OnDeclineButtonClicked);
@@ -51,28 +50,17 @@ void UQuestGiverWidget::InitWidget(const FQuestKey& InQuestKey)
 	{
 		TXT_QuestName->SetText(Details.QuestName);
 	}
-
 	if (TXT_QuestDescription)
 	{
 		TXT_QuestDescription->SetText(Details.Description);
 	}
 
+	ObjectivesWidget->InitializeObjectives(Details.Objectives);
 	RewardsWidget->InitializeReward(QuestKey);
-
-	APlayerController* PC = GetOwningPlayer();
-	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
-	for (FObjectiveDetails Objective : Details.Objectives)
-	{
-		UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>(PC, Settings->QuestObjectiveEntryWidgetClass);
-
-		Entry->InitWidget(Objective);
-		VB_Objectives->AddChild(Entry);
-	}
 }
 
 void UQuestGiverWidget::OnAcceptButtonClicked()
 {
-	//GetPlayerCharacter -> GetComponent By Class(QuestLogComponent) -> is Valid -> QuestLogComponent->AddNewQuest(QuestID); -> RemoveFromParent;
 	ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 
 	UQuestSubsystem::Get(this)->AddNewQuest(QuestKey);

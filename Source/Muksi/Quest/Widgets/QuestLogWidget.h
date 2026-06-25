@@ -5,7 +5,6 @@
 #include "QuestLogWidget.generated.h"
 
 class UScrollBox;
-class UVerticalBox;
 class UQuestEntryWidget;
 class UQuestObjectiveEntryWidget;
 class UWidgetSwitcher;
@@ -14,6 +13,7 @@ class UButton;
 class UQuestInstance_Base;
 class UTabButton;
 class URewardsWidget;
+class UObjectivesWidget;
 
 
 UCLASS()
@@ -47,14 +47,13 @@ public:
     UTextBlock* TXT_QuestDescription;
 
     UPROPERTY(meta = (BindWidget))
-    UVerticalBox* VB_Objectives;
-
-    UPROPERTY(meta = (BindWidget))
     UButton* BT_CloseMenu;
 
     UPROPERTY(meta = (BindWidget))
     URewardsWidget* RewardsWidget;
 
+    UPROPERTY(meta = (BindWidget))
+    UObjectivesWidget* ObjectivesWidget;
 
 
 public:

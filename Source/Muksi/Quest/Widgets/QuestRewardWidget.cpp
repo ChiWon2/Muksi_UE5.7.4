@@ -9,18 +9,16 @@
 #include"../QuestInstance_Base.h"
 #include"Components/Button.h"
 #include"Components/TextBlock.h"
-#include"Components/VerticalBox.h"
 #include"../Quest/DeveloperSettings/QuestDeveloperSettings.h"
 #include"RewardsWidget.h"
+#include"ObjectivesWidget.h"
 
 void UQuestRewardWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (BTN_ClearQuest)
-		BTN_ClearQuest->OnClicked.AddUniqueDynamic(this, &UQuestRewardWidget::OnClearQuestButtonClicked);
-	if (BTN_Cancel)
-		BTN_Cancel->OnClicked.AddUniqueDynamic(this, &UQuestRewardWidget::OnCancelButtonClicked);
+	BTN_ClearQuest->OnClicked.AddUniqueDynamic(this, &UQuestRewardWidget::OnClearQuestButtonClicked);
+	BTN_Cancel->OnClicked.AddUniqueDynamic(this, &UQuestRewardWidget::OnCancelButtonClicked);
 }
 
 void UQuestRewardWidget::NativeDestruct()
@@ -44,9 +42,7 @@ void UQuestRewardWidget::NativeOnDeactivated()
 void UQuestRewardWidget::InitWidget(const FQuestKey& InQuestKey)
 {
 	QuestKey = InQuestKey;
-	
 	Details = *UQuestSubsystem::Get(this)->GetQuestRow(QuestKey);
-	
 	CurrentQuestInstance = UQuestSubsystem::Get(this)->GetActiveQuestInstance(QuestKey);
 
 	QuestReward = Details.Reward;
@@ -62,26 +58,13 @@ void UQuestRewardWidget::InitWidget(const FQuestKey& InQuestKey)
 	}
 
 	RewardsWidget->InitializeReward(QuestKey);
-
-
-	APlayerController* PC = GetOwningPlayer();
-	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
-
-	for (FObjectiveDetails Objective : Details.Objectives)
-	{
-		UQuestObjectiveEntryWidget* Entry = CreateWidget<UQuestObjectiveEntryWidget>(PC, Settings->QuestObjectiveEntryWidgetClass);
-
-		Entry->InitWidget(Objective, CurrentQuestInstance);
-		VB_Objectives->AddChild(Entry);
-	}
+	ObjectivesWidget->InitializeObjectives(Details.Objectives, CurrentQuestInstance);
 }
 
 void UQuestRewardWidget::OnClearQuestButtonClicked()
 {
-	//GetPlayerCharacter -> GetComponent By Class(QuestLogComponent) -> is Valid -> QuestLogComponent->AddNewQuest(QuestID); -> RemoveFromParent;
-
-
 	UQuestSubsystem::Get(this)->CompleteQuest(QuestKey);
+	
 	GiveReward();
 
 	DeactivateWidget();
@@ -90,30 +73,6 @@ void UQuestRewardWidget::OnClearQuestButtonClicked()
 void UQuestRewardWidget::OnCancelButtonClicked()
 {
 	DeactivateWidget();
-}
-
-void UQuestRewardWidget::RefreshObjectives()
-{
-	if (!VB_Objectives)
-	{
-		return;
-	}
-
-	VB_Objectives->ClearChildren();
-
-	APlayerController* PC = GetOwningPlayer();
-
-	for (const FObjectiveDetails& Objective : Details.Objectives)
-	{
-		UQuestObjectiveEntryWidget* Entry =
-			CreateWidget<UQuestObjectiveEntryWidget>(
-				PC,
-				QuestObjectiveEntryWidgetClass);
-
-		Entry->InitWidget(Objective, CurrentQuestInstance);
-
-		VB_Objectives->AddChild(Entry);
-	}
 }
 
 void UQuestRewardWidget::GiveReward()

@@ -9,7 +9,7 @@
 #include "QuestGiverWidget.generated.h"
 
 class UTextBlock;
-class UVerticalBox;
+class UObjectivesWidget;
 class UButton;
 class UQuestObjectiveEntryWidget;
 class UQuestInstance_Base;
@@ -40,7 +40,7 @@ public:
 	FQuestKey QuestKey;
 
 	UPROPERTY(meta = (BindWidget))
-	UVerticalBox* VB_Objectives;
+	UObjectivesWidget* ObjectivesWidget;
 
 	UPROPERTY(meta = (BindWidget))
 	URewardsWidget* RewardsWidget;

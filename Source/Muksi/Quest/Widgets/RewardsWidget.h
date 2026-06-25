@@ -21,7 +21,6 @@ public:
     void InitializeReward(const FQuestKey& QuestKey);
 
 protected:
-
     UPROPERTY(meta = (BindWidget))
     UTextBlock* TXT_Currency;
 

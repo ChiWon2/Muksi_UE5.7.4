@@ -33,6 +33,11 @@ public:
 
     void InitializeObjectiveProgress(const FQuestDetailRow& InQuestDetails);
 
+protected:
+    int32 GetCurrentObjectiveProgress(const FObjectiveDetails& Objective) const;
+private:
+    const FObjectiveDetails* FindObjective(const FName& ObjectiveID) const;
+
 public:
 
     UPROPERTY(BlueprintReadOnly)

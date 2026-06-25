@@ -16,19 +16,14 @@ public:
 
     virtual void NativeConstruct() override;
 
-    void InitializeItem(
-        const FName& ItemID,
-        int32 Count = 1,
-        int32 EnhanceLevel = 0);
+    void InitializeItem(const FName& ItemID, int32 Count = 1, int32 EnhanceLevel = 0);
 
 protected:
-
     virtual void NativeOnMouseEnter(const FGeometry& InGeometry,const FPointerEvent& InMouseEvent) override;
 
     virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 
 protected:
-
     UPROPERTY(meta = (BindWidget))
     UImage* IMG_ItemIcon;
 
@@ -39,7 +34,6 @@ protected:
     UTextBlock* TXT_EnhanceLevel;
 
 private:
-
     FName CachedItemID;
     int32 CachedCount = 0;
     int32 CachedEnhanceLevel = 0;
