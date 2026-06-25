@@ -17,13 +17,13 @@ void UWidget_ShopItemEntry::NativeOnInitialized()
 	}
 }
 
-void UWidget_ShopItemEntry::Setup(const FShopItemEntry& InEntry)
+void UWidget_ShopItemEntry::Setup(const FShopItemEntry& InEntry,const UMuksiItemDataAsset* InItemData)
 {
 	Entry = InEntry;
 
-	if (Entry.ItemData && Text_ItemName)
+	if (Text_ItemName)
 	{
-		Text_ItemName->SetText(Entry.ItemData->DisplayName);
+		Text_ItemName->SetText(InItemData ? InItemData->DisplayName : FText::FromName(Entry.ItemID));
 	}
 
 	if (Text_Price)
@@ -38,12 +38,12 @@ void UWidget_ShopItemEntry::Setup(const FShopItemEntry& InEntry)
 
 	if (ItemIconImage)
 	{
-		const bool bHasIcon = Entry.ItemData && Entry.ItemData->Icon;
+		const bool bHasIcon = InItemData && InItemData->Icon;
 		ItemIconImage->SetVisibility(bHasIcon ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
 
 		if (bHasIcon)
 		{
-			ItemIconImage->SetBrushFromTexture(Entry.ItemData->Icon);
+			ItemIconImage->SetBrushFromTexture(InItemData->Icon);
 		}
 	}
 

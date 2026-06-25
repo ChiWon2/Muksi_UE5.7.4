@@ -18,6 +18,7 @@ class UMuksiItemDataAsset;
 class UWidget_ShopInventoryPanel;
 
 class UWidget_ShopItemEntry;
+class UMuksiItemDataSubsystem;
 
 UENUM(BlueprintType)
 enum class EShopTab : uint8
@@ -136,4 +137,6 @@ protected:
 
 	UMuksiShopSubsystem* GetShopSubsystem() const;
 	int32 GetRemainingStock(const FShopItemEntry& Entry) const;
+
+	UMuksiItemDataAsset* ResolveShopItemData(const FShopItemEntry& Entry) const;
 };

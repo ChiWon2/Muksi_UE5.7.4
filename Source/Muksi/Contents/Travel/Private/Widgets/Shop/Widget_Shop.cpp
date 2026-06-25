@@ -8,6 +8,7 @@
 #include "Muksi/Contents/Travel/Public/Components/Player/EquipmentComponent.h"
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
 #include "Subsystems/MuksiShopSubsystem.h"
+#include "Subsystems/MuksiItemDataSubsystem.h"
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -172,8 +173,12 @@ void UWidget_Shop::RefreshShop()
 
 	for (const FShopItemEntry& Entry : ShopData->SellItems)
 	{
-		if (!Entry.ItemData)
+		UMuksiItemDataAsset* ItemData = ResolveShopItemData(Entry);
+		if (!ItemData)
 		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Widget_Shop] Shop item skipped. ItemID=%s"),
+				*Entry.ItemID.ToString());
 			continue;
 		}
 
@@ -185,7 +190,7 @@ void UWidget_Shop::RefreshShop()
 			continue;
 		}
 
-		EntryWidget->Setup(Entry);
+		EntryWidget->Setup(Entry, ItemData);
 		EntryWidget->SetSelected(
 			bHasSelectedItem &&
 			SelectedShopItem.ShopEntryId == Entry.ShopEntryId
@@ -196,15 +201,17 @@ void UWidget_Shop::RefreshShop()
 		const int32 Column = VisibleIndex % SafeColumnCount;
 
 		ItemGridPanel->AddChildToUniformGrid(EntryWidget, Row, Column);
-
 		++VisibleIndex;
 	}
 }
 
 void UWidget_Shop::SelectShopItem(const FShopItemEntry& Entry)
 {
-	UE_LOG(LogTemp, Log, TEXT("[Shop] SelectShopItem Item=%s Price=%d"),
-		Entry.ItemData ? *Entry.ItemData->DisplayName.ToString() : TEXT("None"),
+	UMuksiItemDataAsset* ItemData = ResolveShopItemData(Entry);
+
+	UE_LOG(LogTemp, Log, TEXT("[Shop] SelectShopItem ItemID=%s Item=%s Price=%d"),
+		*Entry.ItemID.ToString(),
+		*GetNameSafe(ItemData),
 		Entry.Price);
 
 	SelectedShopItem = Entry;
@@ -224,12 +231,15 @@ void UWidget_Shop::RefreshSelection()
 
 	const bool bCanBuy = CanBuySelectedItem();
 
+	UMuksiItemDataAsset* SelectedItemData =
+		bHasSelectedItem ? ResolveShopItemData(SelectedShopItem) : nullptr;
+
 	if (Text_CurrentGold)
 	{
 		Text_CurrentGold->SetText(FText::AsNumber(CurrentGold));
 	}
 
-	if (!bHasSelectedItem || !SelectedShopItem.ItemData)
+	if (!bHasSelectedItem || !SelectedItemData)
 	{
 		if (Text_SelectedItemName)
 		{
@@ -261,12 +271,12 @@ void UWidget_Shop::RefreshSelection()
 
 	if (Text_SelectedItemName)
 	{
-		Text_SelectedItemName->SetText(SelectedShopItem.ItemData->DisplayName);
+		Text_SelectedItemName->SetText(SelectedItemData->DisplayName);
 	}
 
 	if (Text_SelectedItemDescription)
 	{
-		Text_SelectedItemDescription->SetText(SelectedShopItem.ItemData->Description);
+		Text_SelectedItemDescription->SetText(SelectedItemData->Description);
 	}
 
 	if (Text_Price)
@@ -277,7 +287,7 @@ void UWidget_Shop::RefreshSelection()
 	if (Text_AfterGold)
 	{
 		const int32 AfterGold =
-			bHasSelectedItem && SelectedShopItem.ItemData
+			bHasSelectedItem && SelectedItemData
 			? FMath::Max(0, CurrentGold - SelectedShopItem.Price)
 			: CurrentGold;
 
@@ -293,7 +303,7 @@ void UWidget_Shop::RefreshSelection()
 		LogTemp,
 		Verbose,
 		TEXT("[Widget_Shop] RefreshSelection Item=%s Price=%d Gold=%d CanBuy=%d"),
-		*GetNameSafe(SelectedShopItem.ItemData),
+		*GetNameSafe(SelectedItemData),
 		SelectedShopItem.Price,
 		CurrentGold,
 		bCanBuy
@@ -304,8 +314,13 @@ bool UWidget_Shop::CanBuySelectedItem() const
 {
 	if (CurrentTab != EShopTab::Buy ||
 		!bHasSelectedItem ||
-		!SelectedShopItem.ItemData ||
+		SelectedShopItem.ItemID.IsNone() ||
 		SelectedShopItem.Price <= 0)
+	{
+		return false;
+	}
+
+	if (!ResolveShopItemData(SelectedShopItem))
 	{
 		return false;
 	}
@@ -337,37 +352,32 @@ bool UWidget_Shop::CanBuySelectedItem() const
 
 bool UWidget_Shop::TryBuySelectedItem()
 {
-	UInventoryComponent* InventoryComponent =
-		GetInventoryComponent();
+	UInventoryComponent* InventoryComponent = GetInventoryComponent();
 
-	UPlayerCurrencyComponent* CurrencyComponent =
-		GetCurrencyComponent();
+	UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent();
 
-	UMuksiShopSubsystem* ShopSubsystem =
-		GetShopSubsystem();
+	UMuksiShopSubsystem* ShopSubsystem = GetShopSubsystem();
+
+	UMuksiItemDataAsset* ItemData = ResolveShopItemData(SelectedShopItem);
 
 	const int32 Price = SelectedShopItem.Price;
-	const int32 GoldBefore =
-		CurrencyComponent ? CurrencyComponent->GetGold() : -1;
+	const int32 GoldBefore = CurrencyComponent ? CurrencyComponent->GetGold() : -1;
 
-	const bool bHasEnough =
-		CurrencyComponent &&
-		Price > 0 &&
-		CurrencyComponent->HasEnoughGold(Price);
+	const bool bHasEnough = CurrencyComponent && Price > 0 && CurrencyComponent->HasEnoughGold(Price);
 
 	bool bStockReserved = false;
 
 	UE_LOG(LogTemp, Warning,
 		TEXT("[Widget_Shop] Buy Try Selected=%d Item=%s Shop=%s Entry=%s Price=%d Gold=%d HasEnough=%d"),
 		bHasSelectedItem,
-		*GetNameSafe(SelectedShopItem.ItemData),
+		*GetNameSafe(ItemData),
 		ShopData ? *ShopData->ShopId.ToString() : TEXT("None"),
 		*SelectedShopItem.ShopEntryId.ToString(),
 		Price,
 		GoldBefore,
 		bHasEnough);
 
-	if (!bHasSelectedItem || !SelectedShopItem.ItemData)
+	if (!bHasSelectedItem || !ItemData)
 	{
 		UE_LOG(
 			LogTemp,
@@ -486,20 +496,23 @@ bool UWidget_Shop::TryBuySelectedItem()
 		return false;
 	}
 
+	if (!ItemData)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Widget_Shop] Buy Failed: ItemData not found. ItemID=%s"),
+			*SelectedShopItem.ItemID.ToString());
+		return false;
+	}
+
 	//Add Item
 	const bool bAddItemSucceeded =
-		InventoryComponent->AddItem(
-			SelectedShopItem.ItemData,
-			1
-		);
+		InventoryComponent->AddItem(ItemData, 1);
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("[Widget_Shop] AddItem Result=%d Item=%s"),
+	UE_LOG(LogTemp, Log,
+		TEXT("[Widget_Shop] AddItem Result=%d ItemID=%s Item=%s"),
 		bAddItemSucceeded,
-		*GetNameSafe(SelectedShopItem.ItemData)
-	);
+		*SelectedShopItem.ItemID.ToString(),
+		*GetNameSafe(ItemData));
 
 	if (!bAddItemSucceeded)
 	{
@@ -526,12 +539,11 @@ bool UWidget_Shop::TryBuySelectedItem()
 		GetRemainingStock(SelectedShopItem);
 
 	UE_LOG(LogTemp, Log,
-		TEXT("[Widget_Shop] Buy Success Item=%s Shop=%s Entry=%s Price=%d GoldBefore=%d GoldAfter=%d Unlimited=%d RemainingStock=%d"),
-		*GetNameSafe(SelectedShopItem.ItemData),
-		ShopData
-		? *ShopData->ShopId.ToString()
-		: TEXT("None"),
-		* SelectedShopItem.ShopEntryId.ToString(),
+		TEXT("[Widget_Shop] Buy Success ItemID=%s Item=%s Shop=%s Entry=%s Price=%d GoldBefore=%d GoldAfter=%d Unlimited=%d RemainingStock=%d"),
+		*SelectedShopItem.ItemID.ToString(),
+		*GetNameSafe(ItemData),
+		ShopData ? *ShopData->ShopId.ToString() : TEXT("None"),
+		*SelectedShopItem.ShopEntryId.ToString(),
 		Price,
 		GoldBefore,
 		CurrencyComponent->GetGold(),
@@ -671,4 +683,10 @@ void UWidget_Shop::ShowEmptyMessage(const FText& Message)
 		Text_EmptyMessage->SetText(Message);
 		Text_EmptyMessage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
+}
+
+UMuksiItemDataAsset* UWidget_Shop::ResolveShopItemData(const FShopItemEntry& Entry) const
+{
+	UMuksiItemDataSubsystem* ItemDataSubsystem = UMuksiItemDataSubsystem::Get(this);
+	return ItemDataSubsystem ? ItemDataSubsystem->FindItemData(Entry.ItemID) : nullptr;
 }

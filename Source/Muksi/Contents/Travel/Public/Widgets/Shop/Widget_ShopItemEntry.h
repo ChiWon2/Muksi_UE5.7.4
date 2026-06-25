@@ -5,6 +5,8 @@
 #include "Muksi/Contents/Travel/Public/Data/Shops/ShopDataAsset.h"
 #include "Widget_ShopItemEntry.generated.h"
 
+class UMuksiItemDataAsset;
+
 class UButton;
 class UTextBlock;
 class UImage;
@@ -18,7 +20,7 @@ class MUKSI_API UWidget_ShopItemEntry : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void Setup(const FShopItemEntry& InEntry);
+	void Setup(const FShopItemEntry& InEntry, const UMuksiItemDataAsset* InItemData);
 	void SetSelected(bool bInSelected);
 
 	FOnShopItemEntryClicked OnClicked;
