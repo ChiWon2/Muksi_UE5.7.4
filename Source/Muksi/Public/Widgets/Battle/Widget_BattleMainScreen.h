@@ -218,4 +218,20 @@ public:
 	
 	void FinishSelectCard();
 	//------------------------------------------------------------------------------------------------------------------
+	
+	//=================================Attack<공격>=====================================================================
+	
+public:
+	void AttackStart();
+	
+	void Attack1Start();
+	void Attack1End();
+	
+	void Attack2Start();
+	void Attack2End();
+	
+	void Attack3Start();
+	void Attack3End();
+	
+	void AttackEnd();
 };

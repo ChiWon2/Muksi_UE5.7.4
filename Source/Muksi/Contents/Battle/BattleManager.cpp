@@ -564,6 +564,52 @@ void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
 	CardEffectComponent->CardEffectUpdate(PlayerBattleCharacter, ExchangeCard);
 }
 
+
+//===============================================공격(Attack)===========================================================
+//Battle 파이프라인 재정리 버전
+//전체 흐름은 BattleManager에서 전부 기능을 마친 후 BattleMainScreen에게 전달 후 대기
+//BattleMainScreen에서 기능(UI 관련)을 마친 후 BattleManager에게 다음으로 넘어가라고 통보하는 방식
+
+void ABattleManager::AttackStart()
+{
+	
+}
+
+void ABattleManager::Attack1Start()
+{
+	
+}
+
+void ABattleManager::Attack1End()
+{
+	
+}
+
+void ABattleManager::Attack2Start()
+{
+	
+}
+
+void ABattleManager::Attack2End()
+{
+	
+}
+
+void ABattleManager::Attack3Start()
+{
+	
+}
+
+void ABattleManager::Attack3End()
+{
+	
+}
+
+void ABattleManager::AttackEnd()
+{
+	
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 
