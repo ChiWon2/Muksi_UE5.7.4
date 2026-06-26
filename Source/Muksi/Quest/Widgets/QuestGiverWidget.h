@@ -9,10 +9,11 @@
 #include "QuestGiverWidget.generated.h"
 
 class UTextBlock;
-class UVerticalBox;
+class UObjectivesWidget;
 class UButton;
 class UQuestObjectiveEntryWidget;
 class UQuestInstance_Base;
+class URewardsWidget;
 /**
  * 
  */
@@ -28,6 +29,12 @@ public:
 	UTextBlock* TXT_QuestDescription;
 
 	UPROPERTY(meta = (BindWidget))
+	UObjectivesWidget* ObjectivesWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	URewardsWidget* RewardsWidget;
+
+	UPROPERTY(meta = (BindWidget))
 	UButton* BTN_Accept;
 	UPROPERTY(meta = (BindWidget))
 	UButton* BTN_Decline;
@@ -38,8 +45,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = true))
 	FQuestKey QuestKey;
 
-	UPROPERTY(meta = (BindWidget))
-	UVerticalBox* VB_Objectives;
+
 
 public:
     virtual void NativeConstruct() override;

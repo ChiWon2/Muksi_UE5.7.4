@@ -42,6 +42,9 @@ public:
     UFUNCTION(BlueprintCallable)
     bool IsQuestCompleted(const FQuestKey& QuestKey) const;
 
+
+    UFUNCTION(BlueprintCallable)
+    UQuestInstance_Base* GetQuestInstance(const FQuestKey& QuestKey) const;
     UFUNCTION(BlueprintCallable)
     UQuestInstance_Base* GetActiveQuestInstance(const FQuestKey& QuestKey) const;
     UFUNCTION(BlueprintCallable)

@@ -1,11 +1,11 @@
 #include "Controllers/PlayerMode/PlayerMode_World.h"
 
 #include "Controllers/MuksiPlayerController.h"
-#include "Muksi/Contents/World/TownInteractionPoint.h"
-#include "Muksi/Contents/World/WorldCharacter/MuksiWorldCharacter.h"
-#include "Muksi/Contents/World/Zone/ZoneActor.h"
-#include "Muksi/Contents/World/Data/TownDataAsset.h"
-#include "World/WorldUIManager.h"
+#include "Muksi/Contents/Travel/Public/Interaction/TownInteractionPoint.h"
+#include "Muksi/Contents/Travel/Public/Characters/MuksiWorldCharacter.h"
+#include "Muksi/Contents/Travel/Public/Zones/ZoneActor.h"
+#include "Muksi/Contents/Travel/Public/Data/Towns/TownDataAsset.h"
+#include "Muksi/Contents/Travel/Public/Managers/WorldUIManager.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "Blueprint/AIBlueprintHelperLibrary.h"

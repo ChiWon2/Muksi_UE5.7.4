@@ -128,6 +128,21 @@ bool UQuestSubsystem::IsQuestCompleted( const FQuestKey& QuestKey) const
     return CompletedQuests.Contains(QuestKey);
 }
 
+UQuestInstance_Base* UQuestSubsystem::GetQuestInstance(const FQuestKey& QuestKey) const
+{
+    if (const TObjectPtr<UQuestInstance_Base>* FoundQuest = ActiveQuests.Find(QuestKey))
+    {
+        return FoundQuest->Get();
+    }
+
+    if (const TObjectPtr<UQuestInstance_Base>* FoundQuest = CompletedQuests.Find(QuestKey))
+    {
+        return FoundQuest->Get();
+    }
+
+    return nullptr;
+}
+
 UQuestInstance_Base* UQuestSubsystem::GetActiveQuestInstance(const FQuestKey& QuestKey) const
 {
     return ActiveQuests.FindRef(QuestKey);

@@ -5,7 +5,6 @@
 #include "QuestLogWidget.generated.h"
 
 class UScrollBox;
-class UVerticalBox;
 class UQuestEntryWidget;
 class UQuestObjectiveEntryWidget;
 class UWidgetSwitcher;
@@ -13,6 +12,9 @@ class UTextBlock;
 class UButton;
 class UQuestInstance_Base;
 class UTabButton;
+class URewardsWidget;
+class UObjectivesWidget;
+
 
 UCLASS()
 class MUKSI_API UQuestLogWidget : public UWidget_ActivatableBase
@@ -45,24 +47,22 @@ public:
     UTextBlock* TXT_QuestDescription;
 
     UPROPERTY(meta = (BindWidget))
-    UButton* BT_CloseMenu;
+    UObjectivesWidget* ObjectivesWidget;
 
     UPROPERTY(meta = (BindWidget))
-    UVerticalBox* VB_Objectives;
+    URewardsWidget* RewardsWidget;
 
-public:
+    UPROPERTY(meta = (BindWidget))
+    UButton* BT_CloseMenu;
 
+protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TSubclassOf<UQuestEntryWidget> QuestEntryWidgetClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TSubclassOf<UQuestObjectiveEntryWidget> QuestObjectiveEntryWidgetClass;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    TObjectPtr<UQuestInstance_Base> SelectedQuestInstance;
-
 public:
-
     virtual void NativeConstruct() override;
     virtual void NativeDestruct() override;
 
@@ -70,21 +70,24 @@ public:
     virtual void NativeOnDeactivated() override;
 
 private:
+    void UpdateQuestScrollBoxs();
+
+    void UpdateQuestDetails(UQuestInstance_Base* QuestInstance);
+
+    void AddQuestEntryToScrollBox(UQuestInstance_Base* QuestInstance, UScrollBox* TargetBox);
+
+    void HideQuestDetail(bool bShown = false);
+
+private:
     UFUNCTION()
-    void HandleTabClicked(UTabButton* ClickedTab);
+    void HandleQuestEntrySelected(UQuestInstance_Base* QuestInstance);
 
     UFUNCTION()
-    void HandleQuestSelected(UQuestInstance_Base* QuestInstance);
+    void HandleTabClicked(UTabButton* ClickedTab);
 
     UFUNCTION()
     void HandleTrackSelected(UQuestInstance_Base* QuestInstance);
 
     UFUNCTION()
     void OnCloseButtonClicked();
-
-    void RefreshQuestList();
-
-    void RefreshQuestDetails(UQuestInstance_Base* QuestInstance);
-
-    void AddQuestToList( UQuestInstance_Base* QuestInstance, UScrollBox* TargetBox);
 };
