@@ -10,6 +10,8 @@
 void UCharacterDataBase::InitializeFromDataAsset(UMuksiCharacterDataAsset* InCharacterAsset
 	)
 {
+	//캐릭터 관련 스탯 최신화 하기
+	
 	SourceCharacterAsset = InCharacterAsset;
 	
 	for (UMuksiBattleCardDataAsset* CardData : SourceCharacterAsset->CharacterDeck)
@@ -21,39 +23,44 @@ void UCharacterDataBase::InitializeFromDataAsset(UMuksiCharacterDataAsset* InCha
 
 		BattleDeck.Add(CardData);
 	}
-	
+	//HP
+	MaxHP = SourceCharacterAsset->MaxHP;
 	CurrentHP = SourceCharacterAsset->MaxHP;
+	
+	CreateBattleDeck(SourceCharacterAsset->CharacterDeck);
 	//DeckCardRowNames = SourceCharacterAsset->StartingDeckCardRowNames;
 }
 
 
 
-void UCharacterDataBase::ApplyDamage(int32 InDamage)
-{
-	CurrentHP = FMath::Max(CurrentHP - InDamage, 0);
 
-	UE_LOG(LogTemp, Log, TEXT("%s took %d damage. Current HP: %d"),
-		SourceCharacterAsset ? *SourceCharacterAsset->CharacterName.ToString() : TEXT("Unknown"),
-		InDamage,
-		CurrentHP);
+void UCharacterDataBase::CreateBattleDeck(TArray<UMuksiBattleCardDataAsset*> InBattleDeckData)
+{
+	BattleDeckData = InBattleDeckData;
+	BattleDeck.Empty();
+	for (UMuksiBattleCardDataAsset* CardData : BattleDeckData)
+	{
+		if (!CardData)
+		{
+			continue;
+		}
+
+		BattleDeck.Add(CardData);
+	}
 }
 
 TArray<UMuksiBattleCardDataAsset*> UCharacterDataBase::GetCharacterDeck()
 {
 	if (BattleDeck.Num() > 0){return BattleDeck;}
 	
-	if (!CharacterDataAsset){
-		UE_LOG(LogTemp, Warning, TEXT("RefillBattleDeckIfEmpty failed: CharacterDataAsset is null"));
-		return BattleDeck;
-	}
-	if (CharacterDataAsset->CharacterDeck.Num() <= 0)
+	if (BattleDeckData.Num() <= 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("RefillBattleDeckIfEmpty failed: CharacterDeck is empty"));
 		return BattleDeck;
 	}
 	
 	//Reroll
-	for (UMuksiBattleCardDataAsset* CardData : CharacterDataAsset->CharacterDeck)
+	for (UMuksiBattleCardDataAsset* CardData : BattleDeckData)
 	{
 		if (!CardData)
 		{

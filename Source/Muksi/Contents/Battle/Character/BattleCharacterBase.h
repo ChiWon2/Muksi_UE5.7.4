@@ -30,6 +30,25 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	
 	
+public:
+	int32 GetCurrentHP()const;
+	void SetCurrentHP(int32 NewHP);
+	
+	
+	FIntPoint GetCharacterPosition()const{return CharacterPosition;};
+	void SetCharacterPosition(FIntPoint NewPosition){CharacterPosition = NewPosition;};
+	
+	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData->GetCharacterDeck();};
+	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData)const{CharacterData->RemoveCard(BattleCardData);};
+	
+	UPROPERTY()
+	TObjectPtr<UMuksiCharacterDataAsset> CharacterDataAsset = nullptr;
+	
+protected:
+	UPROPERTY()
+	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;
+	
+	
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -52,12 +71,9 @@ public:
 	
 	UFUNCTION()
 	FIntPoint GetCharacterPosition(){return CharacterPosition;};
+
 	
-	UFUNCTION()
-	void SetCharacterPosition(FIntPoint NewPosition){CharacterPosition = NewPosition;};
-	
-protected:
-	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;	
+
 public:
 	//virtual FCharacterDisplayData GetCharacterDisplayData() const override;
 	virtual void OnSelected() override;
