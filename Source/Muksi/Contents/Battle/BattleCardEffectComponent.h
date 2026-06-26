@@ -30,7 +30,7 @@ public:
 		UBattleCardPreviewComponent* InCardPreviewComponent
 	);
 	
-	void CardEffectUpdate(UCharacterDataBase* CharacterDataBase,UMuksiBattleCardDataAsset* InCardData);
+	void CardEffectUpdate(ABattleCharacterBase* BattleCharacterBase, UMuksiBattleCardDataAsset* InCardData);
 	
 	void SelectTargetGrid(ABattleGridTile* TargetGrid);
 
