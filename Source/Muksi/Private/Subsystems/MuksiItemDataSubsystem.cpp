@@ -47,3 +47,4 @@ UMuksiItemDataAsset* UMuksiItemDataSubsystem::FindItemData(FName ItemID) const
 
 	return ItemDatabase ? ItemDatabase->FindItemData(ItemID) : nullptr;
 }
+
