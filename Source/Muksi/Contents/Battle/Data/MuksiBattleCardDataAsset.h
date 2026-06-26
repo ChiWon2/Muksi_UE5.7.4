@@ -42,4 +42,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	TArray<FMuksiBattleCardEffectData> Effects;
 	
+	
 };

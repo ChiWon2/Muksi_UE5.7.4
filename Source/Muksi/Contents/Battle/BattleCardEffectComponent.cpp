@@ -6,6 +6,7 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "BattleCardPreviewComponent.h"
 #include "BattleManager.h"
+#include "Character/BattleCharacter_Player.h"
 #include "Data/MuksiBattleCardEffectData.h"
 #include "Grid/BattleGridManager.h"
 #include "Grid/BattleGridTile.h"
@@ -34,9 +35,9 @@ void UBattleCardEffectComponent::InitializePreviewComponent(ABattleManager* InBa
 	BattleCardPreviewComponent = InCardPreviewComponent;
 }
 
-void UBattleCardEffectComponent::CardEffectUpdate(UCharacterDataBase* CharacterDataBase, UMuksiBattleCardDataAsset* InCardData)
+void UBattleCardEffectComponent::CardEffectUpdate(ABattleCharacterBase* BattleCharacterBase, UMuksiBattleCardDataAsset* InCardData)
 {
-	if (UCharacterData_Player* PlayerData = Cast<UCharacterData_Player>(CharacterDataBase)) //플레이어 전용
+	if (ABattleCharacter_Player* BattlePlayer = Cast<ABattleCharacter_Player>(BattleCharacterBase)) //플레이어 전용
 	{
 		for (FMuksiBattleCardEffectData Effect : InCardData->Effects)
 		{
@@ -58,7 +59,7 @@ void UBattleCardEffectComponent::CardEffectUpdate(UCharacterDataBase* CharacterD
 			}
 		}
 	}
-	else if (UCharacterData_Enemy* EnemyData = Cast<UCharacterData_Enemy>(CharacterDataBase))// 적 전용
+	else if (ABattleCharacter_Enemy* EnemyData = Cast<ABattleCharacter_Enemy>(BattleCharacterBase))// 적 전용
 	{
 		for (FMuksiBattleCardEffectData Effect : InCardData->Effects)
 		{

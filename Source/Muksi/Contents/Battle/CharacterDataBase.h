@@ -34,19 +34,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Character")
 	int32 GetCurrentHP() const { return CurrentHP; }
+	void SetCurrentHP(int32 NewHP){CurrentHP = NewHP;};
 
 	//const TArray<FName>& GetDeckCardRowNames() const { return DeckCardRowNames; }
 
 	//const FMMuksiBattleCardTableRow* FindCardRow(FName InRowName) const;
 	
 	//UDataTable* GetCardDataTable() const { return CardDataTable; }
-
-
-	UFUNCTION(BlueprintCallable, Category = "Character")
-	void ApplyDamage(int32 InDamage);
-
-	UFUNCTION(BlueprintCallable, Category = "Character")
-	bool IsDead() const { return CurrentHP <= 0; }
+	
 	
 	UPROPERTY()
 	FIntPoint CurrentPosition = FIntPoint(0);
@@ -57,22 +52,28 @@ protected:
 
 	UPROPERTY(Transient)
 	int32 CurrentHP = 0;
+	UPROPERTY(Transient)
+	int32 MaxHP = 0;
 
 
 	
 protected:
-	UPROPERTY()
-	TObjectPtr<UMuksiCharacterDataAsset> CharacterDataAsset;
-	
+	//덱 관련 정보
 	UPROPERTY()
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> BattleDeck;
+	UPROPERTY()
+	int32 BattleDeckSize = 0;
+	
+	TArray<UMuksiBattleCardDataAsset*> BattleDeckData;
 	
 public:
+	
+	void CreateBattleDeck(TArray<UMuksiBattleCardDataAsset*> InBattleDeckData);
+	
 	UFUNCTION()
 	TArray<UMuksiBattleCardDataAsset*> GetCharacterDeck();
 	
-	UFUNCTION()
-	void SetMuksiCharacterDataAsset(UMuksiCharacterDataAsset* CharacterDataAsset_){CharacterDataAsset = CharacterDataAsset_;};
+
 	UFUNCTION(BlueprintCallable)
 	bool RemoveCard(UMuksiBattleCardDataAsset* CardData);
 
