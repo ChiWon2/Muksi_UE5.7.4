@@ -20,8 +20,12 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryChanged OnInventoryChanged;
 public:
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(FName ItemID, UMuksiItemDataAsset* ItemData, int32 Quantity);
+	bool AddItem(const FName& ItemID, int32 Quantity = 1, UMuksiItemDataAsset* InItemData = nullptr);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool RemoveItemByItemID(const FName& ItemID, int32 Quantity = 1);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItemByInstanceId(FGuid InstanceId, int32 Quantity);

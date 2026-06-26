@@ -2,9 +2,9 @@
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Subsystems/MuksiItemDataSubsystem.h"
+#include "Muksi/Contents/Travel/Public/Data/Items/MuksiItemDataAsset.h"
 
-//#include "../Item/ItemSubsystem.h"
-//#include "../Item/ItemDataRow.h"
 
 void UItemEntryWidget::NativeConstruct()
 {
@@ -41,25 +41,18 @@ void UItemEntryWidget::InitializeItem(const FName& ItemID, int32 Count, int32 En
         }
     }
 
+    UMuksiItemDataSubsystem* ItemDataSubsys = UMuksiItemDataSubsystem::Get(this);
+    UMuksiItemDataAsset* ItemDataAsset = ItemDataSubsys->FindItemData(CachedItemID);
 
-    //UItemSubsystem* ItemSubsystem = UItemSubsystem::Get(this);
-
-    /*if (!ItemSubsystem)
+    if (!ItemDataAsset)
     {
         return;
-    }*/
+    }
 
-    //const FItemDataRow* ItemRow = ItemSubsystem->GetItemRow(ItemID);
-
-    //if (!ItemRow)
-    //{
-    //    return;
-    //}
-
-    //if (IMG_ItemIcon && ItemRow->Icon)
-    //{
-    //    IMG_ItemIcon->SetBrushFromTexture(ItemRow->Icon);
-    //}
+    if (IMG_ItemIcon && ItemDataAsset->Icon)
+    {
+        IMG_ItemIcon->SetBrushFromTexture(ItemDataAsset->Icon);
+    }
 }
 
 void UItemEntryWidget::NativeOnMouseEnter(const FGeometry& InGeometry,const FPointerEvent& InMouseEvent)

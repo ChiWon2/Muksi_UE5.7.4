@@ -1,17 +1,23 @@
 #include "Muksi/Contents/Travel/Public/Components/Player/InventoryComponent.h"
 #include "Muksi/Contents/Travel/Public/Data/Items/MuksiItemDataAsset.h"
+#include "Subsystems/MuksiItemDataSubsystem.h"
 
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UInventoryComponent::AddItem(FName ItemID, UMuksiItemDataAsset* ItemData, int32 Quantity)
+bool UInventoryComponent::AddItem(const FName& ItemID, int32 Quantity, UMuksiItemDataAsset* InItemData)
 {
-	if (ItemID.IsNone() || !ItemData || Quantity <= 0)
+	if (ItemID.IsNone() || Quantity <= 0)
 	{
 		return false;
 	}
+	UMuksiItemDataAsset* ItemData = InItemData;
+	if (InItemData == nullptr)
+		ItemData = UMuksiItemDataSubsystem::Get(this)->FindItemData(ItemID);
+	if (ItemData == nullptr)
+		return false;
 
 	const int32 OldQuantity = GetItemCountByItemID(ItemID);
 		
@@ -56,6 +62,49 @@ bool UInventoryComponent::AddItem(FName ItemID, UMuksiItemDataAsset* ItemData, i
 	}
 
 	OnInventoryChanged.Broadcast(ItemID, OldQuantity, GetItemCountByItemID(ItemID));
+
+	return true;
+}
+
+bool UInventoryComponent::RemoveItemByItemID(const FName& ItemID, int32 Quantity)
+{
+	if (ItemID.IsNone() || Quantity <= 0)
+	{
+		return false;
+	}
+
+	const int32 OldQuantity = GetItemCountByItemID(ItemID);
+
+	if (OldQuantity < Quantity)
+	{
+		return false;
+	}
+
+	for (int32 Index = Items.Num() - 1; Index >= 0 && Quantity > 0; --Index)
+	{
+		FMuksiInventoryEntry& Entry = Items[Index];
+
+		if (Entry.ItemID != ItemID)
+		{
+			continue;
+		}
+
+		if (Entry.Quantity > Quantity)
+		{
+			Entry.Quantity -= Quantity;
+			Quantity = 0;
+		}
+		else
+		{
+			Quantity -= Entry.Quantity;
+			Items.RemoveAt(Index);
+		}
+	}
+
+	OnInventoryChanged.Broadcast(
+		ItemID,
+		OldQuantity,
+		GetItemCountByItemID(ItemID));
 
 	return true;
 }

@@ -12,9 +12,8 @@
 #include"../Quest/DeveloperSettings/QuestDeveloperSettings.h"
 #include"RewardsWidget.h"
 #include"ObjectivesWidget.h"
-#include "Muksi/Contents/Travel/Public/Components/Player/InventoryComponent.h"
-
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/InventoryComponent.h"
 #include "Muksi/Contents/Travel/Public/Components/Player/PlayerCurrencyComponent.h"
 
 
@@ -84,15 +83,22 @@ void UQuestRewardWidget::GiveReward()
 {
 	UMuksiPlayerDataSubsystem* PlayerData = UMuksiPlayerDataSubsystem::Get(this);
 	UPlayerCurrencyComponent* Currency = PlayerData ? PlayerData->GetPlayerCurrencyComponent() : nullptr;
+	UInventoryComponent* Inventory = PlayerData? PlayerData->GetPlayerInventoryComponent() : nullptr;
 
 	Currency->AddGold(QuestReward.CurrencyRewards);
 	UE_LOG(LogTemp,Warning,TEXT("[QuestRewardWidget] : TODO :: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Add XP : %d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"), QuestReward.XPReward);
 	
+	for (auto Objective : Details.Objectives)
+	{
+		if (Objective.Type != EObjectiveType::Collect)
+			continue;
+		Inventory->RemoveItemByItemID(Objective.ObjectiveID, Objective.RequiredQuantity);
+	}
+	
 	for (const FItemReward& ItemReward : QuestReward.ItemRewards)
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[QuestRewardWidget]TODO :: !!!!!!!!!!!!!!!!!!!!!!!!!!!!! Add Item To Inventory | ItemID=%s Count=%d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!"),
-			*ItemReward.ItemID.ToString(),
-			ItemReward.ItemCount);
+		Inventory->AddItem(ItemReward.ItemID, ItemReward.ItemCount);
 	}
+
+	
 }

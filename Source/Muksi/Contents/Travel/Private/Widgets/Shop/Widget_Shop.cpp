@@ -9,6 +9,8 @@
 #include "Subsystems/MuksiPlayerDataSubsystem.h"
 #include "Subsystems/MuksiShopSubsystem.h"
 #include "Subsystems/MuksiItemDataSubsystem.h"
+#include "Muksi/Contents/Travel/Public/Components/Player/PlayerCurrencyComponent.h"
+
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -506,7 +508,7 @@ bool UWidget_Shop::TryBuySelectedItem()
 
 	//Add Item
 	const bool bAddItemSucceeded =
-		InventoryComponent->AddItem(SelectedShopItem.ItemID, ItemData, 1);
+		InventoryComponent->AddItem(SelectedShopItem.ItemID, 1 ,ItemData);
 
 	UE_LOG(LogTemp, Log,
 		TEXT("[Widget_Shop] AddItem Result=%d ItemID=%s Item=%s"),
