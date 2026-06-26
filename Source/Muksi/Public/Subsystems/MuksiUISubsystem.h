@@ -55,6 +55,9 @@ public:
 	TFunction<void(UWidget_ActivatableBase*)> OnCreatedBeforePush = nullptr,
 	TFunction<void(UWidget_ActivatableBase*)> OnAfterPush = nullptr
 );
+public:
+	UFUNCTION(BlueprintCallable)
+	void DebugPrintWidgetStack(const FGameplayTag& InWidgetStackTag);
 	
 private:
 	UPROPERTY(Transient)

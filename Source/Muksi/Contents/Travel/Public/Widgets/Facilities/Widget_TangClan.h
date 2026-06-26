@@ -50,9 +50,6 @@ protected:
 
 	void RefreshTangClanWidget();
 #pragma endregion
-
-
-
 	UFUNCTION()
 	void HandleBackButtonClicked();
 	UFUNCTION()

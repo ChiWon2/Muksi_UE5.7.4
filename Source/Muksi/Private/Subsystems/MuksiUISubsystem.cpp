@@ -161,3 +161,22 @@ void UMuksiUISubsystem::PushSoftWidgetToStackAsync(APlayerController* OwningPlay
 		}
 	);
 }
+
+void UMuksiUISubsystem::DebugPrintWidgetStack(const FGameplayTag& InWidgetStackTag)
+{
+	UCommonActivatableWidgetContainerBase* Stack = CreatedPrimaryLayout->FindWidgetStackByTag(InWidgetStackTag);
+
+	if (!Stack)
+	{
+		return;
+	}
+
+	const TArray<UCommonActivatableWidget*>& Widgets = Stack->GetWidgetList();
+
+	UE_LOG(LogTemp, Warning, TEXT("Stack Count : %d"), Widgets.Num());
+
+	for (auto* Widget : Widgets)
+	{
+		UE_LOG(LogTemp,Warning,TEXT(" - %s"),*GetNameSafe(Widget));
+	}
+}
