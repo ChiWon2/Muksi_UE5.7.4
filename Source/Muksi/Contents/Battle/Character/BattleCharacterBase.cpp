@@ -41,6 +41,17 @@ void ABattleCharacterBase::Tick(float DeltaTime)
 
 }
 
+int32 ABattleCharacterBase::GetCurrentHP() const
+{
+	if (CharacterData){return CharacterData->GetCurrentHP();}
+	return -1;
+}
+
+void ABattleCharacterBase::SetCurrentHP(int32 NewHP)
+{
+	if (CharacterData){CharacterData->SetCurrentHP(NewHP);}
+}
+
 void ABattleCharacterBase::HandleClicked(AActor* TouchedActor, FKey ButtonPressed)
 {
 	UE_LOG(LogTemp, Warning, TEXT("BattleCharacter clicked! Actor: %s, Button: %s"),
@@ -51,12 +62,17 @@ void ABattleCharacterBase::HandleClicked(AActor* TouchedActor, FKey ButtonPresse
 void ABattleCharacterBase::SetCharacterData(UCharacterDataBase* InCharacterData)
 {
 	CharacterData = InCharacterData;
-
+	if (!CharacterDataAsset)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterDataAsset is null"));
+		return;
+	}
 	if (!CharacterData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterData is null"));
 		return;
 	}
+	CharacterData->InitializeFromDataAsset(CharacterDataAsset);
 
 	UE_LOG(
 		LogTemp,

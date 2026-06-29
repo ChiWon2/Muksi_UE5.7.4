@@ -10,8 +10,10 @@
 class UWidget_CharacterData;
 class UHandWidget;
 class UInkLineWidget;
-class UCharacterDataBase;
-class UCharacterData_Enemy;
+
+
+class ABattleCharacter_Player;
+class ABattleCharacter_Enemy;
 
 class UButton;
 
@@ -65,11 +67,6 @@ private:
 	UPROPERTY()
 	TObjectPtr<ABattleManager> CachedBattleManager;
 
-	void BindBattleManagerEvents();
-	void UnbindBattleManagerEvents();
-
-	UFUNCTION()
-	void HandleBattlePhaseChanged(EBattlePhase NewPhase);
 	
 	UPROPERTY()
 	int32 CurrentExchange = 0;
@@ -77,27 +74,7 @@ private:
 	
 	
 public:
-	//Handle HandWidget UI
-	UFUNCTION(BlueprintCallable)
-	void HandleExchangedStarted_(int32 ExchangeNumber);
-	
-	UFUNCTION(BlueprintCallable)
-	void HandleRoundStarted();
-	
-	UFUNCTION(BlueprintCallable)
-	void HandleExchangedStarted();
-	
-	UFUNCTION(BlueprintCallable)
-	void HandleAttackStarted();
-	
-	UFUNCTION(BlueprintCallable)
-	void HandleAttackCoundData(int32 AttackNumber);
-	
-	UFUNCTION(BlueprintCallable)
-	void HandleTurnEnd();
-	
-	UFUNCTION(BlueprintCallable)
-	void FinishCurrentExchange();
+
 	
 	UFUNCTION(BlueprintCallable)
 	void BindHandWidgetEvents();
@@ -113,9 +90,9 @@ public:
 protected:
 
 	UPROPERTY()
-	TObjectPtr<UCharacterDataBase> PlayerBattleCharacter;
+	TObjectPtr<ABattleCharacter_Player> PlayerBattleCharacter;
 	UPROPERTY()
-	TObjectPtr<UCharacterData_Enemy> EnemyBattleCharacter;
+	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter;
 	
 	UPROPERTY()
 	TObjectPtr<UMuksiCharacterDataAsset> PlayerDataAsset = nullptr;
@@ -123,14 +100,138 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EnemySelectBattleCard;
 
-	//Send Info to BattleManager
+	//---------------------------중앙 텍스트 블록 관련 함수---------------------------------------------------------------
 public:
-	UFUNCTION(BlueprintCallable)
+	void DisplayMainTextBlock(FText Text, float Time);
+	
+protected:
+	void DisplayExchangeAlarm();
+	void DisplayExchangeCountAlarm(int32 ExchangeCount, bool bStart);
+	UPROPERTY(EditAnywhere)
+	FString DisplayExchangeText = "합 시작!";
+	//------------------------------------------------------------------------------------------------------------------
+	//BattleManager에 정보를 보내는 함수
+	
+	
+	void ChangePhase(EBattlePhase NewPhase);
+	
+	//====================================Ready<준비>===================================================================
+public:
+	void ReadyStart();
+	void ReadyEnd();
+	
+	void SetBattleManager();
+	
+	/*UFUNCTION(BlueprintCallable)
 	void HandleBattleReady();
 	
-	
-	
-	
 	UFUNCTION(BlueprintCallable)
-	void HandleBattleStarted();
+	void HandleBattleStarted();*/
+	
+	//====================================Battle<전투>==================================================================
+public:
+	void BattleStart();
+	
+	void BattleEnd();
+	
+	void HandleBattleStartFinish();
+	
+	void HandleBattleEndFinish();
+public:
+	UPROPERTY(EditAnywhere)
+	FString BattleStartText = "전 투 시 작!";
+	int32 HandleBattleFinishCount = 0;	
+	
+	//=====================================Round<국>====================================================================
+public:
+	//국 시작
+	void RoundStart();
+	
+	void HandleRoundStartFinish();
+	
+	//국 종료
+	void RoundEnd();
+	
+	void HandleRoundEndFinish();
+	
+public:
+	UPROPERTY(EditAnywhere)
+	FString RoundStartText = "국 시 작!";
+	
+	UPROPERTY()
+	int32 HandleRoundStartFinishCount = 0;	
+	
+	UPROPERTY()
+	int32 RoundCound = 0;
+	
+	//=================================Exchange<합>=====================================================================
+	//합 시작	Round 시작
+	
+	//1합 시작
+	//1합 종료
+	
+	//2합 시작
+	//2합 종료
+	
+	//3합 시작
+	//3합 종료
+	
+	//합 종료
+	
+public:
+	void ExchangeStart();
+	
+	void HandleExchangeStartFinish();
+	
+	void Exchange1Start();
+	void Exchange1End();
+	
+	void HandleExchange1EndFinish();
+	
+	void Exchange2Start();
+	void Exchange2End();
+	
+	void HandleExchange2EndFinish();
+	
+	void Exchange3Start();
+	void Exchange3End();
+	
+	void HandleExchange3EndFinish();
+	
+	void ExchangeEnd();
+	
+	void HandleExchangeEndFinish();
+	
+protected:
+	void HandleExchangeSlot(int32 Index, bool bActive);
+	
+public:
+	int32 HandleExchangeCount = 0;
+	
+public:
+	//합 도중 카드 선택 확정 버튼
+	UFUNCTION(BlueprintCallable)
+	void HandleCardSelect();
+	
+	bool CanRequestSelectCard();
+	void SelectCardDataSend(int32 InIndex);
+	
+	void FinishSelectCard();
+	//------------------------------------------------------------------------------------------------------------------
+	
+	//=================================Attack<공격>=====================================================================
+	
+public:
+	void AttackStart();
+	
+	void Attack1Start();
+	void Attack1End();
+	
+	void Attack2Start();
+	void Attack2End();
+	
+	void Attack3Start();
+	void Attack3End();
+	
+	void AttackEnd();
 };

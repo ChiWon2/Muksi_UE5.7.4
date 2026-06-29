@@ -3,12 +3,15 @@
 
 #include "Muksi/Contents/Battle/BattleManager.h"
 
+#include "Widgets/Battle/Widget_BattleMainScreen.h"
+
 #include "BattleCardPreviewComponent.h"
 #include "BattleCardEffectComponent.h"
 #include "CharacterData_Enemy.h"
 #include "CharacterData_Player.h"
 #include "TimerManager.h"
-#include "Muksi/Widgets/Battle/HandWidget.h"
+
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
@@ -38,16 +41,8 @@ void ABattleManager::BeginPlay()
 	Super::BeginPlay();
 
 	
-	CurrentPhase = EBattlePhase::None;
-	if (CardPreviewComponent)
-	{
-		CardPreviewComponent->InitializePreviewComponent(this, BattleGridManager);
-	}
-	if (CardEffectComponent)
-	{
-		CardEffectComponent->InitializePreviewComponent(this, BattleGridManager, CardPreviewComponent);
-	}
-	
+	if (!BattleMainScreen){return;}
+	ReadyStart();
 	
 }
 
@@ -81,214 +76,57 @@ void ABattleManager::SetPhase(EBattlePhase NewPhase)
 	
 }
 
-
-
-void ABattleManager::StartRound()
+void ABattleManager::ChangePhase(EBattlePhase NewPhase)
 {
-	if (!bBattleStarted)
-	{
-		return;
-	}
-
-	CurrentRound++;
-	CurrentExchange = 0;
-	CurrentAttack = 0;
-
-	SetPhase(EBattlePhase::Round);
-
-	Debug::Print(FString::Printf(TEXT("Round %d Start"), CurrentRound));
-	OnRoundStarted.Broadcast();
-
-	
-	//TODO Round Start Setting
+	CurrentPhase = NewPhase;
+	//각 델리게이트 호출하는 형식 
+	//레벨에 있는 오브젝트의 델리게이트 호출 (UI는 Widget_BattleMainScreen에서)
 	
 	
-	//StartExchange();
-}
-
-void ABattleManager::StartExchange()
-{
-	if (!bBattleStarted)
+	//시작
+	switch(CurrentPhase)
 	{
-		return;
+	case EBattlePhase::None:
+		break;
+	case EBattlePhase::BattleStart:
+		//전투 시작 이벤트
+		break;
+	case EBattlePhase::RoundStart:
+		//국 시작 이벤트
+		break;
+	case EBattlePhase::ExchangeStart:
+		//합 시작 이벤트
+		break;
+	case EBattlePhase::AttackStart: 
+		//공격 시작 이벤트
+		break;
+	default: //있으면 안됨
+		break;
 	}
-
-	CurrentExchange++;
-
-	if (CurrentExchange > MaxExchangeCount)
-	{
-		StartAttack();
-		return;
-	}
-
-	SetPhase(EBattlePhase::Exchange);
-
-	Debug::Print(FString::Printf(TEXT("Exchange %d Start"), CurrentExchange));
-	OnExchangeStarted.Broadcast();
-}
-
-void ABattleManager::RequestEndExchange()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
-	if (CurrentPhase != EBattlePhase::Exchange)
-	{
-		return;
-	}
-	EndExchange();
-
-}
-
-void ABattleManager::EndExchange()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
-
-	if (CurrentPhase != EBattlePhase::Exchange)
-	{
-		return;
-	}
-
-	Debug::Print(FString::Printf(TEXT("Exchange End")));
-
-	ResolveCurrentExchange();
-
-	//OnExchangeEnded.Broadcast(CurrentExchange);
-
-	OnAttackStarted.Broadcast();
 	
-	/*if (CurrentExchange >= MaxExchangeCount)
+	//종료
+	switch(CurrentPhase)
 	{
-		StartAttack();
-	}
-	else
-	{
-		StartExchange();
-	}*/
-}
-
-void ABattleManager::StartAttack()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
-
-	CurrentAttack++;
-
-	if (CurrentAttack > MaxAttackCount)
-	{
-		EndRound();
-		return;
-	}
-
-	SetPhase(EBattlePhase::Attack);
-
-	Debug::Print(FString::Printf(TEXT("Attack %d Start"), CurrentAttack));
-	
-	OnAttack.Broadcast(CurrentAttack);
-
-	//OnAttackStarted.Broadcast();
-
-	// 여기서 바로 EndAttack() 하지 말 것.
-	// BattleMainScreen에서 공격 UI/캐릭터 연출을 실행하고,
-	// 연출이 끝나면 NotifyAttackPresentationFinished()를 호출하게 하는 구조.
-}
-
-void ABattleManager::AttackActive()
-{
-	//Test Using Card
-	if (AttackBattleCardDataAsset)
-	{
-		CardEffectComponent->CardEffectUpdate(PlayerCharacterData, AttackBattleCardDataAsset);
+	case EBattlePhase::None:
+		break;
+	case EBattlePhase::BattleEnd:
+		//전투 종료 이벤트 <- 레벨 종료
+		break;
+	case EBattlePhase::RoundEnd:
+		//국 시작 이벤트
+		break;
+	case EBattlePhase::ExchangeEnd:
+		//합 시작 이벤트
+		break;
+	case EBattlePhase::AttackEnd: 
+		//공격 시작 이벤트
+		break;
+	default: //있으면 안됨
+		break;
 	}
 }
 
-void ABattleManager::NotifyAttackPresentationFinished()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
 
-	if (CurrentPhase != EBattlePhase::Attack)
-	{
-		/*UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("NotifyAttackPresentationFinished ignored: CurrentPhase is not Attack")
-		);*/
-		return;
-	}
-
-	EndAttack();
-}
-
-void ABattleManager::EndAttack()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
-
-	if (CurrentPhase != EBattlePhase::Attack)
-	{
-		return;
-	}
-
-	Debug::Print(FString::Printf(TEXT("Attack %d End"), CurrentAttack));
-
-	ResolveCurrentAttack();
-
-	OnAttackEnded.Broadcast(CurrentAttack);
-
-	if (CurrentAttack >= MaxAttackCount)
-	{
-		EndRound();
-	}
-	else
-	{
-		StartAttack();
-	}
-}
-
-void ABattleManager::EndRound()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
-
-	Debug::Print(FString::Printf(TEXT("Round %d End"), CurrentRound));
-
-	if (ShouldEndBattle())
-	{
-		EndBattle();
-		return;
-	}
-
-	StartRound();
-}
-
-void ABattleManager::EndBattle()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
-
-	SetPhase(EBattlePhase::BattleEnd);
-
-	Debug::Print(TEXT("Battle End"));
-
-	bBattleStarted = false;
-
-	OnBattleEnded.Broadcast();
-}
 
 bool ABattleManager::ShouldEndBattle() const
 {
@@ -338,19 +176,7 @@ void ABattleManager::UseCardByRowName(
 		return;
 	}
 
-	/*const FMMuksiBattleCardTableRow* CardRow = SourceCharacter->FindCardRow(CardRowName);
-	if (!CardRow)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("UseCardByRowName: CardRow not found - %s"),
-			*CardRowName.ToString()
-		);
-		return;
-	}
-
-	ExecuteCardEffects(*CardRow, SourceCharacter, TargetCharacter);*/
+	
 }
 
 void ABattleManager::ExecuteCardEffects(
@@ -363,85 +189,6 @@ void ABattleManager::ExecuteCardEffects(
 	// 기존에 주석 처리해둔 카드 효과 처리 코드를
 	// 나중에 여기로 다시 복구하면 됨.
 }
-
-void ABattleManager::SettingBattleManager_()
-{
-	//TODO PlayerCharacter Data
-	//TODO EnemyCharacter Data
-	
-	//TODO Battle Start Effect
-	
-	if (!bHandWidgetReady)
-	{
-		return;
-	}
-
-	//UE_LOG(LogTemp, Warning,TEXT("Setting Battle Manager is Start !!!!!!!!!!!!!!!!"));
-	
-	//일단은
-	SetPhase(EBattlePhase::Battle);
-	StartBattle();
-}
-
-
-
-//Notify Function
-
-void ABattleManager::NotifyBattleReadyFinished()
-{
-	//UE_LOG(LogTemp, Log, TEXT("NotifyBattleReadyFinished called"));
-
-	if (!bBattleStarted)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("NotifyBattleReadyFinished ignored: battle is not started"));
-		return;
-	}
-
-	if (CurrentPhase != EBattlePhase::Ready)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("NotifyBattleReadyFinished ignored: CurrentPhase is not Ready"));
-		return;
-	}
-
-	StartBattlePhase();
-}
-
-void ABattleManager::NotifyBattleStartFinished()
-{
-	if (!bBattleStarted)
-	{
-		return;
-	}
-	StartRound();
-}
-
-void ABattleManager::NotifyRoundReadyFinished()
-{
-	StartExchange();
-}
-
-void ABattleManager::NotifyRoundFinished()
-{
-	
-}
-
-void ABattleManager::NotifyAttackReadyFinish()
-{
-	OnAttack.Broadcast(1);
-	StartAttack();
-}
-
-
-void ABattleManager::StartBattlePhase()
-{
-	SetPhase(EBattlePhase::Battle);
-
-	//UE_LOG(LogTemp, Log, TEXT("Battle Phase Started"));
-
-	OnBattleStarted.Broadcast();
-}
-
-
 
 bool ABattleManager::CanStartBattle() const
 {
@@ -465,42 +212,7 @@ bool ABattleManager::CanStartBattle() const
 	return true;
 }
 
-void ABattleManager::StartBattle()
-{
-	/*if (bBattleStarted)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("StartBattle ignored: battle already started"));
-		return;
-	}
 
-	bBattleStarted = true;
-
-	CurrentRound = 0;
-	CurrentExchange = 0;
-	CurrentAttack = 0;
-
-	SetPhase(EBattlePhase::Battle);
-
-	Debug::Print(TEXT("Battle Start"));
-	OnBattleStarted.Broadcast();
-
-	StartRound();*/
-	
-	if (!CanStartBattle())
-	{
-		return;
-	}
-
-	bBattleStarted = true;
-
-	CurrentRound = 0;
-	CurrentExchange = 0;
-	CurrentAttack = 0;
-	
-	BattleGridManager->AllClearGridHovered();
-
-	StartBattleReady();
-}
 
 void ABattleManager::StartBattleInternal()
 {
@@ -510,11 +222,10 @@ void ABattleManager::StartBattleInternal()
 	CurrentExchange = 0;
 	CurrentAttack = 0;
 
-	SetPhase(EBattlePhase::Battle);
+	//SetPhase(EBattlePhase::Battle);
 
 	OnBattleStarted.Broadcast();
-
-	StartRound();
+	
 }
 
 void ABattleManager::StartBattleReady()
@@ -538,47 +249,28 @@ void ABattleManager::StartBattleReady()
 
 void ABattleManager::CreateCharacter()
 {
-	//나중에 CharacterDataAsset 명 교체 예정
+	//나중에 전투 이벤트 개발 시 해당 Subsystem 등 에서 DataAsset을 받아오는 걸로(혹은 그 이벤트에 적용된 DataAsset)
 	if (!TestPlayerCharacterDataAsset)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: TestPlayerCharacterDataAsset is null"));
 		return;
 	}
 
 	if (!TestEnemyCharacterDataAsset)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: TestEnemyCharacterDataAsset is null"));
 		return;
 	}
-
-	if (!PlayerSpawnPoint)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: PlayerSpawnPoint is null"));
-		return;
-	}
-
-	if (!EnemySpawnPoint)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: EnemySpawnPoint is null"));
-		return;
-	}
-	
-	
-	
 	
 	//Spawn Function
 	//나중에 변경 예정
 	UWorld* World = GetWorld();
 	if (!World)
 		{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: World is null"));
 		return;
 		}
 	TSubclassOf<ABattleCharacterBase> PlayerClass = TestPlayerCharacterDataAsset->BattleCharacterClass;
 	
 	if (!PlayerClass)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: Player BattleCharacterClass is null"));
 		return;
 	}
 	
@@ -588,7 +280,6 @@ void ABattleManager::CreateCharacter()
 
 	if (!EnemyClass)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: Enemy BattleCharacterClass is null"));
 		return;
 	}
 	
@@ -605,54 +296,24 @@ void ABattleManager::CreateCharacter()
 		EnemyBattleCharacter = nullptr;
 	}
 	
-	PlayerCharacterData = nullptr;
-	EnemyCharacterData = nullptr;
-
-	PlayerCharacterData = NewObject<UCharacterData_Player>(this);
-	if (!PlayerCharacterData)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: PlayerCharacterData create failed"));
-		return;
-	}
-	
-	/*//Test
-	if (!IsValid(TestPlayerCharacterDataAsset))
-	{
-		UE_LOG(LogTemp, Error, TEXT("CreateBattleCharacters failed: TestPlayerCharacterDataAsset is null"));
-		return;
-	}
-
-	if (!IsValid(TestEnemyCharacterDataAsset))
-	{
-		UE_LOG(LogTemp, Error, TEXT("CreateBattleCharacters failed: TestEnemyCharacterDataAsset is null"));
-		return;
-	}
-	//Test*/
 	
 	
-	PlayerCharacterData->InitializeFromDataAsset(TestPlayerCharacterDataAsset);
 	
 	//Player BattleCharacter Spawn
-	PlayerBattleCharacter = World->SpawnActor<ABattleCharacterBase>(
+	PlayerBattleCharacter = World->SpawnActor<ABattleCharacter_Player>(
 		PlayerClass,
 		PlayerSpawnPoint->GetActorTransform()
 	);
 	
 	if (!PlayerBattleCharacter)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: PlayerBattleCharacter spawn failed"));
 		return;
 	}
 	
-	PlayerBattleCharacter->SetCharacterData(PlayerCharacterData);
+	PlayerBattleCharacter->CharacterDataAsset = TestPlayerCharacterDataAsset;
+	PlayerBattleCharacter->SetCharacterData(NewObject<UCharacterData_Player>(this));
 	
-	EnemyCharacterData = NewObject<UCharacterData_Enemy>(this);
-	if (!EnemyCharacterData)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: EnemyCharacterData create failed"));
-		return;
-	}
-	EnemyCharacterData->InitializeFromDataAsset(TestEnemyCharacterDataAsset);
+
 	
 	//Enemy BattleCharacter Spawn
 	EnemyBattleCharacter = World->SpawnActor<ABattleCharacter_Enemy>(
@@ -662,21 +323,14 @@ void ABattleManager::CreateCharacter()
 	
 	if (!EnemyBattleCharacter)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CreateBattleCharacters failed: EnemyBattleCharacter spawn failed"));
 		return;
 	}
-	EnemyBattleCharacter->SetCharacterData(EnemyCharacterData);
+	EnemyBattleCharacter->CharacterDataAsset = TestEnemyCharacterDataAsset;
+	EnemyBattleCharacter->SetCharacterData(NewObject<UCharacterData_Enemy>(this));
 	
 	BattleGridManager->MoveCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->MoveCharacter(EnemyBattleCharacter, StartEnemyPoint);
-	
-	/*UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("CreateBattleCharacters Success / Player=%s / Enemy=%s"),
-		*GetNameSafe(PlayerBattleCharacter),
-		*GetNameSafe(EnemyBattleCharacter)
-	);*/
+
 }
 
 void ABattleManager::OnHoveredGridTileChanged(ABattleGridTile* InChangeTile)
@@ -714,11 +368,7 @@ void ABattleManager::TargetGridCell(ABattleGridTile* TargetGrid)
 	CardEffectComponent->SelectTargetGrid(TargetGrid);
 }
 
-
-
-
 //공격 범위 계산 테스트 용도
-
 void ABattleManager::CalAttackRangeType(ABattleGridTile* TargetGrid)
 {
 	TArray<FIntPoint> TestTargetPoints = AttackRangeDataAsset->GetRangeCoords(BattleGridManager, TargetGrid->GetGridCoord(), AttackDir);
@@ -730,7 +380,237 @@ void ABattleManager::SetAttackDir()
 	AttackDir += 1;
 	if (AttackDir >= 6)AttackDir = 0;
 }
+//===========================================준비(Ready)================================================================
+//게임 실행 첫 프레임 이내로 끝남
+void ABattleManager::ReadyStart()
+{
+	//현재 Phase 설정 <- 나중에 없어질 수 있음
+	CurrentPhase = EBattlePhase::None;
+	
+	//컴포넌트 Init 설정
+	ComponentInit();
+	
+	BattleGridManager->AllClearGridHovered();
+	
+	
+	if (!BattleMainScreen){UE_LOG(LogTemp, Error, TEXT("Widget_BattleMainScreen is null (BattleManager.cpp)"));return;}
+	
+	BattleMainScreen->ReadyStart();
+}
 
+void ABattleManager::ReadyEnd()
+{
+	//BattleMainScreen의 ReadyEnd에서 넘어옴
+	//되었는지 확인하고 Battle 단계로 넘어가기
+	
+	//캐릭터 DataAsset -> 나중에는 이벤트 시작 시 받아오는 걸로
+	if (!TestPlayerCharacterDataAsset){UE_LOG(LogTemp, Error, TEXT("TestPlayerCharacterDataAsset is null (BattleManager)"));}
+	if (!TestEnemyCharacterDataAsset){UE_LOG(LogTemp, Error, TEXT("TestEnemyCharacterDataAsset is null (BattleManager)"));}
+	
+	
+	
+	//캐릭터 스폰
+	CreateCharacter();
+	
+	//Phase 넘기기
+	BattleStart();
+}
+
+void ABattleManager::ComponentInit()
+{
+	if (CardPreviewComponent)
+	{
+		CardPreviewComponent->InitializePreviewComponent(this, BattleGridManager);
+	}
+	if (CardEffectComponent)
+	{
+		CardEffectComponent->InitializePreviewComponent(this, BattleGridManager, CardPreviewComponent);
+	}
+}
+
+//==========================================전투(Battle)================================================================
+void ABattleManager::BattleStart()
+{
+	//Current Phase 설정
+	//BattleManager 델리게이트 <- 전투 시작 모션/ 기타 등등
+	ChangePhase(EBattlePhase::BattleStart);
+	
+	
+	//전투 시작 UI ex) 활협전의 한판붙자? UI 같은거
+	BattleMainScreen->BattleStart();
+}
+
+void ABattleManager::BattleEnd()
+{
+	//Current Phase 설정
+	//BattleManager 델리게이트 <- 전투 종료 모션/ 기타 등등
+	ChangePhase(EBattlePhase::BattleEnd);
+}
+//===============================================국(Round)==============================================================
+void ABattleManager::RoundStart()
+{
+	//N 국 표시 UI
+	BattleMainScreen->RoundStart();
+}
+
+void ABattleManager::RoundEnd()
+{
+	//N국 종료 UI 표시
+	
+	//
+}
+
+//===============================================합(Exchange)===========================================================
+//Battle 파이프라인 재정리 버전
+//전체 흐름은 BattleManager에서 전부 기능을 마친 후 BattleMainScreen에게 전달 후 대기
+//BattleMainScreen에서 기능(UI 관련)을 마친 후 BattleManager에게 다음으로 넘어가라고 통보하는 방식
+
+						/*
+						//합 시작	
+	
+						//1합 시작
+						//1합 종료
+	
+						//2합 시작
+						//2합 종료
+	
+						//3합 시작
+						//3합 종료
+	
+						//합 종료
+						*/
+
+//합 시작
+void ABattleManager::ExchangeStart()
+{
+	//핸드에 카드 배치
+	//합 시작 UI 표시 <- BattleMainScreen에게 전달
+	if (BattleMainScreen)
+	{
+		BattleMainScreen->ExchangeStart();
+	}else
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleMainScreen is nullptr"));
+	}
+}
+
+void ABattleManager::Exchange1Start()
+{
+	//1합 표시 카드 슬롯 활성화
+	//1합 시작 UI 표시 <- BattleMainScreen에게 전달
+	BattleMainScreen->Exchange1Start();
+}
+
+void ABattleManager::Exchange1End()
+{
+	//1합 카드 서로 공개<- BattleMainScreen에게 전달
+	//1합 카드 이동 방향 공개
+	//1합 종료 UI 표시 <- BattleMainScreen에게 전달
+	BattleMainScreen->Exchange1End();
+}
+
+void ABattleManager::Exchange2Start()
+{
+	//2합 시작 UI 표시 <- BattleMainScreen에게 전달
+	
+	BattleMainScreen->Exchange2Start();
+}
+
+void ABattleManager::Exchange2End()
+{
+	//1합 카드 이동 방향 비공개
+	
+	//2합 카드 서로 공개<- BattleMainScreen에게 전달
+	//2합 카드 이동 방향 공개
+	//2합 종료 UI 표시 <- BattleMainScreen에게 전달
+	
+	BattleMainScreen->Exchange2End();
+}
+
+void ABattleManager::Exchange3Start()
+{
+	//3합 시작 UI 표시 <- BattleMainScreen에게 전달
+	BattleMainScreen->Exchange3Start();
+}
+
+void ABattleManager::Exchange3End()
+{
+	//2합 카드 이동 방향 비공개
+	
+	//3합 카드 서로 공개<- BattleMainScreen에게 전달
+	//3합 카드 이동 방향 공개
+	//3합 종료 UI 표시<- BattleMainScreen에게 전달
+	
+	BattleMainScreen->Exchange3End();
+}
+
+void ABattleManager::ExchangeEnd()
+{
+	//3합 카드 이동 방향 비공개
+	
+	//합 종료 UI 표시<- BattleMainScreen에게 전달
+	
+	//합 UI 제거<- BattleMainScreen에게 전달
+	
+	BattleMainScreen->ExchangeEnd();
+}
+
+void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
+{
+	//합 도중 선택 카드 방향 정하기
+	if (!CardPreviewComponent)return;
+	if (!PlayerBattleCharacter)return;
+	
+	CardEffectComponent->CardEffectUpdate(PlayerBattleCharacter, ExchangeCard);
+}
+
+
+//===============================================공격(Attack)===========================================================
+//Battle 파이프라인 재정리 버전
+//전체 흐름은 BattleManager에서 전부 기능을 마친 후 BattleMainScreen에게 전달 후 대기
+//BattleMainScreen에서 기능(UI 관련)을 마친 후 BattleManager에게 다음으로 넘어가라고 통보하는 방식
+
+void ABattleManager::AttackStart()
+{
+	
+}
+
+void ABattleManager::Attack1Start()
+{
+	
+}
+
+void ABattleManager::Attack1End()
+{
+	
+}
+
+void ABattleManager::Attack2Start()
+{
+	
+}
+
+void ABattleManager::Attack2End()
+{
+	
+}
+
+void ABattleManager::Attack3Start()
+{
+	
+}
+
+void ABattleManager::Attack3End()
+{
+	
+}
+
+void ABattleManager::AttackEnd()
+{
+	
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 
 

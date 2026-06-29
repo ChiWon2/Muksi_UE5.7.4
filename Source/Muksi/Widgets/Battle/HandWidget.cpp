@@ -14,7 +14,6 @@
 #include "TimerManager.h"
 
 
-#include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 #include "MuksiDebugHelper.h"
@@ -384,6 +383,12 @@ FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber(int32 InIndex)
 	return ExchangeSlots[SlotIndex]->GetSlotData();
 }
 
+UMuksiBattleCardDataAsset* UHandWidget::GetExchangeDataIndex(int32 InIndex)
+{
+	FCardEquipSlotData Data = GetSlotDataByExchangeNumber(InIndex);
+	return Data.CardData;
+}
+
 void UHandWidget::ConfirmExchangeInput(int32 InIndex)
 {
 	if (InIndex >= 3)
@@ -519,6 +524,27 @@ void UHandWidget::EnableExchangeSlots(int32 InIndex)
 	//UE_LOG(LogTemp, Log, TEXT("StartExchangeInput: ExchangeNumber=%d, ActiveSlotIndex=%d"), ExchangeNumber, ActiveSlotIndex);
 }
 
+void UHandWidget::EnableExchangeSlot(int32 InIndex, bool bActive)
+{
+	const int32 ActiveSlotIndex = InIndex - 1;
+	
+	if (!ExchangeSlots.IsValidIndex(ActiveSlotIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput failed: invalid ExchangeNumber %d"), InIndex);
+		return;
+	}
+	
+	UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[ActiveSlotIndex];
+	if (!EquipSlot)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput skipped: ExchangeSlots[%d] is null"), ActiveSlotIndex);
+		return;
+	}
+	
+	EquipSlot->SetSlotEnabled(bActive);
+	EquipSlot->SetSlotHighlighted(bActive);
+}
+
 void UHandWidget::BindEndTurnButton()
 {
 	if (!Button_TurnEnd)
@@ -567,7 +593,7 @@ UWidget_CardEquipSlot* UHandWidget::GetSlotByExchangeNumber(int32 ExchangeNumber
 	return ExchangeSlots[SlotIndex];
 }
 
-void UHandWidget::BuildHandFromCharacterData(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets)
+void UHandWidget::BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets)
 {
 	if (BattleCardAssets.Num() == 0)
 	{

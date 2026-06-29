@@ -3,10 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Character/BattleCharacterBase.h"
+#include "Character/BattleCharacter_Enemy.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
 #include "BattleManager.generated.h"
 
+class ABattleCharacter_Player;
 class ABattleCharacter_Enemy;
 class UBattleCardEffectComponent;
 class ABattleCharacterBase;
@@ -19,6 +22,10 @@ class UBattleCardPreviewComponent;
 
 class ABattleGridTile;
 
+//리펙토링
+class UWidget_BattleMainScreen;
+
+
 //Test
 class UMuksiBattleCardDataAsset;
 class UMuksiCardRangeDataAsset;
@@ -30,11 +37,14 @@ enum class EBattlePhase : uint8
 	Ready		UMETA(DisplayName = "Ready"),	// (플레이어, 적 소환)
 												// (플레이어 카드 소환)
 												// (적 카드 설정)
-	Battle		UMETA(DisplayName = "Battle"),
-	Round		UMETA(DisplayName = "Round"),
-	Exchange	UMETA(DisplayName = "Exchange"),
-	Attack		UMETA(DisplayName = "Attack"),
-	BattleEnd	UMETA(DisplayName = "Battle End")
+	BattleStart		UMETA(DisplayName = "Battle Start"),
+	RoundStart		UMETA(DisplayName = "Round Start"),
+	RoundEnd		UMETA(DisplayName = "Round End"),
+	ExchangeStart	UMETA(DisplayName = "Exchange Start"),
+	ExchangeEnd		UMETA(DisplayName = "Exchange End"),
+	AttackStart		UMETA(DisplayName = "Attack Start"),
+	AttackEnd		UMETA(DisplayName = "Attack End"),
+	BattleEnd		UMETA(DisplayName = "Battle End")
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
@@ -110,44 +120,8 @@ public:
 	// =========================
 	// Battle Flow
 	// =========================
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void StartBattle();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void StartRound();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void StartExchange();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void EndExchange();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void StartAttack();
 	
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void AttackActive();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void EndAttack();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void EndRound();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void EndBattle();
-
-	// UI 버튼에서 호출할 함수
-	UFUNCTION(BlueprintCallable, Category = "Battle|Request")
-	void RequestEndExchange();
-
-	// 공격 연출 끝났을 때 BattleMainScreen에서 호출할 함수
-	UFUNCTION(BlueprintCallable, Category = "Battle|Request")
-	void NotifyAttackPresentationFinished();
-
-	UFUNCTION(BlueprintPure, Category = "Battle")
-	EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
+	
 
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	int32 GetCurrentRound() const { return CurrentRound; }
@@ -162,7 +136,7 @@ public:
 	bool IsBattleStarted() const { return bBattleStarted; }
 
 protected:
-	void SetPhase(EBattlePhase NewPhase);
+	
 
 	// 나중에 전투 종료 조건을 여기서 판단
 	bool ShouldEndBattle() const;
@@ -170,10 +144,7 @@ protected:
 	// 나중에 합/공격 계산을 넣을 위치
 	void ResolveCurrentExchange();
 	void ResolveCurrentAttack();
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
-	EBattlePhase CurrentPhase = EBattlePhase::None;
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
 	int32 CurrentRound = 0;
@@ -244,32 +215,9 @@ public:
 		UCharacterDataBase* SourceCharacter,
 		UCharacterDataBase* TargetCharacter
 	);
-	
-	//Notify
+
+
 public:
-	UFUNCTION(BlueprintCallable, Category = "Battle|Event")
-	void NotifyBattleReadyFinished();
-	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
-	void NotifyBattleStartFinished();
-	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
-	void NotifyRoundReadyFinished();
-	
-	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
-	void NotifyRoundFinished();
-	
-	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
-	void NotifyAttackReadyFinish();
-public:
-	//Start Battle Ready Check
-	UFUNCTION(BlueprintCallable, Category = "Battle|Check")
-	void SettingBattleManager_();
-	
-	
-	
-	
-	//*****Ready Battle Settings
-	
-	//- HandWidget Ready
 	bool bHandWidgetReady = false;
 	
 	
@@ -281,18 +229,6 @@ public:
 	TObjectPtr<UBattleCardPreviewComponent> CardPreviewComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Battle|CardEffectCal")
 	TObjectPtr<UBattleCardEffectComponent> CardEffectComponent;
-	
-public:
-	UFUNCTION(BlueprintPure, Category = "Battle|Data")
-	UMuksiCharacterDataAsset* GetPlayerCharacterDataAsset() const{return TestPlayerCharacterDataAsset;}
-	
-	UFUNCTION(BlueprintPure, Category = "Battle|Data")
-	UMuksiCharacterDataAsset* GetEnemyCharacterDataAsset()const{return TestEnemyCharacterDataAsset;}
-	
-	
-	
-	UFUNCTION(BlueprintCallable, Category = "Battle|Event")
-	void StartBattlePhase();
 	
 	UPROPERTY(EditAnywhere, Category = "Battle|Test")
 	TObjectPtr<UMuksiBattleCardDataAsset> TestBattleCardDataAsset = nullptr;
@@ -309,52 +245,29 @@ protected:
 	
 	//월드 레벨 오브젝트 관리
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
-	TObjectPtr<ATargetPoint> PlayerSpawnPoint = nullptr;
+
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
-	TObjectPtr<ATargetPoint> EnemySpawnPoint = nullptr;
+	/*TObjectPtr<UCharacterDataBase> GetPlayerCharacterData(){return PlayerBattleCharacter->GetCharacterData();};
+	TObjectPtr<UCharacterDataBase> GetEnemyCharacterData(){return EnemyBattleCharacter->GetCharacterData();};*/
 	
-	TObjectPtr<UCharacterDataBase> GetPlayerCharacterData(){return PlayerCharacterData;};
-	TObjectPtr<UCharacterDataBase> GetEnemyCharacterData(){return EnemyCharacterData;};
 	
-	TObjectPtr<ABattleCharacterBase> GetPlayerBattleCharacter(){return PlayerBattleCharacter;}
-	TObjectPtr<ABattleCharacter_Enemy> GetEnemyBattleCharacter(){return EnemyBattleCharacter;}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	TObjectPtr<ABattleGridManager> BattleGridManager;
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
-	TObjectPtr<ABattleCharacterBase> PlayerBattleCharacter  = nullptr;
+	TObjectPtr<ABattleCharacter_Player> PlayerBattleCharacter  = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter   = nullptr;
 	
 	//아래 데이터는 테스트 용도로 넣는 데이터 에셋
 	//원래 기획대로라면 다른 곳에서 생성 후 받는 형식
 	
-	//Player Character Data Asset <- 테스트 용도 (원래 계획은 원래 월드의 플레이어 정보를 토대로 생성하는 데이터)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Test Data")
-	TObjectPtr<UMuksiCharacterDataAsset> TestPlayerCharacterDataAsset = nullptr;
-	
-	// Enemy Character Data Asset <- 원래 용도는 다른 이벤트에서 받아오는 데이터 에셋
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Test Data")
-	TObjectPtr<UMuksiCharacterDataAsset> TestEnemyCharacterDataAsset = nullptr;
-	
-	
-	//위의 데이터 에셋을 기반으로 생성되는 캐릭터 데이터(플레이어)
-	UPROPERTY()
-	TObjectPtr<UCharacterDataBase> PlayerCharacterData = nullptr;
 
-	//위의 데이터 에셋을 기반으로 생성되는 캐릭터 데이터(적)
-	UPROPERTY()
-	TObjectPtr<UCharacterDataBase> EnemyCharacterData = nullptr;
 	
-	UPROPERTY(EditAnywhere, Category = "Grid|Character")
-	FIntPoint StartPlayerPoint = FIntPoint(0,0);
 	
-	UPROPERTY(EditAnywhere, Category = "Grid|Character")
-	FIntPoint StartEnemyPoint = FIntPoint(4,4);
+	
 	
 	//Battle 실행 관련 캐릭터 이동
 public:
@@ -386,4 +299,143 @@ public:
 	UPROPERTY()
 	int32 AttackDir = 0;
 	void SetAttackDir();
+	//=========================================GetSet====================================================================
+public:
+	TObjectPtr<ABattleCharacter_Player> GetPlayerBattleCharacter(){return PlayerBattleCharacter;}
+	TObjectPtr<ABattleCharacter_Enemy> GetEnemyBattleCharacter(){return EnemyBattleCharacter;}
+	
+	UFUNCTION(BlueprintPure, Category = "Battle|Data")
+	UMuksiCharacterDataAsset* GetPlayerCharacterDataAsset() const{return TestPlayerCharacterDataAsset;}
+	
+	UFUNCTION(BlueprintPure, Category = "Battle|Data")
+	UMuksiCharacterDataAsset* GetEnemyCharacterDataAsset()const{return TestEnemyCharacterDataAsset;}
+	
+	UFUNCTION(BlueprintPure, Category = "Battle")
+	EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
+	void SetPhase(EBattlePhase NewPhase);
+	
+	void ChangePhase(EBattlePhase NewPhase);
+	
+	void SetBattleMainScreen(TObjectPtr<UWidget_BattleMainScreen> BattleWidget){BattleMainScreen = BattleWidget;};
+	//==================================================================================================================
+	
+	//전투 파이프라인 관련
+	//Ready <- 필요한 포인터 정보 등등 받는 단계 (첫 1프레임 이내)
+	//Battle 전투<- 실질적 작동 플레이어가 전투를 하는 단계(첫 1프레임 이후 이 레벨 끝날 때까지)
+	//Round 국<- 3번의 합/ 3번의 공격을 한 묶음으로 정의하는 의미
+	//Exchange 합 <- Battle Card를 제시하고 방향 설정 까지의 단계. 3번 반복 한다. 플레이어 조작이 들어가는 단계
+	//Attack 공격 <- Exchange 때 제시한 카드/방향을 실행하는 단계. 캐릭터의 스탯 계산 위주로 실행
+		/*
+		 * 1. 캐릭터의 속도 값 계산
+		 * 2. 더 빠른 캐릭터의 카드 먼저 실행
+		 * 3. 그 이후 상대 캐릭터 카드 실행
+		 * 4. 3번 반복 이후 국 종료 다음 국 실행
+		 */
+	//=============================================Ready 단계 관련(저장/소환하는 정보)===============================================================
+	//전체 순서
+	//BattleManager->ReadyStart() >>> Widget_BattleMainScreen->ReadyStart() >>> Widget_BattleMainScreen->ReadyEnd() >>> BattleManager->ReadyEnd()
+public:
+	void ReadyStart();
+	void ReadyEnd();
+	
+protected:
+	void ComponentInit();
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
+	TObjectPtr<ATargetPoint> PlayerSpawnPoint = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
+	TObjectPtr<ATargetPoint> EnemySpawnPoint = nullptr;
+	
+protected:
+	UPROPERTY()
+	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
+	EBattlePhase CurrentPhase = EBattlePhase::None;
+	
+	//Player Character Data Asset <- 테스트 용도 (원래 계획은 원래 월드의 플레이어 정보를 토대로 생성하는 데이터)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Test Data")
+	TObjectPtr<UMuksiCharacterDataAsset> TestPlayerCharacterDataAsset = nullptr;
+	
+	// Enemy Character Data Asset <- 원래 용도는 다른 이벤트에서 받아오는 데이터 에셋
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Test Data")
+	TObjectPtr<UMuksiCharacterDataAsset> TestEnemyCharacterDataAsset = nullptr;
+	
+	UPROPERTY(EditAnywhere, Category = "Grid|Character")
+	FIntPoint StartPlayerPoint = FIntPoint(0,0);
+	
+	UPROPERTY(EditAnywhere, Category = "Grid|Character")
+	FIntPoint StartEnemyPoint = FIntPoint(4,4);
+	
+	
+	//=============================================Battle 단계 관련===============================================================
+public:
+	void BattleStart();//별거 없음. UI표시만 나타날 예정 ex)활협전의 한판 붙자. 딱 이 UI 뜨는 순간의 단계
+	void BattleEnd();//레벨 종료
+	
+	//=============================================국 관련===============================================================
+	//--------------------------------Battle 관련 턴 흐름 관리 함수 <국>--------------------------------------------------
+	//국 시작	Round 시작
+public:
+	void RoundStart();
+	
+	void RoundEnd();
+protected:
+	int32 RoundCount = 0;
+	
+	//===============================================합 관련 ===========================================================
+	//---------------------------------Battle 관련 턴 흐름 관리 함수 <합>--------------------------------------------------
+	//합 시작	Exchange 시작
+	
+	//1합 시작
+	//1합 종료
+	
+	//2합 시작
+	//2합 종료
+	
+	//3합 시작
+	//3합 종료
+	
+	//합 종료
+	
+public:
+	void ExchangeStart();
+	
+	void Exchange1Start();
+	void Exchange1End();
+	
+	void Exchange2Start();
+	void Exchange2End();
+	
+	void Exchange3Start();
+	void Exchange3End();
+	
+	void ExchangeEnd();
+	
+	
+	
+	//합 도중 쓰는 함수
+public:
+	//합 도중 선택 된 카드 방향 정하기
+	void ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard);
+	//==================================================================================================================
+	
+	//===============================================공격 관련 ===========================================================
+	//---------------------------------Battle 관련 턴 흐름 관리 함수 <공격>--------------------------------------------------
+public:
+	void AttackStart();
+	
+	void Attack1Start();
+	void Attack1End();
+	
+	void Attack2Start();
+	void Attack2End();
+	
+	void Attack3Start();
+	void Attack3End();
+	
+	void AttackEnd();
+	
 };

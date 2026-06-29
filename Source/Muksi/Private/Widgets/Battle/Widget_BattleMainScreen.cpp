@@ -13,6 +13,7 @@
 
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
@@ -20,19 +21,33 @@ void UWidget_BattleMainScreen::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	BindBattleManagerEvents();
+	
+	
+	
+	
+	//아래에 있는 것들 다 제거 예정(다 바뀔거임)
+	//BindBattleManagerEvents();
 	BindHandWidgetEvents();
+	
+	CachedBattleManager = Cast<ABattleManager>(
+		UGameplayStatics::GetActorOfClass(
+			GetWorld(),
+			ABattleManager::StaticClass()
+		)
+	);
+	
 	EquipBattleCardArray.SetNum(3);
 	if (HandWidget)HandWidget->BattleMainScreen = this;
-
+	CachedBattleManager->SetBattleMainScreen(this);
+	CachedBattleManager->ReadyStart();
 	
-	CachedBattleManager->StartBattle();
+	
+	/*CachedBattleManager->StartBattle();*/
 }
 
 void UWidget_BattleMainScreen::NativeDestruct()
 {
 	UnbindHandWidgetEvents();
-	UnbindBattleManagerEvents();
 	
 	Super::NativeDestruct();
 }
@@ -59,292 +74,7 @@ void UWidget_BattleMainScreen::NativeOnActivated()
 	}*/
 }
 
-void UWidget_BattleMainScreen::BindBattleManagerEvents()
-{
-	CachedBattleManager = Cast<ABattleManager>(
-		UGameplayStatics::GetActorOfClass(
-			GetWorld(),
-			ABattleManager::StaticClass()
-		)
-	);
 
-	if (!CachedBattleManager)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: BattleManager not found"));
-		return;
-	}
-
-	// BattleManager 이벤트 바인딩
-	// 중복 되는 경우 방지하기 위해 Remove 한 이후 바인딩
-
-	//BattleReady 이벤트 (위젯 준비)
-	CachedBattleManager->OnBattleReady.RemoveDynamic(
-	this,
-	&UWidget_BattleMainScreen::HandleBattleReady
-);
-	
-	CachedBattleManager->OnBattleReady.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleBattleReady
-	);
-	
-	//BattleStarted 이벤트
-	CachedBattleManager->OnBattleStarted.RemoveDynamic(
-	this,
-	&UWidget_BattleMainScreen::HandleBattleStarted
-);
-
-	CachedBattleManager->OnBattleStarted.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleBattleStarted
-	);
-	
-	
-	//BattlePhase 변경시 이벤트 <- 안 쓸듯
-	CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleBattlePhaseChanged
-	);
-
-	CachedBattleManager->OnBattlePhaseChanged.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleBattlePhaseChanged
-	);
-	
-	//국 시작 시 이벤트
-	CachedBattleManager->OnRoundStarted.RemoveDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleRoundStarted
-	);
-	
-	CachedBattleManager->OnRoundStarted.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleRoundStarted
-	);
-	
-	//합 시작 시 이벤트
-	CachedBattleManager->OnExchangeStarted.RemoveDynamic(
-	this,
-	&UWidget_BattleMainScreen::HandleExchangedStarted
-	);
-
-	CachedBattleManager->OnExchangeStarted.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleExchangedStarted
-	);
-	
-	//공격 시작 시 이벤트
-	CachedBattleManager->OnAttackStarted.RemoveDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleAttackStarted
-	);
-	
-	CachedBattleManager->OnAttackStarted.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleAttackStarted
-	);
-	
-	CachedBattleManager->OnAttack.RemoveDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleAttackCoundData
-	);
-	
-	CachedBattleManager->OnAttack.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleAttackCoundData
-	);
-
-	// 이벤트를 놓쳤을 수도 있으니 현재 페이즈와 UI를 즉시 동기화
-	HandleBattlePhaseChanged(CachedBattleManager->GetCurrentPhase());
-}
-
-void UWidget_BattleMainScreen::UnbindBattleManagerEvents()
-{
-	if (!CachedBattleManager)
-	{
-		return;
-	}
-	
-	//BattleStarted 시 이벤트 UnBind
-	CachedBattleManager->OnBattleStarted.RemoveDynamic(
-	this,
-	&UWidget_BattleMainScreen::HandleBattleStarted
-);
-
-	//BattlePhase 변경 시 이벤트 UnBind <- 안 쓸듯
-	CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleBattlePhaseChanged
-	);
-
-	CachedBattleManager = nullptr;
-}
-
-void UWidget_BattleMainScreen::HandleBattlePhaseChanged(EBattlePhase NewPhase)
-{
-	/*switch (NewPhase)
-	{
-	case EBattlePhase::BattleStart:
-		UE_LOG(LogTemp, Log, TEXT("UI: BattleStart"));
-		break;
-
-	case EBattlePhase::PlayerTurnStart:
-		UE_LOG(LogTemp, Log, TEXT("UI: PlayerTurnStart"));
-		break;
-
-	case EBattlePhase::WaitingForCard:
-		UE_LOG(LogTemp, Log, TEXT("UI: 카드를 선택하세요"));
-		// ShowPhaseText(TEXT("카드를 선택하세요"));
-		// SetHandEnabled(true);
-		// ShowTargetGuide(false);
-		break;
-
-	case EBattlePhase::WaitingForTarget:
-		UE_LOG(LogTemp, Log, TEXT("UI: 대상을 선택하세요"));
-		// ShowPhaseText(TEXT("대상을 선택하세요"));
-		// SetHandEnabled(false);
-		// ShowTargetGuide(true);
-		break;
-
-	case EBattlePhase::ResolvingCard:
-		UE_LOG(LogTemp, Log, TEXT("UI: 카드 처리 중"));
-		// SetHandEnabled(false);
-		break;
-
-	case EBattlePhase::EnemyTurn:
-		UE_LOG(LogTemp, Log, TEXT("UI: 적 턴"));
-		// ShowPhaseText(TEXT("적 턴"));
-		// SetHandEnabled(false);
-		// ShowTargetGuide(false);
-		break;
-
-	case EBattlePhase::BattleEnd:
-		UE_LOG(LogTemp, Log, TEXT("UI: 전투 종료"));
-		// PushBattleResultWidget();
-		break;
-
-	default:
-		break;
-	}*/
-}
-
-
-
-void UWidget_BattleMainScreen::HandleExchangedStarted_(int32 ExchangeNumber)
-{
-	UE_LOG(LogTemp, Error, TEXT("ExchangeNumber %d"), ExchangeNumber);
-	if (ExchangeNumber == 1)
-	{
-		HandWidget->BuildHandFromCharacterData(PlayerBattleCharacter->GetCharacterDeck());
-		/*UE_LOG(LogTemp, Log, TEXT("Exchange Test"));
-		return;*/
-		EnemySelectBattleCard.Empty();
-		HandWidget->StartExchangeInput(ExchangeNumber);
-		HandWidget->ClearEnemySelectCard();
-	}
-	
-	if (!HandWidget)
-	{
-		return;
-	}
-
-	FText DisplayText = FText::FromString(
-		FString::Printf(TEXT("%d 합 시작!!"), ExchangeNumber)
-	);
-
-	HandWidget->ActiveInkLine(DisplayText, 3.f);
-	
-	HandWidget->EnableExchangeSlots(ExchangeNumber);
-	
-	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
-	
-	UE_LOG(LogTemp,Error, TEXT("Enemy Select Card is %s"), *EnemySelectBattleCard[ExchangeNumber - 1]->GetName());
-	//HandWidget->ShowTurnEndButton(true);
-}
-
-void UWidget_BattleMainScreen::HandleRoundStarted()
-{
-	//TODO Round 시작 UI 옵션
-	CachedBattleManager->NotifyRoundReadyFinished();
-}
-
-void UWidget_BattleMainScreen::HandleExchangedStarted()
-{
-	//합 종료까지 BattleManager와 통신 없음 
-	//1합 2합 3합 전부 여기서 처리
-	//TODO 턴 종료 버튼 활성화
-	HandWidget->ShowTurnEndButton(true);
-	
-	//TODO 합 시작 UI 표시
-	//CachedBattleManager->GetCurrentRound();
-	
-	//TODO 합 전용 카드 칸 활성화
-	//UE_LOG(LogTemp, Log, TEXT("Handle ExchangedStart_ Test round %d"), CachedBattleManager->GetCurrentExchange());
-	HandleExchangedStarted_(CachedBattleManager->GetCurrentExchange());
-}
-
-void UWidget_BattleMainScreen::HandleAttackStarted()
-{
-	//TODO Attack 관련 UI
-	CachedBattleManager->NotifyAttackReadyFinish();
-}
-
-void UWidget_BattleMainScreen::HandleAttackCoundData(int32 AttackNumber)
-{
-	CachedBattleManager->AttackBattleCardDataAsset = EquipBattleCardArray[AttackNumber-1];
-	//TODO 공격 시작 UI 시스템
-	
-	
-	CachedBattleManager->AttackActive();
-}
-
-void UWidget_BattleMainScreen::HandleTurnEnd()
-{
-	if (CachedBattleManager)
-	{
-		if (CanRequestEndExchange())
-		{
-			FinishCurrentExchange();
-		}
-	}
-	
-}
-
-void UWidget_BattleMainScreen::FinishCurrentExchange()
-{
-	if (!CachedBattleManager || !HandWidget)
-	{
-		return;
-	}
-
-	if (CachedBattleManager->GetCurrentPhase() != EBattlePhase::Exchange)
-	{
-		return;
-	}
-	
-	CurrentExchange += 1;
-	if (CurrentExchange >= 3)
-	{
-		HandWidget->ConfirmExchangeInput(CurrentExchange);
-		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1]);
-		CachedBattleManager->RequestEndExchange();
-	}else
-	{
-		HandWidget->ConfirmExchangeInput(CurrentExchange);
-		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1]);
-		HandleExchangedStarted_(CurrentExchange + 1);
-	}
-	
-	UE_LOG(LogTemp, Log, TEXT("CurrentExchange Test %d"), CurrentExchange);
-	/*const int32 ExchangeNumber = CachedBattleManager->GetCurrentExchange();
-
-	FCardEquipSlotData SlotData =
-		HandWidget->GetSlotDataByExchangeNumber(ExchangeNumber);*/
-
-	
-
-	//
-}
 
 void UWidget_BattleMainScreen::BindHandWidgetEvents()
 {
@@ -357,12 +87,12 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 	// 중복 바인딩 방지
 	HandWidget->OnEndTurnRequested.RemoveDynamic(
 		this,
-		&UWidget_BattleMainScreen::HandleTurnEnd
+		&UWidget_BattleMainScreen::HandleCardSelect
 	);
 
 	HandWidget->OnEndTurnRequested.AddDynamic(
 		this,
-		&UWidget_BattleMainScreen::HandleTurnEnd
+		&UWidget_BattleMainScreen::HandleCardSelect
 	);
 }
 
@@ -375,7 +105,7 @@ void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
 
 	HandWidget->OnEndTurnRequested.RemoveDynamic(
 		this,
-		&UWidget_BattleMainScreen::HandleTurnEnd
+		&UWidget_BattleMainScreen::HandleCardSelect
 	);
 }
 
@@ -383,127 +113,446 @@ bool UWidget_BattleMainScreen::CanRequestEndExchange()
 {
 	if (!CachedBattleManager)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: BattleManager is null"));
 		return false;
 	}
 
 	if (!HandWidget)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: HandWidget is null"));
 		return false;
 	}
 
 	if (!CachedBattleManager->IsBattleStarted())
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("CanRequestEndExchange failed: battle is not started"));
 		return false;
 	}
 
-	if (CachedBattleManager->GetCurrentPhase() != EBattlePhase::Exchange)
-	{
-		/*UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("CanRequestEndExchange failed: CurrentPhase is not Exchange")
-		);*/
-		return false;
-	}
+
 
 	const int32 ExchangeNumber = CachedBattleManager->GetCurrentExchange();
 
 	if (ExchangeNumber < 1 || ExchangeNumber > 3)
 	{
-		/*UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("CanRequestEndExchange failed: invalid ExchangeNumber %d"),
-			ExchangeNumber
-		);*/
 		return false;
 	}
 
 	return true;
 }
 
-void UWidget_BattleMainScreen::HandleBattleReady()
+//메인 택스트 블록 출력 <- 나중에 새로운 메인 Text block 필요
+void UWidget_BattleMainScreen::DisplayMainTextBlock(FText Text, float Time)
 {
-	//Battle Ready 시점 처리
-	/*UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleReady"));
-	if (!CachedBattleManager)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: CachedBattleManager is null"));
-		return;
-	}
-
-	
-	UMuksiCharacterDataAsset* PlayerData =
-		CachedBattleManager->GetPlayerCharacterDataAsset();
-		*/
-	
-	
-	
-	//return;
-	//UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleReady"));
-
-	if (!CachedBattleManager)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: CachedBattleManager is null"));
-		return;
-	}
-
-	if (!HandWidget)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady failed: HandWidget is null"));
-		return;
-	}
-
-	HandWidget->InitializeExchangeSlots();
-	HandWidget->ShowTurnEndButton(false);
-	PlayerBattleCharacter = CachedBattleManager->GetPlayerCharacterData();
-	
-	//UE_LOG(LogTemp, Warning, TEXT("HandleBattleReady successfully"));
-	CachedBattleManager->NotifyBattleReadyFinished();
-
+	HandWidget->ActiveInkLine(Text, Time);
 }
-
-void UWidget_BattleMainScreen::HandleBattleStarted()
+//합 시작 텍스트 알람
+void UWidget_BattleMainScreen::DisplayExchangeAlarm()
 {
-	//BattleStart 시점 처리 
-	UE_LOG(LogTemp, Log, TEXT("BattleMainScreen: HandleBattleStarted"));
-
-	if (!CachedBattleManager)
+	
+	FText ExchangeText = FText::FromString(DisplayExchangeText);
+	DisplayMainTextBlock(ExchangeText, 3.f);
+}
+//현재 몇 합 인지 출력하는 텍스트 알람
+void UWidget_BattleMainScreen::DisplayExchangeCountAlarm(int32 ExchangeCount, bool bStart)
+{
+	FText DisplayText;
+	if (bStart)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: CachedBattleManager is null"));
-		return;
-	}
-
-	PlayerDataAsset =
-		CachedBattleManager->GetPlayerCharacterDataAsset();
-	
-	
-	if (!PlayerDataAsset)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: PlayerData is null"));
-		return;
-	}
-	
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("HandleBattleStarted PlayerData: %s"),
-		*GetNameSafe(PlayerDataAsset)
+		DisplayText = FText::FromString(
+		FString::Printf(TEXT("%d 합 시작!!"), ExchangeCount)
 	);
-	
-	if (!HandWidget)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("HandleBattleStarted failed: HandWidget is null"));
-		return;
 	}
+	else
+	{
+		DisplayText = FText::FromString(
+		FString::Printf(TEXT("%d 합 종료!!"), ExchangeCount));
+	}
+	DisplayMainTextBlock(DisplayText, 3.f);
+}
 
+void UWidget_BattleMainScreen::ChangePhase(EBattlePhase NewPhase)
+{
+	//각 델리게이트 호출하는 형식 
+	//위젯에 있는 오브젝트의 델리게이트 호출 (레벨은 BattleManager에서)
 	
-	CachedBattleManager->NotifyBattleStartFinished();
+	//시작
+	switch(NewPhase)
+	{
+	case EBattlePhase::None:
+		break;
+	case EBattlePhase::BattleStart:
+		//전투 시작 이벤트
+		break;
+	case EBattlePhase::RoundStart:
+		//국 시작 이벤트
+		break;
+	case EBattlePhase::ExchangeStart:
+		//합 시작 이벤트
+		break;
+	case EBattlePhase::AttackStart: 
+		//공격 시작 이벤트
+		break;
+	default: //있으면 안됨
+		break;
+	}
+	
+	//종료
+	switch(NewPhase)
+	{
+	case EBattlePhase::None:
+		break;
+	case EBattlePhase::BattleEnd:
+		//전투 종료 이벤트 <- 레벨 종료
+		break;
+	case EBattlePhase::RoundEnd:
+		//국 시작 이벤트
+		break;
+	case EBattlePhase::ExchangeEnd:
+		//합 시작 이벤트
+		break;
+	case EBattlePhase::AttackEnd: 
+		//공격 시작 이벤트
+		break;
+	default: //있으면 안됨
+		break;
+	}
+}
+
+void UWidget_BattleMainScreen::ReadyStart()
+{
+	//UI 받아올 거 설정
+	
+	
+	//BattleCharacter 받아오기
+	PlayerBattleCharacter = CachedBattleManager->GetPlayerBattleCharacter();
+	EnemyBattleCharacter = CachedBattleManager->GetEnemyBattleCharacter();
+	
+	UE_LOG(LogTemp, Error, TEXT("Ready Test"));
+	ReadyEnd();
+}
+
+void UWidget_BattleMainScreen::ReadyEnd()
+{
+	//최종 확인 후 BattleManager에 통보
+	CachedBattleManager->ReadyEnd();
+}
+
+void UWidget_BattleMainScreen::SetBattleManager()
+{
+	CachedBattleManager->SetBattleMainScreen(this);
+}
+
+
+//==========================================전투 시작(Battle)============================================================
+void UWidget_BattleMainScreen::BattleStart()
+{
+	UE_LOG(LogTemp, Log, TEXT("BattleStart (Widget_BattleMainScreen)"));
+	//전투 시작 UI 표시
+	DisplayMainTextBlock(FText::FromString(BattleStartText), 3.f);
+	
+	//일단 바로 합 시작 <- 나중 UI 연출 같은거 있으면 그 연출에 HandleBattleStartFinish()를 호출하고 거기서 CachedBattleManager->RoundStart()하는 느낌으로
+	CachedBattleManager->RoundStart();
+}
+
+void UWidget_BattleMainScreen::BattleEnd()
+{
+	UE_LOG(LogTemp, Log, TEXT("BattleEnd (Widget_BattleMainScreen)"));
+}
+
+void UWidget_BattleMainScreen::HandleBattleStartFinish()
+{
+	CachedBattleManager->RoundStart();
+}
+
+void UWidget_BattleMainScreen::HandleBattleEndFinish()
+{
 	
 }
 
+//=========================================국 시작(Round)================================================================
+void UWidget_BattleMainScreen::RoundStart()
+{
+	UE_LOG(LogTemp, Log, TEXT("RoundStart (Widget_BattleMainScreen)"));
+	RoundCound += 1;
+	DisplayMainTextBlock(FText::FromString(FString::Printf(TEXT("%d %s"),RoundCound, *RoundStartText)), 3.f);
+	
+	//일단 다음으로 넘김
+	HandleRoundStartFinish();
+}
+
+void UWidget_BattleMainScreen::HandleRoundStartFinish()
+{
+	CachedBattleManager->ExchangeStart();
+}
+
+void UWidget_BattleMainScreen::RoundEnd()
+{
+	UE_LOG(LogTemp, Log, TEXT("RoundEnd (Widget_BattleMainScreen)"));
+}
+
+void UWidget_BattleMainScreen::HandleRoundEndFinish()
+{
+	
+}
+
+//------------------------------------------합 시작(Exchange)------------------------------------------------------------
+void UWidget_BattleMainScreen::ExchangeStart()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exchange Start (Widget_BattleMainScreen)"));
+	//null 체크
+	if (!HandWidget){return;}
+	if (!PlayerBattleCharacter)
+	{
+		PlayerBattleCharacter = CachedBattleManager->GetPlayerBattleCharacter();
+		EnemyBattleCharacter = CachedBattleManager->GetEnemyBattleCharacter();
+		if (!PlayerBattleCharacter)return;
+		if (!EnemyBattleCharacter)return;
+	}
+	
+	
+	//Exchange Index 값 초기화
+	CurrentExchange = 1;
+	//핸드에 카드 배치
+	HandWidget->BuildHandFromCharacter(PlayerBattleCharacter->GetCurrentBattleDeck());
+	//합 시작 UI 표시
+	DisplayExchangeAlarm();
+	//턴 종료 버튼 활성화
+	HandWidget->ShowTurnEndButton(true);
+	//임시로 만든 Vertical Box에 있는 Enemy 선택 카드 이미지 지우기
+	HandWidget->ClearEnemySelectCard();
+	//적 선택 카드 Array 비우기
+	EnemySelectBattleCard.Empty();
+	
+	
+	//일단 다음으로 넘기기
+	HandleExchangeStartFinish();
+}
+
+void UWidget_BattleMainScreen::HandleExchangeStartFinish()
+{
+	HandleExchangeCount--;
+	if (HandleExchangeCount > 0)
+	{
+		return;
+	}
+	CachedBattleManager->Exchange1Start();
+}
+
+void UWidget_BattleMainScreen::Exchange1Start()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exchange 1 Start (Widget_BattleMainScreen)"));
+	//1합 UI 표시
+	DisplayExchangeCountAlarm(1, true);
+	//1합 카드 제시 칸 활성화
+	HandleExchangeSlot(1, true);
+	//합 종료 버튼을 눌렀을 경우 해당 카드의 효과(이동/공격)방향 제시 
+	
+}
+
+void UWidget_BattleMainScreen::Exchange1End()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exchange 1 End (Widget_BattleMainScreen)"));
+	HandleExchangeCount = 0;
+	//1합 종료 UI 표시
+	DisplayExchangeCountAlarm(1, false);
+	//1합 카드 제시 칸 비활성화
+	HandleExchangeSlot(1, false);
+	//1합 상대방 카드 표기
+}
+
+void UWidget_BattleMainScreen::HandleExchange1EndFinish()
+{
+	HandleExchangeCount--;
+	if (HandleExchangeCount > 0)
+	{
+		return;
+	}
+	CachedBattleManager->Exchange2Start();
+}
+
+void UWidget_BattleMainScreen::Exchange2Start()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exchange 2 Start (Widget_BattleMainScreen)"));
+	HandleExchangeCount = 0;
+	//2합 시작 UI 표시
+	DisplayExchangeCountAlarm(2, true);
+	HandleExchangeSlot(2, true);
+	//2합 카드 제시 칸 활성화
+	
+	//합 종료 버튼을 눌렀을 경우 해당 카드의 효과(이동/공격)방향 제시 
+}
+
+void UWidget_BattleMainScreen::Exchange2End()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exchange 2 End (Widget_BattleMainScreen)"));
+	HandleExchangeCount = 0;
+	//1합 공격 표시 그리드 효과 제거
+	
+	//2합 종료 UI 표시
+	DisplayExchangeCountAlarm(2, false);
+	//2합 카드 제시 칸 비활성화
+	HandleExchangeSlot(2, false);
+	//2합 상대방 카드 그리드 표기
+}
+
+void UWidget_BattleMainScreen::HandleExchange2EndFinish()
+{
+	HandleExchangeCount--;
+	if (HandleExchangeCount > 0)
+	{
+		return;
+	}
+	CachedBattleManager->Exchange3Start();
+}
+
+void UWidget_BattleMainScreen::Exchange3Start()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exchange 3 Start (Widget_BattleMainScreen)"));
+	HandleExchangeCount = 0;
+	//3합 시작 UI 표시
+	DisplayExchangeCountAlarm(3, true);
+	
+	//3합 카드 제시 칸 활성화
+	HandleExchangeSlot(3, true);
+	//합 종료 버튼을 눌렀을 경우 해당 카드의 효과(이동/공격)방향 제시 
+}
+
+void UWidget_BattleMainScreen::Exchange3End()
+{
+	UE_LOG(LogTemp, Log, TEXT("Exchange 3 End (Widget_BattleMainScreen)"));
+	HandleExchangeCount = 0;
+	//2합 공격 표시 효과 그리드 제거
+	
+	//2합 종료 UI 표시
+	DisplayExchangeCountAlarm(3, false);
+	//3합 카드 제시 칸 비활성화
+	HandleExchangeSlot(3, false);
+	//3합 상대방 카드 그리드 표기
+}
+
+void UWidget_BattleMainScreen::HandleExchange3EndFinish()
+{
+	HandleExchangeCount--;
+	if (HandleExchangeCount > 0)
+	{
+		return;
+	}
+	CachedBattleManager->ExchangeEnd();
+}
+
+void UWidget_BattleMainScreen::ExchangeEnd()
+{
+	UE_LOG(LogTemp, Log, TEXT("ExchangeEnd (Widget_BattleMainScreen)"));
+	HandleExchangeCount = 0;
+	//턴 종료 버튼 비활성화
+	HandWidget->ShowTurnEndButton(false);
+	//핸드에 있는 카드 패 제거
+	
+	//3합 상대방 카드 그리드 표기 제거
+}
+
+void UWidget_BattleMainScreen::HandleExchangeEndFinish()
+{
+	HandleExchangeCount--;
+	if (HandleExchangeCount > 0)
+	{
+		return;
+	}
+	CachedBattleManager->RoundEnd();
+}
+
+void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
+{
+	HandWidget->EnableExchangeSlot(Index, bActive);
+}
+
+void UWidget_BattleMainScreen::HandleCardSelect()
+{
+	if (CachedBattleManager)
+	{
+		SelectCardDataSend(CurrentExchange);
+	}
+}
+
+bool UWidget_BattleMainScreen::CanRequestSelectCard()
+{
+	if (!CachedBattleManager)
+	{
+		return false;
+	}
+
+	if (!HandWidget)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void UWidget_BattleMainScreen::SelectCardDataSend(int32 InIndex)
+{
+	CachedBattleManager->ExchangeCardDir(HandWidget->GetExchangeDataIndex(InIndex));
+}
+
+void UWidget_BattleMainScreen::FinishSelectCard()
+{
+	CurrentExchange += 1;
+	if (CurrentExchange >= 3)
+	{
+		HandWidget->ConfirmExchangeInput(CurrentExchange);
+		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1]);
+		//CachedBattleManager->RequestEndExchange();
+	}else
+	{
+		HandWidget->ConfirmExchangeInput(CurrentExchange);
+		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1]);
+		
+		//HandleExchangedStarted_(CurrentExchange + 1);
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("CurrentExchange Test %d"), CurrentExchange);
+}
+//----------------------------------------------------------------------------------------------------------------------
+//------------------------------------------공격 시작(Attack)------------------------------------------------------------
+
+void UWidget_BattleMainScreen::AttackStart()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack1Start()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack1End()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack2Start()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack2End()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack3Start()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack3End()
+{
+	
+}
+
+void UWidget_BattleMainScreen::AttackEnd()
+{
+	
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 
