@@ -5,7 +5,6 @@
 #include "TownInteractionPoint.generated.h"
 
 class UStaticMeshComponent;
-class USceneComponent;
 class UTownDataAsset;
 
 UCLASS()

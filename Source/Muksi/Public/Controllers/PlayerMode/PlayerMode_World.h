@@ -24,12 +24,6 @@ public:
 	void HandleSetDestinationReleased(AMuksiWorldCharacter* WorldCharacter);
 	void HandleInteract(AMuksiWorldCharacter* WorldCharacter);
 	void HandleOpenInventoryEquipment(AMuksiWorldCharacter* WorldCharacter);
-
-
-	void OpenTownUIFromWorld(UTownDataAsset* TownData);
-	void CloseTownUIFromWorld();
-	bool IsTownUIOpen() const;
-
 	void OpenInventoryEquipmentFromWorld();
 
 

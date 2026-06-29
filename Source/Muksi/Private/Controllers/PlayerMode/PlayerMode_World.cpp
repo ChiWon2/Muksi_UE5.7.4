@@ -2,10 +2,8 @@
 
 #include "Controllers/MuksiPlayerController.h"
 #include "Muksi/Contents/Travel/Public/Interaction/InteractionPointBase.h"
-#include "Muksi/Contents/Travel/Public/Interaction/Town/TownInteractionPoint.h"
 #include "Muksi/Contents/Travel/Public/Characters/MuksiWorldCharacter.h"
 #include "Muksi/Contents/Travel/Public/Zones/ZoneActor.h"
-#include "Muksi/Contents/Travel/Public/Data/Towns/TownDataAsset.h"
 #include "Muksi/Contents/Travel/Public/Managers/WorldUIManager.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -126,52 +124,11 @@ void UPlayerMode_World::HandleInteract(AMuksiWorldCharacter* WorldCharacter)
 	}
 
 	InteractionTarget->Interact(WorldCharacter);
-
-	if (ATownInteractionPoint* TownPoint = Cast<ATownInteractionPoint>(InteractionTarget))
-	{
-		if (UTownDataAsset* TownData = TownPoint->GetTownDataAsset())
-		{
-			OpenTownUIFromWorld(TownData);
-		}
-	}
 }
 
 void UPlayerMode_World::HandleOpenInventoryEquipment(AMuksiWorldCharacter* WorldCharacter)
 {
 	OpenInventoryEquipmentFromWorld();
-}
-
-void UPlayerMode_World::OpenTownUIFromWorld(UTownDataAsset* TownData)
-{
-	if (!TownData)
-	{
-		return;
-	}
-
-	AWorldUIManager* WorldUIManager = FindWorldUIManager();
-	if (!WorldUIManager)
-	{
-		return;
-	}
-
-	WorldUIManager->OpenTownUI(TownData);
-}
-
-void UPlayerMode_World::CloseTownUIFromWorld()
-{
-	AWorldUIManager* WorldUIManager = FindWorldUIManager();
-	if (!WorldUIManager)
-	{
-		return;
-	}
-
-	WorldUIManager->CloseTownUI();
-}
-
-bool UPlayerMode_World::IsTownUIOpen() const
-{
-	const AWorldUIManager* WorldUIManager = FindWorldUIManager();
-	return WorldUIManager && WorldUIManager->IsTownUIOpen();
 }
 
 void UPlayerMode_World::OpenInventoryEquipmentFromWorld()

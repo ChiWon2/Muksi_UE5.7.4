@@ -41,23 +41,23 @@ private:
 
 //TODO :: Refactoring this test variables
 
-#pragma region ForTest
+//#pragma region ForTest
 //	TArray<FQuestKey> TestQuestKeys;
 
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestEntryWidget_ForTown> QuestEntryWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestEntryWidget_ForTown> QuestEntryWidgetClass;
 
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestLogWidget> QuestLogWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestLogWidget> QuestLogWidgetClass;
 	
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestGiverWidget> QuestGiverWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestGiverWidget> QuestGiverWidgetClass;
 
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestRewardWidget> QuestRewardWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestRewardWidget> QuestRewardWidgetClass;
 
-	void RefreshTangClanWidget();
-#pragma endregion
+//	void RefreshTangClanWidget();
+//#pragma endregion
 
 	UFUNCTION()
 	void HandleBackButtonClicked();
@@ -65,4 +65,6 @@ private:
 	void HandleQuestEntryClicked(FQuestKey QuestKey);
 	UFUNCTION()
 	void HandleQuestCompleted(UQuestInstance_Base* QuestBase);
+
+	void RefreshTangClanWidget();
 };
