@@ -6,7 +6,6 @@
 
 class AMuksiWorldCharacter;
 class AZoneActor;
-class ATownInteractionPoint;
 class UTownDataAsset;
 class AWorldUIManager;
 struct FZoneData;
@@ -41,7 +40,6 @@ protected:
 private:
 	bool TryGetCursorHitLocation(FVector& OutLocation) const;
 
-	void HandleTownInteraction(ATownInteractionPoint* InteractionPoint, AMuksiWorldCharacter* WorldCharacter);
 
 	float FollowTime = 0.0f;
 	FVector CachedDestination = FVector::ZeroVector;

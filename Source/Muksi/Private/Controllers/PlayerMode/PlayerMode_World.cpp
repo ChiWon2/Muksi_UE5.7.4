@@ -1,7 +1,8 @@
 #include "Controllers/PlayerMode/PlayerMode_World.h"
 
 #include "Controllers/MuksiPlayerController.h"
-#include "Muksi/Contents/Travel/Public/Interaction/TownInteractionPoint.h"
+#include "Muksi/Contents/Travel/Public/Interaction/InteractionPointBase.h"
+#include "Muksi/Contents/Travel/Public/Interaction/Town/TownInteractionPoint.h"
 #include "Muksi/Contents/Travel/Public/Characters/MuksiWorldCharacter.h"
 #include "Muksi/Contents/Travel/Public/Zones/ZoneActor.h"
 #include "Muksi/Contents/Travel/Public/Data/Towns/TownDataAsset.h"
@@ -112,30 +113,27 @@ void UPlayerMode_World::HandleInteract(AMuksiWorldCharacter* WorldCharacter)
 		return;
 	}
 
-	ATownInteractionPoint* InteractionTarget = WorldCharacter->GetCurrentInteractionTarget();
+	AInteractionPointBase* InteractionTarget = WorldCharacter->GetCurrentInteractionTarget();
+
+	UE_LOG(LogTemp, Warning, TEXT("[Interaction] PlayerMode=%s Target=%s Character=%s"),
+		*GetNameSafe(this),
+		*GetNameSafe(InteractionTarget),
+		*GetNameSafe(WorldCharacter));
+
 	if (!InteractionTarget)
 	{
 		return;
 	}
 
-	HandleTownInteraction(InteractionTarget, WorldCharacter);
-}
+	InteractionTarget->Interact(WorldCharacter);
 
-void UPlayerMode_World::HandleTownInteraction(ATownInteractionPoint* InteractionPoint, AMuksiWorldCharacter* WorldCharacter)
-{
-	if (!InteractionPoint)
+	if (ATownInteractionPoint* TownPoint = Cast<ATownInteractionPoint>(InteractionTarget))
 	{
-		return;
+		if (UTownDataAsset* TownData = TownPoint->GetTownDataAsset())
+		{
+			OpenTownUIFromWorld(TownData);
+		}
 	}
-
-	if (UTownDataAsset* TownData = InteractionPoint->GetTownDataAsset())
-	{
-		InteractionPoint->Interact(WorldCharacter);
-		OpenTownUIFromWorld(TownData);
-		return;
-	}
-
-	InteractionPoint->Interact(WorldCharacter);
 }
 
 void UPlayerMode_World::HandleOpenInventoryEquipment(AMuksiWorldCharacter* WorldCharacter)

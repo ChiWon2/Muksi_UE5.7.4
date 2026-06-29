@@ -2,7 +2,7 @@
 
 #include "Controllers/MuksiPlayerController.h"
 #include "Controllers/PlayerMode/PlayerMode_World.h"
-#include "Muksi/Contents/Travel/Public/Interaction/TownInteractionPoint.h"
+#include "Muksi/Contents/Travel/Public/Interaction/InteractionPointBase.h"
 
 #include "Muksi/Contents/Travel/Public/Components/Player/StatComponent.h"
 #include "Muksi/Contents/Travel/Public/Components/Player/InventoryComponent.h"
@@ -73,7 +73,6 @@ void AMuksiWorldCharacter::BeginPlay()
 
 	// stub
 }
-
 
 void AMuksiWorldCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -146,18 +145,125 @@ void AMuksiWorldCharacter::OnSetDestinationReleased()
 }
 
 
-//Interaction
-void AMuksiWorldCharacter::SetCurrentInteractionTarget(ATownInteractionPoint* NewTarget)
+//Interaction Start
+void AMuksiWorldCharacter::SetCurrentInteractionTarget(AInteractionPointBase* NewTarget)
 {
-	CurrentInteractionTarget = NewTarget;
+	if (!NewTarget)
+	{
+		return;
+	}
+
+	for (const FInteractionCandidate& Candidate : InteractionCandidates)
+	{
+		if (Candidate.Point.Get() == NewTarget)
+		{
+			CurrentInteractionTarget = GetBestInteractionTarget();
+			return;
+		}
+	}
+
+	FInteractionCandidate NewCandidate;
+	NewCandidate.Point = NewTarget;
+	NewCandidate.EnterOrder = ++InteractionEnterOrderCounter;
+
+	InteractionCandidates.Add(NewCandidate);
+
+	CurrentInteractionTarget = GetBestInteractionTarget();
+
+	UE_LOG(LogTemp, Warning, TEXT("[WorldCharacter] SetInteractionTarget New=%s Best=%s CandidateCount=%d"),
+		*GetNameSafe(NewTarget),
+		*GetNameSafe(CurrentInteractionTarget),
+		InteractionCandidates.Num());
 }
 
-void AMuksiWorldCharacter::ClearCurrentInteractionTarget(ATownInteractionPoint* TargetToClear)
+void AMuksiWorldCharacter::ClearCurrentInteractionTarget(AInteractionPointBase* TargetToClear)
 {
-	if (CurrentInteractionTarget == TargetToClear)
+	if (!TargetToClear)
 	{
-		CurrentInteractionTarget = nullptr;
+		return;
 	}
+
+	const int32 RemovedCount = InteractionCandidates.RemoveAll(
+		[TargetToClear](const FInteractionCandidate& Candidate)
+		{
+			return !Candidate.Point.IsValid() || Candidate.Point.Get() == TargetToClear;
+		}
+	);
+
+	CurrentInteractionTarget = GetBestInteractionTarget();
+
+	UE_LOG(LogTemp, Warning, TEXT("[WorldCharacter] ClearInteractionTarget Clear=%s Removed=%d Best=%s CandidateCount=%d"),
+		*GetNameSafe(TargetToClear),
+		RemovedCount,
+		*GetNameSafe(CurrentInteractionTarget),
+		InteractionCandidates.Num());
+}
+
+AInteractionPointBase* AMuksiWorldCharacter::GetCurrentInteractionTarget() const
+{
+	return GetBestInteractionTarget();
+}
+
+AInteractionPointBase* AMuksiWorldCharacter::GetBestInteractionTarget() const
+{
+	const FInteractionCandidate* BestCandidate = nullptr;
+
+	for (const FInteractionCandidate& Candidate : InteractionCandidates)
+	{
+		AInteractionPointBase* CandidatePoint = Candidate.Point.Get();
+		if (!CandidatePoint)
+		{
+			continue;
+		}
+
+		if (!BestCandidate)
+		{
+			BestCandidate = &Candidate;
+			continue;
+		}
+
+		AInteractionPointBase* BestPoint = BestCandidate->Point.Get();
+		if (!BestPoint)
+		{
+			BestCandidate = &Candidate;
+			continue;
+		}
+
+		const int32 CandidatePriority = CandidatePoint->GetInteractionPriority();
+		const int32 BestPriority = BestPoint->GetInteractionPriority();
+
+		if (CandidatePriority > BestPriority)
+		{
+			BestCandidate = &Candidate;
+			continue;
+		}
+
+		if (CandidatePriority < BestPriority)
+		{
+			continue;
+		}
+
+		if (Candidate.EnterOrder < BestCandidate->EnterOrder)
+		{
+			BestCandidate = &Candidate;
+			continue;
+		}
+
+		if (Candidate.EnterOrder > BestCandidate->EnterOrder)
+		{
+			continue;
+		}
+
+		const float CandidateDistanceSq = FVector::DistSquared(GetActorLocation(), CandidatePoint->GetActorLocation());
+		const float BestDistanceSq = FVector::DistSquared(GetActorLocation(), BestPoint->GetActorLocation());
+
+		if (CandidateDistanceSq < BestDistanceSq)
+		{
+			BestCandidate = &Candidate;
+		}
+	}
+
+	return BestCandidate ? BestCandidate->Point.Get() : nullptr;
 }
 
 void AMuksiWorldCharacter::Interact(const FInputActionValue& Value)
@@ -173,7 +279,7 @@ void AMuksiWorldCharacter::Interact(const FInputActionValue& Value)
 		WorldMode->HandleInteract(this);
 	}
 }
-
+//Interaction End
 
 void AMuksiWorldCharacter::OpenInventoryEquipment(const FInputActionValue& Value)
 {

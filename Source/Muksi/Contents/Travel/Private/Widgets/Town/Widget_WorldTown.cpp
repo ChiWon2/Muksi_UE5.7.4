@@ -1,6 +1,7 @@
 #include "Muksi/Contents/Travel/Public/Widgets/Town/Widget_WorldTown.h"
 
 #include "Muksi/Contents/Travel/Public/Widgets/Shop/Widget_Shop.h"
+#include "Muksi/Contents/Travel/Public/Widgets/Facilities/Widget_TangClan.h"
 #include "Muksi/Contents/Travel/Public/Widgets/Town/Widget_TownInteractionButton.h"
 #include "Muksi/Contents/Travel/Public/Data/Towns/TownDataAsset.h"
 #include "Subsystems/MuksiUISubsystem.h"
@@ -20,7 +21,6 @@ void UWidget_WorldTown::InitializeTown(UTownDataAsset* InTownData)
 	CurrentTownData = InTownData;
 	RefreshTown();
 }
-
 
 void UWidget_WorldTown::NativeOnActivated()
 {
@@ -320,10 +320,15 @@ void UWidget_WorldTown::OpenTangClan(const FTownInteractionData& InteractionData
 		MuksiGameplayTag::Muksi_WidgetStack_GameHud,
 		TangClanWidgetClass,
 		true,
-		[](UWidget_ActivatableBase* CreatedWidget)
+		[InteractionData](UWidget_ActivatableBase* CreatedWidget)
 		{
 			UE_LOG(LogTemp, Log, TEXT("[TangClan] CreatedWidget=%s"),
 				*GetNameSafe(CreatedWidget));
+
+			if (UWidget_TangClan* TangClanWidget = Cast<UWidget_TangClan>(CreatedWidget))
+			{
+				TangClanWidget->InitializeTangClan(InteractionData.TangClanData);
+			}
 		},
 		[](UWidget_ActivatableBase* PushedWidget)
 		{
@@ -387,7 +392,6 @@ void UWidget_WorldTown::OpenCustomInteraction(const FTownInteractionData& Intera
 
 	// TODO: Later route by InteractionId, GameplayTag, or custom data.
 }
-
 
 void UWidget_WorldTown::HandleCloseButtonClicked()
 {

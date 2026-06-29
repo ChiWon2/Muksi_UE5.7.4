@@ -11,11 +11,23 @@ class UInputMappingContext;
 class UInputAction;
 class UEnhancedInputComponent;
 
-class ATownInteractionPoint;
+class AInteractionPointBase;
 class UPlayerCurrencyComponent;
 class UStatComponent;
 class UInventoryComponent;
 class UEquipmentComponent;
+
+USTRUCT()
+struct FInteractionCandidate
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TWeakObjectPtr<AInteractionPointBase> Point;
+
+	UPROPERTY()
+	int32 EnterOrder = 0;
+};
 
 UCLASS()
 class MUKSI_API AMuksiWorldCharacter : public ACharacter
@@ -57,8 +69,13 @@ protected:
 
 	//Interact
 	UPROPERTY(VisibleInstanceOnly, Category = "Interaction")
-	TObjectPtr<ATownInteractionPoint> CurrentInteractionTarget = nullptr;
+	TObjectPtr<AInteractionPointBase> CurrentInteractionTarget = nullptr;
 
+	UPROPERTY(VisibleInstanceOnly, Category = "Interaction")
+	TArray<FInteractionCandidate> InteractionCandidates;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Interaction")
+	int32 InteractionEnterOrderCounter = 0;
 	//StatComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStatComponent> StatComponent = nullptr;
@@ -101,9 +118,11 @@ public:
 
 
 	//Interact
-	void SetCurrentInteractionTarget(ATownInteractionPoint* NewTarget);
-	void ClearCurrentInteractionTarget(ATownInteractionPoint* TargetToClear);
-	ATownInteractionPoint* GetCurrentInteractionTarget() const { return CurrentInteractionTarget.Get(); }
+	void SetCurrentInteractionTarget(AInteractionPointBase* NewTarget);
+	void ClearCurrentInteractionTarget(AInteractionPointBase* TargetToClear);
+	
+	AInteractionPointBase* GetCurrentInteractionTarget() const;
+	AInteractionPointBase* GetBestInteractionTarget() const;
 
 	//Component
 	UFUNCTION(BlueprintPure, Category = "Components")
