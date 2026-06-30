@@ -1,5 +1,6 @@
 #include "Muksi/Contents/Travel/Public/Widgets/Shop/Widget_ShopInventoryPanel.h"
 
+#include "Muksi/Contents/Travel/Public/Data/Items/MuksiItemDataAsset.h"
 #include "Muksi/Contents/Travel/Public/Components/Player/PlayerCurrencyComponent.h"
 #include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
@@ -43,6 +44,87 @@ void UWidget_ShopInventoryPanel::Refresh()
 	RefreshInventory();
 }
 
+void UWidget_ShopInventoryPanel::SetPanelMode(EShopInventoryPanelMode InMode)
+{
+	PanelMode = InMode;
+	RefreshInventory();
+}
+
+void UWidget_ShopInventoryPanel::SetItemTypeFilter(EMuksiItemType InItemTypeFilter)
+{
+	ItemTypeFilter = InItemTypeFilter;
+	RefreshInventory();
+}
+
+void UWidget_ShopInventoryPanel::SetSelectedInstanceId(FGuid InSelectedInstanceId)
+{
+	SelectedInstanceId = InSelectedInstanceId;
+	RefreshInventory();
+}
+
+void UWidget_ShopInventoryPanel::RefreshInventory()
+{
+	if (!InventoryGridPanel)
+	{
+		return;
+	}
+
+	InventoryGridPanel->ClearChildren();
+
+	const UInventoryComponent* InventoryComponent = GetInventoryComponent();
+
+	if (!InventoryComponent || !ItemSlotClass)
+	{
+		return;
+	}
+
+	const int32 SafeColumnCount = FMath::Max(1, InventoryColumnCount);
+	int32 VisibleIndex = 0;
+
+	for (const FMuksiInventoryEntry& Entry : InventoryComponent->GetItems())
+	{
+		if (!ShouldShowEntry(Entry))
+		{
+			continue;
+		}
+
+		UWidget_ItemSlot* SlotWidget =
+			CreateWidget<UWidget_ItemSlot>(GetOwningPlayer(), ItemSlotClass);
+
+		if (!SlotWidget)
+		{
+			continue;
+		}
+
+		SlotWidget->InitializeSlot(Entry, false);
+		SlotWidget->SetSelected(Entry.InstanceId == SelectedInstanceId);
+
+		if (PanelMode == EShopInventoryPanelMode::Sell)
+		{
+			SlotWidget->OnClicked.AddDynamic(this, &ThisClass::HandleItemSlotClicked);
+		}
+
+		const int32 Row = VisibleIndex / SafeColumnCount;
+		const int32 Column = VisibleIndex % SafeColumnCount;
+
+		InventoryGridPanel->AddChildToUniformGrid(SlotWidget, Row, Column);
+		++VisibleIndex;
+	}
+}
+
+void UWidget_ShopInventoryPanel::HandleItemSlotClicked(FGuid InstanceId)
+{
+	if (!InstanceId.IsValid())
+	{
+		return;
+	}
+
+	SelectedInstanceId = InstanceId;
+	OnItemSelected.Broadcast(InstanceId);
+
+	RefreshInventory();
+}
+
 void UWidget_ShopInventoryPanel::RefreshGold()
 {
 	const UPlayerCurrencyComponent* CurrencyComponent =
@@ -57,59 +139,45 @@ void UWidget_ShopInventoryPanel::RefreshGold()
 	}
 }
 
-void UWidget_ShopInventoryPanel::RefreshInventory()
+bool UWidget_ShopInventoryPanel::ShouldShowEntry(const FMuksiInventoryEntry& Entry) const
 {
-	if (!InventoryGridPanel)
+	if (!Entry.ItemData || !Entry.InstanceId.IsValid())
 	{
-		return;
+		return false;
 	}
 
-	InventoryGridPanel->ClearChildren();
-
-	const UInventoryComponent* InventoryComponent =
-		GetInventoryComponent();
-
-	if (!InventoryComponent || !ItemSlotClass)
+	if (ItemTypeFilter != EMuksiItemType::None &&
+		Entry.ItemData->ItemType != ItemTypeFilter)
 	{
-		return;
+		return false;
 	}
 
-	const int32 SafeColumnCount =
-		FMath::Max(1, InventoryColumnCount);
-
-	int32 VisibleIndex = 0;
-
-	for (const FMuksiInventoryEntry& Entry :
-		InventoryComponent->GetItems())
+	if (PanelMode == EShopInventoryPanelMode::Sell)
 	{
-		if (!Entry.ItemData || !Entry.InstanceId.IsValid())
+		if (!Entry.ItemData->bCanSell)
 		{
-			continue;
+			return false;
 		}
 
-		UWidget_ItemSlot* SlotWidget =
-			CreateWidget<UWidget_ItemSlot>(
-				GetOwningPlayer(),
-				ItemSlotClass);
-
-		if (!SlotWidget)
+		if (Entry.ItemData->ItemType == EMuksiItemType::Quest)
 		{
-			continue;
+			return false;
 		}
 
-		SlotWidget->InitializeSlot(Entry, false);
-		SlotWidget->SetSelected(false);
+		switch (Entry.ItemData->ItemType)
+		{
+		case EMuksiItemType::Equipment:
+		case EMuksiItemType::Consumable:
+		case EMuksiItemType::Material:
+		case EMuksiItemType::Misc:
+			return true;
 
-		const int32 Row = VisibleIndex / SafeColumnCount;
-		const int32 Column = VisibleIndex % SafeColumnCount;
-
-		InventoryGridPanel->AddChildToUniformGrid(
-			SlotWidget,
-			Row,
-			Column);
-
-		++VisibleIndex;
+		default:
+			return false;
+		}
 	}
+
+	return true;
 }
 
 void UWidget_ShopInventoryPanel::HandleGoldChanged(int32 NewGold)
@@ -120,8 +188,7 @@ void UWidget_ShopInventoryPanel::HandleGoldChanged(int32 NewGold)
 	}
 }
 
-UInventoryComponent*
-UWidget_ShopInventoryPanel::GetInventoryComponent() const
+UInventoryComponent* UWidget_ShopInventoryPanel::GetInventoryComponent() const
 {
 	const UMuksiPlayerDataSubsystem* PlayerData =
 		UMuksiPlayerDataSubsystem::Get(this);
@@ -131,8 +198,7 @@ UWidget_ShopInventoryPanel::GetInventoryComponent() const
 		: nullptr;
 }
 
-UPlayerCurrencyComponent*
-UWidget_ShopInventoryPanel::GetCurrencyComponent() const
+UPlayerCurrencyComponent* UWidget_ShopInventoryPanel::GetCurrencyComponent() const
 {
 	const UMuksiPlayerDataSubsystem* PlayerData =
 		UMuksiPlayerDataSubsystem::Get(this);

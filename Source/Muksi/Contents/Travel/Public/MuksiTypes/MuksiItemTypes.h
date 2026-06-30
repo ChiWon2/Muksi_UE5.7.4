@@ -9,9 +9,10 @@ UENUM(BlueprintType)
 enum class EMuksiItemType : uint8
 {
 	None		UMETA(DisplayName = "None"),
-	Consumable	UMETA(DisplayName = "Consumable"),
 	Equipment	UMETA(DisplayName = "Equipment"),
+	Consumable	UMETA(DisplayName = "Consumable"),
 	Material	UMETA(DisplayName = "Material"),
+	Misc		UMETA(DisplayName = "Misc"),
 	Quest		UMETA(DisplayName = "Quest")
 };
 
