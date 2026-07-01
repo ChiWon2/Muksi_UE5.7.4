@@ -11,6 +11,7 @@ class UMuksiBattleCardDataAsset;
 class UMuksiCharacterDataAsset;
 class UCharacterDataBase;
 class UStaticMeshComponent;
+class UMuksiStatusEffectComponent;
 
 UCLASS()
 class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacterInterface
@@ -21,7 +22,7 @@ public:
 	// Sets default values for this actor's properties
 	ABattleCharacterBase();
 
-protected:
+protected:	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -54,6 +55,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMuksiStatusEffectComponent> StatusEffectComponent;
+
 	UFUNCTION()
 	void HandleClicked(AActor* TouchedActor, FKey ButtonPressed);
 	
@@ -72,6 +76,8 @@ public:
 	UFUNCTION()
 	FIntPoint GetCharacterPosition(){return CharacterPosition;};
 
+	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
+	UMuksiStatusEffectComponent* GetStatusEffectComponent() const{return StatusEffectComponent;}
 	
 
 public:
