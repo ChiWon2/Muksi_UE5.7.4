@@ -421,4 +421,21 @@ public:
 	//합 도중 선택 된 카드 방향 정하기
 	void ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard);
 	//==================================================================================================================
+	
+	//===============================================공격 관련 ===========================================================
+	//---------------------------------Battle 관련 턴 흐름 관리 함수 <공격>--------------------------------------------------
+public:
+	void AttackStart();
+	
+	void Attack1Start();
+	void Attack1End();
+	
+	void Attack2Start();
+	void Attack2End();
+	
+	void Attack3Start();
+	void Attack3End();
+	
+	void AttackEnd();
+	
 };

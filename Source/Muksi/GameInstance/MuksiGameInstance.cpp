@@ -30,4 +30,5 @@ void UMuksiGameInstance::InitialzieDialogueSystem()
 
     // 2. Trigger Table 기반 초기화
     Trigger->InitializeSubsystem();
+
 }

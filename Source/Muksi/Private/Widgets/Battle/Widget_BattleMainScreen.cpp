@@ -510,6 +510,48 @@ void UWidget_BattleMainScreen::FinishSelectCard()
 	
 	UE_LOG(LogTemp, Log, TEXT("CurrentExchange Test %d"), CurrentExchange);
 }
+//----------------------------------------------------------------------------------------------------------------------
+//------------------------------------------공격 시작(Attack)------------------------------------------------------------
+
+void UWidget_BattleMainScreen::AttackStart()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack1Start()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack1End()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack2Start()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack2End()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack3Start()
+{
+	
+}
+
+void UWidget_BattleMainScreen::Attack3End()
+{
+	
+}
+
+void UWidget_BattleMainScreen::AttackEnd()
+{
+	
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
