@@ -22,6 +22,7 @@ TArray<FIntPoint> UMuksiCardRange_Line3DataAsset::GetRangeCoords(const ABattleGr
 	{
 		return Result;
 	}
+	Result.Add(OriginCoord);
 
 	const FCubeCoord OriginCube = GridManager->OddQToCube(OriginCoord);
 	const FCubeCoord DirectionCube = GridManager->GetCubeDirection(Direction);
@@ -77,7 +78,7 @@ TArray<FIntPoint> UMuksiCardRange_Line3DataAsset::GetRangeCoords(const ABattleGr
 
 		Result.Add(CurrentCoord);
 	}
-	Result.Add(OriginCoord);
+	
 	
 	UE_LOG(LogTemp, Error, TEXT("----------------------------"));
 	return Result;

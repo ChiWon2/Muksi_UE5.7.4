@@ -21,7 +21,7 @@ TArray<FIntPoint> UMuksiCardRange_Hex2DataAsset::GetRangeCoords(const ABattleGri
 	const FCubeCoord OriginCube = GridManager->OddQToCube(OriginCoord);
 
 	constexpr int32 Range = 2;
-
+	Result.Add(OriginCoord);
 	/*
 	 * Cube 좌표는 X + Y + Z = 0이어야 하므로
 	 * X, Y 변화량을 구한 뒤 Z 변화량을 자동으로 계산한다.
@@ -61,6 +61,6 @@ TArray<FIntPoint> UMuksiCardRange_Hex2DataAsset::GetRangeCoords(const ABattleGri
 			Result.Add(CurrentCoord);
 		}
 	}
-	Result.Add(OriginCoord);
+	
 	return Result;
 }
