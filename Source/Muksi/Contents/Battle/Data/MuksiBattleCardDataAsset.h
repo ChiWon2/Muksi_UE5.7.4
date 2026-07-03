@@ -9,6 +9,14 @@
 
 class UTexture2D;
 
+UENUM(BlueprintType)
+enum class ECardAnimType : uint8
+{
+	Sword,
+	Punch,
+	None,
+};
+
 /**
  * 
  */
@@ -35,6 +43,14 @@ public:
 	/** 카드 이미지 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	TObjectPtr<UTexture2D> CardTexture;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	float CardSpeed = 1.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Anim")
+	ECardAnimType AnimType = ECardAnimType::None;
+	
+	
 	
 	
 public:

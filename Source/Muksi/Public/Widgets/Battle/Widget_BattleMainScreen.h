@@ -224,14 +224,7 @@ public:
 public:
 	void AttackStart();
 	
-	void Attack1Start();
-	void Attack1End();
-	
-	void Attack2Start();
-	void Attack2End();
-	
-	void Attack3Start();
-	void Attack3End();
+	void PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset);
 	
 	void AttackEnd();
 };

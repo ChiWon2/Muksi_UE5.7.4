@@ -3,12 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MuksiBattleCardDataAsset.h"
 #include "Engine/DataAsset.h"
 #include "MuksiCharacterDataAsset.generated.h"
 
 class UEnemyCardSelectStrategyBase;
 class UMuksiBattleCardDataAsset;
 class ABattleCharacterBase;
+
 
 /**
  * 
@@ -54,6 +56,10 @@ public:
 	//나중에 통합 클래스로 변경 예정 <- 나중에는 Player전용으로 만들예정 그 때에는 ABattleCharacter_Enemy로 변경
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Model")
 	TSubclassOf<ABattleCharacterBase> BattleCharacterClass = nullptr;
+	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TMap<ECardAnimType, TObjectPtr<UAnimMontage>> AttackAnimationMap;
 	
 	
 

@@ -2,8 +2,11 @@
 
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+
+#include "Components/BoxComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
-#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+
 
 // Sets default values
 ABattleCharacterBase::ABattleCharacterBase()
@@ -11,19 +14,44 @@ ABattleCharacterBase::ABattleCharacterBase()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	RootComponent = MeshComponent;
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(
+		TEXT("SceneRoot")
+	);
+	SetRootComponent(SceneRoot);
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
-	if (CubeMesh.Succeeded())
-	{
-		MeshComponent->SetStaticMesh(CubeMesh.Object);
-	}
+	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(
+		TEXT("MeshComponent")
+	);
+	MeshComponent->SetupAttachment(SceneRoot);
 
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
+	ClickCollision = CreateDefaultSubobject<UBoxComponent>(
+		TEXT("ClickCollision")
+	);
+	ClickCollision->SetupAttachment(SceneRoot);
 
-	OnClicked.AddDynamic(this, &ABattleCharacterBase::HandleClicked);
+	ClickCollision->SetCollisionEnabled(
+		ECollisionEnabled::QueryOnly
+	);
+
+	ClickCollision->SetCollisionResponseToAllChannels(
+		ECR_Ignore
+	);
+
+	ClickCollision->SetCollisionResponseToChannel(
+		ECC_Visibility,
+		ECR_Block
+	);
+
+	ClickCollision->OnClicked.AddDynamic(
+		this,
+		&ABattleCharacterBase::HandleClicked
+	);
+
+	// 메시 자체는 클릭 판정을 받지 않게 설정
+	MeshComponent->SetCollisionResponseToChannel(
+		ECC_Visibility,
+		ECR_Ignore
+	);
 
 }
 
@@ -52,10 +80,15 @@ void ABattleCharacterBase::SetCurrentHP(int32 NewHP)
 	if (CharacterData){CharacterData->SetCurrentHP(NewHP);}
 }
 
-void ABattleCharacterBase::HandleClicked(AActor* TouchedActor, FKey ButtonPressed)
+float ABattleCharacterBase::GetCharacterSpeed() const
+{
+	return CharacterData->GetPlayerSpeed();
+}
+
+void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)
 {
 	UE_LOG(LogTemp, Warning, TEXT("BattleCharacter clicked! Actor: %s, Button: %s"),
-		*GetNameSafe(TouchedActor),
+		*GetNameSafe(this),
 		*ButtonPressed.ToString());
 }
 
@@ -82,6 +115,81 @@ void ABattleCharacterBase::SetCharacterData(UCharacterDataBase* InCharacterData)
 	);
 }
 
+
+void ABattleCharacterBase::PlayAttackAnim(UMuksiBattleCardDataAsset* BattleCardData)
+{
+	UE_LOG(LogTemp, Log, TEXT("PlayAttackAnim (BattleCharacterBase.cpp)"));
+
+	if (!IsValid(BattleCardData))
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleCardData is null"));
+		return;
+	}
+
+	AnimMontage = FindAnimations(BattleCardData->AnimType);
+
+	if (!IsValid(AnimMontage))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("AnimMontage is null. AnimType: %d"),
+			static_cast<int32>(BattleCardData->AnimType)
+		);
+		return;
+	}
+
+	if (!IsValid(MeshComponent))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("MeshComponent is null (BattleCharacterBase.cpp)")
+		);
+		return;
+	}
+
+	UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance();
+
+	if (!IsValid(AnimInstance))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("AnimInstance is null (BattleCharacterBase.cpp)")
+		);
+		return;
+	}
+
+	const float PlayLength =
+		AnimInstance->Montage_Play(AnimMontage);
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT(
+			"Montage Play Result | Montage: %s | Length: %f | AnimInstance: %s"
+		),
+		*GetNameSafe(AnimMontage),
+		PlayLength,
+		*GetNameSafe(AnimInstance)
+	);
+
+	if (PlayLength <= 0.f)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("Montage_Play failed")
+		);
+	}
+}
+
+TObjectPtr<UAnimMontage> ABattleCharacterBase::FindAnimations(ECardAnimType CardAnim)const
+{
+	if (!CharacterDataAsset){UE_LOG(LogTemp, Error, TEXT("CharacterDataAsset is Null (BattleCharacterBase.cpp)"));return nullptr;}
+	return CharacterDataAsset->AttackAnimationMap[CardAnim];
+}
 
 void ABattleCharacterBase::OnSelected()
 {

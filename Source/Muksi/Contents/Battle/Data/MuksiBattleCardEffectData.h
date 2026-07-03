@@ -75,4 +75,18 @@ struct FMuksiBattleCardEffectData
 	// Effect AttackRange
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Attack Range Type")
 	UMuksiCardRangeDataAsset* RangeDataAsset = nullptr;
+	
+	//돌진 -> 캐릭터가 거기 가서 공격
+	//장거리 공격 -> 캐릭터는 제자리 해당 그리드 공격
+	//이동 -> 캐릭터가 거기로 이동
+	//방어
+	
+	//출혈 <- 국 시작시
+	//독 <- 합 시작시
+	//밀치기 <- 적중시
+	
+	//국 시작시 -> BattleManager 들어가서 캐릭터 정보 들어가서 뭐 스탯 뭐 추가하면 되고
+	//합 시작시 
+	//적중시
+	
 };

@@ -20,7 +20,8 @@ TArray<FIntPoint> URange_TriangleDataAsset::GetRangeCoords(const ABattleGridMana
 
 	// Direction을 0~5 범위로 보정
 	const int32 BaseDirection = ((Direction % 6) + 6) % 6;
-
+	
+	Result.AddUnique(OriginCoord);
 	/*
 	 * 서로 인접한 두 방향을 삼각형의 양쪽 변으로 사용한다.
 	 *

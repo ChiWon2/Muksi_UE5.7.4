@@ -101,6 +101,37 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(
 	FOnBattleEnded
 );
+//공격 행동 구조체
+USTRUCT(BlueprintType)
+struct FBattleAction
+{
+	GENERATED_BODY()
+
+	// 몇 번째 합의 행동인지: 0, 1, 2
+	UPROPERTY(BlueprintReadOnly)
+	int32 ExchangeIndex = INDEX_NONE;
+
+	// 행동하는 캐릭터
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<ABattleCharacterBase> Attacker = nullptr;
+	
+
+	// 사용하는 카드
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
+
+	// 행동 생성 시점의 속도
+	UPROPERTY(BlueprintReadOnly)
+	int32 Speed = 0;
+
+	// 플레이어 행동인지
+	UPROPERTY(BlueprintReadOnly)
+	bool bPlayerAction = false;
+	
+	//공격좌표 (인덱스0 - 메인 좌표/ 그 이외는 범위 공격) <- 이거 아니면 좌표 계산하는 코드가 잘못된거
+	TArray<FIntPoint> TargetPoints = TArray<FIntPoint>();
+};
+
 
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
@@ -261,6 +292,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter   = nullptr;
 	
+	UPROPERTY()
+	int32 CurrentAttackActionIndex = 0;
+	
 	//아래 데이터는 테스트 용도로 넣는 데이터 에셋
 	//원래 기획대로라면 다른 곳에서 생성 후 받는 형식
 	
@@ -414,18 +448,25 @@ public:
 	
 	void ExchangeEnd();
 	
+	void ExchangeN_End(int32 InIndex);
+	
 	
 	
 	//합 도중 쓰는 함수
 public:
 	//합 도중 선택 된 카드 방향 정하기
 	void ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard);
+	//합 정한 카드 그리드 정하고 공격 구조체 생성함수
+	void SetPlayerBattleAction();
+	
+	TArray<FIntPoint> TargetPoints;
+	
 	//==================================================================================================================
 	
 	//===============================================공격 관련 ===========================================================
 	//---------------------------------Battle 관련 턴 흐름 관리 함수 <공격>--------------------------------------------------
 public:
-	void AttackStart();
+	/*void AttackStart();
 	
 	void Attack1Start();
 	void Attack1End();
@@ -436,6 +477,44 @@ public:
 	void Attack3Start();
 	void Attack3End();
 	
+	void AttackEnd();*/
+	
+	void BuildAttackActions();
+	
+	void SortAttackActions();
+	
+	void AttackStart();
+	
+	void StartCurrentAttackAction();
+	
+	void ResolveCurrentAttackAction();
+	
+	void PlayAttackAction();
+	
+	void NotifyAttackActionFinished();
+	
+	void FinishCurrentAttackAction();
+	/*void StartCurrentAttackAction();
+	void ResolveCurrentAttackAction();
+	void PlayAttackAction();
+	void NotifyAttackActionFinished();
+	void FinishCurrentAttackAction();*/
 	void AttackEnd();
 	
+	void NotifyAttackEndFinished();
+	
+
+	
+public:
+	UPROPERTY()
+	TArray<FBattleAction> AttackActions;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> PlayerSelectedCards;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EnemySelectedCards;
+	
+	UPROPERTY()
+	bool bWaitingForAttackActionFinish = true;
 };
