@@ -110,6 +110,7 @@ enum class ECardColorType : uint8
 	Purple
 };
 
+
 USTRUCT(BlueprintType)
 struct FCardEffect
 {

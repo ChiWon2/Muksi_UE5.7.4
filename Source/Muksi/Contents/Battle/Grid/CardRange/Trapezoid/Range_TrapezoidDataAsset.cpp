@@ -72,7 +72,10 @@ TArray<FIntPoint> URange_TrapezoidDataAsset::GetRangeCoords(const ABattleGridMan
 			Result.AddUnique(CurrentCoord);
 		}
 	}*/
-
+	if (bIncludeOrigin)
+	{
+		Result.AddUnique(OriginCoord);
+	}
 	for (int32 ForwardStep = 1; ForwardStep <= Length; ++ForwardStep)
 	{
 		const int32 HalfWidth = ForwardStep;
@@ -104,10 +107,7 @@ TArray<FIntPoint> URange_TrapezoidDataAsset::GetRangeCoords(const ABattleGridMan
 			}
 		}
 	}
-	if (bIncludeOrigin)
-	{
-		Result.AddUnique(OriginCoord);
-	}
+	
 
 	return Result;
 }

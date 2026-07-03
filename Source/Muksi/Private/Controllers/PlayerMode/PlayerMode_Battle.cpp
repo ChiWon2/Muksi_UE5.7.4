@@ -110,11 +110,19 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 	{
 		if (HitActor->GetClass()->ImplementsInterface(USelectGridInterface::StaticClass()))
 		{
-			//공격 범위 계산 테스트
-			
-			//BattleManager->TestCalAttackRangeType(Cast<ABattleGridTile>(HitActor));
-			//테스트 용도 
-			//BattleManager->TargetGridCell(Cast<ABattleGridTile>(HitActor));
+
+			//여기에 들어가야 하는 기능
+			//다음 합으로 넘어가는거
+			//일단 여기에 선택된 그리드 표시하는 거 먼저
+			//선택한 그리드 저장 <- 어디에? BattleManager에 있는 행동 구조체에 저장 / 맨 앞에 있는 좌표가 매인 좌표인걸로
+			//메인 선택한 좌표, 그 이외의 좌표 저장하는 방식으로
+			//이동 -> 노란색
+			//방어 -> 파란색
+			//장거리 공격 / 돌격 -> 빨간색
+			BattleManager->SetPlayerBattleAction();
+			//bIsCardTargeting 풀기
+			BattleManager->bIsCardTargeting = false;
+			BattleManager->ExchangeN_End(BattleManager->GetCurrentExchange());
 		}
 	}else
 	{

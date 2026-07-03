@@ -356,6 +356,11 @@ void UWidget_BattleMainScreen::Exchange1End()
 	//1합 카드 제시 칸 비활성화
 	HandleExchangeSlot(1, false);
 	//1합 상대방 카드 표기
+	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
+	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[0]);
+	
+	//일단 넘겨 다른 곳에서 넘기는 코드를 보내야 하는데 시간 없으니까
+	HandleExchange1EndFinish();
 }
 
 void UWidget_BattleMainScreen::HandleExchange1EndFinish()
@@ -390,7 +395,12 @@ void UWidget_BattleMainScreen::Exchange2End()
 	DisplayExchangeCountAlarm(2, false);
 	//2합 카드 제시 칸 비활성화
 	HandleExchangeSlot(2, false);
-	//2합 상대방 카드 그리드 표기
+	//2합 상대방 카드 표기
+	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
+	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[1]);
+	
+	//일단 넘겨
+	HandleExchange2EndFinish();
 }
 
 void UWidget_BattleMainScreen::HandleExchange2EndFinish()
@@ -426,6 +436,13 @@ void UWidget_BattleMainScreen::Exchange3End()
 	//3합 카드 제시 칸 비활성화
 	HandleExchangeSlot(3, false);
 	//3합 상대방 카드 그리드 표기
+	
+	//3합 상대방 카드 표기
+	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
+	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[2]);
+	
+	//일단 넘겨
+	HandleExchange3EndFinish();
 }
 
 void UWidget_BattleMainScreen::HandleExchange3EndFinish()
@@ -447,6 +464,9 @@ void UWidget_BattleMainScreen::ExchangeEnd()
 	//핸드에 있는 카드 패 제거
 	
 	//3합 상대방 카드 그리드 표기 제거
+	
+	//일단 넘겨
+	HandleExchangeEndFinish();
 }
 
 void UWidget_BattleMainScreen::HandleExchangeEndFinish()
@@ -456,7 +476,7 @@ void UWidget_BattleMainScreen::HandleExchangeEndFinish()
 	{
 		return;
 	}
-	CachedBattleManager->RoundEnd();
+	CachedBattleManager->AttackStart();
 }
 
 void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
@@ -518,35 +538,12 @@ void UWidget_BattleMainScreen::AttackStart()
 	
 }
 
-void UWidget_BattleMainScreen::Attack1Start()
+void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter,
+	ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset)
 {
 	
 }
 
-void UWidget_BattleMainScreen::Attack1End()
-{
-	
-}
-
-void UWidget_BattleMainScreen::Attack2Start()
-{
-	
-}
-
-void UWidget_BattleMainScreen::Attack2End()
-{
-	
-}
-
-void UWidget_BattleMainScreen::Attack3Start()
-{
-	
-}
-
-void UWidget_BattleMainScreen::Attack3End()
-{
-	
-}
 
 void UWidget_BattleMainScreen::AttackEnd()
 {

@@ -10,6 +10,7 @@
 #include "CharacterData_Enemy.h"
 #include "CharacterData_Player.h"
 #include "TimerManager.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
@@ -357,7 +358,7 @@ void ABattleManager::OnHoveredGridTileChanged(ABattleGridTile* InChangeTile)
 	{
 		BattleGridManager->ClearGridHovered();
 		SelectTargetGrid = InChangeTile;
-		TArray<FIntPoint> TargetPoints = AttackRangeDataAsset->GetRangeCoords(BattleGridManager, SelectTargetGrid->GetGridCoord(), AttackDir);
+		TargetPoints = AttackRangeDataAsset->GetRangeCoords(BattleGridManager, SelectTargetGrid->GetGridCoord(), AttackDir);
 		BattleGridManager->SetGridHovered(TargetPoints);
 	}
 }
@@ -484,6 +485,8 @@ void ABattleManager::RoundEnd()
 void ABattleManager::ExchangeStart()
 {
 	//핸드에 카드 배치
+	AttackActions.Empty();
+	
 	//합 시작 UI 표시 <- BattleMainScreen에게 전달
 	if (BattleMainScreen)
 	{
@@ -512,7 +515,7 @@ void ABattleManager::Exchange1End()
 void ABattleManager::Exchange2Start()
 {
 	//2합 시작 UI 표시 <- BattleMainScreen에게 전달
-	
+	CurrentExchange += 1;
 	BattleMainScreen->Exchange2Start();
 }
 
@@ -530,6 +533,7 @@ void ABattleManager::Exchange2End()
 void ABattleManager::Exchange3Start()
 {
 	//3합 시작 UI 표시 <- BattleMainScreen에게 전달
+	CurrentExchange += 1;
 	BattleMainScreen->Exchange3Start();
 }
 
@@ -555,13 +559,47 @@ void ABattleManager::ExchangeEnd()
 	BattleMainScreen->ExchangeEnd();
 }
 
+void ABattleManager::ExchangeN_End(int32 InIndex)
+{
+	switch (InIndex)
+	{
+	case 0:
+		Exchange1End();
+		break;
+	case 1:
+		Exchange2End();
+		break;
+	case 2:
+		Exchange3End();
+		break;
+	default:
+		break;
+	}
+}
+
 void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
 {
 	//합 도중 선택 카드 방향 정하기
 	if (!CardPreviewComponent)return;
 	if (!PlayerBattleCharacter)return;
-	
 	CardEffectComponent->CardEffectUpdate(PlayerBattleCharacter, ExchangeCard);
+	AttackBattleCardDataAsset = ExchangeCard;
+}
+
+void ABattleManager::SetPlayerBattleAction()
+{
+	FBattleAction BattleAction = FBattleAction();
+	BattleAction.ExchangeIndex = CurrentExchange;
+	BattleAction.Card = AttackBattleCardDataAsset;
+	BattleAction.Speed = PlayerBattleCharacter->GetCharacterSpeed() + AttackBattleCardDataAsset->CardSpeed;
+	BattleAction.Attacker = PlayerBattleCharacter;
+	BattleAction.bPlayerAction = true;
+	
+	//좌표 구하는거
+	BattleAction.TargetPoints = TargetPoints;
+	
+	AttackActions.Add(BattleAction);
+	
 }
 
 
@@ -570,44 +608,587 @@ void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
 //전체 흐름은 BattleManager에서 전부 기능을 마친 후 BattleMainScreen에게 전달 후 대기
 //BattleMainScreen에서 기능(UI 관련)을 마친 후 BattleManager에게 다음으로 넘어가라고 통보하는 방식
 
+void ABattleManager::BuildAttackActions()
+{
+	//합 단계에서 확정된 플레이어와 적의 행동을 공격 실행용 배열로 변환
+	// 이전 공격 단계에서 사용한 행동 제거
+	
+	//AttackActions.Empty();
+
+	if (!IsValid(PlayerBattleCharacter))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("BuildAttackActions: PlayerBattleCharacter is nullptr")
+		);
+		return;
+	}
+
+	if (!IsValid(EnemyBattleCharacter))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("BuildAttackActions: EnemyBattleCharacter is nullptr")
+		);
+		return;
+	}
+
+	const int32 ExchangeCount = FMath::Max(
+		PlayerSelectedCards.Num(),
+		EnemySelectedCards.Num()
+	);
+
+	for (int32 ExchangeIndex = 0;
+		 ExchangeIndex < ExchangeCount;
+		 ++ExchangeIndex)
+	{
+		// 플레이어 행동 생성
+		if (PlayerSelectedCards.IsValidIndex(ExchangeIndex))
+		{
+			UMuksiBattleCardDataAsset* PlayerCard =
+				PlayerSelectedCards[ExchangeIndex];
+
+			if (!PlayerCard)
+			{
+				FBattleAction PlayerAction;
+
+				PlayerAction.ExchangeIndex = ExchangeIndex;
+				PlayerAction.Attacker = PlayerBattleCharacter;
+				PlayerAction.Card = PlayerCard;
+
+				// 실제 속도 반환 함수 이름에 맞게 수정
+				PlayerAction.Speed =
+					PlayerBattleCharacter->GetCharacterSpeed();
+
+				PlayerAction.bPlayerAction = true;
+
+				AttackActions.Add(PlayerAction);
+			}
+		}
+
+		// 적 행동 생성
+		if (EnemySelectedCards.IsValidIndex(ExchangeIndex))
+		{
+			UMuksiBattleCardDataAsset* EnemyCard =
+				EnemySelectedCards[ExchangeIndex];
+
+			if (!EnemyCard)
+			{
+				FBattleAction EnemyAction;
+
+				EnemyAction.ExchangeIndex = ExchangeIndex;
+				EnemyAction.Attacker = EnemyBattleCharacter;
+				EnemyAction.Card = EnemyCard;
+
+				// 실제 속도 반환 함수 이름에 맞게 수정
+				EnemyAction.Speed =
+					EnemyBattleCharacter->GetCharacterSpeed();
+
+				EnemyAction.bPlayerAction = false;
+
+				AttackActions.Add(EnemyAction);
+			}
+		}
+	}
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("BuildAttackActions: %d actions created"),
+		AttackActions.Num()
+	);
+	
+}
+
+void ABattleManager::SortAttackActions()
+{
+	AttackActions.Sort(
+		[](const FBattleAction& A, const FBattleAction& B)
+		{
+			// 먼저 합 순서를 유지
+			if (A.ExchangeIndex != B.ExchangeIndex)
+			{
+				return A.ExchangeIndex < B.ExchangeIndex;
+			}
+
+			// 같은 합에서는 속도가 높은 캐릭터가 먼저 행동
+			if (A.Speed != B.Speed)
+			{
+				return A.Speed > B.Speed;
+			}
+
+			// 속도도 같으면 플레이어 행동을 먼저 실행
+			if (A.bPlayerAction != B.bPlayerAction)
+			{
+				return A.bPlayerAction;
+			}
+
+			return false;
+		}
+	);
+}
+
 void ABattleManager::AttackStart()
 {
+	// 공격 단계로 변경
+	SetPhase(EBattlePhase::AttackStart);
+
+	// 이전 공격 단계에서 사용한 데이터 초기화
+	//AttackActions.Empty();
+	CurrentAttackActionIndex = 0;
+
+	// 합 단계에서 선택된 카드들을 행동 배열로 변환
+	
+	//BuildAttackActions();
+
+	// 실행할 행동이 없다면 바로 공격 종료
+	if (AttackActions.IsEmpty())
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("AttackStart: 실행할 공격 행동이 없습니다.")
+		);
+
+		AttackEnd();
+		return;
+	}
+
+	// 합 번호와 캐릭터 속도를 기준으로 행동 순서 결정
+	SortAttackActions();
+
+	// 첫 번째 행동을 가리키도록 초기화
+	CurrentAttackActionIndex = 0;
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("AttackStart: 총 행동 개수 %d"),
+		AttackActions.Num()
+	);
+
+	// 공격 시작 UI가 있다면 먼저 호출
+	if (BattleMainScreen)
+	{
+		BattleMainScreen->AttackStart();
+
+		/*
+		 * 공격 시작 연출이 끝난 뒤
+		 * BattleManager의 StartCurrentAttackAction()을
+		 * 호출하도록 구성할 수 있음.
+		 */
+		//return;
+	}
+
+	// UI나 시작 연출이 없다면 즉시 첫 행동 실행
+	StartCurrentAttackAction();
+}
+
+void ABattleManager::StartCurrentAttackAction()
+{
+	// 현재 인덱스에 해당하는 행동이 없으면 공격 단계 종료
+	if (!AttackActions.IsValidIndex(CurrentAttackActionIndex))
+	{
+		AttackEnd();
+		return;
+	}
+
+	const FBattleAction& CurrentAction =
+		AttackActions[CurrentAttackActionIndex];
+
+	// 공격자 확인
+	if (!IsValid(CurrentAction.Attacker))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("StartCurrentAttackAction: Attacker is invalid. Index: %d"),
+			CurrentAttackActionIndex
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	// 대상 확인
+	/*if (!IsValid(CurrentAction.Target))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("StartCurrentAttackAction: Target is invalid. Index: %d"),
+			CurrentAttackActionIndex
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}*/
+
+	// 카드 확인
+	if (!CurrentAction.Card)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("StartCurrentAttackAction: Card is invalid. Index: %d"),
+			CurrentAttackActionIndex
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	/*
+	 * 필요하다면 여기에서:
+	 * - 공격자 사망 여부
+	 * - 기절 여부
+	 * - 행동 불가 상태
+	 * - 대상 사망 여부
+	 * 등을 확인
+	 */
+
+	/*UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("Start Action %d | Attacker: %s | Target: %s | Card: %s"),
+		CurrentAttackActionIndex,
+		*GetNameSafe(CurrentAction.Attacker),
+		*GetNameSafe(CurrentAction.Target),
+		*GetNameSafe(CurrentAction.Card)
+	);*/
+
+	// 실제 전투 데이터 처리
+	ResolveCurrentAttackAction();
+
+	// UI와 애니메이션 연출 요청
+	PlayAttackAction();
+}
+
+void ABattleManager::ResolveCurrentAttackAction()
+{
+	// 현재 행동 인덱스 확인
+	if (!AttackActions.IsValidIndex(CurrentAttackActionIndex))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("ResolveCurrentAttackAction: Invalid action index: %d"),
+			CurrentAttackActionIndex
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	FBattleAction& CurrentAction =
+		AttackActions[CurrentAttackActionIndex];
+
+	// 공격자 확인
+	if (!IsValid(CurrentAction.Attacker))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("ResolveCurrentAttackAction: Attacker is invalid")
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	/*// 대상 확인
+	if (!IsValid(CurrentAction.Target))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("ResolveCurrentAttackAction: Target is invalid")
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}*/
+
+	// 카드 확인
+	if (!IsValid(CurrentAction.Card))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("ResolveCurrentAttackAction: Card is invalid")
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	// 카드 효과 컴포넌트 확인
+	if (!IsValid(CardEffectComponent))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("ResolveCurrentAttackAction: CardEffectComponent is invalid")
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	/*UE_LOG(
+		LogTemp,
+		Log,
+		TEXT(
+			"Resolve Action %d | Exchange: %d | Attacker: %s | Target: %s | Card: %s"
+		),
+		CurrentAttackActionIndex,
+		CurrentAction.ExchangeIndex + 1,
+		*GetNameSafe(CurrentAction.Attacker),
+		*GetNameSafe(CurrentAction.Target),
+		*GetNameSafe(CurrentAction.Card)
+	);*/
+
+	/*
+	 * 실제 카드 효과 적용
+	 *
+		나중에 BattleManager가 아닌 BattleCharacter에서 애니매이션 종료 시 호출 될 예정
+	 */
+	
+	/*CardEffectComponent->ExecuteCardEffect(
+		CurrentAction.Attacker,
+		CurrentAction.Target,
+		CurrentAction.Card
+	);*/
+
+	/*
+	 * 여기서는 FinishCurrentAttackAction()을 호출하지 않음.
+	 *
+	 * 이후 PlayAttackAction()에서 연출을 실행하고,
+	 * 연출이 끝나면 NotifyAttackActionFinished()를 호출한 뒤
+	 * FinishCurrentAttackAction()으로 넘어감.
+	 */
+}
+
+void ABattleManager::PlayAttackAction()
+{
+	if (!AttackActions.IsValidIndex(CurrentAttackActionIndex))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("PlayAttackAction: Invalid action index: %d"),
+			CurrentAttackActionIndex
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	const FBattleAction& CurrentAction =
+		AttackActions[CurrentAttackActionIndex];
+
+	if (!IsValid(CurrentAction.Attacker))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("PlayAttackAction: Attacker is invalid")
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	/*if (!IsValid(CurrentAction.Target))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("PlayAttackAction: Target is invalid")
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}*/
+
+	if (!IsValid(CurrentAction.Card))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("PlayAttackAction: Card is invalid")
+		);
+
+		FinishCurrentAttackAction();
+		return;
+	}
+
+	/*UE_LOG(
+		LogTemp,
+		Log,
+		TEXT(
+			"Play Action %d | Exchange: %d | Attacker: %s | Target: %s | Card: %s"
+		),
+		CurrentAttackActionIndex,
+		CurrentAction.ExchangeIndex + 1,
+		*GetNameSafe(CurrentAction.Attacker),
+		*GetNameSafe(CurrentAction.Target),
+		*GetNameSafe(CurrentAction.Card)
+	);*/
+
+	/*
+	 * UI가 없다면 기다릴 연출도 없으므로
+	 * 현재 행동이 끝났다고 처리
+	 */
+	if (!IsValid(BattleMainScreen))
+	{
+		NotifyAttackActionFinished();
+		return;
+	}
+
+	/*
+	 * UI에 현재 행동 정보를 전달해서:
+	 *
+	 * - 공격 카드 표시
+	 * - 공격자 애니메이션 재생
+	 * - 대상 피격 애니메이션 재생
+	 * - 카메라 연출
+	 * - 데미지 텍스트 표시
+	 *
+	 * 등을 처리
+	 */
+	/*BattleMainScreen->PlayAttackAction(
+		CurrentAttackActionIndex,
+		CurrentAction.Attacker,
+		CurrentAction.Target,
+		CurrentAction.Card
+	);*/
+	
+	CurrentAction.Attacker->PlayAttackAnim(CurrentAction.Card);
 	
 }
 
-void ABattleManager::Attack1Start()
+void ABattleManager::NotifyAttackActionFinished()
 {
-	
+	// 현재 행동 인덱스가 유효하지 않으면 종료
+	if (!AttackActions.IsValidIndex(CurrentAttackActionIndex))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("NotifyAttackActionFinished: Invalid action index: %d"),
+			CurrentAttackActionIndex
+		);
+
+		AttackEnd();
+		return;
+	}
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("Attack action finished. Index: %d"),
+		CurrentAttackActionIndex
+	);
+
+	// 현재 행동을 마무리하고 다음 행동으로 이동
+	FinishCurrentAttackAction();
 }
 
-void ABattleManager::Attack1End()
+void ABattleManager::FinishCurrentAttackAction()
 {
-	
-}
+	// 현재 행동 완료 처리
+	bWaitingForAttackActionFinish = false;
 
-void ABattleManager::Attack2Start()
-{
-	
-}
+	// 필요하면 여기에서 공격 후 효과 처리
+	// 예:
+	// - 반격
+	// - 흡혈
+	// - 독 데미지
+	// - 버프 감소
+	// - 사망 여부 확인
 
-void ABattleManager::Attack2End()
-{
-	
-}
+	++CurrentAttackActionIndex;
 
-void ABattleManager::Attack3Start()
-{
-	
-}
+	// 다음 행동이 없으면 공격 단계 종료
+	if (!AttackActions.IsValidIndex(CurrentAttackActionIndex))
+	{
+		AttackEnd();
+		return;
+	}
 
-void ABattleManager::Attack3End()
-{
-	
+	// 다음 행동 시작
+	StartCurrentAttackAction();
 }
 
 void ABattleManager::AttackEnd()
 {
-	
+	// 공격 종료 상태로 변경
+	SetPhase(EBattlePhase::AttackEnd);
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("AttackEnd: All attack actions finished")
+	);
+
+	// 현재 실행 중인 행동 상태 초기화
+	bWaitingForAttackActionFinish = false;
+	CurrentAttackActionIndex = INDEX_NONE;
+
+	/*
+	 * 공격 행동 배열은 공격 종료 UI에서 참조할 필요가 없다면
+	 * 여기서 비워도 됨.
+	 */
+	AttackActions.Empty();
+
+	/*
+	 * 카드 미리보기, 공격 범위, 선택 그리드 등이 남아 있다면 제거
+	 */
+	if (CardPreviewComponent)
+	{
+		CardPreviewComponent->ClearHoveredTile();
+	}
+
+	if (BattleGridManager)
+	{
+		BattleGridManager->AllClearGridHovered();
+	}
+
+	/*
+	 * 공격 종료 UI가 있으면 UI 연출 요청.
+	 * UI 연출이 끝난 뒤 NotifyAttackEndFinished()를 호출하도록 구성.
+	 */
+	if (BattleMainScreen)
+	{
+		BattleMainScreen->AttackEnd();
+		return;
+	}
+
+	// UI가 없으면 바로 다음 단계 결정
+	NotifyAttackEndFinished();
+}
+
+void ABattleManager::NotifyAttackEndFinished()
+{
+	if (CurrentPhase != EBattlePhase::AttackEnd)
+	{
+		return;
+	}
+
+	/*
+	 * 공격이 끝난 뒤 전투 종료 조건 확인
+	 */
+	if (ShouldEndBattle())
+	{
+		BattleEnd();
+		return;
+	}
+
+	// 전투가 계속되면 현재 국 종료
+	RoundEnd();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

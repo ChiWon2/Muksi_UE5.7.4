@@ -7,11 +7,17 @@
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
 
+enum class ECardAnimType : uint8;
 class UMuksiBattleCardDataAsset;
 class UMuksiCharacterDataAsset;
 class UCharacterDataBase;
 class UStaticMeshComponent;
 class UMuksiStatusEffectComponent;
+
+class USkeletalMesh;
+class UAnimInstance;
+class UAnimMontage;
+class UBoxComponent;
 
 UCLASS()
 class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacterInterface
@@ -35,6 +41,8 @@ public:
 	int32 GetCurrentHP()const;
 	void SetCurrentHP(int32 NewHP);
 	
+	float GetCharacterSpeed()const;
+	
 	
 	FIntPoint GetCharacterPosition()const{return CharacterPosition;};
 	void SetCharacterPosition(FIntPoint NewPosition){CharacterPosition = NewPosition;};
@@ -52,14 +60,12 @@ protected:
 	
 	
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UStaticMeshComponent> MeshComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMuksiStatusEffectComponent> StatusEffectComponent;
 
 	UFUNCTION()
-	void HandleClicked(AActor* TouchedActor, FKey ButtonPressed);
+	void HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed);
 	
 	
 	UPROPERTY()
@@ -75,11 +81,32 @@ public:
 	
 	UFUNCTION()
 	FIntPoint GetCharacterPosition(){return CharacterPosition;};
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual")
+	TObjectPtr<USceneComponent> SceneRoot;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual")
+	TObjectPtr<USkeletalMeshComponent> MeshComponent;
 
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const{return StatusEffectComponent;}
-	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
 
+	TSubclassOf<UAnimInstance> AnimInstanceClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> DefaultAttackMontage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ClickFunction")
+	TObjectPtr<UBoxComponent> ClickCollision;
+
+	//공격 애니메이션 관련 함수
+public:
+	void PlayAttackAnim(UMuksiBattleCardDataAsset* BattleCardData);
+
+protected:
+	TObjectPtr<UAnimMontage> FindAnimations(ECardAnimType CardAnim)const;
+	
+	TObjectPtr<UAnimMontage> AnimMontage = nullptr;
 public:
 	//virtual FCharacterDisplayData GetCharacterDisplayData() const override;
 	virtual void OnSelected() override;

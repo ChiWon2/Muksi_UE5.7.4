@@ -35,6 +35,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Character")
 	int32 GetCurrentHP() const { return CurrentHP; }
 	void SetCurrentHP(int32 NewHP){CurrentHP = NewHP;};
+	
+	float GetPlayerSpeed() const { return PlayerSpeed; }
 
 	//const TArray<FName>& GetDeckCardRowNames() const { return DeckCardRowNames; }
 
@@ -54,6 +56,8 @@ protected:
 	int32 CurrentHP = 0;
 	UPROPERTY(Transient)
 	int32 MaxHP = 0;
+	UPROPERTY(Transient)
+	float PlayerSpeed = 1.0f;
 
 
 	
