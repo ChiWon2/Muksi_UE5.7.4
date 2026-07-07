@@ -7,6 +7,7 @@
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
 
+class AExchangeCharacterBase;
 enum class ECardAnimType : uint8;
 class UMuksiBattleCardDataAsset;
 class UMuksiCharacterDataAsset;
@@ -81,6 +82,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
 	UCharacterDataBase* GetCharacterData() const {return CharacterData;};
 	
+	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
+	virtual void SetExchangeCharacter(AExchangeCharacterBase* ExchangeCharacter){ExchangeCharacterBase = ExchangeCharacter;};
+	
+	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
+	virtual AExchangeCharacterBase* GetExchangeCharacter(){return ExchangeCharacterBase;}
+	
 	UFUNCTION()
 	FIntPoint GetCharacterPosition(){return CharacterPosition;};
 	
@@ -109,6 +116,8 @@ protected:
 	TObjectPtr<UAnimMontage> FindAnimations(ECardAnimType CardAnim)const;
 	
 	TObjectPtr<UAnimMontage> AnimMontage = nullptr;
+	
+	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
 public:
 	//virtual FCharacterDisplayData GetCharacterDisplayData() const override;
 	virtual void OnSelected() override;

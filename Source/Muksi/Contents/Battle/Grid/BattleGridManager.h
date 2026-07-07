@@ -209,6 +209,8 @@ public:
 	void SetGridHovered(TArray<FIntPoint> NewGridArray);
 	void ClearGridHovered();
 	void AllClearGridHovered();
+	void SetExchangeIndicator(int32 AttackType, TArray<FIntPoint> GridArray);
+	void AllClearExchangeIndicator();
 	//
 	
 	//카드 효과 실행 관련

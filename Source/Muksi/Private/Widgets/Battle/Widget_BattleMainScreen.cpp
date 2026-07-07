@@ -356,9 +356,10 @@ void UWidget_BattleMainScreen::Exchange1End()
 	//1합 카드 제시 칸 비활성화
 	HandleExchangeSlot(1, false);
 	//1합 상대방 카드 표기
-	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
+	EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(0));
 	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[0]);
 	
+	CurrentExchange += 1;
 	//일단 넘겨 다른 곳에서 넘기는 코드를 보내야 하는데 시간 없으니까
 	HandleExchange1EndFinish();
 }
@@ -376,6 +377,7 @@ void UWidget_BattleMainScreen::HandleExchange1EndFinish()
 void UWidget_BattleMainScreen::Exchange2Start()
 {
 	UE_LOG(LogTemp, Log, TEXT("Exchange 2 Start (Widget_BattleMainScreen)"));
+	
 	HandleExchangeCount = 0;
 	//2합 시작 UI 표시
 	DisplayExchangeCountAlarm(2, true);
@@ -396,9 +398,9 @@ void UWidget_BattleMainScreen::Exchange2End()
 	//2합 카드 제시 칸 비활성화
 	HandleExchangeSlot(2, false);
 	//2합 상대방 카드 표기
-	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
+	EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(1));
 	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[1]);
-	
+	CurrentExchange += 1;
 	//일단 넘겨
 	HandleExchange2EndFinish();
 }
@@ -438,9 +440,9 @@ void UWidget_BattleMainScreen::Exchange3End()
 	//3합 상대방 카드 그리드 표기
 	
 	//3합 상대방 카드 표기
-	EnemySelectBattleCard.Add(CachedBattleManager->GetEnemyBattleCharacter()->GetSelectEnemyCardDataAsset());
+	EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(2));
 	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[2]);
-	
+	CurrentExchange += 1;
 	//일단 넘겨
 	HandleExchange3EndFinish();
 }
@@ -462,7 +464,7 @@ void UWidget_BattleMainScreen::ExchangeEnd()
 	//턴 종료 버튼 비활성화
 	HandWidget->ShowTurnEndButton(false);
 	//핸드에 있는 카드 패 제거
-	
+	HandWidget->ClearHandCards();
 	//3합 상대방 카드 그리드 표기 제거
 	
 	//일단 넘겨

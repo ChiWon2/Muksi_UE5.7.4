@@ -62,6 +62,26 @@ void ABattleManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount)
+{
+	return PlayerSelectAction[ExchangeCount].Card;
+}
+
+UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount)
+{
+	return EnemySelectAction[ExchangeCount].Card;
+}
+
+FIntPoint ABattleManager::GetPlayerPoint() const
+{
+	return PlayerBattleCharacter->GetCharacterPosition();
+}
+
+FIntPoint ABattleManager::GetEnemyPoint() const
+{
+	return EnemyBattleCharacter->GetCharacterPosition();
+}
+
 void ABattleManager::SetPhase(EBattlePhase NewPhase)
 {
 	if (CurrentPhase == NewPhase)
@@ -391,7 +411,9 @@ void ABattleManager::ReadyStart()
 	//컴포넌트 Init 설정
 	ComponentInit();
 	
+	//카드 제시에서 Grid 범위 표시 비활성화
 	BattleGridManager->AllClearGridHovered();
+	BattleGridManager->AllClearExchangeIndicator();
 	
 	
 	if (!BattleMainScreen){UE_LOG(LogTemp, Error, TEXT("Widget_BattleMainScreen is null (BattleManager.cpp)"));return;}
@@ -450,6 +472,13 @@ void ABattleManager::BattleEnd()
 //===============================================국(Round)==============================================================
 void ABattleManager::RoundStart()
 {
+	//BattleAction 관련 Array Empty
+	UE_LOG(LogTemp, Error, TEXT("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Round Start PlayerActions %d"), PlayerSelectAction.Num());
+	
+	AttackActions.Empty();
+	PlayerSelectAction.Empty();
+	EnemySelectAction.Empty();
+	
 	//N 국 표시 UI
 	BattleMainScreen->RoundStart();
 }
@@ -484,8 +513,8 @@ void ABattleManager::RoundEnd()
 //합 시작
 void ABattleManager::ExchangeStart()
 {
-	//핸드에 카드 배치
 	AttackActions.Empty();
+	//핸드에 카드 배치
 	
 	//합 시작 UI 표시 <- BattleMainScreen에게 전달
 	if (BattleMainScreen)
@@ -499,6 +528,8 @@ void ABattleManager::ExchangeStart()
 
 void ABattleManager::Exchange1Start()
 {
+	//Enemy 카드 선택
+	
 	//1합 표시 카드 슬롯 활성화
 	//1합 시작 UI 표시 <- BattleMainScreen에게 전달
 	BattleMainScreen->Exchange1Start();
@@ -506,8 +537,17 @@ void ABattleManager::Exchange1Start()
 
 void ABattleManager::Exchange1End()
 {
-	//1합 카드 서로 공개<- BattleMainScreen에게 전달
+	UE_LOG(LogTemp, Log, TEXT("Exchange1 End!!!!"));
+	//Player 행동 선택
+	SetPlayerBattleAction();
+	//Enemy 행동 선택
+	SetEnemyBattleAction();
+	
 	//1합 카드 이동 방향 공개
+	SetExchangeGrid();
+	SetExchangeCharacter();
+	
+	//1합 카드 서로 공개<- BattleMainScreen에게 전달
 	//1합 종료 UI 표시 <- BattleMainScreen에게 전달
 	BattleMainScreen->Exchange1End();
 }
@@ -522,9 +562,21 @@ void ABattleManager::Exchange2Start()
 void ABattleManager::Exchange2End()
 {
 	//1합 카드 이동 방향 비공개
+	BattleGridManager->AllClearGridHovered();
+	BattleGridManager->AllClearExchangeIndicator();
+	
+	
+	//Player 행동 선택
+	SetPlayerBattleAction();
+	//Enemy 행동 선택
+	SetEnemyBattleAction();
+	
+	
+	//2합 카드 이동 방향 공개
+	SetExchangeGrid(); //뭐 나중에 UI 공개랑 같이 갈 수 있음
+	SetExchangeCharacter();
 	
 	//2합 카드 서로 공개<- BattleMainScreen에게 전달
-	//2합 카드 이동 방향 공개
 	//2합 종료 UI 표시 <- BattleMainScreen에게 전달
 	
 	BattleMainScreen->Exchange2End();
@@ -540,9 +592,19 @@ void ABattleManager::Exchange3Start()
 void ABattleManager::Exchange3End()
 {
 	//2합 카드 이동 방향 비공개
+	BattleGridManager->AllClearGridHovered();
+	BattleGridManager->AllClearExchangeIndicator();
+	
+	//Player 행동 선택
+	SetPlayerBattleAction();
+	//Enemy 행동 선택
+	SetEnemyBattleAction();
 	
 	//3합 카드 서로 공개<- BattleMainScreen에게 전달
+	
 	//3합 카드 이동 방향 공개
+	SetExchangeGrid();
+	SetExchangeCharacter();
 	//3합 종료 UI 표시<- BattleMainScreen에게 전달
 	
 	BattleMainScreen->Exchange3End();
@@ -551,6 +613,8 @@ void ABattleManager::Exchange3End()
 void ABattleManager::ExchangeEnd()
 {
 	//3합 카드 이동 방향 비공개
+	BattleGridManager->AllClearGridHovered();
+	BattleGridManager->AllClearExchangeIndicator();
 	
 	//합 종료 UI 표시<- BattleMainScreen에게 전달
 	
@@ -582,8 +646,8 @@ void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
 	//합 도중 선택 카드 방향 정하기
 	if (!CardPreviewComponent)return;
 	if (!PlayerBattleCharacter)return;
-	CardEffectComponent->CardEffectUpdate(PlayerBattleCharacter, ExchangeCard);
 	AttackBattleCardDataAsset = ExchangeCard;
+	CardEffectComponent->CardEffectUpdate(PlayerBattleCharacter, ExchangeCard);
 }
 
 void ABattleManager::SetPlayerBattleAction()
@@ -598,8 +662,92 @@ void ABattleManager::SetPlayerBattleAction()
 	//좌표 구하는거
 	BattleAction.TargetPoints = TargetPoints;
 	
+	PlayerSelectAction.Add(BattleAction);
 	AttackActions.Add(BattleAction);
+	UE_LOG(LogTemp, Log, TEXT("SetPlayerBattleAction add %d"), PlayerSelectAction.Num());
 	
+}
+
+void ABattleManager::SetEnemyBattleAction()
+{
+	FBattleAction BattleAction = FBattleAction();
+	BattleAction.ExchangeIndex = CurrentExchange;
+	BattleAction.Card = EnemyBattleCharacter->GetSelectEnemyCardDataAsset(BattleGridManager, this);
+	BattleAction.Attacker = EnemyBattleCharacter;
+	BattleAction.bPlayerAction = false;
+	
+	
+	//좌표 구하는거
+	BattleAction.TargetPoints = EnemyBattleCharacter->GetSelectEnemyCardCoord();
+	
+	AttackActions.Add(BattleAction);
+	EnemySelectAction.Add(BattleAction);
+}
+
+void ABattleManager::SetExchangeGrid()
+{
+	//일단 모든 GridTile의 인디케이터 초기화
+	BattleGridManager->AllClearGridHovered();
+	BattleGridManager->AllClearExchangeIndicator();
+	
+	//Action에 따른 GridTile의 ExchangeIndicator 활성화
+	//Player쪽
+	FBattleAction PlayerBattleAction = PlayerSelectAction[CurrentExchange];
+	UE_LOG(LogTemp, Log, TEXT("Current Exchange num %d"), PlayerSelectAction.Num());
+	int32 AttackType = 0;
+	switch (PlayerBattleAction.Card->AttackType.AttackType)
+	{
+		case EMuksiBattleCardAttackType::Rush:
+			AttackType = 0;
+			break;
+		case EMuksiBattleCardAttackType::RangeAttack:
+			AttackType = 0;
+			break;
+		case EMuksiBattleCardAttackType::Move:
+			AttackType = 1;
+			break;
+		case EMuksiBattleCardAttackType::Defense:
+			AttackType = 2;
+			break;
+		default:
+			UE_LOG(LogTemp, Error, TEXT("AttackType is Error (BattleManager.cpp)"));
+			break;
+	}
+	BattleGridManager->SetExchangeIndicator(AttackType, PlayerBattleAction.TargetPoints);
+	UE_LOG(LogTemp, Log, TEXT("SelectCard %s"), *PlayerBattleAction.Card->CardName.ToString());
+	UE_LOG(LogTemp, Log, TEXT("Player select Point {%d} , {%d}"), PlayerBattleAction.TargetPoints[0].X, PlayerBattleAction.TargetPoints[0].Y);
+	
+	//Enemy쪽
+	FBattleAction EnemyBattleAction = EnemySelectAction[CurrentExchange];
+	int32 AttackType_ = 0;
+	switch (EnemyBattleAction.Card->AttackType.AttackType)
+	{
+	case EMuksiBattleCardAttackType::Rush:
+		AttackType_ = 0;
+		break;
+	case EMuksiBattleCardAttackType::RangeAttack:
+		AttackType_ = 0;
+		break;
+	case EMuksiBattleCardAttackType::Move:
+		AttackType_ = 1;
+		break;
+	case EMuksiBattleCardAttackType::Defense:
+		AttackType_ = 2;
+		break;
+	default:
+		UE_LOG(LogTemp, Error, TEXT("AttackType is Error (BattleManager.cpp)"));
+		break;
+	}
+	UE_LOG(LogTemp, Log, TEXT("Enemy select Point {%d} , {%d}"), EnemyBattleAction.TargetPoints[0].X, EnemyBattleAction.TargetPoints[0].Y);
+	BattleGridManager->SetExchangeIndicator(AttackType_, EnemyBattleAction.TargetPoints);
+	
+	
+}
+
+void ABattleManager::SetExchangeCharacter()
+{
+	BattleGridManager->MoveActorOnGrid(PlayerBattleCharacter, PlayerBattleCharacter->GetCharacterPosition(),PlayerSelectAction[CurrentExchange].TargetPoints[0]);
+	BattleGridManager->MoveActorOnGrid(EnemyBattleCharacter, EnemyBattleCharacter->GetCharacterPosition(), EnemySelectAction[CurrentExchange].TargetPoints[0]);
 }
 
 
@@ -608,99 +756,6 @@ void ABattleManager::SetPlayerBattleAction()
 //전체 흐름은 BattleManager에서 전부 기능을 마친 후 BattleMainScreen에게 전달 후 대기
 //BattleMainScreen에서 기능(UI 관련)을 마친 후 BattleManager에게 다음으로 넘어가라고 통보하는 방식
 
-void ABattleManager::BuildAttackActions()
-{
-	//합 단계에서 확정된 플레이어와 적의 행동을 공격 실행용 배열로 변환
-	// 이전 공격 단계에서 사용한 행동 제거
-	
-	//AttackActions.Empty();
-
-	if (!IsValid(PlayerBattleCharacter))
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("BuildAttackActions: PlayerBattleCharacter is nullptr")
-		);
-		return;
-	}
-
-	if (!IsValid(EnemyBattleCharacter))
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("BuildAttackActions: EnemyBattleCharacter is nullptr")
-		);
-		return;
-	}
-
-	const int32 ExchangeCount = FMath::Max(
-		PlayerSelectedCards.Num(),
-		EnemySelectedCards.Num()
-	);
-
-	for (int32 ExchangeIndex = 0;
-		 ExchangeIndex < ExchangeCount;
-		 ++ExchangeIndex)
-	{
-		// 플레이어 행동 생성
-		if (PlayerSelectedCards.IsValidIndex(ExchangeIndex))
-		{
-			UMuksiBattleCardDataAsset* PlayerCard =
-				PlayerSelectedCards[ExchangeIndex];
-
-			if (!PlayerCard)
-			{
-				FBattleAction PlayerAction;
-
-				PlayerAction.ExchangeIndex = ExchangeIndex;
-				PlayerAction.Attacker = PlayerBattleCharacter;
-				PlayerAction.Card = PlayerCard;
-
-				// 실제 속도 반환 함수 이름에 맞게 수정
-				PlayerAction.Speed =
-					PlayerBattleCharacter->GetCharacterSpeed();
-
-				PlayerAction.bPlayerAction = true;
-
-				AttackActions.Add(PlayerAction);
-			}
-		}
-
-		// 적 행동 생성
-		if (EnemySelectedCards.IsValidIndex(ExchangeIndex))
-		{
-			UMuksiBattleCardDataAsset* EnemyCard =
-				EnemySelectedCards[ExchangeIndex];
-
-			if (!EnemyCard)
-			{
-				FBattleAction EnemyAction;
-
-				EnemyAction.ExchangeIndex = ExchangeIndex;
-				EnemyAction.Attacker = EnemyBattleCharacter;
-				EnemyAction.Card = EnemyCard;
-
-				// 실제 속도 반환 함수 이름에 맞게 수정
-				EnemyAction.Speed =
-					EnemyBattleCharacter->GetCharacterSpeed();
-
-				EnemyAction.bPlayerAction = false;
-
-				AttackActions.Add(EnemyAction);
-			}
-		}
-	}
-
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("BuildAttackActions: %d actions created"),
-		AttackActions.Num()
-	);
-	
-}
 
 void ABattleManager::SortAttackActions()
 {
@@ -741,9 +796,8 @@ void ABattleManager::AttackStart()
 
 	// 합 단계에서 선택된 카드들을 행동 배열로 변환
 	
-	//BuildAttackActions();
 
-	// 실행할 행동이 없다면 바로 공격 종료
+	// 실행할 행동이 없다면 바로 공격 종료 <- 있으면 안되는상황
 	if (AttackActions.IsEmpty())
 	{
 		UE_LOG(

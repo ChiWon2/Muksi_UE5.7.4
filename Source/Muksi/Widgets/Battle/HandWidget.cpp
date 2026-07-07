@@ -224,6 +224,13 @@ void UHandWidget::ClearHandCards()
 	if (HandCanvas)
 	{
 		//HandCanvas->ClearChildren();
+		for (TObjectPtr<UWidget_BattleCardBase> CardWidget : BattleCards)
+		{
+			if (CardWidget)
+			{
+				CardWidget->RemoveFromParent();
+			}
+		}
 	}
 	HoveredCard = nullptr;
 	BattleCards.Empty();

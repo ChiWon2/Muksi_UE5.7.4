@@ -8,6 +8,8 @@
 
 class UEnemyBattleAIComponent;
 class UMuksiCharacterDataAsset;
+class ABattleManager;
+class ABattleGridManager;
 /**
  * 
  */
@@ -22,7 +24,9 @@ public:
 	UEnemyBattleAIComponent* BattleAIComponent;
 	virtual void SetCharacterData(UCharacterDataBase* InCharacterData) override;
 	
-	UMuksiBattleCardDataAsset* GetSelectEnemyCardDataAsset()const;
+	UMuksiBattleCardDataAsset* GetSelectEnemyCardDataAsset(ABattleGridManager* GridManager, ABattleManager* BattleManager)const;
+	TArray<FIntPoint> GetSelectEnemyCardCoord()const;
+	
 	
 	void InitData();
 };

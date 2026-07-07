@@ -39,7 +39,7 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
-	FMuksiBattleCardEffectData PlayerEffect;
+	FMuksiBattleCardAttackTypeData PlayerEffect;
 
 public:	
 	// Called every frame

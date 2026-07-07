@@ -6,6 +6,8 @@
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/CharacterDataBase.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
 
 // Sets default values for this component's properties
 UEnemyBattleAIComponent::UEnemyBattleAIComponent()
@@ -38,7 +40,33 @@ void UEnemyBattleAIComponent::InitializeAI(UCharacterDataBase* InEnemyData)
 	);
 }
 
-UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardsForExchange(UCharacterDataBase* EnemyData)
+UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
+	UCharacterDataBase* EnemyData,
+	ABattleGridManager* GridManager,
+	ABattleManager* BattleManager
+)
+{
+	if (!CardSelectStrategy)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CardSelectStrategy is null"));
+		return nullptr;
+	}
+
+	Result = CardSelectStrategy->SelectCardForExchange(
+		EnemyData,
+		GridManager,
+		BattleManager->GetEnemyPoint(),
+		BattleManager->GetPlayerPoint()
+	);
+	return Result.SelectedCard;
+}
+
+TArray<FIntPoint> UEnemyBattleAIComponent::GetPointForExchange()const
+{
+	return Result.SelectedCoordArray;
+}
+
+/*UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardsForExchange(UCharacterDataBase* EnemyData)
 {
 	
 	if (!CardSelectStrategy)
@@ -50,7 +78,7 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardsForExchange(UChar
 	return CardSelectStrategy->SelectCardsForExchange(
 		EnemyData
 	);
-}
+}*/
 
 
 // Called when the game starts

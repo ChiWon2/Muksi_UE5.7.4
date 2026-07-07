@@ -8,6 +8,27 @@
 
 class UMuksiBattleCardDataAsset;
 class UCharacterDataBase;
+class ABattleGridManager;
+
+USTRUCT(BlueprintType)
+struct FEnemyCardSelectResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UMuksiBattleCardDataAsset> SelectedCard = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	FIntPoint SelectedCoord = FIntPoint::ZeroValue;
+	
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FIntPoint> SelectedCoordArray;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bValid = false;
+};
+
+
 /**
  * 
  */
@@ -19,12 +40,33 @@ class MUKSI_API UEnemyCardSelectStrategyBase : public UObject
 	
 public:
 	UFUNCTION(BlueprintNativeEvent)
-	UMuksiBattleCardDataAsset* SelectCardsForExchange(
-		UCharacterDataBase* EnemyData
+	FEnemyCardSelectResult SelectCardForExchange(
+		UCharacterDataBase* EnemyData,
+		ABattleGridManager* GridManager,
+		const FIntPoint& EnemyCoord,
+		const FIntPoint& PlayerCoord
 	);
 
-	// 캐릭터 마다 드로우 알고리즘 짜기
-	virtual UMuksiBattleCardDataAsset* SelectCardsForExchange_Implementation(
-		UCharacterDataBase* EnemyData
+	virtual FEnemyCardSelectResult SelectCardForExchange_Implementation(
+		UCharacterDataBase* EnemyData,
+		ABattleGridManager* GridManager,
+		const FIntPoint& EnemyCoord,
+		const FIntPoint& PlayerCoord
+	);
+
+protected:
+	virtual TArray<FIntPoint> GetCandidateCoords(
+		UCharacterDataBase* EnemyData,
+		UMuksiBattleCardDataAsset* Card,
+		ABattleGridManager* GridManager,
+		const FIntPoint& EnemyCoord
+		, const FIntPoint& PlayerCoord
+	);
+
+	virtual float EvaluateCardCoord(
+		UMuksiBattleCardDataAsset* Card,
+		const FIntPoint& CandidateCoord,
+		const FIntPoint& PlayerCoord,
+		ABattleGridManager* GridManager
 	);
 };
