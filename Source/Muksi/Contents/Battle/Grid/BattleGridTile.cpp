@@ -21,8 +21,13 @@ ABattleGridTile::ABattleGridTile()
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
 	
+	
+	
 	CenterPointComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("CenterPointComponent"));
 	CenterPointComponent->SetupAttachment(SceneRoot);
+	
+	ExchangeIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExchangeIndicator"));
+	ExchangeIndicatorMesh->SetupAttachment(SceneRoot);
 	
 	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(
 		TEXT("TargetIndicatorMesh")
@@ -52,7 +57,10 @@ void ABattleGridTile::SetTargetIndicatorVisible(bool bVisible)
 	}
 
 	TargetIndicatorMesh->SetVisibility(bVisible);
+	TargetIndicatorMesh->SetMaterial(0, NormalIndicatorMaterial);
 }
+
+
 
 FVector ABattleGridTile::GetGridCenterWorldLocation() const
 {
@@ -69,6 +77,39 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 	}
 
 	return GetActorTransform();
+}
+
+void ABattleGridTile::SetExchangeIndicator(int32 IndicatorType)
+{
+	//Include하기 귀찮아서 int로 받음
+	//0 - 공격(범위)
+	//1 - 이동
+	//2 - 방어
+	ExchangeIndicatorMesh->SetVisibility(true);
+	
+	if (!AttackableIndicatorMaterial && !MoveIndicatorMaterial && !BlockedIndicatorMaterial){UE_LOG(LogTemp, Error, TEXT("IndicatorMaterior is null (BattleGridTile.cpp)")); return;}
+	
+	switch (IndicatorType)
+	{
+		case 0:
+		ExchangeIndicatorMesh->SetMaterial(0, AttackableIndicatorMaterial);
+		break;
+		case 1:
+		ExchangeIndicatorMesh->SetMaterial(0, MoveIndicatorMaterial);
+		break;
+		case 2:
+		ExchangeIndicatorMesh->SetMaterial(0, BlockedIndicatorMaterial);
+		break;
+		default:
+		UE_LOG(LogTemp, Error, TEXT("SetTargetIndicator Type Error (BattleGridTile.cpp)"));
+		break;
+	}
+}
+
+
+void ABattleGridTile::ClearExchangeIndicator()
+{
+	ExchangeIndicatorMesh->SetVisibility(false);
 }
 
 void ABattleGridTile::OnHoverBegin()

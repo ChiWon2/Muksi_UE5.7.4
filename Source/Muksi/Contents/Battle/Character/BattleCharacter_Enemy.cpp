@@ -19,10 +19,16 @@ void ABattleCharacter_Enemy::SetCharacterData(UCharacterDataBase* InCharacterDat
 	InitData();
 }
 
-UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::GetSelectEnemyCardDataAsset() const
+UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::GetSelectEnemyCardDataAsset(ABattleGridManager* GridManager, ABattleManager* BattleManager) const
 {
-	return BattleAIComponent->SelectCardsForExchange(CharacterData);
+	return BattleAIComponent->SelectCardForExchange(CharacterData, GridManager, BattleManager);
 }
+
+TArray<FIntPoint> ABattleCharacter_Enemy::GetSelectEnemyCardCoord()const
+{
+	return BattleAIComponent->GetPointForExchange();
+}
+
 
 void ABattleCharacter_Enemy::InitData()
 {

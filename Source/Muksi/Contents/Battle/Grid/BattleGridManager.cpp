@@ -612,17 +612,32 @@ void ABattleGridManager::AllClearGridHovered()
 	}
 }
 
+void ABattleGridManager::SetExchangeIndicator(int32 AttackType, TArray<FIntPoint> GridArray)
+{
+	for (FIntPoint Cell : GridArray)
+	{
+		ABattleGridTile* GridTile = GridCells[Cell.X + Cell.Y * GridWidth].TileActor;
+		GridTile->SetExchangeIndicator(AttackType);
+	}
+	
+}
+
+void ABattleGridManager::AllClearExchangeIndicator()
+{
+	for (FBattleGridCell Cell : GridCells)
+	{
+		ABattleGridTile* GridTile = Cell.TileActor;
+		GridTile->ClearExchangeIndicator();
+	}
+}
+
 
 void ABattleGridManager::RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint)
 {
 	//일단 Move와 똑같이
 	if (ABattleCharacter_Player* PlayerCharacter = Cast<ABattleCharacter_Player>(BattleCharacter))
 	{
-		
-		if (MoveActorOnGrid(PlayerCharacter, PlayerCharacter->GetCharacterPosition(), TargetPoint))
-		{
-			UE_LOG(LogTemp, Error, TEXT("TEst123"));
-		}else UE_LOG(LogTemp, Error, TEXT("TEst1"));
+		MoveActorOnGrid(PlayerCharacter, PlayerCharacter->GetCharacterPosition(), TargetPoint);
 		
 	}else if (ABattleCharacter_Enemy* EnemyCharacter = Cast<ABattleCharacter_Enemy>(BattleCharacter))
 	{
