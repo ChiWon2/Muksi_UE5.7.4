@@ -39,43 +39,42 @@ void UBattleCardEffectComponent::CardEffectUpdate(ABattleCharacterBase* BattleCh
 {
 	if (ABattleCharacter_Player* BattlePlayer = Cast<ABattleCharacter_Player>(BattleCharacterBase)) //플레이어 전용
 	{
-		for (FMuksiBattleCardEffectData Effect : InCardData->Effects)
+		FMuksiBattleCardAttackTypeData Effect = InCardData->AttackType;
+		if (Effect.AttackType == EMuksiBattleCardAttackType::Rush)
 		{
-			if (Effect.EffectType == EMuksiBattleCardEffectType::Rush)
-			{
-				BattleManager->bIsCardTargeting = true;
-				BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
-				BattleManager->SetCardRange(Effect.RangeValue);
-				PlayerEffect = Effect;
-			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Defense)
-			{
+			BattleManager->bIsCardTargeting = true;
+			BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
+			BattleManager->SetCardRange(Effect.RangeValue);
+			PlayerEffect = Effect;
+		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Defense)
+		{
 			
-			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Heal)
-			{
+		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Heal)
+		{
 			
-			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Move)
-			{
-			
-			}
+		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
+		{
+			BattleManager->bIsCardTargeting = true;
+			BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
+			BattleManager->SetCardRange(Effect.RangeValue);
+			PlayerEffect = Effect;
 		}
 	}
 	else if (ABattleCharacter_Enemy* EnemyData = Cast<ABattleCharacter_Enemy>(BattleCharacterBase))// 적 전용
 	{
-		for (FMuksiBattleCardEffectData Effect : InCardData->Effects)
+		FMuksiBattleCardAttackTypeData Effect = InCardData->AttackType;
+		if (Effect.AttackType == EMuksiBattleCardAttackType::Rush)
 		{
-			if (Effect.EffectType == EMuksiBattleCardEffectType::Rush)
-			{
 			
-			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Defense)
-			{
+		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Defense)
+		{
 			
-			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Heal)
-			{
+		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Heal)
+		{
 			
-			}else if (Effect.EffectType == EMuksiBattleCardEffectType::Move)
-			{
+		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
+		{
 			
-			}
 		}
 	}
 	else
@@ -91,7 +90,7 @@ void UBattleCardEffectComponent::CardEffectUpdate(ABattleCharacterBase* BattleCh
 
 void UBattleCardEffectComponent::SelectTargetGrid(ABattleGridTile* TargetGrid)
 {
-	if (PlayerEffect.EffectType == EMuksiBattleCardEffectType::Rush)
+	if (PlayerEffect.AttackType == EMuksiBattleCardAttackType::Rush)
 	{
 		BattleManager->BattleGridManager->RushPosition(BattleManager->GetPlayerBattleCharacter(), TargetGrid->GetGridCoord());
 	}

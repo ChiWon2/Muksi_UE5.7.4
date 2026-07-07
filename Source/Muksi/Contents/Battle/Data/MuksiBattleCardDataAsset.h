@@ -56,7 +56,7 @@ public:
 public:
 	//** 카드 효과 ** //
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
-	TArray<FMuksiBattleCardEffectData> Effects;
+	FMuksiBattleCardAttackTypeData AttackType;
 	
 	
 };

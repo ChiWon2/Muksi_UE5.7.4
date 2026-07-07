@@ -47,6 +47,12 @@ public:
 	FTransform GetCharacterSpawnTransform() const;
 	
 	UFUNCTION()
+	void SetExchangeIndicator(int32 IndicatorType);
+	
+	UFUNCTION()
+	void ClearExchangeIndicator();
+	
+	UFUNCTION()
 	void OnHoverBegin();
 	UFUNCTION()
 	void OnHoverEnd();
@@ -66,6 +72,21 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> TargetIndicatorMesh;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UStaticMeshComponent> ExchangeIndicatorMesh;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
+	TObjectPtr<UMaterialInterface> NormalIndicatorMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
+	TObjectPtr<UMaterialInterface> AttackableIndicatorMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
+	TObjectPtr<UMaterialInterface> BlockedIndicatorMaterial;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
+	TObjectPtr<UMaterialInterface> MoveIndicatorMaterial;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	FIntPoint GridCoord = FIntPoint::ZeroValue;

@@ -7,7 +7,7 @@
 class UMuksiCardRangeDataAsset;
 
 UENUM(BlueprintType)
-enum class EMuksiBattleCardEffectType : uint8
+enum class EMuksiBattleCardAttackType : uint8
 {
 	None		UMETA(DisplayName = "None"),
 	Rush		UMETA(DisplayName = "Rush"),
@@ -46,12 +46,12 @@ enum class EMuksiBattleCardMoveRangeType : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FMuksiBattleCardEffectData
+struct FMuksiBattleCardAttackTypeData
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
-	EMuksiBattleCardEffectType EffectType = EMuksiBattleCardEffectType::None;
+	EMuksiBattleCardAttackType AttackType = EMuksiBattleCardAttackType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	EMuksiBattleCardTargetType TargetType = EMuksiBattleCardTargetType::None;

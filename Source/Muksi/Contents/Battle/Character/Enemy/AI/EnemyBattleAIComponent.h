@@ -3,12 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Components/ActorComponent.h"
 #include "EnemyBattleAIComponent.generated.h"
 
 class UEnemyCardSelectStrategyBase;
 class UCharacterDataBase;
 class UMuksiBattleCardDataAsset;
+class ABattleGridManager;
+class ABattleManager;
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MUKSI_API UEnemyBattleAIComponent : public UActorComponent
@@ -16,19 +20,25 @@ class MUKSI_API UEnemyBattleAIComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
 	UEnemyBattleAIComponent();
 	
 	void InitializeAI(UCharacterDataBase* InEnemyData);
 
-	UMuksiBattleCardDataAsset* SelectCardsForExchange(
-		UCharacterDataBase* EnemyData
+	UMuksiBattleCardDataAsset* SelectCardForExchange(
+		UCharacterDataBase* EnemyData,
+		ABattleGridManager* GridManager,
+		ABattleManager* BattleManager
 	);
 	
+	TArray<FIntPoint> GetPointForExchange()const;
+	
 protected:
-	// Called when the game starts
+	TArray<FEnemyCardSelectResult> SelectCardArray;
+	
+	FEnemyCardSelectResult Result;
+	
+protected:
 	virtual void BeginPlay() override;
-
 
 public:	
 	UPROPERTY()

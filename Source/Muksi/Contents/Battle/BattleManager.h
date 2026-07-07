@@ -344,6 +344,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Data")
 	UMuksiCharacterDataAsset* GetEnemyCharacterDataAsset()const{return TestEnemyCharacterDataAsset;}
 	
+	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount);
+	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount);
+	
+	FIntPoint GetPlayerPoint()const;
+	FIntPoint GetEnemyPoint()const;
+	
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
 	void SetPhase(EBattlePhase NewPhase);
@@ -458,6 +464,12 @@ public:
 	void ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard);
 	//합 정한 카드 그리드 정하고 공격 구조체 생성함수
 	void SetPlayerBattleAction();
+	//Enemy가 정한 카드 그리드 정하고 공격 구조체 생성함수
+	void SetEnemyBattleAction();
+	//Player/Enemy가 정한 카드 Grid 표시
+	void SetExchangeGrid();
+	//해당 합 동안 미리 보여주는 캐릭터 위치
+	void SetExchangeCharacter();
 	
 	TArray<FIntPoint> TargetPoints;
 	
@@ -479,7 +491,6 @@ public:
 	
 	void AttackEnd();*/
 	
-	void BuildAttackActions();
 	
 	void SortAttackActions();
 	
@@ -506,14 +517,27 @@ public:
 
 	
 public:
-	UPROPERTY()
-	TArray<FBattleAction> AttackActions;
+	
 	
 	UPROPERTY()
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> PlayerSelectedCards;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EnemySelectedCards;
+	
+	
+	
+	
+	
+	
+	UPROPERTY()
+	TArray<FBattleAction> AttackActions;
+	
+	UPROPERTY()
+	TArray<FBattleAction> PlayerSelectAction;
+	
+	UPROPERTY()
+	TArray<FBattleAction> EnemySelectAction;
 	
 	UPROPERTY()
 	bool bWaitingForAttackActionFinish = true;

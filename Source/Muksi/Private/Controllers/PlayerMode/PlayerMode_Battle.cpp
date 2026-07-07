@@ -119,7 +119,7 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 			//이동 -> 노란색
 			//방어 -> 파란색
 			//장거리 공격 / 돌격 -> 빨간색
-			BattleManager->SetPlayerBattleAction();
+			//BattleManager->SetPlayerBattleAction();
 			//bIsCardTargeting 풀기
 			BattleManager->bIsCardTargeting = false;
 			BattleManager->ExchangeN_End(BattleManager->GetCurrentExchange());
