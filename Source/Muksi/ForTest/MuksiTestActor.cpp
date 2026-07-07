@@ -6,6 +6,11 @@
 #include"../GameEventHandle/Utils/GameEventUtils.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 
+#include "Kismet/GameplayStatics.h"
+
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
+
 
 // Sets default values
 AMuksiTestActor::AMuksiTestActor()
@@ -26,16 +31,18 @@ void AMuksiTestActor::BeginPlay()
         return;
     }
 
-    StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Poison,3,2);
+    //StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Poison,3,2);
 
-    StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Burn,2,3);
-    StatusEffectComponent->AddStatusEffect(TEXT("Burn"), 2, 3);
+    //StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Burn,2,3);
+    //StatusEffectComponent->AddStatusEffect(TEXT("Burn"), 2, 3);
 
-    StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Paralysis,1,2);
-    StatusEffectComponent->SubtractStatusEffect(MuksiStatusEffectIDs::Paralysis, 1, 2);
-    StatusEffectComponent->RemoveStatusEffect(MuksiStatusEffectIDs::Paralysis);
+    //StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Paralysis,1,2);
+    //StatusEffectComponent->SubtractStatusEffect(MuksiStatusEffectIDs::Paralysis, 1, 2);
+    //StatusEffectComponent->RemoveStatusEffect(MuksiStatusEffectIDs::Paralysis);
 
-    StatusEffectComponent->OnRoundStart();
+    //StatusEffectComponent->OnRoundStart();
+
+
 }
 
 // Called every frame
@@ -45,3 +52,21 @@ void AMuksiTestActor::Tick(float DeltaTime)
 
 }
 
+void AMuksiTestActor::TestPlayAnimation()
+{
+	ABattleCharacterBase* BattleCharacter =Cast<ABattleCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(),ABattleCharacterBase::StaticClass()));
+
+	if (!BattleCharacter)
+	{
+		return;
+	}
+
+	UMuksiBattleAnimationComponent* AnimationComponent = BattleCharacter->FindComponentByClass<UMuksiBattleAnimationComponent>();
+
+	if (!AnimationComponent)
+	{
+		return;
+	}
+
+	AnimationComponent->PlayAnimMontage(EMuksiWeaponTypes::Fist, MuksiBattleAnimationKeys::Attack_1);
+}

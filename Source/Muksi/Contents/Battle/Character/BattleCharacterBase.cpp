@@ -6,6 +6,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
+#include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 
 
 // Sets default values
@@ -52,6 +54,10 @@ ABattleCharacterBase::ABattleCharacterBase()
 		ECC_Visibility,
 		ECR_Ignore
 	);
+
+	StatusEffectComponent = CreateDefaultSubobject<UMuksiStatusEffectComponent>(TEXT("StatusEffectComponent"));
+
+	BattleAnimationComponent = CreateDefaultSubobject<UMuksiBattleAnimationComponent>(TEXT("BattleAnimationComponent"));
 
 }
 
