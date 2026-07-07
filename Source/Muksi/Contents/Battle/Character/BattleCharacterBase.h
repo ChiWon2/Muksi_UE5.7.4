@@ -14,6 +14,7 @@ class UMuksiCharacterDataAsset;
 class UCharacterDataBase;
 class UStaticMeshComponent;
 class UMuksiStatusEffectComponent;
+class UMuksiBattleAnimationComponent;
 
 class USkeletalMesh;
 class UAnimInstance;
@@ -58,12 +59,13 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;
 	
-	
-	
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMuksiStatusEffectComponent> StatusEffectComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMuksiBattleAnimationComponent> BattleAnimationComponent;
 
 	UFUNCTION()
 	void HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed);

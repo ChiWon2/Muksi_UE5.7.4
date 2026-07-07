@@ -36,4 +36,7 @@ public:
 		return StatusEffectComponent;
 	}
 
+	UFUNCTION(BlueprintCallable,Category = "Animations")
+	void TestPlayAnimation();
+
 };

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "MuksiTypes/MuksiWeaponTypes.h"
 #include "Muksi/Contents/Travel/Public/MuksiTypes/MuksiItemTypes.h"
 #include "MuksiItemDataAsset.generated.h"
 
@@ -28,6 +29,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	EMuksiEquipmentSlot EquipmentSlot = EMuksiEquipmentSlot::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "EquipmentSlot == EMuksiEquipmentSlot::Weapon", EditConditionHides))
+	EMuksiWeaponTypes WeaponType = EMuksiWeaponTypes::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Equipment", meta = (EditCondition = "ItemType == EMuksiItemType::Equipment", EditConditionHides))
 	FMuksiItemStatModifier EquipmentStatModifier;
