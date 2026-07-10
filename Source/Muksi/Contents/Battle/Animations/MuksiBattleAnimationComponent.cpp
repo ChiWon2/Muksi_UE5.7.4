@@ -80,7 +80,7 @@ UAnimMontage* UMuksiBattleAnimationComponent::FindMontage(const FName& AnimKey) 
 		return nullptr;
 	}
 
-	return AnimationData->FindMontage(CurrentWeaponType, AnimKey);
+	return AnimationData->FindMontage(AnimKey, CurrentWeaponType);
 }
 
 bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
@@ -151,4 +151,15 @@ void UMuksiBattleAnimationComponent::HandleMontageEnded(UAnimMontage* Montage, b
 	}
 
 	OnBattleAnimationFinished.Broadcast(bInterrupted);
+}
+
+void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey)
+{
+	if (NotifyKey.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleAnimationComponent] BattleExecutionNotifyKey is None."));
+		return;
+	}
+
+	OnBattleExecutionNotify.Broadcast(NotifyKey);
 }

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "MuksiBattleCardEffectData.h"
+#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecutionBinding.h"
 #include "MuksiBattleCardDataAsset.generated.h"
 
 class UTexture2D;
@@ -47,11 +48,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	float CardSpeed = 1.0f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Anim")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Animation")
 	ECardAnimType AnimType = ECardAnimType::None;
-	
-	
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Animation")
+	FName AnimKey = TEXT("Attack_1");
+
+	//이 NotifyKey가 발생하면 기존 AttackType 데이터를 MainEffect로 실행
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Execution")
+	FName MainEffectNotifyKey = TEXT("MainEffect");
+
+	// NotifyKey에 따라 실행할 추가 BattleExecution들
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Execution")
+	TArray<FMuksiBattleExecutionBinding> ExecutionBindings;
 	
 public:
 	//** 카드 효과 ** //

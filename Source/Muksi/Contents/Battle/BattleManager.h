@@ -21,6 +21,7 @@ class ABattleGridManager;
 class UBattleCardPreviewComponent;
 
 class ABattleGridTile;
+class ABattleSequenceManager;
 
 //리펙토링
 class UWidget_BattleMainScreen;
@@ -285,6 +286,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	TObjectPtr<ABattleGridManager> BattleGridManager;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
+	TObjectPtr<ABattleSequenceManager> BattleSequenceManager = nullptr;
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")

@@ -31,18 +31,6 @@ void AMuksiTestActor::BeginPlay()
         return;
     }
 
-    //StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Poison,3,2);
-
-    //StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Burn,2,3);
-    //StatusEffectComponent->AddStatusEffect(TEXT("Burn"), 2, 3);
-
-    //StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Paralysis,1,2);
-    //StatusEffectComponent->SubtractStatusEffect(MuksiStatusEffectIDs::Paralysis, 1, 2);
-    //StatusEffectComponent->RemoveStatusEffect(MuksiStatusEffectIDs::Paralysis);
-
-    //StatusEffectComponent->OnRoundStart();
-
-
 }
 
 // Called every frame

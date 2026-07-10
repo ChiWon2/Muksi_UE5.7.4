@@ -10,6 +10,12 @@ class UAnimMontage;
 class USkeletalMeshComponent;
 class UMuksiBattleAnimationDataAsset;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnMuksiBattleExecutionNotify,
+	FName,
+	NotifyKey
+);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMuksiBattleAnimationFinished, bool, bInterrupted);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -59,4 +65,10 @@ private:
 
 	UFUNCTION()
 	void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Battle Animation")
+	FOnMuksiBattleExecutionNotify OnBattleExecutionNotify;
+
+	void HandleBattleExecutionNotify(FName NotifyKey);
 };

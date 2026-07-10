@@ -1,8 +1,8 @@
 #include "MuksiBattleAnimationDataAsset.h"
 
-UAnimMontage* UMuksiBattleAnimationDataAsset::FindMontage(EMuksiWeaponTypes WeaponType,FName AnimKey) const
+UAnimMontage* UMuksiBattleAnimationDataAsset::FindMontage(FName AnimKey, EMuksiWeaponTypes WeaponType) const
 {
-	if (WeaponType == EMuksiWeaponTypes::None || AnimKey.IsNone())
+	if (AnimKey.IsNone())
 	{
 		return nullptr;
 	}
@@ -19,7 +19,12 @@ UAnimMontage* UMuksiBattleAnimationDataAsset::FindMontage(EMuksiWeaponTypes Weap
 			return FoundMontage->Get();
 		}
 
-		return nullptr;
+		break;
+	}
+
+	if (const TObjectPtr<UAnimMontage>* FoundCommonMontage = CommonMontageMap.Find(AnimKey))
+	{
+		return FoundCommonMontage->Get();
 	}
 
 	return nullptr;
