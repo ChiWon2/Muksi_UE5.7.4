@@ -4,6 +4,7 @@
 #include "Muksi/Widgets/Battle/HandWidget.h"
 
 
+#include "CommonButtonBase.h"
 #include "Widget_CardEquipSlot.h"
 #include "Components/Button.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
@@ -11,6 +12,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Kismet/GameplayStatics.h"
 #include "Muksi/Widgets/Components/InkLineWidget.h"
+#include "CommonButtonBase.h"
 #include "TimerManager.h"
 
 
@@ -35,7 +37,7 @@ void UHandWidget::NativeConstruct()
 	
 	Debug::Print(TEXT("Battle Manager Settings"));
 	
-	BindEndTurnButton();
+	BindSelectButton();
 
 	//SpawnDefaultHandCards();
 	
@@ -46,7 +48,7 @@ void UHandWidget::NativeDestruct()
 {
 	
 
-	UnbindEndTurnButton();
+	UnbindSelectButton();
 	
 	
 	ClearHandCards();
@@ -284,31 +286,7 @@ void UHandWidget::OnClickedTurnEndButton()
 	}*/
 }
 
-void UHandWidget::ActiveInkLine(FText& DisplayText,float DisplayTime)
-{
-	if (!InkLine)
-	{
-		UE_LOG(LogTemp, Error, TEXT("InkLine is nullptr"));
-		return;
-	}
 
-	InkLine->SetVisibility(ESlateVisibility::Visible);
-	InkLine->SetInkText(DisplayText);
-	InkLine->PlayInkLine();
-	GetWorld()->GetTimerManager().SetTimer(
-		TimerHandle,
-		this,
-		&UHandWidget::DeActiveInkLine,
-		DisplayTime,
-		false
-	);
-}
-
-void UHandWidget::DeActiveInkLine()
-{
-	InkLine->ResetInkLine();
-	InkLine->SetVisibility(ESlateVisibility::Hidden);
-}
 
 UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const
 {
@@ -335,7 +313,7 @@ UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBa
 	return nullptr;
 }
 
-void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard)
+void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount)
 {
 	UWidget_BattleCardBase* CardWidget =
 		CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
@@ -348,29 +326,41 @@ void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard)
 	CardWidget->SetCardData(SelectCard);
 	
 	CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	EnemyExchangeSlots[ExchangeCount]->SetVisibility(ESlateVisibility::Visible);
+	EnemyExchangeSlots[ExchangeCount]->EquipCard(CardWidget);
 	
-	EnemySelectCardVerticalBox->AddChildToVerticalBox(CardWidget);
+	
+	//TODO CardWidget 뒤집는 애니메이션
+	//EnemySelectCardVerticalBox->AddChildToVerticalBox(CardWidget);
 }
 
 void UHandWidget::ClearEnemySelectCard()
 {
 	//임시로 Vertical Box 사용
-	EnemySelectCardVerticalBox->ClearChildren();
+	//EnemySelectCardVerticalBox->ClearChildren();
+	
+	
+	for (UWidget_CardEquipSlot* EquipSlot : EnemyExchangeSlots)
+	{
+		EquipSlot->ClearSlot();
+	}
 }
 
 
 void UHandWidget::ShowTurnEndButton(bool bShow)
 {
-	if (!Button_TurnEnd)
-	{
-		return;
-	}
-
-	Button_TurnEnd->SetVisibility(
-		bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+	//기존
+	
+	
+	//바뀐 버튼
+	if (!Button_Select){return;}
+	
+	Button_Select->SetVisibility(
+	bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 	);
-
-	Button_TurnEnd->SetIsEnabled(bShow);
+	
+	Button_Select->SetIsEnabled(bShow);
+	
 }
 
 FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber(int32 InIndex)
@@ -487,6 +477,37 @@ void UHandWidget::InitializeExchangeSlots()
 		const int32 SlotIndex = i;
 		const int32 ExchangeNumber = i + 1;
 
+		EquipSlot->bPlayerSlot = true;
+		
+		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
+		EquipSlot->ClearSlot();
+		EquipSlot->SetSlotEnabled(false);
+		EquipSlot->SetSlotHighlighted(false);
+		EquipSlot->SetSlotConfirmed(false);
+		EquipSlot->OwningHandWidget = this;
+	}
+	
+	EnemyExchangeSlots.Empty();
+	
+	EnemyExchangeSlots.Add(EnemyCardEquipSlot_1);
+	EnemyExchangeSlots.Add(EnemyCardEquipSlot_2);
+	EnemyExchangeSlots.Add(EnemyCardEquipSlot_3);
+	
+	for (int32 i = 0; i < EnemyExchangeSlots.Num(); i++)
+	{
+		UWidget_CardEquipSlot* EquipSlot = EnemyExchangeSlots[i];
+
+		if (!EquipSlot)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("EnemyExchangeSlots[%d] is null"), i);
+			continue;
+		}
+
+		const int32 SlotIndex = i;
+		const int32 ExchangeNumber = i + 1;
+
+		EquipSlot->bPlayerSlot = false;
+		
 		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
 		EquipSlot->ClearSlot();
 		EquipSlot->SetSlotEnabled(false);
@@ -534,6 +555,7 @@ void UHandWidget::EnableExchangeSlots(int32 InIndex)
 void UHandWidget::EnableExchangeSlot(int32 InIndex, bool bActive)
 {
 	const int32 ActiveSlotIndex = InIndex - 1;
+	UE_LOG(LogTemp, Error, TEXT("EnabledExchange Slot Test (HandWidget.cpp)"));
 	
 	if (!ExchangeSlots.IsValidIndex(ActiveSlotIndex))
 	{
@@ -552,32 +574,27 @@ void UHandWidget::EnableExchangeSlot(int32 InIndex, bool bActive)
 	EquipSlot->SetSlotHighlighted(bActive);
 }
 
-void UHandWidget::BindEndTurnButton()
+void UHandWidget::BindSelectButton()
 {
-	if (!Button_TurnEnd)
+
+	
+	if (!Button_Select)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HandWidget: EndTurnButton is null"));
+		UE_LOG(LogTemp, Warning, TEXT("SelectButton is null (HandWidget.cpp)"));
 		return;
 	}
-
+	
 	// 중복 바인딩 방지
-	Button_TurnEnd->OnClicked.RemoveAll(this);
+	Button_Select->OnClicked().RemoveAll(this);
 	//Button_TurnEnd->OnClicked().RemoveAll(this);
-
-	Button_TurnEnd->OnClicked.AddDynamic(
-		this,
-		&UHandWidget::HandleEndTurnButtonClicked
-	);
+	
+	Button_Select->OnClicked().AddUObject(this, &UHandWidget::HandleEndTurnButtonClicked);
+	
 }
 
-void UHandWidget::UnbindEndTurnButton()
+void UHandWidget::UnbindSelectButton()
 {
-	if (!Button_TurnEnd)
-	{
-		return;
-	}
-
-	Button_TurnEnd->OnClicked.RemoveAll(this);
+	Button_Select->OnClicked().RemoveAll(this);
 }
 
 void UHandWidget::HandleEndTurnButtonClicked()
@@ -598,6 +615,63 @@ UWidget_CardEquipSlot* UHandWidget::GetSlotByExchangeNumber(int32 ExchangeNumber
 	}
 
 	return ExchangeSlots[SlotIndex];
+}
+
+void UHandWidget::DisplayInkLine(FString InText, float Time)
+{
+	if (!InkLineWidget){UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)")); return;}
+	
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
+
+		World->GetTimerManager().SetTimer(
+			BattleMainScreen->InkLineTimerHandle,
+			this,
+			&UHandWidget::DisplayInkLinebActive,
+			Time,
+			false
+		);
+	}
+	
+	InkLineWidget->SetVisibility(ESlateVisibility::Visible);
+	InkLineWidget->SetInkText( FText::FromString(InText));
+	InkLineWidget->PlayInkLine();
+}
+
+
+
+void UHandWidget::DisplayInkLinebActive()
+{
+	InkLineWidget->SetVisibility(ESlateVisibility::Hidden);
+	BattleMainScreen->HandlePipelineUIFinish();
+}
+
+void UHandWidget::DisplayInkLineEnabled(FString InText, float Time)
+{
+	if (!InkLineWidget){UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)")); return;}
+	
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
+
+		World->GetTimerManager().SetTimer(
+			BattleMainScreen->InkLineTimerHandle,
+			this,
+			&UHandWidget::DisplayInkLineDisabled,
+			Time,
+			false
+		);
+	}
+	UE_LOG(LogTemp, Error, TEXT("DisplayInkLine Enabled %s"), *InText);
+	InkLineWidget->SetVisibility(ESlateVisibility::Visible);
+	InkLineWidget->SetInkText( FText::FromString(InText));
+	InkLineWidget->PlayInkLine();
+}
+
+void UHandWidget::DisplayInkLineDisabled()
+{
+	InkLineWidget->SetVisibility(ESlateVisibility::Hidden);
 }
 
 void UHandWidget::BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets)

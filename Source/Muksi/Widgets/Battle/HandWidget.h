@@ -113,11 +113,7 @@ public:
 	UFUNCTION()
 	void OnClickedTurnEndButton();
 	
-	UFUNCTION(BlueprintCallable)
-	void ActiveInkLine(FText& DisplayText,float DisplayTime = 3.f);
-	
-	UFUNCTION(BlueprintCallable)
-	void DeActiveInkLine();
+
 	
 	UFUNCTION(BlueprintCallable)
 	UWidget_CardEquipSlot* FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const;
@@ -127,7 +123,7 @@ public:
 	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
 	
 	UFUNCTION()
-	void PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard);
+	void PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount);
 	UFUNCTION()
 	void ClearEnemySelectCard();
 	
@@ -139,11 +135,13 @@ protected:
 	/*UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CardEquipSlot> EquipSlotTest;*/
 	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> Button_TurnEnd;
 	
 	UPROPERTY(meta = (BindWidget))
-	UInkLineWidget* InkLine;
+	TObjectPtr<UCommonButtonBase> Button_Select;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UInkLineWidget> InkLineWidget;
+	
 	
 	//CardEquipSlot Box
 	UPROPERTY(meta = (BindWidget))
@@ -157,6 +155,20 @@ protected:
 	
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_CardEquipSlot>> ExchangeSlots;
+	
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CardEquipSlot> EnemyCardEquipSlot_1;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CardEquipSlot> EnemyCardEquipSlot_2;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CardEquipSlot> EnemyCardEquipSlot_3;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UWidget_CardEquipSlot>> EnemyExchangeSlots;
+
 	//****** Bind Widget ******
 	
 	
@@ -236,8 +248,8 @@ public:
 	void EnableExchangeSlot(int32 InIndex, bool bActive);
 	
 protected:
-	void BindEndTurnButton();
-	void UnbindEndTurnButton();
+	void BindSelectButton();
+	void UnbindSelectButton();
 
 	UFUNCTION()
 	void HandleEndTurnButtonClicked();	
@@ -245,8 +257,13 @@ protected:
 	UWidget_CardEquipSlot* GetSlotByExchangeNumber(int32 ExchangeNumber) const;
 	//***** Turn Changed UI Function *****
 	
+	//Ink Line 관련 Pipeline 관련 UI 호출
+public:
+	void DisplayInkLine(FString InText, float Time);
+	void DisplayInkLinebActive();
 	
-	
+	void DisplayInkLineEnabled(FString InText, float Time);
+	void DisplayInkLineDisabled();
 	
 	
 public:
