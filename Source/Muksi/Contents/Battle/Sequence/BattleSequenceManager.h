@@ -1,0 +1,108 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+
+#include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecution.h"
+#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecutionContext.h"
+
+#include "BattleSequenceManager.generated.h"
+
+class ABattleGridManager;
+class UMuksiBattleAnimationComponent;
+class UMuksiBattleExecution;
+
+DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
+
+UCLASS()
+class MUKSI_API ABattleSequenceManager : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	ABattleSequenceManager();
+
+public:
+	FOnBattleSequenceFinished OnSequenceFinished;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
+	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
+	bool StartSequence(const FBattleAction& InAction);
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
+	bool IsSequenceRunning() const
+	{
+		return bSequenceRunning;
+	}
+
+private:
+	/**
+	 * 현재 Sequence에서 실행 중인 BattleAction
+	 */
+	UPROPERTY(Transient)
+	FBattleAction CurrentAction;
+
+	/**
+	 * 공격자 AnimationComponent
+	 *
+	 * 공격 Montage의 BattleExecutionNotify를 받기 위해 사용한다.
+	 */
+	UPROPERTY(Transient)
+	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;
+
+	/**
+	 * 현재 Sequence에서 실행 중인 Execution들
+	 *
+	 * UObject가 GC되는 것을 방지한다.
+	 */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMuksiBattleExecution>> RunningExecutions;
+
+	bool bSequenceRunning = false;
+	int32 PendingExecutionCount = 0;
+
+private:
+	bool ValidateAction(const FBattleAction& InAction) const;
+
+	bool BindAttackerNotify();
+	void UnbindAttackerNotify();
+
+	void StartAttackMontageExecution();
+
+	UFUNCTION()
+	void HandleBattleExecutionNotify(FName NotifyKey);
+
+	void ExecuteMainEffect(FName NotifyKey);
+	void ExecuteBoundExecutions(FName NotifyKey);
+
+	void ExecuteExecutionClass(
+		TSubclassOf<UMuksiBattleExecution> ExecutionClass,
+		FName NotifyKey
+	);
+
+	void ExecuteExecutionClassWithContext(
+		TSubclassOf<UMuksiBattleExecution> ExecutionClass,
+		const FMuksiBattleExecutionContext& Context
+	);
+
+	/**
+	 * 실행 중인 Execution이 새로운 System Execution을 요청했을 때 호출된다.
+	 *
+	 * HitReaction, Death, Knockback 등의 실제 생성과
+	 * PendingExecutionCount 관리는 이 함수에서 처리한다.
+	 */
+	void HandleSystemExecutionRequested(
+		TSubclassOf<UMuksiBattleExecution> ExecutionClass,
+		const FMuksiBattleExecutionContext& Context
+	);
+
+	FMuksiBattleExecutionContext MakeExecutionContext(FName NotifyKey);
+
+	void HandleExecutionFinished();
+
+	void TryFinishSequence();
+	void FinishSequence();
+};

@@ -9,6 +9,7 @@ namespace MuksiBattleAnimationKeys
 	static const FName Attack_3(TEXT("Attack_3"));
 
 	static const FName Guard(TEXT("Guard"));
-	static const FName Hit(TEXT("Hit"));
 	static const FName Death(TEXT("Death"));
+
+	static const FName HitReaction(TEXT("HitReaction"));
 }

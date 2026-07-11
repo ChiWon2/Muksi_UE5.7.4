@@ -22,6 +22,7 @@
 #include "Engine/TargetPoint.h"
 #include "Grid/BattleGridManager.h"
 #include "Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 
 //공격 범위 계산 테스트
 #include "Muksi/Contents/Battle/Grid/CardRange/CardRangeDataAssetBase.h"
@@ -1113,7 +1114,28 @@ void ABattleManager::PlayAttackAction()
 		CurrentAction.Card
 	);*/
 	
-	CurrentAction.Attacker->PlayAttackAnim(CurrentAction.Card);
+	//CurrentAction.Attacker->PlayAttackAnim(CurrentAction.Card);
+	if (!IsValid(BattleSequenceManager))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] BattleSequenceManager is null"));
+
+		NotifyAttackActionFinished();
+		return;
+	}
+
+	BattleSequenceManager->OnSequenceFinished.RemoveAll(this);
+
+	BattleSequenceManager->OnSequenceFinished.AddUObject(
+		this,
+		&ABattleManager::NotifyAttackActionFinished
+	);
+
+	if (!BattleSequenceManager->StartSequence(CurrentAction))
+	{
+		BattleSequenceManager->OnSequenceFinished.RemoveAll(this);
+
+		NotifyAttackActionFinished();
+	}
 	
 }
 
