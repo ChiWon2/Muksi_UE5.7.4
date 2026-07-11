@@ -86,6 +86,8 @@ public:
 	
 	UPROPERTY()
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EquipBattleCardArray;
+	
+	FTimerHandle InkLineTimerHandle;
 
 protected:
 
@@ -102,13 +104,13 @@ protected:
 
 	//---------------------------중앙 텍스트 블록 관련 함수---------------------------------------------------------------
 public:
-	void DisplayMainTextBlock(FText Text, float Time);
+	void HandlePipelineUIFinish();
 	
 protected:
 	void DisplayExchangeAlarm();
 	void DisplayExchangeCountAlarm(int32 ExchangeCount, bool bStart);
 	UPROPERTY(EditAnywhere)
-	FString DisplayExchangeText = "합 시작!";
+	FString DisplayExchangeText = "Exchange Start!";
 	//------------------------------------------------------------------------------------------------------------------
 	//BattleManager에 정보를 보내는 함수
 	
@@ -132,34 +134,51 @@ public:
 public:
 	void BattleStart();
 	
+	void DisplayBattleStartUI();
+	void DisplayBattleStartUIFinish();
+	
 	void BattleEnd();
+	
+	void DisplayBattleEndUI();
+	void DisplayBattleEndUIFinish();
 	
 	void HandleBattleStartFinish();
 	
 	void HandleBattleEndFinish();
 public:
 	UPROPERTY(EditAnywhere)
-	FString BattleStartText = "전 투 시 작!";
-	int32 HandleBattleFinishCount = 0;	
+	FString BattleStartText = "Battle Start!";
+	UPROPERTY(EditAnywhere)
+	FString BattleEndText = "Battle End!";
+	int32 HandleBattleUIFinishCount = 0;	
 	
 	//=====================================Round<국>====================================================================
 public:
 	//국 시작
 	void RoundStart();
 	
-	void HandleRoundStartFinish();
+	void DisplayRoundStartUI();
+	void DisplayRoundStartUIFinish();
+	
 	
 	//국 종료
 	void RoundEnd();
+	
+	void DisplayRoundEndUI();
+	void DisplayRoundEndUIFinish();
 	
 	void HandleRoundEndFinish();
 	
 public:
 	UPROPERTY(EditAnywhere)
-	FString RoundStartText = "국 시 작!";
+	FString RoundStartText = "Round Start!";
+	UPROPERTY(EditAnywhere)
+	FString RoundEndText = "Round End";
 	
 	UPROPERTY()
 	int32 HandleRoundStartFinishCount = 0;	
+	UPROPERTY()
+	int32 HandleRoundEndFinishCount = 0;
 	
 	UPROPERTY()
 	int32 RoundCound = 0;
@@ -181,22 +200,31 @@ public:
 public:
 	void ExchangeStart();
 	
-	void HandleExchangeStartFinish();
+	void DisplayExchangeStartUI();
+	void DisplayExchangeStartUIFinish();
+	
+	void DisplayExchangeEndUI();
+	void DisplayExchangeEndUIFinish();
 	
 	void Exchange1Start();
 	void Exchange1End();
 	
-	void HandleExchange1EndFinish();
+	
+	void DisplayExchange1EndUI();
+	void DisplayExchange1EndUIFinish();
 	
 	void Exchange2Start();
 	void Exchange2End();
 	
-	void HandleExchange2EndFinish();
+	void DisplayExchange2EndUI();
+	void DisplayExchange2EndUIFinish();
+	
 	
 	void Exchange3Start();
 	void Exchange3End();
 	
-	void HandleExchange3EndFinish();
+	void DisplayExchange3EndUI();
+	void DisplayExchange3EndUIFinish();
 	
 	void ExchangeEnd();
 	
@@ -206,7 +234,16 @@ protected:
 	void HandleExchangeSlot(int32 Index, bool bActive);
 	
 public:
+	UPROPERTY()
 	int32 HandleExchangeCount = 0;
+	UPROPERTY(EditAnywhere)
+	FString ExchangeStartText= "Exchange Start!";
+	
+	UPROPERTY(EditAnywhere)
+	FString ExchangeCountText = "Exchange";
+	
+	UPROPERTY(EditAnywhere)
+	FString ExchangeEndText = "Exchange End!";
 	
 public:
 	//합 도중 카드 선택 확정 버튼
@@ -224,7 +261,20 @@ public:
 public:
 	void AttackStart();
 	
+	void DisplayAttackStartUI();
+	void DisplayAttackStartUIFinish();
+	
 	void PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset);
 	
 	void AttackEnd();
+	void DisplayAttackEndUI();
+	void DisplayAttackEndUIFinish();
+	
+protected:
+	UPROPERTY(EditAnywhere)
+	FString AttackStartText = "Attack Start!";
+	UPROPERTY(EditAnywhere)
+	FString AttackEndText = "Attack End!";
+	UPROPERTY()
+	int32 HandleAttackStartFinishCount = 0;
 };

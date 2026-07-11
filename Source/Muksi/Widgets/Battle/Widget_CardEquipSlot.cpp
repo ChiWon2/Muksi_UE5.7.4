@@ -18,7 +18,7 @@ FReply UWidget_CardEquipSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 	{
 		UE_LOG(LogTemp, Log, TEXT("EquipSlot clicked"));
 		
-		if (bSlotEnabled)
+		if (bSlotEnabled && bPlayerSlot)
 		{
 			// 장착 카드가 있으면 핸드로 되돌리기
 			UnequipCard(OwningHandWidget);

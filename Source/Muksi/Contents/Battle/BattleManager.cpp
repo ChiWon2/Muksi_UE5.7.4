@@ -474,7 +474,7 @@ void ABattleManager::BattleEnd()
 void ABattleManager::RoundStart()
 {
 	//BattleAction 관련 Array Empty
-	UE_LOG(LogTemp, Error, TEXT("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Round Start PlayerActions %d"), PlayerSelectAction.Num());
+	SetPhase(EBattlePhase::RoundStart);
 	
 	AttackActions.Empty();
 	PlayerSelectAction.Empty();
@@ -486,9 +486,10 @@ void ABattleManager::RoundStart()
 
 void ABattleManager::RoundEnd()
 {
+	SetPhase(EBattlePhase::RoundEnd);
 	//N국 종료 UI 표시
 	
-	//
+	BattleMainScreen->RoundEnd();
 }
 
 //===============================================합(Exchange)===========================================================
@@ -514,6 +515,8 @@ void ABattleManager::RoundEnd()
 //합 시작
 void ABattleManager::ExchangeStart()
 {
+	SetPhase(EBattlePhase::ExchangeStart);
+	
 	AttackActions.Empty();
 	//핸드에 카드 배치
 	
@@ -613,6 +616,7 @@ void ABattleManager::Exchange3End()
 
 void ABattleManager::ExchangeEnd()
 {
+	SetPhase(EBattlePhase::ExchangeEnd);
 	//3합 카드 이동 방향 비공개
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
@@ -823,22 +827,11 @@ void ABattleManager::AttackStart()
 		TEXT("AttackStart: 총 행동 개수 %d"),
 		AttackActions.Num()
 	);
-
-	// 공격 시작 UI가 있다면 먼저 호출
+	//공격 시작 UI 표시
 	if (BattleMainScreen)
 	{
 		BattleMainScreen->AttackStart();
-
-		/*
-		 * 공격 시작 연출이 끝난 뒤
-		 * BattleManager의 StartCurrentAttackAction()을
-		 * 호출하도록 구성할 수 있음.
-		 */
-		//return;
 	}
-
-	// UI나 시작 연출이 없다면 즉시 첫 행동 실행
-	StartCurrentAttackAction();
 }
 
 void ABattleManager::StartCurrentAttackAction()
@@ -1244,7 +1237,7 @@ void ABattleManager::AttackEnd()
 	}
 
 	// UI가 없으면 바로 다음 단계 결정
-	NotifyAttackEndFinished();
+	//NotifyAttackEndFinished();
 }
 
 void ABattleManager::NotifyAttackEndFinished()

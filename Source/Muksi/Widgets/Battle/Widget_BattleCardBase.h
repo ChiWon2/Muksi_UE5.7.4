@@ -11,7 +11,7 @@ class UHandWidget;
 class UMuksiBattleCardDataAsset;
 class UCommonTextBlock;
 class UImage;
-
+class UBorder;
 /**
  * 
  */
@@ -44,6 +44,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "BattleCard")
 	UMuksiBattleCardDataAsset* GetCardData() const { return CardData; }
+
 	
 protected:
 	UFUNCTION()
@@ -84,9 +85,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BattleCard")
 	TObjectPtr<UMuksiBattleCardDataAsset> CardData = nullptr;
 	
+	UPROPERTY()
+	bool bCardFront = true;
+	
 public:
 	UFUNCTION(BlueprintCallable, Category = "BattleCard")
 	void SetCardData(UMuksiBattleCardDataAsset* InCardData);
+	
+	UFUNCTION(BlueprintCallable, Category = "BattleCard")
+	void SetCardData_(UMuksiBattleCardDataAsset* InCardData, bool bFront);
 	
 protected:
 	// ***** BindWidget *****//
@@ -98,5 +105,11 @@ protected:
 	
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> Image_CardArt;
+	
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_CardFront;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage>Image_BehindCardImage;
 	// ***** BindWidget *****//
 };

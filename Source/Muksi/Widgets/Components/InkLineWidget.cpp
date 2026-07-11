@@ -44,6 +44,16 @@ void UInkLineWidget::RefreshInkWidth()
 
 void UInkLineWidget::PlayInkLine()
 {
+	CurrentProgress = 0.f;
+
+	if (InkMID)
+	{
+		InkMID->SetScalarParameterValue(
+			TEXT("Progress"),
+			CurrentProgress
+		);
+	}
+
 	bPlayForward = true;
 	bAnimateInk = true;
 }
@@ -92,6 +102,14 @@ void UInkLineWidget::NativeConstruct()
 		{
 			InkMID->SetScalarParameterValue(TEXT("Progress"), 0.f);
 		}
+	}
+	
+	if (LabelText)
+	{
+		FSlateFontInfo FontInfo = LabelText->GetFont();
+		FontInfo.Size = TextFontSize;
+
+		LabelText->SetFont(FontInfo);
 	}
 	
 	SetInkText(InkText);

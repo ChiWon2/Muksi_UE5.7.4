@@ -64,6 +64,9 @@ protected:
 	
 	
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Font")
+	int32 TextFontSize = 32;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ink")
 	float InkExtraWidth = 50.f;
 
