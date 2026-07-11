@@ -5,11 +5,9 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardEffectData.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattleHitReactionExecution.h"
+#include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattleMoveExecution.h"
 
-void UMuksiBattleMainEffectExecution::Execute(
-	const FMuksiBattleExecutionContext& Context,
-	FMuksiBattleExecutionFinished OnFinished
-)
+void UMuksiBattleMainEffectExecution::Execute(const FMuksiBattleExecutionContext& Context,FMuksiBattleExecutionFinished OnFinished)
 {
 	if (!Context.IsValidContext())
 	{
@@ -17,8 +15,7 @@ void UMuksiBattleMainEffectExecution::Execute(
 		return;
 	}
 
-	const FMuksiBattleCardAttackTypeData& EffectData =
-		Context.Card->AttackType;
+	const FMuksiBattleCardAttackTypeData& EffectData = Context.Card->AttackType;
 
 	switch (EffectData.AttackType)
 	{
@@ -32,7 +29,7 @@ void UMuksiBattleMainEffectExecution::Execute(
 		break;
 
 	case EMuksiBattleCardAttackType::Move:
-		ExecuteMove(Context);
+		RequestMoveExecution(Context);
 		break;
 
 	case EMuksiBattleCardAttackType::Defense:
@@ -71,28 +68,17 @@ void UMuksiBattleMainEffectExecution::ExecuteDamage(
 		return;
 	}
 
-	const int32 DamageValue =
-		Context.Card->AttackType.Value;
+	const int32 DamageValue = Context.Card->AttackType.Value;
 
 	if (DamageValue <= 0)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT(
-				"[MainEffectExecution] "
-				"DamageValue must be greater than zero. Value=%d"
-			),
-			DamageValue
-		);
-
+		UE_LOG(LogTemp,Warning,TEXT("[MainEffectExecution] ""DamageValue must be greater than zero. Value=%d"),DamageValue);
 		return;
 	}
 
 	for (const FIntPoint& TargetPoint : Context.TargetPoints)
 	{
-		const FBattleGridCell* Cell =
-			Context.BattleGridManager->GetCell(TargetPoint);
+		const FBattleGridCell* Cell = Context.BattleGridManager->GetCell(TargetPoint);
 
 		if (!Cell)
 		{
@@ -104,10 +90,7 @@ void UMuksiBattleMainEffectExecution::ExecuteDamage(
 			continue;
 		}
 
-		ABattleCharacterBase* TargetCharacter =
-			Cast<ABattleCharacterBase>(
-				Cell->OccupyingActor
-			);
+		ABattleCharacterBase* TargetCharacter =Cast<ABattleCharacterBase>(Cell->OccupyingActor);
 
 		if (!IsValid(TargetCharacter))
 		{
@@ -119,8 +102,7 @@ void UMuksiBattleMainEffectExecution::ExecuteDamage(
 			continue;
 		}
 
-		const int32 OldHP =
-			TargetCharacter->GetCurrentHP();
+		const int32 OldHP = TargetCharacter->GetCurrentHP();
 
 		if (OldHP <= 0)
 		{
@@ -131,40 +113,19 @@ void UMuksiBattleMainEffectExecution::ExecuteDamage(
 			continue;
 		}
 
-		const int32 RequestedNewHP =
-			OldHP - DamageValue;
+		const int32 RequestedNewHP = OldHP - DamageValue;
 
-		TargetCharacter->SetCurrentHP(
-			RequestedNewHP
-		);
+		TargetCharacter->SetCurrentHP(RequestedNewHP);
 
 		/**
 		 * SetCurrentHP 내부에서 Clamp가 적용될 가능성을 고려해
 		 * 실제 저장된 HP를 다시 가져온다.
 		 */
-		const int32 NewHP =
-			TargetCharacter->GetCurrentHP();
+		const int32 NewHP = TargetCharacter->GetCurrentHP();
 
-		const int32 AppliedDamage =
-			FMath::Max(
-				0,
-				OldHP - NewHP
-			);
+		const int32 AppliedDamage =FMath::Max(0,OldHP - NewHP);
 
-		UE_LOG(
-			LogTemp,
-			Log,
-			TEXT(
-				"[MainEffectExecution] "
-				"Damage Requested=%d Applied=%d Target=%s "
-				"OldHP=%d NewHP=%d"
-			),
-			DamageValue,
-			AppliedDamage,
-			*GetNameSafe(TargetCharacter),
-			OldHP,
-			NewHP
-		);
+		UE_LOG(LogTemp,Warning,TEXT("[MainEffectExecution] ""Damage Requested=%d Applied=%d Target=%s ""OldHP=%d NewHP=%d"),DamageValue,AppliedDamage,*GetNameSafe(TargetCharacter),OldHP,NewHP);
 
 		/**
 		 * 실제로 HP가 감소한 경우에만 HitReaction을 요청한다.
@@ -174,17 +135,12 @@ void UMuksiBattleMainEffectExecution::ExecuteDamage(
 		 */
 		if (AppliedDamage > 0)
 		{
-			RequestHitReaction(
-				Context,
-				TargetCharacter
-			);
+			RequestHitReaction(Context,TargetCharacter);
 		}
 	}
 }
 
-void UMuksiBattleMainEffectExecution::ExecuteHeal(
-	const FMuksiBattleExecutionContext& Context
-) const
+void UMuksiBattleMainEffectExecution::ExecuteHeal(const FMuksiBattleExecutionContext& Context) const
 {
 	if (!IsValid(Context.Attacker))
 	{
@@ -196,44 +152,25 @@ void UMuksiBattleMainEffectExecution::ExecuteHeal(
 		return;
 	}
 
-	const int32 HealValue =
-		Context.Card->AttackType.Value;
+	const int32 HealValue = Context.Card->AttackType.Value;
 
 	if (HealValue <= 0)
 	{
 		return;
 	}
 
-	const int32 OldHP =
-		Context.Attacker->GetCurrentHP();
+	const int32 OldHP = Context.Attacker->GetCurrentHP();
 
-	const int32 RequestedNewHP =
-		OldHP + HealValue;
+	const int32 RequestedNewHP = OldHP + HealValue;
 
-	Context.Attacker->SetCurrentHP(
-		RequestedNewHP
-	);
+	Context.Attacker->SetCurrentHP(RequestedNewHP);
 
-	const int32 NewHP =
-		Context.Attacker->GetCurrentHP();
+	const int32 NewHP = Context.Attacker->GetCurrentHP();
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT(
-			"[MainEffectExecution] "
-			"Heal Requested=%d Target=%s OldHP=%d NewHP=%d"
-		),
-		HealValue,
-		*GetNameSafe(Context.Attacker),
-		OldHP,
-		NewHP
-	);
+	UE_LOG(LogTemp,Log,TEXT("[MainEffectExecution] ""Heal Requested=%d Target=%s OldHP=%d NewHP=%d"),HealValue,*GetNameSafe(Context.Attacker),OldHP,NewHP);
 }
 
-void UMuksiBattleMainEffectExecution::ExecuteMove(
-	const FMuksiBattleExecutionContext& Context
-) const
+void UMuksiBattleMainEffectExecution::ExecuteMove(const FMuksiBattleExecutionContext& Context) const
 {
 	if (!IsValid(Context.Attacker))
 	{
@@ -245,40 +182,17 @@ void UMuksiBattleMainEffectExecution::ExecuteMove(
 		return;
 	}
 
-	const FIntPoint TargetPoint =
-		Context.GetMainTargetPoint();
+	const FIntPoint TargetPoint = Context.GetMainTargetPoint();
 
-	if (
-		TargetPoint.X == INDEX_NONE
-		|| TargetPoint.Y == INDEX_NONE
-		)
+	if (TargetPoint.X == INDEX_NONE|| TargetPoint.Y == INDEX_NONE)
 	{
 		return;
 	}
 
-	Context.BattleGridManager->MoveActorOnGrid(
-		Context.Attacker,
-		Context.Attacker->GetCharacterPosition(),
-		TargetPoint
-	);
-
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT(
-			"[MainEffectExecution] "
-			"Move %s to (%d, %d)"
-		),
-		*GetNameSafe(Context.Attacker),
-		TargetPoint.X,
-		TargetPoint.Y
-	);
+	Context.BattleGridManager->MoveActorOnGrid(Context.Attacker,Context.Attacker->GetCharacterPosition(),TargetPoint);
 }
 
-void UMuksiBattleMainEffectExecution::RequestHitReaction(
-	const FMuksiBattleExecutionContext& Context,
-	ABattleCharacterBase* DamagedTarget
-) const
+void UMuksiBattleMainEffectExecution::RequestHitReaction(const FMuksiBattleExecutionContext& Context,ABattleCharacterBase* DamagedTarget) const
 {
 	if (!IsValid(DamagedTarget))
 	{
@@ -287,15 +201,7 @@ void UMuksiBattleMainEffectExecution::RequestHitReaction(
 
 	if (!Context.CanRequestSystemExecution())
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT(
-				"[MainEffectExecution] "
-				"RequestSystemExecution is not bound. Target=%s"
-			),
-			*GetNameSafe(DamagedTarget)
-		);
+		UE_LOG(LogTemp,Warning,TEXT("[MainEffectExecution] ""RequestSystemExecution is not bound. Target=%s"),*GetNameSafe(DamagedTarget));
 
 		return;
 	}
@@ -304,14 +210,21 @@ void UMuksiBattleMainEffectExecution::RequestHitReaction(
 	 * 기존 Context를 복사해서 공격자, 카드, Grid, Notify 정보는 유지하고
 	 * HitReaction의 직접 대상만 설정한다.
 	 */
-	FMuksiBattleExecutionContext HitReactionContext =
-		Context;
+	FMuksiBattleExecutionContext HitReactionContext = Context;
 
-	HitReactionContext.TargetCharacter =
-		DamagedTarget;
+	HitReactionContext.TargetCharacter = DamagedTarget;
 
-	Context.RequestSystemExecution.Execute(
-		UMuksiBattleHitReactionExecution::StaticClass(),
-		HitReactionContext
+	Context.RequestSystemExecution.Execute(UMuksiBattleHitReactionExecution::StaticClass(),HitReactionContext
 	);
+}
+
+void UMuksiBattleMainEffectExecution::RequestMoveExecution(const FMuksiBattleExecutionContext& Context) const
+{
+	if (!Context.CanRequestSystemExecution())
+	{
+		UE_LOG(LogTemp,Warning,TEXT("[MainEffectExecution] Cannot request MoveExecution: RequestSystemExecution is not bound."));
+		return;
+	}
+
+	Context.RequestSystemExecution.Execute(UMuksiBattleMoveExecution::StaticClass(),Context);
 }

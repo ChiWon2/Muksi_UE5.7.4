@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Sequence/MuksiBattleExecution.h"
-#include "MuksiBattleAttackMontageExecution.generated.h"
+#include "MuksiBattlePlayMontageExecution.generated.h"
 
 class UMuksiBattleAnimationComponent;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
-class MUKSI_API UMuksiBattleAttackMontageExecution : public UMuksiBattleExecution
+class MUKSI_API UMuksiBattlePlayMontageExecution : public UMuksiBattleExecution
 {
 	GENERATED_BODY()
 

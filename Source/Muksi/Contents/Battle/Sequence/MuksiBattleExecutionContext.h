@@ -10,11 +10,7 @@ class UMuksiBattleExecution;
 
 struct FMuksiBattleExecutionContext;
 
-DECLARE_DELEGATE_TwoParams(
-	FMuksiRequestSystemExecution,
-	TSubclassOf<UMuksiBattleExecution>,
-	const FMuksiBattleExecutionContext&
-);
+DECLARE_DELEGATE_TwoParams(FMuksiRequestSystemExecution, TSubclassOf<UMuksiBattleExecution>, const FMuksiBattleExecutionContext&);
 
 USTRUCT(BlueprintType)
 struct FMuksiBattleExecutionContext
@@ -75,15 +71,12 @@ struct FMuksiBattleExecutionContext
 public:
 	bool IsValidContext() const
 	{
-		return Attacker.Get() != nullptr
-			&& Card.Get() != nullptr;
+		return Attacker.Get() != nullptr && Card.Get() != nullptr;
 	}
 
 	FIntPoint GetMainTargetPoint() const
 	{
-		return TargetPoints.IsValidIndex(0)
-			? TargetPoints[0]
-			: FIntPoint(INDEX_NONE, INDEX_NONE);
+		return TargetPoints.IsValidIndex(0)? TargetPoints[0] : FIntPoint(INDEX_NONE, INDEX_NONE);
 	}
 
 	bool CanRequestSystemExecution() const

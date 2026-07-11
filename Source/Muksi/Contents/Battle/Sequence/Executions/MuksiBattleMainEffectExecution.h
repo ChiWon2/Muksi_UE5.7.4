@@ -13,26 +13,16 @@ class MUKSI_API UMuksiBattleMainEffectExecution
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(
-		const FMuksiBattleExecutionContext& Context,
-		FMuksiBattleExecutionFinished OnFinished
-	) override;
+	virtual void Execute(const FMuksiBattleExecutionContext& Context,FMuksiBattleExecutionFinished OnFinished) override;
 
 private:
-	void ExecuteDamage(
-		const FMuksiBattleExecutionContext& Context
-	);
+	void ExecuteDamage(const FMuksiBattleExecutionContext& Context);
 
-	void ExecuteHeal(
-		const FMuksiBattleExecutionContext& Context
-	) const;
+	void ExecuteHeal(const FMuksiBattleExecutionContext& Context) const;
 
-	void ExecuteMove(
-		const FMuksiBattleExecutionContext& Context
-	) const;
+	void ExecuteMove(const FMuksiBattleExecutionContext& Context) const;
 
-	void RequestHitReaction(
-		const FMuksiBattleExecutionContext& Context,
-		ABattleCharacterBase* DamagedTarget
-	) const;
+	void RequestHitReaction(const FMuksiBattleExecutionContext& Context,ABattleCharacterBase* DamagedTarget) const;
+
+	void RequestMoveExecution(const FMuksiBattleExecutionContext& Context) const;
 };

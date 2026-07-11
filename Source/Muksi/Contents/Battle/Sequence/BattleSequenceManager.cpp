@@ -5,8 +5,8 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Sequence/MuksiBattleExecutionBinding.h"
-#include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattleAttackMontageExecution.h"
 #include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattleMainEffectExecution.h"
+#include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattlePlayMontageExecution.h"
 
 ABattleSequenceManager::ABattleSequenceManager()
 {
@@ -17,31 +17,19 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 {
 	if (bSequenceRunning)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("[BattleSequenceManager] Sequence already running.")
-		);
-
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] Sequence already running."));
 		return false;
 	}
 
 	if (!ValidateAction(InAction))
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("[BattleSequenceManager] Invalid BattleAction.")
-		);
-
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] Invalid BattleAction."));
 		return false;
 	}
 
 	CurrentAction = InAction;
-
 	bSequenceRunning = true;
 	PendingExecutionCount = 0;
-
 	RunningExecutions.Empty();
 
 	if (!BindAttackerNotify())
@@ -51,17 +39,12 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 	}
 
 	StartAttackMontageExecution();
-
 	return true;
 }
 
-bool ABattleSequenceManager::ValidateAction(
-	const FBattleAction& InAction
-) const
+bool ABattleSequenceManager::ValidateAction(const FBattleAction& InAction) const
 {
-	return IsValid(InAction.Attacker)
-		&& IsValid(InAction.Card)
-		&& !InAction.Card->AnimKey.IsNone();
+	return IsValid(InAction.Attacker) && IsValid(InAction.Card) && !InAction.Card->AnimKey.IsNone();
 }
 
 bool ABattleSequenceManager::BindAttackerNotify()
@@ -71,34 +54,16 @@ bool ABattleSequenceManager::BindAttackerNotify()
 		return false;
 	}
 
-	AttackerAnimationComponent =
-		CurrentAction.Attacker
-		->FindComponentByClass<UMuksiBattleAnimationComponent>();
+	AttackerAnimationComponent = CurrentAction.Attacker->FindComponentByClass<UMuksiBattleAnimationComponent>();
 
 	if (!AttackerAnimationComponent)
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT(
-				"[BattleSequenceManager] "
-				"AnimationComponent not found. Attacker=%s"
-			),
-			*GetNameSafe(CurrentAction.Attacker)
-		);
-
+		UE_LOG(LogTemp, Error, TEXT("[BattleSequenceManager] AnimationComponent not found. Attacker=%s"), *GetNameSafe(CurrentAction.Attacker));
 		return false;
 	}
 
-	AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(
-		this,
-		&ABattleSequenceManager::HandleBattleExecutionNotify
-	);
-
-	AttackerAnimationComponent->OnBattleExecutionNotify.AddDynamic(
-		this,
-		&ABattleSequenceManager::HandleBattleExecutionNotify
-	);
+	AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &ABattleSequenceManager::HandleBattleExecutionNotify);
+	AttackerAnimationComponent->OnBattleExecutionNotify.AddDynamic(this, &ABattleSequenceManager::HandleBattleExecutionNotify);
 
 	return true;
 }
@@ -110,23 +75,15 @@ void ABattleSequenceManager::UnbindAttackerNotify()
 		return;
 	}
 
-	AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(
-		this,
-		&ABattleSequenceManager::HandleBattleExecutionNotify
-	);
+	AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &ABattleSequenceManager::HandleBattleExecutionNotify);
 }
 
 void ABattleSequenceManager::StartAttackMontageExecution()
 {
-	ExecuteExecutionClassWithContext(
-		UMuksiBattleAttackMontageExecution::StaticClass(),
-		MakeExecutionContext(NAME_None)
-	);
+	ExecuteExecutionClassWithContext(UMuksiBattlePlayMontageExecution::StaticClass(), MakeExecutionContext(NAME_None));
 }
 
-void ABattleSequenceManager::HandleBattleExecutionNotify(
-	FName NotifyKey
-)
+void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
 {
 	if (!bSequenceRunning)
 	{
@@ -138,9 +95,7 @@ void ABattleSequenceManager::HandleBattleExecutionNotify(
 		return;
 	}
 
-	const bool bIsMainEffectNotify =
-		IsValid(CurrentAction.Card)
-		&& CurrentAction.Card->MainEffectNotifyKey == NotifyKey;
+	const bool bIsMainEffectNotify = IsValid(CurrentAction.Card) && CurrentAction.Card->MainEffectNotifyKey == NotifyKey;
 
 	if (bIsMainEffectNotify)
 	{
@@ -162,29 +117,19 @@ void ABattleSequenceManager::HandleBattleExecutionNotify(
 	ExecuteBoundExecutions(NotifyKey);
 }
 
-void ABattleSequenceManager::ExecuteMainEffect(
-	FName NotifyKey
-)
+void ABattleSequenceManager::ExecuteMainEffect(FName NotifyKey)
 {
-	ExecuteExecutionClass(
-		UMuksiBattleMainEffectExecution::StaticClass(),
-		NotifyKey
-	);
+	ExecuteExecutionClass(UMuksiBattleMainEffectExecution::StaticClass(), NotifyKey);
 }
 
-void ABattleSequenceManager::ExecuteBoundExecutions(
-	FName NotifyKey
-)
+void ABattleSequenceManager::ExecuteBoundExecutions(FName NotifyKey)
 {
 	if (!IsValid(CurrentAction.Card))
 	{
 		return;
 	}
 
-	for (
-		const FMuksiBattleExecutionBinding& Binding
-		: CurrentAction.Card->ExecutionBindings
-		)
+	for (const FMuksiBattleExecutionBinding& Binding : CurrentAction.Card->ExecutionBindings)
 	{
 		if (!Binding.IsValidBinding())
 		{
@@ -196,72 +141,34 @@ void ABattleSequenceManager::ExecuteBoundExecutions(
 			continue;
 		}
 
-		ExecuteExecutionClass(
-			Binding.ExecutionClass,
-			NotifyKey
-		);
+		ExecuteExecutionClass(Binding.ExecutionClass, NotifyKey);
 	}
 }
 
-void ABattleSequenceManager::ExecuteExecutionClass(
-	TSubclassOf<UMuksiBattleExecution> ExecutionClass,
-	FName NotifyKey
-)
+void ABattleSequenceManager::ExecuteExecutionClass(TSubclassOf<UMuksiBattleExecution> ExecutionClass, FName NotifyKey)
 {
-	ExecuteExecutionClassWithContext(
-		ExecutionClass,
-		MakeExecutionContext(NotifyKey)
-	);
+	ExecuteExecutionClassWithContext(ExecutionClass, MakeExecutionContext(NotifyKey));
 }
 
-void ABattleSequenceManager::ExecuteExecutionClassWithContext(
-	TSubclassOf<UMuksiBattleExecution> ExecutionClass,
-	const FMuksiBattleExecutionContext& Context
-)
+void ABattleSequenceManager::ExecuteExecutionClassWithContext(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context)
 {
 	if (!bSequenceRunning)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT(
-				"[BattleSequenceManager] "
-				"Cannot execute Execution because Sequence is not running."
-			)
-		);
-
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] Cannot execute Execution because Sequence is not running."));
 		return;
 	}
 
 	if (!ExecutionClass)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("[BattleSequenceManager] ExecutionClass is null.")
-		);
-
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] ExecutionClass is null."));
 		return;
 	}
 
-	UMuksiBattleExecution* Execution =
-		NewObject<UMuksiBattleExecution>(
-			this,
-			ExecutionClass
-		);
+	UMuksiBattleExecution* Execution = NewObject<UMuksiBattleExecution>(this, ExecutionClass);
 
 	if (!Execution)
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT(
-				"[BattleSequenceManager] "
-				"Failed to create Execution. Class=%s"
-			),
-			*GetNameSafe(ExecutionClass.Get())
-		);
-
+		UE_LOG(LogTemp, Error, TEXT("[BattleSequenceManager] Failed to create Execution. Class=%s"), *GetNameSafe(ExecutionClass.Get()));
 		return;
 	}
 
@@ -279,34 +186,14 @@ void ABattleSequenceManager::ExecuteExecutionClassWithContext(
 	 */
 	++PendingExecutionCount;
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT(
-			"[BattleSequenceManager] Execution Started. "
-			"Execution=%s Pending=%d"
-		),
-		*GetNameSafe(Execution),
-		PendingExecutionCount
-	);
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Started. Execution=%s Pending=%d"), *GetNameSafe(Execution), PendingExecutionCount);
 
 	FMuksiBattleExecutionFinished OnFinished;
-
-	OnFinished.BindUObject(
-		this,
-		&ABattleSequenceManager::HandleExecutionFinished
-	);
-
-	Execution->Execute(
-		Context,
-		OnFinished
-	);
+	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionFinished);
+	Execution->Execute(Context, OnFinished);
 }
 
-void ABattleSequenceManager::HandleSystemExecutionRequested(
-	TSubclassOf<UMuksiBattleExecution> ExecutionClass,
-	const FMuksiBattleExecutionContext& Context
-)
+void ABattleSequenceManager::HandleSystemExecutionRequested(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context)
 {
 	if (!bSequenceRunning)
 	{
@@ -315,44 +202,21 @@ void ABattleSequenceManager::HandleSystemExecutionRequested(
 
 	if (!ExecutionClass)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT(
-				"[BattleSequenceManager] "
-				"Requested System ExecutionClass is null."
-			)
-		);
-
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] Requested System ExecutionClass is null."));
 		return;
 	}
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT(
-			"[BattleSequenceManager] "
-			"System Execution Requested. Class=%s Target=%s"
-		),
-		*GetNameSafe(ExecutionClass.Get()),
-		*GetNameSafe(Context.TargetCharacter)
-	);
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] System Execution Requested. Class=%s Target=%s"), *GetNameSafe(ExecutionClass.Get()), *GetNameSafe(Context.TargetCharacter));
 
 	/**
 	 * 일반 Execution과 동일한 경로로 실행한다.
 	 *
 	 * 따라서 HitReactionExecution도 PendingExecutionCount에 포함된다.
 	 */
-	ExecuteExecutionClassWithContext(
-		ExecutionClass,
-		Context
-	);
+	ExecuteExecutionClassWithContext(ExecutionClass, Context);
 }
 
-FMuksiBattleExecutionContext
-ABattleSequenceManager::MakeExecutionContext(
-	FName NotifyKey
-)
+FMuksiBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName NotifyKey)
 {
 	FMuksiBattleExecutionContext Context;
 
@@ -366,30 +230,16 @@ ABattleSequenceManager::MakeExecutionContext(
 	 * Execution이 System Execution을 요청하면
 	 * 다시 BattleSequenceManager가 처리하도록 Delegate를 바인딩한다.
 	 */
-	Context.RequestSystemExecution.BindUObject(
-		this,
-		&ABattleSequenceManager::HandleSystemExecutionRequested
-	);
+	Context.RequestSystemExecution.BindUObject(this, &ABattleSequenceManager::HandleSystemExecutionRequested);
 
 	return Context;
 }
 
 void ABattleSequenceManager::HandleExecutionFinished()
 {
-	PendingExecutionCount =
-		FMath::Max(
-			0,
-			PendingExecutionCount - 1
-		);
+	PendingExecutionCount = FMath::Max(0, PendingExecutionCount - 1);
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT(
-			"[BattleSequenceManager] Execution Finished. Pending=%d"
-		),
-		PendingExecutionCount
-	);
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Finished. Pending=%d"), PendingExecutionCount);
 
 	TryFinishSequence();
 }
@@ -415,18 +265,11 @@ void ABattleSequenceManager::FinishSequence()
 
 	bSequenceRunning = false;
 	PendingExecutionCount = 0;
-
 	CurrentAction = FBattleAction();
-
 	AttackerAnimationComponent = nullptr;
-
 	RunningExecutions.Empty();
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("[BattleSequenceManager] Sequence Finished.")
-	);
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Sequence Finished."));
 
 	OnSequenceFinished.Broadcast();
 }

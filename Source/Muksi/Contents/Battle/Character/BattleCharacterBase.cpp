@@ -8,6 +8,7 @@
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
+#include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 
 
 // Sets default values
@@ -58,6 +59,8 @@ ABattleCharacterBase::ABattleCharacterBase()
 	StatusEffectComponent = CreateDefaultSubobject<UMuksiStatusEffectComponent>(TEXT("StatusEffectComponent"));
 
 	BattleAnimationComponent = CreateDefaultSubobject<UMuksiBattleAnimationComponent>(TEXT("BattleAnimationComponent"));
+
+	BattleMovementComponent =CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
 
 }
 
@@ -129,19 +132,6 @@ void ABattleCharacterBase::PlayAttackAnim(UMuksiBattleCardDataAsset* BattleCardD
 	if (!IsValid(BattleCardData))
 	{
 		UE_LOG(LogTemp, Error, TEXT("BattleCardData is null"));
-		return;
-	}
-
-	AnimMontage = FindAnimations(BattleCardData->AnimType);
-
-	if (!IsValid(AnimMontage))
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("AnimMontage is null. AnimType: %d"),
-			static_cast<int32>(BattleCardData->AnimType)
-		);
 		return;
 	}
 

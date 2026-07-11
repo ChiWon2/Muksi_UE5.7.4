@@ -15,6 +15,7 @@ class UCharacterDataBase;
 class UStaticMeshComponent;
 class UMuksiStatusEffectComponent;
 class UMuksiBattleAnimationComponent;
+class UMuksiBattleMovementComponent;
 
 class USkeletalMesh;
 class UAnimInstance;
@@ -66,6 +67,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMuksiBattleAnimationComponent> BattleAnimationComponent;
+	
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Components")
+	TObjectPtr<UMuksiBattleMovementComponent> BattleMovementComponent;
+
 
 	UFUNCTION()
 	void HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed);
@@ -76,6 +81,11 @@ protected:
 	//FCharacterDisplayData CharacterDisplayData;
 	
 public:
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Movement")
+	UMuksiBattleMovementComponent* GetBattleMovementComponent() const
+	{
+		return BattleMovementComponent;
+	}
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
 	virtual void SetCharacterData(UCharacterDataBase* InCharacterData);
 	

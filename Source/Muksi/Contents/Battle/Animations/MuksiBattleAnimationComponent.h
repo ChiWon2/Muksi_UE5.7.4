@@ -52,6 +52,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle Animation")
 	UAnimMontage* FindMontage(const FName& AnimKey) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
+	bool JumpCurrentMontageToSection(const FName& SectionName);
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> CachedMeshComponent;

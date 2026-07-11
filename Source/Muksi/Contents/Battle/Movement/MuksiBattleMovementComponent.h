@@ -1,0 +1,70 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "MuksiBattleMovementComponent.generated.h"
+
+DECLARE_DELEGATE_OneParam(FMuksiBattleMovementFinished, bool);
+
+enum class EMuksiBattleMovementMode : uint8
+{
+	None,
+	Arc,
+	Path
+};
+
+UCLASS(ClassGroup = (Battle), meta = (BlueprintSpawnableComponent))
+class MUKSI_API UMuksiBattleMovementComponent : public UActorComponent
+{
+	GENERATED_BODY()
+
+public:
+	UMuksiBattleMovementComponent();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+public:
+	void StartTeleportMove(const FVector& TargetWorldLocation, FMuksiBattleMovementFinished OnFinished);
+	void StartArcMove(const FVector& TargetWorldLocation, float Duration, float ArcHeight, FMuksiBattleMovementFinished OnFinished);
+	void StartPathMove(const TArray<FVector>& WorldPath, float MoveSpeed, FMuksiBattleMovementFinished OnFinished);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Movement")
+	void StopMovement(bool bNotifyInterruption = true);
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Movement")
+	bool IsMoving() const { return MovementMode != EMuksiBattleMovementMode::None; }
+
+private:
+	void UpdateArcMovement(float DeltaTime);
+	void UpdatePathMovement(float DeltaTime);
+	void FinishMovement(bool bInterrupted);
+	void ResetMovementState();
+	void RotateOwnerToward(const FVector& Direction, float DeltaTime) const;
+
+private:
+	EMuksiBattleMovementMode MovementMode = EMuksiBattleMovementMode::None;
+
+	FMuksiBattleMovementFinished CachedOnFinished;
+
+	FVector ArcStartLocation = FVector::ZeroVector;
+	FVector ArcTargetLocation = FVector::ZeroVector;
+
+	float ArcDuration = 0.0f;
+	float ArcElapsedTime = 0.0f;
+	float CurrentArcHeight = 0.0f;
+
+	TArray<FVector> CurrentWorldPath;
+	int32 CurrentPathIndex = INDEX_NONE;
+	float CurrentMoveSpeed = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation")
+	bool bRotateTowardMovementDirection = true;
+
+	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation", meta = (ClampMin = "0.0"))
+	float PathRotationSpeed = 720.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation")
+	float MovementYawOffset = 0.0f;
+};

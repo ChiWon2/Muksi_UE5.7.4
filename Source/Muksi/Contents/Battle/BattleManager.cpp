@@ -353,6 +353,9 @@ void ABattleManager::CreateCharacter()
 	BattleGridManager->MoveCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->MoveCharacter(EnemyBattleCharacter, StartEnemyPoint);
 
+	BattleGridManager->SetOccupied(StartPlayerPoint, PlayerBattleCharacter);
+	BattleGridManager->SetOccupied(StartEnemyPoint, EnemyBattleCharacter);
+
 }
 
 void ABattleManager::OnHoveredGridTileChanged(ABattleGridTile* InChangeTile)
@@ -751,8 +754,8 @@ void ABattleManager::SetExchangeGrid()
 
 void ABattleManager::SetExchangeCharacter()
 {
-	BattleGridManager->MoveActorOnGrid(PlayerBattleCharacter, PlayerBattleCharacter->GetCharacterPosition(),PlayerSelectAction[CurrentExchange].TargetPoints[0]);
-	BattleGridManager->MoveActorOnGrid(EnemyBattleCharacter, EnemyBattleCharacter->GetCharacterPosition(), EnemySelectAction[CurrentExchange].TargetPoints[0]);
+	//BattleGridManager->MoveActorOnGrid(PlayerBattleCharacter, PlayerBattleCharacter->GetCharacterPosition(),PlayerSelectAction[CurrentExchange].TargetPoints[0]);
+	//BattleGridManager->MoveActorOnGrid(EnemyBattleCharacter, EnemyBattleCharacter->GetCharacterPosition(), EnemySelectAction[CurrentExchange].TargetPoints[0]);
 }
 
 

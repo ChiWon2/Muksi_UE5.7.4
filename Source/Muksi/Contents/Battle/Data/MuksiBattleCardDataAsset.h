@@ -47,9 +47,6 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	float CardSpeed = 1.0f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Animation")
-	ECardAnimType AnimType = ECardAnimType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Animation")
 	FName AnimKey = TEXT("Attack_1");

@@ -39,17 +39,9 @@ public:
 	}
 
 private:
-	/**
-	 * 현재 Sequence에서 실행 중인 BattleAction
-	 */
 	UPROPERTY(Transient)
 	FBattleAction CurrentAction;
 
-	/**
-	 * 공격자 AnimationComponent
-	 *
-	 * 공격 Montage의 BattleExecutionNotify를 받기 위해 사용한다.
-	 */
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;
 
@@ -69,7 +61,6 @@ private:
 
 	bool BindAttackerNotify();
 	void UnbindAttackerNotify();
-
 	void StartAttackMontageExecution();
 
 	UFUNCTION()
@@ -77,16 +68,8 @@ private:
 
 	void ExecuteMainEffect(FName NotifyKey);
 	void ExecuteBoundExecutions(FName NotifyKey);
-
-	void ExecuteExecutionClass(
-		TSubclassOf<UMuksiBattleExecution> ExecutionClass,
-		FName NotifyKey
-	);
-
-	void ExecuteExecutionClassWithContext(
-		TSubclassOf<UMuksiBattleExecution> ExecutionClass,
-		const FMuksiBattleExecutionContext& Context
-	);
+	void ExecuteExecutionClass(TSubclassOf<UMuksiBattleExecution> ExecutionClass, FName NotifyKey);
+	void ExecuteExecutionClassWithContext(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context);
 
 	/**
 	 * 실행 중인 Execution이 새로운 System Execution을 요청했을 때 호출된다.
@@ -94,15 +77,11 @@ private:
 	 * HitReaction, Death, Knockback 등의 실제 생성과
 	 * PendingExecutionCount 관리는 이 함수에서 처리한다.
 	 */
-	void HandleSystemExecutionRequested(
-		TSubclassOf<UMuksiBattleExecution> ExecutionClass,
-		const FMuksiBattleExecutionContext& Context
-	);
+	void HandleSystemExecutionRequested(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context);
 
 	FMuksiBattleExecutionContext MakeExecutionContext(FName NotifyKey);
 
 	void HandleExecutionFinished();
-
 	void TryFinishSequence();
 	void FinishSequence();
 };
