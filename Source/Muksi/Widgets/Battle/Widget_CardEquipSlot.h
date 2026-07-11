@@ -95,6 +95,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "CardEquipSlot")
 	FCardEquipSlotData GetSlotData() const { return SlotData; }
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "CardEquipSlot")
+	bool bPlayerSlot = true;
 
 protected:
 	void RefreshSlotVisual();
@@ -120,6 +123,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	bool bSlotEnabled = false;
+	
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	bool bHighlighted = false;

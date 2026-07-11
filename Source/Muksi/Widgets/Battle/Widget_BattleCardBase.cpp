@@ -6,7 +6,9 @@
 #include "CommonTextBlock.h"
 #include "HandWidget.h"
 #include "Widget_CardEquipSlot.h"
+#include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Image.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
@@ -296,6 +298,27 @@ void UWidget_BattleCardBase::SetCardData(UMuksiBattleCardDataAsset* InCardData)
 		Text_CardName->SetText(CardData->CardName);
 	}
 
+}
+
+void UWidget_BattleCardBase::SetCardData_(UMuksiBattleCardDataAsset* InCardData, bool bFront)
+{
+	CardData = InCardData;
+	
+	if (Text_CardName)
+	{
+		Text_CardName->SetText(CardData->CardName);
+	}
+	
+	bCardFront = bFront;
+	if (bCardFront)
+	{
+		Border_CardFront->SetRenderScale(FVector2D(1.0f, 1.0f));
+		Image_BehindCardImage->SetRenderScale(FVector2D(0.0f, 1.0f));
+	}else
+	{
+		Border_CardFront->SetRenderScale(FVector2D(0.0f, 1.0f));
+		Image_BehindCardImage->SetRenderScale(FVector2D(1.0f, 1.0f));
+	}
 }
 
 
