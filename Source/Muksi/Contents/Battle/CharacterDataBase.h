@@ -65,6 +65,7 @@ protected:
 	//덱 관련 정보
 	UPROPERTY()
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> BattleDeck;
+
 	UPROPERTY()
 	int32 BattleDeckSize = 0;
 	

@@ -89,6 +89,13 @@ void ABattleCharacterBase::SetCurrentHP(int32 NewHP)
 	if (CharacterData){CharacterData->SetCurrentHP(NewHP);}
 }
 
+FVector2D ABattleCharacterBase::GetCurrentSelectCardTime() const
+{
+	if (CharacterData){return FVector2D(CharacterDataAsset->CardSelectTimeMin, CharacterDataAsset->CardSelectTimeMax);}
+	return FVector2D(1.f,1.f);
+}
+
+
 float ABattleCharacterBase::GetCharacterSpeed() const
 {
 	return CharacterData->GetPlayerSpeed();

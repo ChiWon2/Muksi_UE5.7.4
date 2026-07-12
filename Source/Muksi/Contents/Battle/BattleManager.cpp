@@ -631,6 +631,11 @@ void ABattleManager::ExchangeEnd()
 	BattleMainScreen->ExchangeEnd();
 }
 
+void ABattleManager::ExchangeN_EndReady()
+{
+	if (BattleMainScreen->PlayerSelectCardFinish && BattleMainScreen->EnemySelectCardFinish)ExchangeN_End(CurrentExchange);
+}
+
 void ABattleManager::ExchangeN_End(int32 InIndex)
 {
 	switch (InIndex)

@@ -33,14 +33,29 @@ public:
 public:
 	int32 GetCurrentHP() const;
 	void SetCurrentHP(int32 NewHP);
+	
+	FVector2D GetCurrentSelectCardTime()const;
+	
+	float GetCharacterSpeed()const;
+	
+	
+	FIntPoint GetCharacterPosition()const{return CharacterPosition;};
+	void SetCharacterPosition(FIntPoint NewPosition){CharacterPosition = NewPosition;};
+	
+	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData->GetCharacterDeck();};
+	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData)const{CharacterData->RemoveCard(BattleCardData);};
 
-	float GetCharacterSpeed() const;
+	
+protected:
+	UPROPERTY()
+	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;
+	
+public:
 
-	FIntPoint GetCharacterPosition() const { return CharacterPosition; }
-	void SetCharacterPosition(const FIntPoint& NewPosition) { CharacterPosition = NewPosition; }
+	
 
-	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck() const { return CharacterData ? CharacterData->GetCharacterDeck() : TArray<UMuksiBattleCardDataAsset*>(); }
-	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData) const { if (CharacterData) CharacterData->RemoveCard(BattleCardData); }
+	/*TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck() const { return CharacterData ? CharacterData->GetCharacterDeck() : TArray<UMuksiBattleCardDataAsset*>(); }
+	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData) const { if (CharacterData) CharacterData->RemoveCard(BattleCardData); }*/
 
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
 	virtual void SetCharacterData(UCharacterDataBase* InCharacterData);
@@ -89,9 +104,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
 	TObjectPtr<UMuksiCharacterDataAsset> CharacterDataAsset = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;
+	
 
 	UPROPERTY(Transient)
 	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
