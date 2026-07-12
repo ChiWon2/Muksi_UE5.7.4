@@ -6,6 +6,7 @@
 #include "Controllers/PlayerMode/PlayerModeBase.h"
 #include "PlayerMode_Battle.generated.h"
 
+class UWidget_BattleMainScreen;
 class UDataTable;
 class UCharacterDataBase;
 class UMuksiCharacterDataAsset;
@@ -64,6 +65,8 @@ protected:
 	
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
+	UPROPERTY()
+	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
 	
 	
 private:

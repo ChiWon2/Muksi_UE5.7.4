@@ -31,6 +31,7 @@ public:
 
 	// 카드 위젯 자체를 슬롯에 장착
 	bool EquipCard(UWidget_BattleCardBase* InCard);
+	bool EquipCard_Enemy(UWidget_BattleCardBase* InCard);
 
 	UFUNCTION(BlueprintPure)
 	FVector2D GetSlotCenterInHandCanvas(UHandWidget* InHandWidget) const;

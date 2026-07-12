@@ -63,7 +63,6 @@ FReply UWidget_BattleMainScreen::NativeOnMouseButtonDown(const FGeometry& InGeom
 void UWidget_BattleMainScreen::NativeOnActivated()
 {
 	Super::NativeOnActivated();
-	//UE_LOG(LogTemp, Warning, TEXT("Frontend Reactivated"));
 	RequestRefreshFocus();
 	
 	/*if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
@@ -81,7 +80,6 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 {
 	if (!HandWidget)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("BattleMainScreen: HandWidget is null"));
 		return;
 	}
 
@@ -175,30 +173,6 @@ void UWidget_BattleMainScreen::HandlePipelineUIFinish()
 	}
 }
 
-//합 시작 텍스트 알람
-void UWidget_BattleMainScreen::DisplayExchangeAlarm()
-{
-	
-	FText ExchangeText = FText::FromString(DisplayExchangeText);
-	
-}
-//현재 몇 합 인지 출력하는 텍스트 알람
-void UWidget_BattleMainScreen::DisplayExchangeCountAlarm(int32 ExchangeCount, bool bStart)
-{
-	FText DisplayText;
-	if (bStart)
-	{
-		DisplayText = FText::FromString(
-		FString::Printf(TEXT("%d 합 시작!!"), ExchangeCount)
-	);
-	}
-	else
-	{
-		DisplayText = FText::FromString(
-		FString::Printf(TEXT("%d 합 종료!!"), ExchangeCount));
-	}
-	
-}
 
 void UWidget_BattleMainScreen::ChangePhase(EBattlePhase NewPhase)
 {
@@ -257,7 +231,6 @@ void UWidget_BattleMainScreen::ReadyStart()
 	PlayerBattleCharacter = CachedBattleManager->GetPlayerBattleCharacter();
 	EnemyBattleCharacter = CachedBattleManager->GetEnemyBattleCharacter();
 	
-	UE_LOG(LogTemp, Error, TEXT("Ready Test"));
 	ReadyEnd();
 }
 
@@ -276,9 +249,6 @@ void UWidget_BattleMainScreen::SetBattleManager()
 //==========================================전투 시작(Battle)============================================================
 void UWidget_BattleMainScreen::BattleStart()
 {
-	UE_LOG(LogTemp, Log, TEXT("BattleStart (Widget_BattleMainScreen)"));
-	/*//전투 시작 UI 표시
-	DisplayMainTextBlock(FText::FromString(BattleStartText), 3.f);*/
 	
 	DisplayBattleStartUI();
 }
@@ -309,7 +279,6 @@ void UWidget_BattleMainScreen::DisplayBattleStartUIFinish()
 
 void UWidget_BattleMainScreen::BattleEnd()
 {
-	UE_LOG(LogTemp, Log, TEXT("BattleEnd (Widget_BattleMainScreen)"));
 	DisplayBattleEndUI();
 }
 
@@ -349,8 +318,7 @@ void UWidget_BattleMainScreen::HandleBattleEndFinish()
 void UWidget_BattleMainScreen::RoundStart()
 {
 	RoundCound += 1;
-	//DisplayMainTextBlock(FText::FromString(FString::Printf(TEXT("%d %s"),RoundCound, *RoundStartText)), 3.f);
-	
+	HandleRoundStartFinishCount = 0;
 	//일단 다음으로 넘김
 	DisplayRoundStartUI();
 }
@@ -366,8 +334,8 @@ void UWidget_BattleMainScreen::DisplayRoundStartUI()
 		*RoundStartText
 	);
 	
-	HandWidget->DisplayInkLine(ResultText, 3.f);
 	HandleRoundStartFinishCount += 1;
+	HandWidget->DisplayInkLine(ResultText, 3.f);
 	
 	//뭐 다른 UI 표시 있으면 추가하고
 	//HandleBattleStartFinishCount += 1 한 다음
@@ -389,9 +357,28 @@ void UWidget_BattleMainScreen::DisplayRoundStartUIFinish()
 
 void UWidget_BattleMainScreen::RoundEnd()
 {
-	UE_LOG(LogTemp, Log, TEXT("RoundEnd (Widget_BattleMainScreen)"));
-	//일단 UI 기능적으로 뭐 없음
+
+	//Exchange 단계에서 사용한 카드 묘지에 넣기
+	RemoveSelectCards();
+	//Exchange Slot 비우기
+	ClearExchangeSlots();
+	
 	DisplayRoundEndUI();
+}
+
+void UWidget_BattleMainScreen::RemoveSelectCards()const
+{
+	for (int32 Count = 0; Count < 3; Count++)
+	{
+		PlayerBattleCharacter->RemoveBattleCard(HandWidget->GetExchangeDataIndex_Player(Count));
+		EnemyBattleCharacter->RemoveBattleCard(HandWidget->GetExchangeDataIndex_Enemy(Count));
+	}
+}
+
+void UWidget_BattleMainScreen::ClearExchangeSlots() const
+{
+	HandWidget->ClearPlayerSelectCard();
+	HandWidget->ClearEnemySelectCard();
 }
 
 void UWidget_BattleMainScreen::DisplayRoundEndUI()
@@ -424,7 +411,6 @@ void UWidget_BattleMainScreen::HandleRoundEndFinish()
 //------------------------------------------합 시작(Exchange)------------------------------------------------------------
 void UWidget_BattleMainScreen::ExchangeStart()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange Start (Widget_BattleMainScreen)"));
 	//null 체크
 	if (!HandWidget){return;}
 	if (!PlayerBattleCharacter)
@@ -447,7 +433,7 @@ void UWidget_BattleMainScreen::ExchangeStart()
 	//적 선택 카드 Array 비우기
 	EnemySelectBattleCard.Empty();
 	
-	
+	HandleExchangeCount = 0;
 
 	DisplayExchangeStartUI();
 }
@@ -458,7 +444,7 @@ void UWidget_BattleMainScreen::DisplayExchangeStartUI()
 	
 	//InkLine 호출
 	HandWidget->DisplayInkLine(ExchangeStartText, 3.f);
-	HandleRoundStartFinishCount += 1;
+	HandleExchangeCount += 1;
 	
 	//뭐 다른 UI 표시 있으면 추가하고
 	//HandleBattleStartFinishCount += 1 한 다음
@@ -496,11 +482,19 @@ void UWidget_BattleMainScreen::DisplayExchangeStartUIFinish()
 
 void UWidget_BattleMainScreen::Exchange1Start()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange 1 Start (Widget_BattleMainScreen)"));
 	//1합 카드 제시 칸 활성화
 	HandleExchangeSlot(1, true);
-	//합 종료 버튼을 눌렀을 경우 해당 카드의 효과(이동/공격)방향 제시 
 	
+	//플레이어가 카드를 선택했는지 체크 초기화
+	PlayerSelectCardFinish = false;
+	//적이 카드를 선택했는지 체크 초기화
+	EnemySelectCardFinish = false;
+	
+	//적이 카드를 선택하는 알고리즘
+	EnemySelectCardEvent();
+	
+	//합 종료 버튼을 눌렀을 경우 해당 카드의 효과(이동/공격)방향 제시 
+	HandleExchangeCount = 0;
 	//Pipeline UI 표시
 	FString ResultText = FString::Printf(
 		TEXT("%d %s"),
@@ -512,13 +506,12 @@ void UWidget_BattleMainScreen::Exchange1Start()
 
 void UWidget_BattleMainScreen::Exchange1End()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange 1 End (Widget_BattleMainScreen)"));
 	HandleExchangeCount = 0;
 	//1합 카드 제시 칸 비활성화
 	HandleExchangeSlot(1, false);
-	//1합 상대방 카드 표기
-	EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(0));
-	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[0], 0);
+
+	//적이 선택한 카드 뒤집는 애니메이션
+	RevealEnemySelectedCard();
 	
 	CurrentExchange += 1;
 	//일단 넘겨 다른 곳에서 넘기는 코드를 보내야 하는데 시간 없으니까
@@ -530,6 +523,7 @@ void UWidget_BattleMainScreen::Exchange1End()
 void UWidget_BattleMainScreen::DisplayExchange1EndUI()
 {
 	//일단 넘기기
+	HandleExchangeCount += 1;
 	DisplayExchange1EndUIFinish();
 }
 
@@ -545,9 +539,14 @@ void UWidget_BattleMainScreen::DisplayExchange1EndUIFinish()
 
 void UWidget_BattleMainScreen::Exchange2Start()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange 2 Start (Widget_BattleMainScreen)"));
+	//플레이어가 카드를 선택했는지 체크 초기화
+	PlayerSelectCardFinish = false;
+	//적이 카드를 선택했는지 체크 초기화
+	EnemySelectCardFinish = false;
 	
-	HandleExchangeCount = 0;
+	//적이 카드를 선택하는 알고리즘
+	EnemySelectCardEvent();
+	
 	//2합 시작 UI 표시
 	//Pipeline UI 표시
 	FString ResultText = FString::Printf(
@@ -566,16 +565,18 @@ void UWidget_BattleMainScreen::Exchange2Start()
 
 void UWidget_BattleMainScreen::Exchange2End()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange 2 End (Widget_BattleMainScreen)"));
 	HandleExchangeCount = 0;
-	CurrentExchange += 1;
 	//1합 공격 표시 그리드 효과 제거
 	
 	//2합 카드 제시 칸 비활성화
 	HandleExchangeSlot(2, false);
 	//2합 상대방 카드 표기
-	EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(1));
-	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[1], 1);
+	RevealEnemySelectedCard();
+	
+	/*EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(1));
+	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[1], 1);*/
+	
+	CurrentExchange += 1;
 	//2합 종료 UI 표시
 	DisplayExchange2EndUI();
 }
@@ -600,8 +601,14 @@ void UWidget_BattleMainScreen::DisplayExchange2EndUIFinish()
 
 void UWidget_BattleMainScreen::Exchange3Start()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange 3 Start (Widget_BattleMainScreen)"));
-	HandleExchangeCount = 0;
+	//플레이어가 카드를 선택했는지 체크 초기화
+	PlayerSelectCardFinish = false;
+	//적이 카드를 선택했는지 체크 초기화
+	EnemySelectCardFinish = false;
+	
+	//적이 카드를 선택하는 알고리즘
+	EnemySelectCardEvent();
+	
 	//3합 시작 UI 표시
 	//Pipeline UI 표시
 	FString ResultText = FString::Printf(
@@ -618,18 +625,18 @@ void UWidget_BattleMainScreen::Exchange3Start()
 
 void UWidget_BattleMainScreen::Exchange3End()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange 3 End (Widget_BattleMainScreen)"));
 	HandleExchangeCount = 0;
 	//2합 공격 표시 효과 그리드 제거
 	
 
 	//3합 카드 제시 칸 비활성화
 	HandleExchangeSlot(3, false);
-	//3합 상대방 카드 그리드 표기
+	//3합 상대방 공개
+	RevealEnemySelectedCard();
 	
-	//3합 상대방 카드 표기
+	/*//3합 상대방 카드 표기
 	EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(2));
-	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[2], 2);
+	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[2], 2);*/
 	//3합 종료 UI 표시
 	DisplayExchange3EndUI();
 }
@@ -654,7 +661,6 @@ void UWidget_BattleMainScreen::DisplayExchange3EndUIFinish()
 
 void UWidget_BattleMainScreen::ExchangeEnd()
 {
-	UE_LOG(LogTemp, Log, TEXT("ExchangeEnd (Widget_BattleMainScreen)"));
 	HandleExchangeCount = 0;
 	//턴 종료 버튼 비활성화
 	HandWidget->ShowTurnEndButton(false);
@@ -678,23 +684,6 @@ void UWidget_BattleMainScreen::DisplayExchangeEndUI()
 
 void UWidget_BattleMainScreen::DisplayExchangeEndUIFinish()
 {
-	//일단 Current Exchange 값 보고 결정
-	/*switch (CurrentExchange)
-	{
-	default:
-		UE_LOG(LogTemp, Error, TEXT("Current Exchange Count is Error (Widget_BattleMainScreen.cpp)"));
-		break;
-	case 0:
-		CachedBattleManager->Exchange1End();
-		break;
-	case 1:
-		CachedBattleManager->Exchange2End();
-		break;
-	case 2:
-		CachedBattleManager->Exchange3End();
-		break;
-	}*/
-	UE_LOG(LogTemp, Error, TEXT("DisplayExchangeEnd UI Finish"));
 	HandleExchangeCount -= 1;
 	if (HandleExchangeCount <= 0)
 	{	
@@ -715,6 +704,46 @@ void UWidget_BattleMainScreen::HandleExchangeEndFinish()
 void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 {
 	HandWidget->EnableExchangeSlot(Index, bActive);
+}
+
+void UWidget_BattleMainScreen::EnemySelectCardEvent()
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+	
+	FVector2D SelectSpeed = EnemyBattleCharacter->GetCurrentSelectCardTime();
+	const float RandomDelay = FMath::FRandRange(SelectSpeed[0], SelectSpeed[1]);
+	
+	GetWorld()->GetTimerManager().ClearTimer(EnemySelectCardTimerHandle);
+
+	GetWorld()->GetTimerManager().SetTimer(
+		EnemySelectCardTimerHandle,
+		this,
+		&UWidget_BattleMainScreen::EnemyPlaceCard,
+		RandomDelay,
+		false
+	);
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("EnemySelectCardEvent will be called after %.2f seconds"),
+		RandomDelay
+	);
+	
+}
+
+void UWidget_BattleMainScreen::EnemyPlaceCard()
+{
+	if (ExchangeTimeOver)return;
+	int32 Index = CurrentExchange - 1;
+	CachedBattleManager->SetEnemyBattleAction();
+	EnemySelectBattleCard.Add(CachedBattleManager->GetBattleCardDataAssetToExchange_Enemy(Index));
+	HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[Index], Index);
+	EnemySelectCardFinish = true;
+	CachedBattleManager->ExchangeN_EndReady();
 }
 
 void UWidget_BattleMainScreen::HandleCardSelect()
@@ -740,38 +769,24 @@ bool UWidget_BattleMainScreen::CanRequestSelectCard()
 	return true;
 }
 
-void UWidget_BattleMainScreen::SelectCardDataSend(int32 InIndex)
+void UWidget_BattleMainScreen::SelectCardDataSend(int32 InIndex)const
 {
-	if (UMuksiBattleCardDataAsset* CardDataAsset = HandWidget->GetExchangeDataIndex(InIndex))
+	if (UMuksiBattleCardDataAsset* CardDataAsset = HandWidget->GetExchangeDataIndex_Player(InIndex))
 	{
 		CachedBattleManager->ExchangeCardDir(CardDataAsset);
 	}
 }
 
-void UWidget_BattleMainScreen::FinishSelectCard()
+void UWidget_BattleMainScreen::RevealEnemySelectedCard()
 {
-	CurrentExchange += 1;
-	if (CurrentExchange >= 3)
-	{
-		HandWidget->ConfirmExchangeInput(CurrentExchange);
-		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1], CurrentExchange - 1);
-		//CachedBattleManager->RequestEndExchange();
-	}else
-	{
-		HandWidget->ConfirmExchangeInput(CurrentExchange);
-		HandWidget->PlaceEnemySelectCard(EnemySelectBattleCard[CurrentExchange - 1], CurrentExchange - 1);
-		
-		//HandleExchangedStarted_(CurrentExchange + 1);
-	}
-	
-	UE_LOG(LogTemp, Log, TEXT("CurrentExchange Test %d"), CurrentExchange);
+	HandWidget->EnemySelectedBattleCardFlip(CurrentExchange - 1, true);
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 //------------------------------------------공격 시작(Attack)------------------------------------------------------------
 
 void UWidget_BattleMainScreen::AttackStart()
 {
-	UE_LOG(LogTemp, Log, TEXT("Attack Start (Widget_BattleMainScreen.cpp)"));
 	//null 체크
 	if (!HandWidget){return;}
 	if (!PlayerBattleCharacter)

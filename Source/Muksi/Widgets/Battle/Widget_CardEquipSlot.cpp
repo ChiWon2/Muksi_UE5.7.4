@@ -57,7 +57,7 @@ bool UWidget_CardEquipSlot::EquipCard(UWidget_BattleCardBase* InCard)
 	{
 		return false;
 	}
-	if (!bSlotEnabled){UE_LOG(LogTemp, Log, TEXT("EquipCard4"));}
+	if (!bSlotEnabled && bPlayerSlot){UE_LOG(LogTemp, Log, TEXT("EquipCard4"));}
 	if (SlotData.bConfirmed){UE_LOG(LogTemp, Log, TEXT("EquipCard5"));}
 	if (SlotData.bConfirmed || !bSlotEnabled)
 	{
@@ -92,6 +92,47 @@ bool UWidget_CardEquipSlot::EquipCard(UWidget_BattleCardBase* InCard)
 	
 	return true;
 }
+
+bool UWidget_CardEquipSlot::EquipCard_Enemy(UWidget_BattleCardBase* InCard)
+{
+	if (!InCard)
+	{
+		return false;
+	}
+	if (EquippedCard)
+	{
+		return false;
+	}
+	
+	UMuksiBattleCardDataAsset* CardData = InCard->GetCardData();
+	if (!CardData)
+	{
+		return false;
+	}
+	
+	if (!CardHostOverlay)
+	{
+		return false;
+	}
+	
+	EquippedCard = InCard;
+	SlotData.CardData = CardData;
+
+	InCard->RemoveFromParent();
+
+	UOverlaySlot* OverlaySlot = CardHostOverlay->AddChildToOverlay(InCard);
+	if (OverlaySlot)
+	{
+		OverlaySlot->SetHorizontalAlignment(HAlign_Center);
+		OverlaySlot->SetVerticalAlignment(VAlign_Center);
+	}
+	InCard->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	RefreshSlotVisual();
+	
+	return true;
+}
+
 
 FVector2D UWidget_CardEquipSlot::GetSlotCenterInHandCanvas(UHandWidget* InHandWidget) const
 {
@@ -234,7 +275,7 @@ void UWidget_CardEquipSlot::ClearSlot()
 		//UE_LOG(LogTemp, Warning, TEXT("ClearSlot ignored: slot already confirmed"));
 		return;
 	}
-
+	if (EquippedCard)EquippedCard->RemoveFromParent(); //빼는 애니메이션 있으면 넣기
 	EquippedCard = nullptr;
 
 	SlotData.CardData = nullptr;

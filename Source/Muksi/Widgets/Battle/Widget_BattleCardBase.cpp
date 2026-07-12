@@ -321,5 +321,39 @@ void UWidget_BattleCardBase::SetCardData_(UMuksiBattleCardDataAsset* InCardData,
 	}
 }
 
+void UWidget_BattleCardBase::PlayCardFlipToBack()
+{
+	if (!Anim_CardFlipToBack)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("Anim_CardFlipToBack is null | Widget: %s (Widget_BattleCardBase.cpp)" ),
+			*GetNameSafe(this)
+		);
+
+		return;
+	}
+
+	PlayAnimation(Anim_CardFlipToBack);
+}
+
+void UWidget_BattleCardBase::PlayCardFlipToFront()
+{
+	if (!Anim_CardFlipToFront)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("CardFlipAnimation is null | Widget: %s (Widget_BattleCardBase.cpp)"),
+			*GetNameSafe(this)
+		);
+
+		return;
+	}
+
+	PlayAnimation(Anim_CardFlipToFront);
+}
+
 
 

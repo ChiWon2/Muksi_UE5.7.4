@@ -167,6 +167,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	bool IsBattleStarted() const { return bBattleStarted; }
 
+	
 protected:
 	
 
@@ -296,6 +297,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter   = nullptr;
 	
+	
 	UPROPERTY()
 	int32 CurrentAttackActionIndex = 0;
 	
@@ -360,6 +362,7 @@ public:
 	
 	void ChangePhase(EBattlePhase NewPhase);
 	
+	UWidget_BattleMainScreen* GetBattleMainScreen(){return BattleMainScreen;}
 	void SetBattleMainScreen(TObjectPtr<UWidget_BattleMainScreen> BattleWidget){BattleMainScreen = BattleWidget;};
 	//==================================================================================================================
 	
@@ -458,6 +461,7 @@ public:
 	
 	void ExchangeEnd();
 	
+	void ExchangeN_EndReady();
 	void ExchangeN_End(int32 InIndex);
 	
 	

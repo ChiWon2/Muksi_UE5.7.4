@@ -119,6 +119,10 @@ public:
 	UWidget_CardEquipSlot* FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const;
 
 	
+	
+	UFUNCTION()
+	void EnemySelectedBattleCardFlip(int32 InIndex, bool bFront);
+	
 	UPROPERTY()
 	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
 	
@@ -126,6 +130,8 @@ public:
 	void PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount);
 	UFUNCTION()
 	void ClearEnemySelectCard();
+	UFUNCTION()
+	void ClearPlayerSelectCard();
 	
 protected:
 	//****** Bind Widget ******
@@ -168,6 +174,10 @@ protected:
 	
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_CardEquipSlot>> EnemyExchangeSlots;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UWidget_BattleCardBase>> EnemySelectedBattleCards;
+	
 
 	//****** Bind Widget ******
 	
@@ -211,9 +221,6 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_CardEquipSlot>> EnemyEquipSlots;
 	
-	//Test BindWidget
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> EnemySelectCardVerticalBox;
 	
 	
 	//***** Turn Changed UI Function *****
@@ -227,10 +234,14 @@ public:
 	void ShowTurnEndButton(bool bShow);
 	
 	UFUNCTION(BlueprintCallable)
-	FCardEquipSlotData GetSlotDataByExchangeNumber(int32 InIndex);
+	FCardEquipSlotData GetSlotDataByExchangeNumber_Player(int32 InIndex);
+	UFUNCTION(BlueprintCallable)
+	FCardEquipSlotData GetSlotDataByExchangeNumber_Enemy(int32 InIndex);
 	
 	UFUNCTION(BlueprintCallable)
-	UMuksiBattleCardDataAsset* GetExchangeDataIndex(int32 InIndex);
+	UMuksiBattleCardDataAsset* GetExchangeDataIndex_Player(int32 InIndex);
+	UFUNCTION(BlueprintCallable)
+	UMuksiBattleCardDataAsset* GetExchangeDataIndex_Enemy(int32 InIndex);
 	
 	UFUNCTION(BlueprintCallable)
 	void ConfirmExchangeInput(int32 InIndex);

@@ -313,6 +313,13 @@ UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBa
 	return nullptr;
 }
 
+void UHandWidget::EnemySelectedBattleCardFlip(int32 InIndex, bool bFront)
+{
+	if (bFront){EnemySelectedBattleCards[InIndex]->PlayCardFlipToFront();}
+	else {EnemySelectedBattleCards[InIndex]->PlayCardFlipToBack();}
+	
+}
+
 void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount)
 {
 	UWidget_BattleCardBase* CardWidget =
@@ -320,18 +327,18 @@ void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, in
 
 	if (!CardWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed"));
+		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed (HandWidget.cpp)"));
 		return;
 	}
-	CardWidget->SetCardData(SelectCard);
+	CardWidget->SetCardData_(SelectCard, false);
 	
 	CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	EnemyExchangeSlots[ExchangeCount]->SetVisibility(ESlateVisibility::Visible);
-	EnemyExchangeSlots[ExchangeCount]->EquipCard(CardWidget);
-	
+	EnemyExchangeSlots[ExchangeCount]->EquipCard_Enemy(CardWidget);
 	
 	//TODO CardWidget 뒤집는 애니메이션
 	//EnemySelectCardVerticalBox->AddChildToVerticalBox(CardWidget);
+	EnemySelectedBattleCards.Add(CardWidget);
 }
 
 void UHandWidget::ClearEnemySelectCard()
@@ -342,6 +349,17 @@ void UHandWidget::ClearEnemySelectCard()
 	
 	for (UWidget_CardEquipSlot* EquipSlot : EnemyExchangeSlots)
 	{
+		EquipSlot->ClearSlot();
+	}
+	EnemySelectedBattleCards.Empty();
+}
+
+void UHandWidget::ClearPlayerSelectCard()
+{
+	UE_LOG(LogTemp, Error, TEXT("1"));
+	for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
+	{
+		UE_LOG(LogTemp, Error, TEXT("2"));
 		EquipSlot->ClearSlot();
 	}
 }
@@ -363,7 +381,7 @@ void UHandWidget::ShowTurnEndButton(bool bShow)
 	
 }
 
-FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber(int32 InIndex)
+FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber_Player(int32 InIndex)
 {
 	const int32 SlotIndex = InIndex - 1;
 
@@ -380,9 +398,32 @@ FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber(int32 InIndex)
 	return ExchangeSlots[SlotIndex]->GetSlotData();
 }
 
-UMuksiBattleCardDataAsset* UHandWidget::GetExchangeDataIndex(int32 InIndex)
+FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber_Enemy(int32 InIndex)
 {
-	FCardEquipSlotData Data = GetSlotDataByExchangeNumber(InIndex);
+	const int32 SlotIndex = InIndex - 1;
+
+	if (!EnemyExchangeSlots.IsValidIndex(SlotIndex))
+	{
+		return FCardEquipSlotData();
+	}
+
+	if (!EnemyExchangeSlots[SlotIndex])
+	{
+		return FCardEquipSlotData();
+	}
+
+	return EnemyExchangeSlots[SlotIndex]->GetSlotData();
+}
+
+UMuksiBattleCardDataAsset* UHandWidget::GetExchangeDataIndex_Player(int32 InIndex)
+{
+	FCardEquipSlotData Data = GetSlotDataByExchangeNumber_Player(InIndex);
+	return Data.CardData;
+}
+
+UMuksiBattleCardDataAsset* UHandWidget::GetExchangeDataIndex_Enemy(int32 InIndex)
+{
+	FCardEquipSlotData Data = GetSlotDataByExchangeNumber_Enemy(InIndex);
 	return Data.CardData;
 }
 
@@ -488,6 +529,7 @@ void UHandWidget::InitializeExchangeSlots()
 	}
 	
 	EnemyExchangeSlots.Empty();
+	EnemySelectedBattleCards.Empty();
 	
 	EnemyExchangeSlots.Add(EnemyCardEquipSlot_1);
 	EnemyExchangeSlots.Add(EnemyCardEquipSlot_2);
@@ -643,6 +685,7 @@ void UHandWidget::DisplayInkLine(FString InText, float Time)
 
 void UHandWidget::DisplayInkLinebActive()
 {
+	UE_LOG(LogTemp, Error, TEXT("DisplayInkLinebActiveTEst (HandWidget.cpp)"));
 	InkLineWidget->SetVisibility(ESlateVisibility::Hidden);
 	BattleMainScreen->HandlePipelineUIFinish();
 }
