@@ -9,6 +9,7 @@
 class ABattleGridTile;
 class UCharacterDataBase;
 class ABattleCharacterBase;
+class UBattleGridNavigationComponent;
 
 
 USTRUCT(BlueprintType)
@@ -217,5 +218,15 @@ public:
 	void RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint);
 	void MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
 	void RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
+
+	public:
+		UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Battle|Grid|Navigation")
+		TObjectPtr<UBattleGridNavigationComponent> BattleGridNavigationComponent = nullptr;
+
+		UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
+		UBattleGridNavigationComponent* GetNavigationComponent() const
+		{
+			return BattleGridNavigationComponent;
+		}
 	
 };

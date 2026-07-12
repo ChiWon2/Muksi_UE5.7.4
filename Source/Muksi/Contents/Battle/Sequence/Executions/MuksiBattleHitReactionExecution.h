@@ -12,10 +12,7 @@ class MUKSI_API UMuksiBattleHitReactionExecution : public UMuksiBattleExecution
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(
-		const FMuksiBattleExecutionContext& Context,
-		FMuksiBattleExecutionFinished OnFinished
-	) override;
+	virtual void Execute(const FMuksiBattleExecutionContext& Context,FMuksiBattleExecutionFinished OnFinished) override;
 
 private:
 	UPROPERTY(Transient)

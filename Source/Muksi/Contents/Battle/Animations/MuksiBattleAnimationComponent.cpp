@@ -163,3 +163,57 @@ void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey
 
 	OnBattleExecutionNotify.Broadcast(NotifyKey);
 }
+
+bool UMuksiBattleAnimationComponent::JumpCurrentMontageToSection(
+	const FName& SectionName
+)
+{
+	if (SectionName.IsNone())
+	{
+		UE_LOG(LogTemp,Warning,TEXT("[BattleAnimationComponent] SectionName is None."));
+		return false;
+	}
+
+	CacheMeshComponent();
+
+	if (!CachedMeshComponent)
+	{
+		return false;
+	}
+
+	UAnimInstance* AnimInstance = CachedMeshComponent->GetAnimInstance();
+
+	if (!AnimInstance)
+	{
+		UE_LOG(LogTemp,Error,TEXT("[BattleAnimationComponent] AnimInstance is null. Owner=%s"),*GetNameSafe(GetOwner()));
+
+		return false;
+	}
+
+	if (!CurrentMontage)
+	{
+		UE_LOG(LogTemp,Warning,TEXT("[BattleAnimationComponent] CurrentMontage is null. Owner=%s"),*GetNameSafe(GetOwner()));
+		return false;
+	}
+
+	if (!AnimInstance->Montage_IsPlaying(CurrentMontage))
+	{
+		UE_LOG(LogTemp,Error,TEXT("[BattleAnimationComponent] CurrentMontage is not playing. Montage=%s"),*GetNameSafe(CurrentMontage));
+
+		return false;
+	}
+
+	const int32 SectionIndex = CurrentMontage->GetSectionIndex(SectionName);
+
+	if (SectionIndex == INDEX_NONE)
+	{
+		UE_LOG(LogTemp,Error,TEXT("[BattleAnimationComponent] Section not found. Montage=%s Section=%s"),*GetNameSafe(CurrentMontage),*SectionName.ToString());
+		return false;
+	}
+
+	AnimInstance->Montage_JumpToSection(SectionName,CurrentMontage);
+
+	UE_LOG(LogTemp,Log,TEXT("[BattleAnimationComponent] Jumped to Montage Section. Montage=%s Section=%s"),*GetNameSafe(CurrentMontage),*SectionName.ToString());
+
+	return true;
+}

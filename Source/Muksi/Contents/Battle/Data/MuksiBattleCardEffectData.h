@@ -45,6 +45,17 @@ enum class EMuksiBattleCardMoveRangeType : uint8
 	All		UMETA(DisplayName = "All")
 };
 
+UENUM(BlueprintType)
+enum class EMuksiBattleMoveType : uint8
+{
+	None UMETA(DisplayName = "None"),
+
+	Teleport UMETA(DisplayName = "Teleport"),
+
+	Jump UMETA(DisplayName = "Jump"),
+
+	GroundPath UMETA(DisplayName = "Ground Path")
+};
 USTRUCT(BlueprintType)
 struct FMuksiBattleCardAttackTypeData
 {
@@ -67,6 +78,9 @@ struct FMuksiBattleCardAttackTypeData
 	// EffectType이 Move 때만 의미 있음
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	EMuksiBattleCardMoveRangeType MoveRangeType = EMuksiBattleCardMoveRangeType::None;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "Card Effect|Move",meta = (EditCondition = "AttackType == EMuksiBattleCardAttackType::Move",EditConditionHides))
+	EMuksiBattleMoveType MoveType = EMuksiBattleMoveType::GroundPath;
 	
 	// Effect MoveRange(공격 범위)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Range Value")

@@ -10,6 +10,7 @@
 #include "Muksi/Contents/Battle/CharacterData_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
+#include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 
 // Sets default values
 ABattleGridManager::ABattleGridManager()
@@ -17,7 +18,7 @@ ABattleGridManager::ABattleGridManager()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
-	
+	BattleGridNavigationComponent = CreateDefaultSubobject<UBattleGridNavigationComponent>(TEXT("BattleGridNavigationComponent"));
 }
 
 // Called when the game starts or when spawned

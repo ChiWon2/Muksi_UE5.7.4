@@ -17,39 +17,24 @@ void UMuksiBattleHitReactionExecution::Execute(
 		return;
 	}
 
-	TargetAnimationComponent =
-		TargetCharacter->FindComponentByClass<UMuksiBattleAnimationComponent>();
+	TargetAnimationComponent = TargetCharacter->FindComponentByClass<UMuksiBattleAnimationComponent>();
 
 	if (!TargetAnimationComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[HitReactionExecution] AnimationComponent not found. Target=%s"),
-			*GetNameSafe(TargetCharacter));
+		UE_LOG(LogTemp, Warning, TEXT("[HitReactionExecution] AnimationComponent not found. Target=%s"), *GetNameSafe(TargetCharacter));
 
 		FinishHitReaction();
 		return;
 	}
 
-	TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(
-		this,
-		&UMuksiBattleHitReactionExecution::HandleHitReactionFinished
-	);
 
-	TargetAnimationComponent->OnBattleAnimationFinished.AddDynamic(
-		this,
-		&UMuksiBattleHitReactionExecution::HandleHitReactionFinished
-	);
+	TargetAnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this,&UMuksiBattleHitReactionExecution::HandleHitReactionFinished);
 
-	const bool bPlayed = TargetAnimationComponent->PlayBattleAnimation(
-		MuksiBattleAnimationKeys::HitReaction
-	);
+	const bool bPlayed = TargetAnimationComponent->PlayBattleAnimation(MuksiBattleAnimationKeys::HitReaction);
 
 	if (!bPlayed)
 	{
-		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(
-			this,
-			&UMuksiBattleHitReactionExecution::HandleHitReactionFinished
-		);
-
+		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this,&UMuksiBattleHitReactionExecution::HandleHitReactionFinished);
 		FinishHitReaction();
 	}
 }
@@ -58,10 +43,7 @@ void UMuksiBattleHitReactionExecution::HandleHitReactionFinished(bool bInterrupt
 {
 	if (TargetAnimationComponent)
 	{
-		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(
-			this,
-			&UMuksiBattleHitReactionExecution::HandleHitReactionFinished
-		);
+		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this,&UMuksiBattleHitReactionExecution::HandleHitReactionFinished);
 	}
 
 	FinishHitReaction();
