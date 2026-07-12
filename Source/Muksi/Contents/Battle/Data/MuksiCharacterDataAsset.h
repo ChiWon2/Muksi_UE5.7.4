@@ -29,20 +29,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
 	TObjectPtr<UTexture2D> CharacterIllustration = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
+public:
+	//캐릭터 스탯 관련
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 체력
 	int32 MaxHP = 100;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 속도-최대값
+	float CardSelectTimeMax = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 속도-최솟값
+	float CardSelectTimeMin = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
 	FText FactionName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character", meta = (MultiLine = true))
 	FText FactionDescription;
-
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Passive")
-	TArray<TObjectPtr<UMuksiPassiveDataAsset>> SelfPassives;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Passive")
-	TArray<TObjectPtr<UMuksiPassiveDataAsset>> AllyPassives;*/
 	
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Deck")

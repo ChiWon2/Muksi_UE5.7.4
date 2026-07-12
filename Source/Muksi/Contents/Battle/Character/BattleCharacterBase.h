@@ -43,6 +43,8 @@ public:
 	int32 GetCurrentHP()const;
 	void SetCurrentHP(int32 NewHP);
 	
+	FVector2D GetCurrentSelectCardTime()const;
+	
 	float GetCharacterSpeed()const;
 	
 	

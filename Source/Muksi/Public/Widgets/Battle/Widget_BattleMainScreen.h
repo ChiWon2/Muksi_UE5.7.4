@@ -88,6 +88,7 @@ public:
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EquipBattleCardArray;
 	
 	FTimerHandle InkLineTimerHandle;
+	FTimerHandle CardTimerHandle;
 
 protected:
 
@@ -107,8 +108,7 @@ public:
 	void HandlePipelineUIFinish();
 	
 protected:
-	void DisplayExchangeAlarm();
-	void DisplayExchangeCountAlarm(int32 ExchangeCount, bool bStart);
+
 	UPROPERTY(EditAnywhere)
 	FString DisplayExchangeText = "Exchange Start!";
 	//------------------------------------------------------------------------------------------------------------------
@@ -163,6 +163,9 @@ public:
 	
 	//국 종료
 	void RoundEnd();
+	
+	void RemoveSelectCards()const;
+	void ClearExchangeSlots()const;
 	
 	void DisplayRoundEndUI();
 	void DisplayRoundEndUIFinish();
@@ -234,8 +237,10 @@ protected:
 	void HandleExchangeSlot(int32 Index, bool bActive);
 	
 public:
+
 	UPROPERTY()
 	int32 HandleExchangeCount = 0;
+	
 	UPROPERTY(EditAnywhere)
 	FString ExchangeStartText= "Exchange Start!";
 	
@@ -245,15 +250,31 @@ public:
 	UPROPERTY(EditAnywhere)
 	FString ExchangeEndText = "Exchange End!";
 	
+	UFUNCTION()
+	void EnemySelectCardEvent();
+	UFUNCTION()
+	void EnemyPlaceCard();
+	
+	UPROPERTY()
+	bool EnemySelectCardFinish = false;
+	UPROPERTY()
+	bool PlayerSelectCardFinish = false;
+	UPROPERTY()
+	bool ExchangeTimeOver = false; //나중에 생길 타이머
+	
+	FTimerHandle EnemySelectCardTimerHandle;
+	
+	
 public:
 	//합 도중 카드 선택 확정 버튼
 	UFUNCTION(BlueprintCallable)
 	void HandleCardSelect();
 	
 	bool CanRequestSelectCard();
-	void SelectCardDataSend(int32 InIndex);
+	void SelectCardDataSend(int32 InIndex)const;
 	
-	void FinishSelectCard();
+	
+	void RevealEnemySelectedCard();
 	//------------------------------------------------------------------------------------------------------------------
 	
 	//=================================Attack<공격>=====================================================================

@@ -7,6 +7,7 @@
 #include "Components/TimelineComponent.h"
 #include "Widget_BattleCardBase.generated.h"
 
+class UWidgetAnimation;
 class UHandWidget;
 class UMuksiBattleCardDataAsset;
 class UCommonTextBlock;
@@ -111,5 +112,18 @@ protected:
 	TObjectPtr<UBorder> Border_CardFront;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage>Image_BehindCardImage;
+	
+	
+public:
+	UFUNCTION(BlueprintCallable)
+	void PlayCardFlipToBack();
+	UFUNCTION(BlueprintCallable)
+	void PlayCardFlipToFront();
+	
+protected:
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_CardFlipToBack;
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_CardFlipToFront;
 	// ***** BindWidget *****//
 };

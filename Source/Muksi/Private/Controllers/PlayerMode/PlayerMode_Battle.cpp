@@ -16,6 +16,7 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
+#include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 {
@@ -122,7 +123,10 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 			//BattleManager->SetPlayerBattleAction();
 			//bIsCardTargeting 풀기
 			BattleManager->bIsCardTargeting = false;
-			BattleManager->ExchangeN_End(BattleManager->GetCurrentExchange());
+			if (!BattleMainScreen)BattleMainScreen = BattleManager->GetBattleMainScreen();
+			BattleMainScreen->PlayerSelectCardFinish = true;
+			BattleManager->ExchangeN_EndReady();
+			//BattleManager->ExchangeN_End(BattleManager->GetCurrentExchange());
 		}
 	}else
 	{
