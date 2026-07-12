@@ -2,12 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Sequence/MuksiBattleExecution.h"
-#include "MuksiBattlePlayMontageExecution.generated.h"
+#include "MuksiBattleRotateExecution.generated.h"
 
-class UMuksiBattleAnimationComponent;
+class ABattleCharacterBase;
+class UMuksiBattleMovementComponent;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
-class MUKSI_API UMuksiBattlePlayMontageExecution : public UMuksiBattleExecution
+class MUKSI_API UMuksiBattleRotateExecution : public UMuksiBattleExecution
 {
 	GENERATED_BODY()
 
@@ -16,14 +17,15 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
-	UFUNCTION()
-	void HandleMontageFinished(bool bInterrupted);
-
-	void FinishPlayMontage();
+	void HandleRotationFinished(bool bInterrupted);
+	void FinishRotateExecution();
 
 private:
 	UPROPERTY(Transient)
-	TObjectPtr<UMuksiBattleAnimationComponent> AnimationComponent = nullptr;
+	TObjectPtr<ABattleCharacterBase> RotatingCharacter = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMuksiBattleMovementComponent> MovementComponent = nullptr;
 
 	FMuksiBattleExecutionFinished CachedOnFinished;
 	bool bExecutionFinished = false;

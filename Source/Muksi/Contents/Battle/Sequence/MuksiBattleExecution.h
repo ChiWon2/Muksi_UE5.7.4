@@ -13,7 +13,8 @@ class MUKSI_API UMuksiBattleExecution : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(const FMuksiBattleExecutionContext& Context,FMuksiBattleExecutionFinished OnFinished);
+	virtual void Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished);
+	virtual const UScriptStruct* GetExecutionDataStruct() const;
 
 protected:
 	void FinishExecution(FMuksiBattleExecutionFinished& OnFinished) const;

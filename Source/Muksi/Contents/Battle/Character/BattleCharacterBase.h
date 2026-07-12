@@ -8,134 +8,94 @@
 #include "BattleCharacterBase.generated.h"
 
 class AExchangeCharacterBase;
-enum class ECardAnimType : uint8;
-class UMuksiBattleCardDataAsset;
-class UMuksiCharacterDataAsset;
-class UCharacterDataBase;
-class UStaticMeshComponent;
-class UMuksiStatusEffectComponent;
-class UMuksiBattleAnimationComponent;
-class UMuksiBattleMovementComponent;
-
-class USkeletalMesh;
-class UAnimInstance;
-class UAnimMontage;
 class UBoxComponent;
+class UCharacterDataBase;
+class UMuksiBattleAnimationComponent;
+class UMuksiBattleCardDataAsset;
+class UMuksiBattleMovementComponent;
+class UMuksiCharacterDataAsset;
+class UMuksiStatusEffectComponent;
 
 UCLASS()
 class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacterInterface
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
+public:
 	ABattleCharacterBase();
 
-protected:	
-	// Called when the game starts or when spawned
+protected:
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
+public:
 	virtual void Tick(float DeltaTime) override;
-	
-	
+
 public:
-	int32 GetCurrentHP()const;
+	int32 GetCurrentHP() const;
 	void SetCurrentHP(int32 NewHP);
-	
-	float GetCharacterSpeed()const;
-	
-	
-	FIntPoint GetCharacterPosition()const{return CharacterPosition;};
-	void SetCharacterPosition(FIntPoint NewPosition){CharacterPosition = NewPosition;};
-	
-	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData->GetCharacterDeck();};
-	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData)const{CharacterData->RemoveCard(BattleCardData);};
-	
-	UPROPERTY()
-	TObjectPtr<UMuksiCharacterDataAsset> CharacterDataAsset = nullptr;
-	
-protected:
-	UPROPERTY()
-	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;
-	
-protected:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UMuksiStatusEffectComponent> StatusEffectComponent;
+	float GetCharacterSpeed() const;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UMuksiBattleAnimationComponent> BattleAnimationComponent;
-	
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Components")
-	TObjectPtr<UMuksiBattleMovementComponent> BattleMovementComponent;
+	FIntPoint GetCharacterPosition() const { return CharacterPosition; }
+	void SetCharacterPosition(const FIntPoint& NewPosition) { CharacterPosition = NewPosition; }
 
+	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck() const { return CharacterData ? CharacterData->GetCharacterDeck() : TArray<UMuksiBattleCardDataAsset*>(); }
+	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData) const { if (CharacterData) CharacterData->RemoveCard(BattleCardData); }
 
-	UFUNCTION()
-	void HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed);
-	
-	
-	UPROPERTY()
-	FIntPoint CharacterPosition = FIntPoint(0,0);
-	//FCharacterDisplayData CharacterDisplayData;
-	
-public:
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Movement")
-	UMuksiBattleMovementComponent* GetBattleMovementComponent() const
-	{
-		return BattleMovementComponent;
-	}
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
 	virtual void SetCharacterData(UCharacterDataBase* InCharacterData);
-	
-	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	UCharacterDataBase* GetCharacterData() const {return CharacterData;};
-	
-	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	virtual void SetExchangeCharacter(AExchangeCharacterBase* ExchangeCharacter){ExchangeCharacterBase = ExchangeCharacter;};
-	
-	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	virtual AExchangeCharacterBase* GetExchangeCharacter(){return ExchangeCharacterBase;}
-	
-	UFUNCTION()
-	FIntPoint GetCharacterPosition(){return CharacterPosition;};
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual")
-	TObjectPtr<USceneComponent> SceneRoot;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual")
-	TObjectPtr<USkeletalMeshComponent> MeshComponent;
+
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter")
+	UCharacterDataBase* GetCharacterData() const { return CharacterData; }
 
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	UMuksiStatusEffectComponent* GetStatusEffectComponent() const{return StatusEffectComponent;}
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	virtual void SetExchangeCharacter(AExchangeCharacterBase* InExchangeCharacter) { ExchangeCharacterBase = InExchangeCharacter; }
 
-	TSubclassOf<UAnimInstance> AnimInstanceClass;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
-	TObjectPtr<UAnimMontage> DefaultAttackMontage;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ClickFunction")
-	TObjectPtr<UBoxComponent> ClickCollision;
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter")
+	AExchangeCharacterBase* GetExchangeCharacter() const { return ExchangeCharacterBase; }
 
-	//공격 애니메이션 관련 함수
-public:
-	void PlayAttackAnim(UMuksiBattleCardDataAsset* BattleCardData);
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Movement")
+	UMuksiBattleMovementComponent* GetBattleMovementComponent() const { return BattleMovementComponent; }
 
-protected:
-	TObjectPtr<UAnimMontage> FindAnimations(ECardAnimType CardAnim)const;
-	
-	TObjectPtr<UAnimMontage> AnimMontage = nullptr;
-	
-	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
-public:
-	//virtual FCharacterDisplayData GetCharacterDisplayData() const override;
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
+	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
+
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
-	
-	
-	
-	
-	
 
+protected:
+	UFUNCTION()
+	void HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed);
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USceneComponent> SceneRoot = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> MeshComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UBoxComponent> ClickCollision = nullptr;
+
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMuksiStatusEffectComponent> StatusEffectComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMuksiBattleAnimationComponent> BattleAnimationComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMuksiBattleMovementComponent> BattleMovementComponent = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
+	TObjectPtr<UMuksiCharacterDataAsset> CharacterDataAsset = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
+
+	UPROPERTY(Transient)
+	FIntPoint CharacterPosition = FIntPoint::ZeroValue;
 };

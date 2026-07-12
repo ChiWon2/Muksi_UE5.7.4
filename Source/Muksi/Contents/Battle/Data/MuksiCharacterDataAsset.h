@@ -57,10 +57,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Model")
 	TSubclassOf<ABattleCharacterBase> BattleCharacterClass = nullptr;
 	
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	TMap<ECardAnimType, TObjectPtr<UAnimMontage>> AttackAnimationMap;
-	
-	
 
 };

@@ -9,6 +9,7 @@ DECLARE_DELEGATE_OneParam(FMuksiBattleMovementFinished, bool);
 enum class EMuksiBattleMovementMode : uint8
 {
 	None,
+	Rotation,
 	Arc,
 	Path
 };
@@ -26,6 +27,7 @@ protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
+	void StartRotateTowardLocation(const FVector& TargetWorldLocation, float RotationSpeed, FMuksiBattleMovementFinished OnFinished);
 	void StartTeleportMove(const FVector& TargetWorldLocation, FMuksiBattleMovementFinished OnFinished);
 	void StartArcMove(const FVector& TargetWorldLocation, float Duration, float ArcHeight, FMuksiBattleMovementFinished OnFinished);
 	void StartPathMove(const TArray<FVector>& WorldPath, float MoveSpeed, FMuksiBattleMovementFinished OnFinished);
@@ -37,6 +39,7 @@ public:
 	bool IsMoving() const { return MovementMode != EMuksiBattleMovementMode::None; }
 
 private:
+	void UpdateRotationMovement(float DeltaTime);
 	void UpdateArcMovement(float DeltaTime);
 	void UpdatePathMovement(float DeltaTime);
 	void FinishMovement(bool bInterrupted);
@@ -45,12 +48,13 @@ private:
 
 private:
 	EMuksiBattleMovementMode MovementMode = EMuksiBattleMovementMode::None;
-
 	FMuksiBattleMovementFinished CachedOnFinished;
+
+	FVector RotationTargetLocation = FVector::ZeroVector;
+	float CurrentRotationSpeed = 0.0f;
 
 	FVector ArcStartLocation = FVector::ZeroVector;
 	FVector ArcTargetLocation = FVector::ZeroVector;
-
 	float ArcDuration = 0.0f;
 	float ArcElapsedTime = 0.0f;
 	float CurrentArcHeight = 0.0f;
@@ -64,6 +68,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation", meta = (ClampMin = "0.0"))
 	float PathRotationSpeed = 720.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation", meta = (ClampMin = "0.0"))
+	float RotationTolerance = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation")
 	float MovementYawOffset = 0.0f;

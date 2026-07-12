@@ -124,69 +124,6 @@ void ABattleCharacterBase::SetCharacterData(UCharacterDataBase* InCharacterData)
 	);
 }
 
-
-void ABattleCharacterBase::PlayAttackAnim(UMuksiBattleCardDataAsset* BattleCardData)
-{
-	UE_LOG(LogTemp, Log, TEXT("PlayAttackAnim (BattleCharacterBase.cpp)"));
-
-	if (!IsValid(BattleCardData))
-	{
-		UE_LOG(LogTemp, Error, TEXT("BattleCardData is null"));
-		return;
-	}
-
-	if (!IsValid(MeshComponent))
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("MeshComponent is null (BattleCharacterBase.cpp)")
-		);
-		return;
-	}
-
-	UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance();
-
-	if (!IsValid(AnimInstance))
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("AnimInstance is null (BattleCharacterBase.cpp)")
-		);
-		return;
-	}
-
-	const float PlayLength =
-		AnimInstance->Montage_Play(AnimMontage);
-
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT(
-			"Montage Play Result | Montage: %s | Length: %f | AnimInstance: %s"
-		),
-		*GetNameSafe(AnimMontage),
-		PlayLength,
-		*GetNameSafe(AnimInstance)
-	);
-
-	if (PlayLength <= 0.f)
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("Montage_Play failed")
-		);
-	}
-}
-
-TObjectPtr<UAnimMontage> ABattleCharacterBase::FindAnimations(ECardAnimType CardAnim)const
-{
-	if (!CharacterDataAsset){UE_LOG(LogTemp, Error, TEXT("CharacterDataAsset is Null (BattleCharacterBase.cpp)"));return nullptr;}
-	return CharacterDataAsset->AttackAnimationMap[CardAnim];
-}
-
 void ABattleCharacterBase::OnSelected()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Selected"));

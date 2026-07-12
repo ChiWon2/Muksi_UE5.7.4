@@ -52,7 +52,8 @@ void UBattleCardEffectComponent::CardEffectUpdate(ABattleCharacterBase* BattleCh
 		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Heal)
 		{
 			
-		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
+		}
+		else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
 		{
 			BattleManager->bIsCardTargeting = true;
 			BattleManager->SetAttackRangeType(Effect.RangeDataAsset);

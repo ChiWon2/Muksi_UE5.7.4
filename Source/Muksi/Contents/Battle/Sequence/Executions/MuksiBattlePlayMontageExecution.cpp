@@ -1,22 +1,26 @@
 #include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattlePlayMontageExecution.h"
+
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Contents/Battle/Sequence/Data/ExecutionData/MuksiBattlePlayMontageExecutionData.h"
 
 void UMuksiBattlePlayMontageExecution::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;
+	bExecutionFinished = false;
 
-	if (!Context.Attacker || !Context.Card)
+	if (!Context.Attacker)
 	{
-		FinishAttackMontage();
+		FinishPlayMontage();
 		return;
 	}
 
-	if (Context.Card->AnimKey.IsNone())
+	const FMuksiBattlePlayMontageExecutionData* MontageData = Context.GetExecutionData<FMuksiBattlePlayMontageExecutionData>();
+
+	if (!MontageData || MontageData->AnimKey.IsNone())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[AttackMontageExecution] AnimKey is None. Card=%s"), *GetNameSafe(Context.Card.Get()));
-		FinishAttackMontage();
+		UE_LOG(LogTemp, Warning, TEXT("[PlayMontageExecution] PlayMontageExecutionData is invalid."));
+		FinishPlayMontage();
 		return;
 	}
 
@@ -24,32 +28,44 @@ void UMuksiBattlePlayMontageExecution::Execute(const FMuksiBattleExecutionContex
 
 	if (!AnimationComponent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[AttackMontageExecution] AnimationComponent not found. Attacker=%s"), *GetNameSafe(Context.Attacker.Get()));
-		FinishAttackMontage();
+		UE_LOG(LogTemp, Warning, TEXT("[PlayMontageExecution] AnimationComponent not found. Attacker=%s"), *GetNameSafe(Context.Attacker.Get()));
+		FinishPlayMontage();
 		return;
 	}
 
 	AnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UMuksiBattlePlayMontageExecution::HandleMontageFinished);
 
-	if (!AnimationComponent->PlayBattleAnimation(Context.Card->AnimKey))
+	if (!AnimationComponent->PlayBattleAnimation(MontageData->AnimKey))
 	{
 		AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UMuksiBattlePlayMontageExecution::HandleMontageFinished);
-		FinishAttackMontage();
+		FinishPlayMontage();
 	}
 }
 
 void UMuksiBattlePlayMontageExecution::HandleMontageFinished(bool bInterrupted)
 {
+	FinishPlayMontage();
+}
+
+void UMuksiBattlePlayMontageExecution::FinishPlayMontage()
+{
+	if (bExecutionFinished)
+	{
+		return;
+	}
+
+	bExecutionFinished = true;
+
 	if (AnimationComponent)
 	{
 		AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UMuksiBattlePlayMontageExecution::HandleMontageFinished);
 	}
 
-	FinishAttackMontage();
-}
-
-void UMuksiBattlePlayMontageExecution::FinishAttackMontage()
-{
 	AnimationComponent = nullptr;
 	FinishExecution(CachedOnFinished);
+}
+
+const UScriptStruct* UMuksiBattlePlayMontageExecution::GetExecutionDataStruct() const
+{
+	return FMuksiBattlePlayMontageExecutionData::StaticStruct();
 }

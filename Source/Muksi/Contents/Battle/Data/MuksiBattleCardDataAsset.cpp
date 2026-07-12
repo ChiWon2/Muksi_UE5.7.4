@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
@@ -10,3 +7,26 @@ UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
 	CardDescription = FText::FromString(TEXT("Card Description"));
 	CardTexture = nullptr;
 }
+
+#if WITH_EDITOR
+
+void UMuksiBattleCardDataAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	SyncExecutionDataTypes();
+}
+
+void UMuksiBattleCardDataAsset::SyncExecutionDataTypes()
+{
+	for (FMuksiBattleExecutionEntry& Entry : ExecutionChain)
+	{
+		Entry.SyncExecutionDataType();
+	}
+
+	for (FMuksiBattleNotifyExecutionBinding& Binding : NotifyExecutionBindings)
+	{
+		Binding.SyncExecutionDataTypes();
+	}
+}
+
+#endif

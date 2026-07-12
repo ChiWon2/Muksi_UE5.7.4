@@ -1,4 +1,3 @@
-
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 
 #include "GameFramework/Actor.h"
@@ -21,6 +20,10 @@ void UMuksiBattleMovementComponent::TickComponent(float DeltaTime, ELevelTick Ti
 
 	switch (MovementMode)
 	{
+	case EMuksiBattleMovementMode::Rotation:
+		UpdateRotationMovement(DeltaTime);
+		break;
+
 	case EMuksiBattleMovementMode::Arc:
 		UpdateArcMovement(DeltaTime);
 		break;
@@ -33,6 +36,38 @@ void UMuksiBattleMovementComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	default:
 		break;
 	}
+}
+
+void UMuksiBattleMovementComponent::StartRotateTowardLocation(const FVector& TargetWorldLocation, float RotationSpeed, FMuksiBattleMovementFinished OnFinished)
+{
+	if (IsMoving())
+	{
+		StopMovement(true);
+	}
+
+	AActor* Owner = GetOwner();
+
+	if (!Owner || RotationSpeed <= KINDA_SMALL_NUMBER)
+	{
+		OnFinished.ExecuteIfBound(true);
+		return;
+	}
+
+	FVector Direction = TargetWorldLocation - Owner->GetActorLocation();
+	Direction.Z = 0.0f;
+
+	if (Direction.IsNearlyZero())
+	{
+		OnFinished.ExecuteIfBound(false);
+		return;
+	}
+
+	MovementMode = EMuksiBattleMovementMode::Rotation;
+	CachedOnFinished = OnFinished;
+	RotationTargetLocation = TargetWorldLocation;
+	CurrentRotationSpeed = RotationSpeed;
+
+	SetComponentTickEnabled(true);
 }
 
 void UMuksiBattleMovementComponent::StartTeleportMove(const FVector& TargetWorldLocation, FMuksiBattleMovementFinished OnFinished)
@@ -71,7 +106,6 @@ void UMuksiBattleMovementComponent::StartArcMove(const FVector& TargetWorldLocat
 
 	MovementMode = EMuksiBattleMovementMode::Arc;
 	CachedOnFinished = OnFinished;
-
 	ArcStartLocation = Owner->GetActorLocation();
 	ArcTargetLocation = TargetWorldLocation;
 	ArcDuration = Duration;
@@ -131,6 +165,41 @@ void UMuksiBattleMovementComponent::StopMovement(bool bNotifyInterruption)
 	}
 
 	ResetMovementState();
+}
+
+void UMuksiBattleMovementComponent::UpdateRotationMovement(float DeltaTime)
+{
+	AActor* Owner = GetOwner();
+
+	if (!Owner)
+	{
+		FinishMovement(true);
+		return;
+	}
+
+	FVector Direction = RotationTargetLocation - Owner->GetActorLocation();
+	Direction.Z = 0.0f;
+
+	if (Direction.IsNearlyZero())
+	{
+		FinishMovement(false);
+		return;
+	}
+
+	const float TargetYaw = Direction.Rotation().Yaw + MovementYawOffset;
+	const FRotator TargetRotation(0.0f, TargetYaw, 0.0f);
+	const FRotator CurrentRotation = Owner->GetActorRotation();
+	const float RemainingYaw = FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetYaw));
+
+	if (RemainingYaw <= RotationTolerance)
+	{
+		Owner->SetActorRotation(TargetRotation);
+		FinishMovement(false);
+		return;
+	}
+
+	const FRotator NewRotation = FMath::RInterpConstantTo(CurrentRotation, TargetRotation, DeltaTime, CurrentRotationSpeed);
+	Owner->SetActorRotation(NewRotation);
 }
 
 void UMuksiBattleMovementComponent::UpdateArcMovement(float DeltaTime)
@@ -230,6 +299,9 @@ void UMuksiBattleMovementComponent::ResetMovementState()
 
 	MovementMode = EMuksiBattleMovementMode::None;
 	CachedOnFinished.Unbind();
+
+	RotationTargetLocation = FVector::ZeroVector;
+	CurrentRotationSpeed = 0.0f;
 
 	ArcStartLocation = FVector::ZeroVector;
 	ArcTargetLocation = FVector::ZeroVector;
