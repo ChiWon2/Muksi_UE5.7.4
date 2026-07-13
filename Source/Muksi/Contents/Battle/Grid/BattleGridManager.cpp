@@ -583,34 +583,50 @@ bool ABattleGridManager::CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range)
 
 void ABattleGridManager::SetGridHovered(TArray<FIntPoint> NewGridArray)
 {
-	TargetGridArray = NewGridArray;
-	for (FIntPoint Cell : TargetGridArray)
+	TargetGridArray.Empty();
+
+	for (const FIntPoint& Coord : NewGridArray)
 	{
-		int32 Index = Cell.X + Cell.Y * GridWidth;
-		ABattleGridTile* TargetGrid = GridCells[Index].TileActor;
+		ABattleGridTile* TargetGrid = GetTileByCoord(Coord);
+
+		if (!TargetGrid)
+		{
+			continue;
+		}
+
+		TargetGridArray.AddUnique(Coord);
 		TargetGrid->SetTargetIndicatorVisible(true);
 	}
 }
 
 void ABattleGridManager::ClearGridHovered()
 {
-	if (TargetGridArray.IsEmpty())return;
-	
-	for (FIntPoint& Cell : TargetGridArray)
+	for (const FIntPoint& Coord : TargetGridArray)
 	{
-		int32 Index = Cell.X + Cell.Y * GridWidth;
-		ABattleGridTile* TargetGrid = GridCells[Index].TileActor;
+		ABattleGridTile* TargetGrid = GetTileByCoord(Coord);
+
+		if (!TargetGrid)
+		{
+			continue;
+		}
+
 		TargetGrid->SetTargetIndicatorVisible(false);
 	}
+
 	TargetGridArray.Empty();
 }
 
 void ABattleGridManager::AllClearGridHovered()
 {
-	for (FBattleGridCell Cell : GridCells)
+	for (FBattleGridCell& Cell : GridCells)
 	{
-		Cell.TileActor->SetTargetIndicatorVisible(false);
+		if (Cell.TileActor)
+		{
+			Cell.TileActor->SetTargetIndicatorVisible(false);
+		}
 	}
+
+	TargetGridArray.Empty();
 }
 
 void ABattleGridManager::SetExchangeIndicator(int32 AttackType, TArray<FIntPoint> GridArray)

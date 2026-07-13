@@ -37,55 +37,55 @@ void UBattleCardEffectComponent::InitializePreviewComponent(ABattleManager* InBa
 
 void UBattleCardEffectComponent::CardEffectUpdate(ABattleCharacterBase* BattleCharacterBase, UMuksiBattleCardDataAsset* InCardData)
 {
-	if (ABattleCharacter_Player* BattlePlayer = Cast<ABattleCharacter_Player>(BattleCharacterBase)) //플레이어 전용
-	{
-		FMuksiBattleCardAttackTypeData Effect = InCardData->AttackType;
-		if (Effect.AttackType == EMuksiBattleCardAttackType::Rush)
-		{
-			BattleManager->bIsCardTargeting = true;
-			BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
-			BattleManager->SetCardRange(Effect.RangeValue);
-			PlayerEffect = Effect;
-		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Defense)
-		{
-			
-		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Heal)
-		{
-			
-		}
-		else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
-		{
-			BattleManager->bIsCardTargeting = true;
-			BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
-			BattleManager->SetCardRange(Effect.RangeValue);
-			PlayerEffect = Effect;
-		}
-	}
-	else if (ABattleCharacter_Enemy* EnemyData = Cast<ABattleCharacter_Enemy>(BattleCharacterBase))// 적 전용
-	{
-		FMuksiBattleCardAttackTypeData Effect = InCardData->AttackType;
-		if (Effect.AttackType == EMuksiBattleCardAttackType::Rush)
-		{
-			
-		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Defense)
-		{
-			
-		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Heal)
-		{
-			
-		}else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
-		{
-			
-		}
-	}
-	else
-	{
-		//Error 
-		UE_LOG(LogTemp, Error, TEXT("Character Data Error!!!"));
-		return;
-	}
-	//TODO 적이 사용하는 경우
-	//이거 갈아엎긴 해야 함
+	//if (ABattleCharacter_Player* BattlePlayer = Cast<ABattleCharacter_Player>(BattleCharacterBase)) //플레이어 전용
+	//{
+	//	FMuksiBattleCardAttackTypeData Effect = InCardData->AttackType;
+	//	if (Effect.AttackType == EMuksiBattleCardAttackType::Rush)
+	//	{
+	//		BattleManager->bIsCardTargeting = true;
+	//		BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
+	//		BattleManager->SetCardRange(Effect.RangeValue);
+	//		PlayerEffect = Effect;
+	//	}else if (Effect.AttackType == EMuksiBattleCardAttackType::Defense)
+	//	{
+	//		
+	//	}else if (Effect.AttackType == EMuksiBattleCardAttackType::Heal)
+	//	{
+	//		
+	//	}
+	//	else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
+	//	{
+	//		BattleManager->bIsCardTargeting = true;
+	//		BattleManager->SetAttackRangeType(Effect.RangeDataAsset);
+	//		BattleManager->SetCardRange(Effect.RangeValue);
+	//		PlayerEffect = Effect;
+	//	}
+	//}
+	//else if (ABattleCharacter_Enemy* EnemyData = Cast<ABattleCharacter_Enemy>(BattleCharacterBase))// 적 전용
+	//{
+	//	FMuksiBattleCardAttackTypeData Effect = InCardData->AttackType;
+	//	if (Effect.AttackType == EMuksiBattleCardAttackType::Rush)
+	//	{
+	//		
+	//	}else if (Effect.AttackType == EMuksiBattleCardAttackType::Defense)
+	//	{
+	//		
+	//	}else if (Effect.AttackType == EMuksiBattleCardAttackType::Heal)
+	//	{
+	//		
+	//	}else if (Effect.AttackType == EMuksiBattleCardAttackType::Move)
+	//	{
+	//		
+	//	}
+	//}
+	//else
+	//{
+	//	//Error 
+	//	UE_LOG(LogTemp, Error, TEXT("Character Data Error!!!"));
+	//	return;
+	//}
+	////TODO 적이 사용하는 경우
+	////이거 갈아엎긴 해야 함
 	
 }
 

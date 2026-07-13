@@ -35,6 +35,10 @@ struct FMuksiCardTargetingPreviewData
 {
 	GENERATED_BODY()
 
+	// 시전자 주변에 카드 선택 가능 사거리를 표시할지 결정한다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview")
+	bool bShowSelectionRange = true;
+
 	// 시전자에서 조준 위치까지의 경로 표시 방식.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview")
 	EMuksiCardTargetingPathPreviewStyle PathStyle = EMuksiCardTargetingPathPreviewStyle::None;
