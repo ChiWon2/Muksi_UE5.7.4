@@ -353,12 +353,7 @@ void ABattleManager::UpdateCurrentCardTargeting(const FMuksiCardTargetingContext
 		return;
 	}
 
-	const FMuksiTargetingPreviewCommand PreviewCommand = FMuksiTargetingPreviewResolver::BuildCommand(
-		CardTargetingComponent->GetSourceCharacter(),
-		CardTargetingComponent->GetCurrentCard(),
-		CurrentTargetingResult
-	);
-
+	const FMuksiTargetingPreviewCommand PreviewCommand = FMuksiTargetingPreviewResolver::BuildCommand(CardTargetingComponent->GetSourceCharacter(), CardTargetingComponent->GetCurrentCard(), CurrentTargetingResult, BattleGridManager);
 	TargetingPreviewActor->UpdatePreview(PreviewCommand);
 }
 

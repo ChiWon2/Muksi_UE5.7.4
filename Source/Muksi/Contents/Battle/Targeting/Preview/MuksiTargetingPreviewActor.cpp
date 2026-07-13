@@ -2,6 +2,7 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/SplineComponent.h"
+#include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
@@ -37,6 +38,14 @@ AMuksiTargetingPreviewActor::AMuksiTargetingPreviewActor()
 	PathSpline->SetupAttachment(SceneRoot);
 	PathSpline->SetClosedLoop(false);
 	PathSpline->SetVisibility(false);
+
+	StraightPathMesh = CreateDefaultSubobject<USplineMeshComponent>(TEXT("StraightPathMesh"));
+	StraightPathMesh->SetupAttachment(SceneRoot);
+	StraightPathMesh->SetForwardAxis(ESplineMeshAxis::X);
+	StraightPathMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	StraightPathMesh->SetGenerateOverlapEvents(false);
+	StraightPathMesh->SetCastShadow(false);
+	StraightPathMesh->SetVisibility(false);
 }
 
 void AMuksiTargetingPreviewActor::BeginPlay()
@@ -72,6 +81,8 @@ void AMuksiTargetingPreviewActor::UpdatePreview(const FMuksiTargetingPreviewComm
 
 	SetActorHiddenInGame(false);
 	UpdateSelectionRangePreview();
+	UpdateWorldAreaPreview();
+	UpdatePathPreview();
 	UpdateGridPreview();
 }
 
@@ -94,11 +105,7 @@ void AMuksiTargetingPreviewActor::HidePreview()
 		ArrowMesh->SetVisibility(false);
 	}
 
-	if (PathSpline)
-	{
-		PathSpline->ClearSplinePoints();
-		PathSpline->SetVisibility(false);
-	}
+	HidePathPreview();
 
 	if (GridManager)
 	{
@@ -142,6 +149,115 @@ void AMuksiTargetingPreviewActor::UpdateSelectionRangePreview()
 	RangePreviewMesh->SetWorldRotation(FRotator::ZeroRotator);
 	RangePreviewMesh->SetWorldScale3D(GetPlaneScaleByRadius(RangeWorldRadius));
 	RangePreviewMesh->SetVisibility(true);
+}
+
+void AMuksiTargetingPreviewActor::UpdateWorldAreaPreview()
+{
+	if (!WorldAreaMesh)
+	{
+		return;
+	}
+
+	if (CurrentCommand.WorldAreaStyle == EMuksiCardTargetingWorldAreaPreviewStyle::None)
+	{
+		WorldAreaMesh->SetVisibility(false);
+		return;
+	}
+
+	if (CurrentCommand.WorldAreaStyle != EMuksiCardTargetingWorldAreaPreviewStyle::Circle)
+	{
+		WorldAreaMesh->SetVisibility(false);
+		return;
+	}
+
+	if (CurrentCommand.WorldAreaRadius <= 0.0f)
+	{
+		WorldAreaMesh->SetVisibility(false);
+		return;
+	}
+
+	FVector PreviewLocation = CurrentCommand.AimWorldLocation;
+	PreviewLocation.Z += WorldAreaPreviewHeightOffset;
+
+	WorldAreaMesh->SetWorldLocation(PreviewLocation);
+	WorldAreaMesh->SetWorldRotation(FRotator::ZeroRotator);
+	WorldAreaMesh->SetWorldScale3D(GetPlaneScaleByRadius(CurrentCommand.WorldAreaRadius));
+	WorldAreaMesh->SetVisibility(true);
+}
+
+void AMuksiTargetingPreviewActor::UpdatePathPreview()
+{
+	switch (CurrentCommand.PathStyle)
+	{
+	case EMuksiCardTargetingPathPreviewStyle::Straight:
+		UpdateStraightPathPreview();
+		return;
+
+	case EMuksiCardTargetingPathPreviewStyle::None:
+	case EMuksiCardTargetingPathPreviewStyle::Arc:
+	case EMuksiCardTargetingPathPreviewStyle::Arrow:
+	default:
+		HidePathPreview();
+		return;
+	}
+}
+
+void AMuksiTargetingPreviewActor::UpdateStraightPathPreview()
+{
+	if (!PathSpline || !StraightPathMesh)
+	{
+		return;
+	}
+
+	FVector StartWorldLocation = CurrentCommand.SourceWorldLocation;
+	FVector EndWorldLocation = CurrentCommand.AimWorldLocation;
+
+	StartWorldLocation.Z += PathPreviewHeightOffset;
+	EndWorldLocation.Z += PathPreviewHeightOffset;
+
+	if (FVector::DistSquared(StartWorldLocation, EndWorldLocation) <= KINDA_SMALL_NUMBER)
+	{
+		HidePathPreview();
+		return;
+	}
+
+	const FTransform ActorTransform = GetActorTransform();
+	const FVector StartLocalLocation = ActorTransform.InverseTransformPosition(StartWorldLocation);
+	const FVector EndLocalLocation = ActorTransform.InverseTransformPosition(EndWorldLocation);
+
+	PathSpline->ClearSplinePoints(false);
+	PathSpline->AddSplinePoint(StartLocalLocation, ESplineCoordinateSpace::Local, false);
+	PathSpline->AddSplinePoint(EndLocalLocation, ESplineCoordinateSpace::Local, false);
+	PathSpline->SetSplinePointType(0, ESplinePointType::Linear, false);
+	PathSpline->SetSplinePointType(1, ESplinePointType::Linear, false);
+	PathSpline->UpdateSpline();
+
+	const FVector StartPosition = PathSpline->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::Local);
+	const FVector EndPosition = PathSpline->GetLocationAtSplinePoint(1, ESplineCoordinateSpace::Local);
+	const FVector StraightTangent = EndPosition - StartPosition;
+	const float WidthScale = StraightPathWidth / BasePathMeshSize;
+	const float ThicknessScale = StraightPathThickness / BasePathMeshSize;
+	const FVector2D PathScale(WidthScale, ThicknessScale);
+
+	StraightPathMesh->SetStartAndEnd(StartPosition, StraightTangent, EndPosition, StraightTangent, true);
+	StraightPathMesh->SetStartScale(PathScale, true);
+	StraightPathMesh->SetEndScale(PathScale, true);
+	StraightPathMesh->SetVisibility(true);
+	PathSpline->SetVisibility(true);
+}
+
+void AMuksiTargetingPreviewActor::HidePathPreview()
+{
+	if (PathSpline)
+	{
+		PathSpline->ClearSplinePoints();
+		PathSpline->SetVisibility(false);
+	}
+
+	if (StraightPathMesh)
+	{
+		StraightPathMesh->SetVisibility(false);
+	}
 }
 
 void AMuksiTargetingPreviewActor::UpdateGridPreview()
