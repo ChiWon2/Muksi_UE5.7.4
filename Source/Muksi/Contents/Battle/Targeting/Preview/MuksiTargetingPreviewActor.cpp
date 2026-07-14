@@ -2,7 +2,6 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/SplineComponent.h"
-#include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
@@ -39,9 +38,8 @@ AMuksiTargetingPreviewActor::AMuksiTargetingPreviewActor()
 	PathSpline->SetClosedLoop(false);
 	PathSpline->SetVisibility(false);
 
-	StraightPathMesh = CreateDefaultSubobject<USplineMeshComponent>(TEXT("StraightPathMesh"));
+	StraightPathMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StraightPathMesh"));
 	StraightPathMesh->SetupAttachment(SceneRoot);
-	StraightPathMesh->SetForwardAxis(ESplineMeshAxis::X);
 	StraightPathMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	StraightPathMesh->SetGenerateOverlapEvents(false);
 	StraightPathMesh->SetCastShadow(false);
@@ -52,12 +50,14 @@ void AMuksiTargetingPreviewActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	EnsureArcPathMeshes();
 	HidePreview();
 }
 
 void AMuksiTargetingPreviewActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	HidePreview();
+	ArcPathMeshes.Empty();
 	GridManager = nullptr;
 
 	Super::EndPlay(EndPlayReason);
@@ -98,11 +98,6 @@ void AMuksiTargetingPreviewActor::HidePreview()
 	if (WorldAreaMesh)
 	{
 		WorldAreaMesh->SetVisibility(false);
-	}
-
-	if (ArrowMesh)
-	{
-		ArrowMesh->SetVisibility(false);
 	}
 
 	HidePathPreview();
@@ -158,12 +153,6 @@ void AMuksiTargetingPreviewActor::UpdateWorldAreaPreview()
 		return;
 	}
 
-	if (CurrentCommand.WorldAreaStyle == EMuksiCardTargetingWorldAreaPreviewStyle::None)
-	{
-		WorldAreaMesh->SetVisibility(false);
-		return;
-	}
-
 	if (CurrentCommand.WorldAreaStyle != EMuksiCardTargetingWorldAreaPreviewStyle::Circle)
 	{
 		WorldAreaMesh->SetVisibility(false);
@@ -193,9 +182,15 @@ void AMuksiTargetingPreviewActor::UpdatePathPreview()
 		UpdateStraightPathPreview();
 		return;
 
-	case EMuksiCardTargetingPathPreviewStyle::None:
-	case EMuksiCardTargetingPathPreviewStyle::Arc:
 	case EMuksiCardTargetingPathPreviewStyle::Arrow:
+		UpdateArrowPathPreview();
+		return;
+
+	case EMuksiCardTargetingPathPreviewStyle::Arc:
+		UpdateArcPathPreview();
+		return;
+
+	case EMuksiCardTargetingPathPreviewStyle::None:
 	default:
 		HidePathPreview();
 		return;
@@ -204,7 +199,74 @@ void AMuksiTargetingPreviewActor::UpdatePathPreview()
 
 void AMuksiTargetingPreviewActor::UpdateStraightPathPreview()
 {
-	if (!PathSpline || !StraightPathMesh)
+	FVector StartWorldLocation = CurrentCommand.SourceWorldLocation;
+	FVector EndWorldLocation = CurrentCommand.AimWorldLocation;
+
+	StartWorldLocation.Z += PathPreviewHeightOffset;
+	EndWorldLocation.Z += PathPreviewHeightOffset;
+
+	UpdatePathBody(StartWorldLocation, EndWorldLocation);
+	HideArcPathMeshes();
+
+	if (ArrowMesh)
+	{
+		ArrowMesh->SetVisibility(false);
+	}
+}
+
+void AMuksiTargetingPreviewActor::UpdateArrowPathPreview()
+{
+	if (!ArrowMesh)
+	{
+		return;
+	}
+
+	FVector StartWorldLocation = CurrentCommand.SourceWorldLocation;
+	FVector EndWorldLocation = CurrentCommand.AimWorldLocation;
+
+	StartWorldLocation.Z += PathPreviewHeightOffset;
+	EndWorldLocation.Z += PathPreviewHeightOffset;
+
+	const FVector FullDirection = EndWorldLocation - StartWorldLocation;
+	const float FullLength = FullDirection.Size();
+
+	if (FullLength <= KINDA_SMALL_NUMBER)
+	{
+		HidePathPreview();
+		return;
+	}
+
+	const FVector Direction = FullDirection / FullLength;
+	const float VisibleArrowLength = FMath::Min(ArrowHeadLength, FullLength);
+	const FVector ArrowBaseWorldLocation = EndWorldLocation - Direction * VisibleArrowLength;
+	const FVector ArrowCenterWorldLocation = EndWorldLocation - Direction * VisibleArrowLength * 0.5f;
+	const FRotator PathRotation = Direction.Rotation();
+	const float ArrowLengthScale = VisibleArrowLength / BaseArrowMeshLength;
+	const float ArrowWidthScale = ArrowHeadWidth / BaseArrowMeshWidth;
+
+	if (FullLength > VisibleArrowLength)
+	{
+		UpdatePathBody(StartWorldLocation, ArrowBaseWorldLocation);
+	}
+	else if (StraightPathMesh)
+	{
+		StraightPathMesh->SetVisibility(false);
+	}
+
+	ArrowMesh->SetWorldLocation(ArrowCenterWorldLocation);
+	ArrowMesh->SetWorldRotation(PathRotation);
+	ArrowMesh->SetWorldScale3D(FVector(ArrowLengthScale, ArrowWidthScale, 1.0f));
+	ArrowMesh->SetHiddenInGame(false);
+	ArrowMesh->SetVisibility(true, true);
+
+	HideArcPathMeshes();
+}
+
+void AMuksiTargetingPreviewActor::UpdateArcPathPreview()
+{
+	EnsureArcPathMeshes();
+
+	if (ArcPathMeshes.IsEmpty())
 	{
 		return;
 	}
@@ -221,29 +283,124 @@ void AMuksiTargetingPreviewActor::UpdateStraightPathPreview()
 		return;
 	}
 
-	const FTransform ActorTransform = GetActorTransform();
-	const FVector StartLocalLocation = ActorTransform.InverseTransformPosition(StartWorldLocation);
-	const FVector EndLocalLocation = ActorTransform.InverseTransformPosition(EndWorldLocation);
+	const FVector MidWorldLocation = (StartWorldLocation + EndWorldLocation) * 0.5f;
+	const FVector ControlWorldLocation = MidWorldLocation + FVector(0.0f, 0.0f, FMath::Max(0.0f, CurrentCommand.ArcHeight));
 
-	PathSpline->ClearSplinePoints(false);
-	PathSpline->AddSplinePoint(StartLocalLocation, ESplineCoordinateSpace::Local, false);
-	PathSpline->AddSplinePoint(EndLocalLocation, ESplineCoordinateSpace::Local, false);
-	PathSpline->SetSplinePointType(0, ESplinePointType::Linear, false);
-	PathSpline->SetSplinePointType(1, ESplinePointType::Linear, false);
-	PathSpline->UpdateSpline();
+	if (StraightPathMesh)
+	{
+		StraightPathMesh->SetVisibility(false);
+	}
 
-	const FVector StartPosition = PathSpline->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::Local);
-	const FVector EndPosition = PathSpline->GetLocationAtSplinePoint(1, ESplineCoordinateSpace::Local);
-	const FVector StraightTangent = EndPosition - StartPosition;
-	const float WidthScale = StraightPathWidth / BasePathMeshSize;
-	const float ThicknessScale = StraightPathThickness / BasePathMeshSize;
-	const FVector2D PathScale(WidthScale, ThicknessScale);
+	if (ArrowMesh)
+	{
+		ArrowMesh->SetVisibility(false);
+	}
 
-	StraightPathMesh->SetStartAndEnd(StartPosition, StraightTangent, EndPosition, StraightTangent, true);
-	StraightPathMesh->SetStartScale(PathScale, true);
-	StraightPathMesh->SetEndScale(PathScale, true);
-	StraightPathMesh->SetVisibility(true);
-	PathSpline->SetVisibility(true);
+	if (PathSpline)
+	{
+		PathSpline->ClearSplinePoints(false);
+		PathSpline->AddSplinePoint(StartWorldLocation, ESplineCoordinateSpace::World, false);
+		PathSpline->AddSplinePoint(ControlWorldLocation, ESplineCoordinateSpace::World, false);
+		PathSpline->AddSplinePoint(EndWorldLocation, ESplineCoordinateSpace::World, false);
+		PathSpline->UpdateSpline();
+		PathSpline->SetVisibility(false);
+	}
+
+	for (int32 SegmentIndex = 0; SegmentIndex < ArcPathMeshes.Num(); ++SegmentIndex)
+	{
+		const float StartAlpha = static_cast<float>(SegmentIndex) / static_cast<float>(ArcPathMeshes.Num());
+		const float EndAlpha = static_cast<float>(SegmentIndex + 1) / static_cast<float>(ArcPathMeshes.Num());
+		const FVector SegmentStart = GetQuadraticBezierPoint(StartWorldLocation, ControlWorldLocation, EndWorldLocation, StartAlpha);
+		const FVector SegmentEnd = GetQuadraticBezierPoint(StartWorldLocation, ControlWorldLocation, EndWorldLocation, EndAlpha);
+
+		UpdatePathSegment(ArcPathMeshes[SegmentIndex], SegmentStart, SegmentEnd, ArcSegmentLengthMultiplier);
+	}
+}
+
+void AMuksiTargetingPreviewActor::UpdatePathBody(const FVector& StartWorldLocation, const FVector& EndWorldLocation)
+{
+	UpdatePathSegment(StraightPathMesh, StartWorldLocation, EndWorldLocation);
+}
+
+void AMuksiTargetingPreviewActor::UpdatePathSegment(UStaticMeshComponent* SegmentMesh, const FVector& StartWorldLocation, const FVector& EndWorldLocation, float LengthMultiplier)
+{
+	if (!SegmentMesh)
+	{
+		return;
+	}
+
+	const FVector PathDirection = EndWorldLocation - StartWorldLocation;
+	const float PathLength = PathDirection.Size();
+
+	if (PathLength <= KINDA_SMALL_NUMBER)
+	{
+		SegmentMesh->SetVisibility(false);
+		return;
+	}
+
+	const FVector MidWorldLocation = (StartWorldLocation + EndWorldLocation) * 0.5f;
+	const FRotator PathRotation = PathDirection.Rotation();
+	const float LengthScale = PathLength * LengthMultiplier / BasePathMeshLength;
+	const float WidthScale = PathWidth / BasePathMeshWidth;
+
+	SegmentMesh->SetWorldLocation(MidWorldLocation);
+	SegmentMesh->SetWorldRotation(PathRotation);
+	SegmentMesh->SetWorldScale3D(FVector(LengthScale, WidthScale, 1.0f));
+	SegmentMesh->SetHiddenInGame(false);
+	SegmentMesh->SetVisibility(true, true);
+}
+
+void AMuksiTargetingPreviewActor::EnsureArcPathMeshes()
+{
+	const int32 RequiredSegmentCount = FMath::Max(2, ArcSegmentCount);
+
+	if (ArcPathMeshes.Num() == RequiredSegmentCount)
+	{
+		return;
+	}
+
+	for (UStaticMeshComponent* ArcPathMesh : ArcPathMeshes)
+	{
+		if (ArcPathMesh)
+		{
+			ArcPathMesh->DestroyComponent();
+		}
+	}
+
+	ArcPathMeshes.Empty();
+
+	for (int32 SegmentIndex = 0; SegmentIndex < RequiredSegmentCount; ++SegmentIndex)
+	{
+		const FName ComponentName = *FString::Printf(TEXT("ArcPathMesh_%02d"), SegmentIndex);
+		UStaticMeshComponent* ArcPathMesh = NewObject<UStaticMeshComponent>(this, ComponentName);
+
+		if (!ArcPathMesh)
+		{
+			continue;
+		}
+
+		AddInstanceComponent(ArcPathMesh);
+		ArcPathMesh->SetupAttachment(SceneRoot);
+		ArcPathMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ArcPathMesh->SetGenerateOverlapEvents(false);
+		ArcPathMesh->SetCastShadow(false);
+		ArcPathMesh->SetStaticMesh(StraightPathMesh ? StraightPathMesh->GetStaticMesh() : nullptr);
+		ArcPathMesh->SetMaterial(0, StraightPathMesh ? StraightPathMesh->GetMaterial(0) : nullptr);
+		ArcPathMesh->RegisterComponent();
+		ArcPathMesh->SetVisibility(false);
+		ArcPathMeshes.Add(ArcPathMesh);
+	}
+}
+
+void AMuksiTargetingPreviewActor::HideArcPathMeshes()
+{
+	for (UStaticMeshComponent* ArcPathMesh : ArcPathMeshes)
+	{
+		if (ArcPathMesh)
+		{
+			ArcPathMesh->SetVisibility(false);
+		}
+	}
 }
 
 void AMuksiTargetingPreviewActor::HidePathPreview()
@@ -258,6 +415,13 @@ void AMuksiTargetingPreviewActor::HidePathPreview()
 	{
 		StraightPathMesh->SetVisibility(false);
 	}
+
+	if (ArrowMesh)
+	{
+		ArrowMesh->SetVisibility(false);
+	}
+
+	HideArcPathMeshes();
 }
 
 void AMuksiTargetingPreviewActor::UpdateGridPreview()
@@ -311,7 +475,7 @@ float AMuksiTargetingPreviewActor::GetSelectionRangeWorldRadius() const
 
 FVector AMuksiTargetingPreviewActor::GetPlaneScaleByRadius(float Radius) const
 {
-	if (BasePlaneSize <= 0.0f)
+	if (Radius <= 0.0f)
 	{
 		return FVector::OneVector;
 	}
@@ -320,6 +484,13 @@ FVector AMuksiTargetingPreviewActor::GetPlaneScaleByRadius(float Radius) const
 	const float UniformScale = Diameter / BasePlaneSize;
 
 	return FVector(UniformScale, UniformScale, 1.0f);
+}
+
+FVector AMuksiTargetingPreviewActor::GetQuadraticBezierPoint(const FVector& StartPoint, const FVector& ControlPoint, const FVector& EndPoint, float Alpha) const
+{
+	const float OneMinusAlpha = 1.0f - Alpha;
+
+	return OneMinusAlpha * OneMinusAlpha * StartPoint + 2.0f * OneMinusAlpha * Alpha * ControlPoint + Alpha * Alpha * EndPoint;
 }
 
 TArray<FIntPoint> AMuksiTargetingPreviewActor::CombineCoords(const TArray<FIntPoint>& A, const TArray<FIntPoint>& B) const
