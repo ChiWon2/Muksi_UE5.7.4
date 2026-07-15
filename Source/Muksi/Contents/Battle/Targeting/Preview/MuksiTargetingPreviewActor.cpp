@@ -19,12 +19,19 @@ AMuksiTargetingPreviewActor::AMuksiTargetingPreviewActor()
 	RangePreviewMesh->SetCastShadow(false);
 	RangePreviewMesh->SetVisibility(false);
 
-	WorldAreaMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WorldAreaMesh"));
-	WorldAreaMesh->SetupAttachment(SceneRoot);
-	WorldAreaMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WorldAreaMesh->SetGenerateOverlapEvents(false);
-	WorldAreaMesh->SetCastShadow(false);
-	WorldAreaMesh->SetVisibility(false);
+	CircleWorldAreaMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CircleWorldAreaMesh"));
+	CircleWorldAreaMesh->SetupAttachment(SceneRoot);
+	CircleWorldAreaMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CircleWorldAreaMesh->SetGenerateOverlapEvents(false);
+	CircleWorldAreaMesh->SetCastShadow(false);
+	CircleWorldAreaMesh->SetVisibility(false);
+
+	ConeWorldAreaMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ConeWorldAreaMesh"));
+	ConeWorldAreaMesh->SetupAttachment(SceneRoot);
+	ConeWorldAreaMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ConeWorldAreaMesh->SetGenerateOverlapEvents(false);
+	ConeWorldAreaMesh->SetCastShadow(false);
+	ConeWorldAreaMesh->SetVisibility(false);
 
 	ArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowMesh"));
 	ArrowMesh->SetupAttachment(SceneRoot);
@@ -54,7 +61,7 @@ void AMuksiTargetingPreviewActor::BeginPlay()
 
 	if (PreviewRenderer)
 	{
-		PreviewRenderer->Initialize(this, SceneRoot, GridManager, RangePreviewMesh, WorldAreaMesh, StraightPathMesh, ArrowMesh, PathSpline);
+		PreviewRenderer->Initialize(this, SceneRoot, GridManager, RangePreviewMesh, CircleWorldAreaMesh, ConeWorldAreaMesh, StraightPathMesh, ArrowMesh, PathSpline);
 	}
 
 	HidePreview();
@@ -114,7 +121,8 @@ void AMuksiTargetingPreviewActor::HidePreview()
 	else
 	{
 		RangePreviewMesh->SetVisibility(false);
-		WorldAreaMesh->SetVisibility(false);
+		CircleWorldAreaMesh->SetVisibility(false);
+		ConeWorldAreaMesh->SetVisibility(false);
 		StraightPathMesh->SetVisibility(false);
 		ArrowMesh->SetVisibility(false);
 	}

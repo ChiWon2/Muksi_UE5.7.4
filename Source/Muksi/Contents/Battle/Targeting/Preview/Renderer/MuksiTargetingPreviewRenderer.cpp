@@ -2,7 +2,7 @@
 
 #include "Muksi/Contents/Battle/Targeting/Preview/Renderer/MuksiTargetingGridPreviewRenderer.h"
 
-void UMuksiTargetingPreviewRenderer::Initialize(AActor* InOwnerActor, USceneComponent* InSceneRoot, ABattleGridManager* InGridManager, UStaticMeshComponent* InRangePreviewMesh, UStaticMeshComponent* InWorldAreaMesh, UStaticMeshComponent* InStraightPathMesh, UStaticMeshComponent* InArrowMesh, USplineComponent* InPathSpline)
+void UMuksiTargetingPreviewRenderer::Initialize(AActor* InOwnerActor, USceneComponent* InSceneRoot, ABattleGridManager* InGridManager, UStaticMeshComponent* InRangePreviewMesh, UStaticMeshComponent* InCircleWorldAreaMesh, UStaticMeshComponent* InConeWorldAreaMesh, UStaticMeshComponent* InStraightPathMesh, UStaticMeshComponent* InArrowMesh, USplineComponent* InPathSpline)
 {
 	SelectionRangeRenderer = NewObject<UMuksiTargetingSelectionRangePreviewRenderer>(this);
 	WorldAreaRenderer = NewObject<UMuksiTargetingWorldAreaPreviewRenderer>(this);
@@ -16,7 +16,7 @@ void UMuksiTargetingPreviewRenderer::Initialize(AActor* InOwnerActor, USceneComp
 
 	if (WorldAreaRenderer)
 	{
-		WorldAreaRenderer->Initialize(InWorldAreaMesh);
+		WorldAreaRenderer->Initialize(InCircleWorldAreaMesh, InConeWorldAreaMesh);
 	}
 
 	if (PathRenderer)

@@ -42,9 +42,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Preview")
 	TObjectPtr<UStaticMeshComponent> RangePreviewMesh = nullptr;
 
-	// 현재 조준 위치 주변의 실제 효과 범위를 표시한다.
+	// 원형 효과 범위를 표시한다.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Preview")
-	TObjectPtr<UStaticMeshComponent> WorldAreaMesh = nullptr;
+	TObjectPtr<UStaticMeshComponent> CircleWorldAreaMesh = nullptr;
+
+	// 원뿔형 효과 범위를 표시한다.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Preview")
+	TObjectPtr<UStaticMeshComponent> ConeWorldAreaMesh = nullptr;
 
 	// 화살표 형태의 경로 끝부분을 표시한다.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Preview")

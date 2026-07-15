@@ -28,7 +28,7 @@ class MUKSI_API UMuksiTargetingPreviewRenderer : public UObject
 	GENERATED_BODY()
 
 public:
-	void Initialize(AActor* InOwnerActor, USceneComponent* InSceneRoot, ABattleGridManager* InGridManager, UStaticMeshComponent* InRangePreviewMesh, UStaticMeshComponent* InWorldAreaMesh, UStaticMeshComponent* InStraightPathMesh, UStaticMeshComponent* InArrowMesh, USplineComponent* InPathSpline);
+	void Initialize(AActor* InOwnerActor, USceneComponent* InSceneRoot, ABattleGridManager* InGridManager, UStaticMeshComponent* InRangePreviewMesh, UStaticMeshComponent* InCircleWorldAreaMesh, UStaticMeshComponent* InConeWorldAreaMesh, UStaticMeshComponent* InStraightPathMesh, UStaticMeshComponent* InArrowMesh, USplineComponent* InPathSpline);
 	void SetGridManager(ABattleGridManager* InGridManager);
 	void Update(const FMuksiTargetingPreviewCommand& Command, const FMuksiTargetingPreviewSettings& Settings);
 	void Hide();

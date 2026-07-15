@@ -55,16 +55,16 @@ struct FMuksiCardTargetingPreviewData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview", meta = (EditCondition = "PathStyle == EMuksiCardTargetingPathPreviewStyle::Arc", EditConditionHides, ClampMin = "0.0"))
 	float ArcHeight = 1000.0f;
 
-	// Circle AreaPattern의 Hex 반경으로 월드 범위 반지름을 자동 계산할지 결정한다.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview", meta = (EditCondition = "WorldAreaStyle == EMuksiCardTargetingWorldAreaPreviewStyle::Circle", EditConditionHides))
+	// AreaPattern의 범위 값으로 월드 범위 크기를 자동 계산할지 결정한다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview", meta = (EditCondition = "WorldAreaStyle == EMuksiCardTargetingWorldAreaPreviewStyle::Circle || WorldAreaStyle == EMuksiCardTargetingWorldAreaPreviewStyle::Cone", EditConditionHides))
 	bool bAutoWorldAreaRadius = true;
 
 	// 자동 계산을 사용하지 않을 때 적용할 월드 범위 반지름.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview", meta = (EditCondition = "WorldAreaStyle != EMuksiCardTargetingWorldAreaPreviewStyle::None && !bAutoWorldAreaRadius", EditConditionHides, ClampMin = "0.0"))
 	float WorldAreaRadius = 100.0f;
 
-	// 원뿔형 월드 범위 표시의 각도.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview", meta = (EditCondition = "WorldAreaStyle == EMuksiCardTargetingWorldAreaPreviewStyle::Cone", EditConditionHides, ClampMin = "0.0", ClampMax = "360.0"))
+	// 자동 계산을 사용하지 않을 때 적용할 원뿔형 월드 범위 각도.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview", meta = (EditCondition = "WorldAreaStyle == EMuksiCardTargetingWorldAreaPreviewStyle::Cone && !bAutoWorldAreaRadius", EditConditionHides, ClampMin = "1.0", ClampMax = "360.0"))
 	float WorldAreaAngle = 60.0f;
 
 	// 사각형 월드 범위 표시의 크기.
