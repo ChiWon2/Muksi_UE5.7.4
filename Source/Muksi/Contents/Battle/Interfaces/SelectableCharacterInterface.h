@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "SelectableCharacterInterface.generated.h"
 
 // This class does not need to be modified.

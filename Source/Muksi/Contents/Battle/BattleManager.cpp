@@ -7,13 +7,10 @@
 
 #include "BattleCardPreviewComponent.h"
 #include "BattleCardEffectComponent.h"
-#include "CharacterData_Enemy.h"
-#include "CharacterData_Player.h"
 #include "TimerManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 
@@ -65,12 +62,37 @@ void ABattleManager::Tick(float DeltaTime)
 
 UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount)
 {
-	return PlayerSelectAction[ExchangeCount].Card;
+	if (PlayerSelectAction.Num() - 1 < ExchangeCount)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Exchange Count is bigger then PlayerSelectAction.Num (BattleManager.cpp)"));
+		return nullptr;
+	}
+	UMuksiBattleCardDataAsset* Card = PlayerSelectAction[ExchangeCount].Card;
+	if (!Card)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
+		return nullptr;
+	}
+	
+	
+	return Card;
 }
 
 UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount)
 {
-	return EnemySelectAction[ExchangeCount].Card;
+	if (EnemySelectAction.Num() - 1 < ExchangeCount)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Exchange Count is bigger then EnemySelectAction.Num (BattleManager.cpp)"));
+		UE_LOG(LogTemp, Error, TEXT("EnemySelectAction size : %d  Exchange Count %d"), EnemySelectAction.Num(), ExchangeCount);
+		return nullptr;
+	}
+	UMuksiBattleCardDataAsset* Card = EnemySelectAction[ExchangeCount].Card;
+	if (!Card)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
+		return nullptr;
+	}
+	return Card;
 }
 
 FIntPoint ABattleManager::GetPlayerPoint() const
@@ -186,20 +208,6 @@ void ABattleManager::ResolveCurrentAttack()
 	//UE_LOG(LogTemp, Log, TEXT("Resolve Attack %d"), CurrentAttack);
 }
 
-void ABattleManager::UseCardByRowName(
-	UCharacterDataBase* SourceCharacter,
-	UCharacterDataBase* TargetCharacter,
-	FName CardRowName
-)
-{
-	if (!SourceCharacter)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("UseCardByRowName: SourceCharacter is null"));
-		return;
-	}
-
-	
-}
 
 void ABattleManager::ExecuteCardEffects(
 	const FMMuksiBattleCardTableRow& CardRow,
@@ -332,8 +340,7 @@ void ABattleManager::CreateCharacter()
 		return;
 	}
 	
-	PlayerBattleCharacter->CharacterDataAsset = TestPlayerCharacterDataAsset;
-	PlayerBattleCharacter->SetCharacterData(NewObject<UCharacterData_Player>(this));
+	PlayerBattleCharacter->SetCharacterData(TestPlayerCharacterDataAsset);
 	
 
 	
@@ -347,8 +354,7 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-	EnemyBattleCharacter->CharacterDataAsset = TestEnemyCharacterDataAsset;
-	EnemyBattleCharacter->SetCharacterData(NewObject<UCharacterData_Enemy>(this));
+	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset);
 	
 	BattleGridManager->MoveCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->MoveCharacter(EnemyBattleCharacter, StartEnemyPoint);
@@ -689,7 +695,11 @@ void ABattleManager::SetEnemyBattleAction()
 	BattleAction.Attacker = EnemyBattleCharacter;
 	BattleAction.bPlayerAction = false;
 	
-	
+	if (BattleAction.Card == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyBattleCharacter->GetSelectEnemyCardDataAsset is null!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
+		return;
+	}
 	//좌표 구하는거
 	BattleAction.TargetPoints = EnemyBattleCharacter->GetSelectEnemyCardCoord();
 	

@@ -34,9 +34,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 체력
 	int32 MaxHP = 100;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 속도-최대값
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 선후공 속도
+	float CharacterSpeed = 1.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 시간-최대값
 	float CardSelectTimeMax = 1.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 속도-최솟값
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 시간-최솟값
 	float CardSelectTimeMin = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")

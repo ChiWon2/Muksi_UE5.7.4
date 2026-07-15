@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "EnemyCardSelectStrategyBase.generated.h"
 
+struct FCharacterData;
 class UMuksiBattleCardDataAsset;
 class UCharacterDataBase;
 class ABattleGridManager;
@@ -41,14 +42,14 @@ class MUKSI_API UEnemyCardSelectStrategyBase : public UObject
 public:
 	UFUNCTION(BlueprintNativeEvent)
 	FEnemyCardSelectResult SelectCardForExchange(
-		UCharacterDataBase* EnemyData,
+		FCharacterData EnemyData,
 		ABattleGridManager* GridManager,
 		const FIntPoint& EnemyCoord,
 		const FIntPoint& PlayerCoord
 	);
 
 	virtual FEnemyCardSelectResult SelectCardForExchange_Implementation(
-		UCharacterDataBase* EnemyData,
+		FCharacterData EnemyData,
 		ABattleGridManager* GridManager,
 		const FIntPoint& EnemyCoord,
 		const FIntPoint& PlayerCoord
@@ -56,7 +57,7 @@ public:
 
 protected:
 	virtual TArray<FIntPoint> GetCandidateCoords(
-		UCharacterDataBase* EnemyData,
+		FCharacterData EnemyData,
 		UMuksiBattleCardDataAsset* Card,
 		ABattleGridManager* GridManager,
 		const FIntPoint& EnemyCoord

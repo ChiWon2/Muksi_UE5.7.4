@@ -13,7 +13,7 @@ ABattleCharacter_Enemy::ABattleCharacter_Enemy()
 	
 }
 
-void ABattleCharacter_Enemy::SetCharacterData(UCharacterDataBase* InCharacterData)
+void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData)
 {
 	Super::SetCharacterData(InCharacterData);
 	InitData();
@@ -34,6 +34,6 @@ void ABattleCharacter_Enemy::InitData()
 {
 	if (BattleAIComponent)
 	{
-		BattleAIComponent->InitializeAI(CharacterData);
+		BattleAIComponent->InitializeAI(CharacterData.CharacterAsset);
 	}else UE_LOG(LogTemp,Error, TEXT("Component Error"));
 }

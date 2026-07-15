@@ -32,6 +32,8 @@ public:
 	// 카드 위젯 자체를 슬롯에 장착
 	bool EquipCard(UWidget_BattleCardBase* InCard);
 	bool EquipCard_Enemy(UWidget_BattleCardBase* InCard);
+	
+	UWidget_BattleCardBase* GetEquipSlot(){return EquippedCard;}
 
 	UFUNCTION(BlueprintPure)
 	FVector2D GetSlotCenterInHandCanvas(UHandWidget* InHandWidget) const;
@@ -57,14 +59,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
 	void EquipCardData(
 		UMuksiBattleCardDataAsset* InCardData,
-		UCharacterDataBase* InSourceCharacter,
-		UCharacterDataBase* InTargetCharacter
+		ABattleCharacterBase* InSourceCharacter
 	);
 
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
 	void SetBattleContext(
-		UCharacterDataBase* InSourceCharacter,
-		UCharacterDataBase* InTargetCharacter
+		ABattleCharacterBase* InSourceCharacter
 	);
 
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")

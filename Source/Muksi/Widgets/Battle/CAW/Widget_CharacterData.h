@@ -11,6 +11,8 @@ class UCharacterDataPanelWidget_Player;
 class UButton;
 class UCharacterDeckData;
 
+class ABattleCharacterBase;
+
 class ABattleCharacter_Player;
 class ABattleCharacter_Enemy;
 
@@ -57,16 +59,16 @@ protected:
 public:
 	void GetClickedActor(AActor* ClickedActor){SelectedActor = ClickedActor;};
 	
-	void GetCharacterData(UCharacterDataBase* CharacterData);
+	void GetCharacterData(ABattleCharacterBase* CharacterData);
 protected:
 	UPROPERTY()
 	TObjectPtr<AActor> SelectedActor = nullptr;
 	
 	
 	UPROPERTY()
-	TObjectPtr<UCharacterData_Player> PlayerData = nullptr;
+	TObjectPtr<ABattleCharacter_Player> PlayerData = nullptr;
 	UPROPERTY()
-	TObjectPtr<UCharacterData_Enemy> EnemyData = nullptr;
+	TObjectPtr<ABattleCharacter_Enemy> EnemyData = nullptr;
 	
 	void SetWidgetVisible();
 };

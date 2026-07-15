@@ -16,6 +16,7 @@ class UCommonButtonBase;
 class UCharacterDataBase;
 class UButton;
 class UVerticalBox;
+class ABattleCharacterBase;
 
 class UMuksiCharacterDataAsset;
 class UMuksiBattleCardDataAsset;
@@ -54,10 +55,8 @@ struct FCardEquipSlotData
 	TObjectPtr<UMuksiBattleCardDataAsset> CardData = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UCharacterDataBase> SourceCharacter = nullptr;
-
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UCharacterDataBase> TargetCharacter = nullptr;
+	TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
+	
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bConfirmed = false;
@@ -96,6 +95,15 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ClearHandCards();
+	
+	UFUNCTION(BlueprintCallable)
+	void InvisibleHandCards();
+	
+	UFUNCTION(BlueprintCallable)
+	void VisibleHandCards();
+	
+	UFUNCTION(BlueprintCallable)
+	void HitActiveHandCards(bool bHitActive);
 	
 	
 	void SetHoveredCard(UWidget_BattleCardBase* InHoveredCard);
@@ -258,6 +266,8 @@ public:
 	
 	void EnableExchangeSlot(int32 InIndex, bool bActive);
 	
+	void ActiveHandCards(bool bActive);
+	
 protected:
 	void BindSelectButton();
 	void UnbindSelectButton();
@@ -280,13 +290,45 @@ public:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
 	void BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets);
+	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
+	void DrawCards(ABattleCharacterBase* BattleCharacter);
 
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
-	void AddCardToHand(UMuksiBattleCardDataAsset* CardData);
+	UWidget_BattleCardBase* AddCardToHand(UMuksiBattleCardDataAsset* CardData);
 	
 	void PlaceCardInHand(UWidget_BattleCardBase* CardWidget);
+
 	
-	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
-	void BuildHandBattleStart();
+protected:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> CardDrawSpawnPoint;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> CardDownPoint;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> CardUpPoint;
+	
+	UPROPERTY()
+	TObjectPtr<UWidget> HandCardPoint = nullptr;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> CardRemovePoint_Player;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> CardRemovePoint_Enemy;
+	UPROPERTY()
+	TArray<TObjectPtr<UWidget_BattleCardBase>> RemoveCardArray;
+	
+	UWidget_BattleCardBase* CreateCardAtDrawSpawnPoint(
+	UMuksiBattleCardDataAsset* CardData);
+	
+	
+public:
+	FVector2D GetCardDrawStartLocalPosition() const;
+	
+public:
+	
+	void RemoveSelectedCardsData();
 	
 };

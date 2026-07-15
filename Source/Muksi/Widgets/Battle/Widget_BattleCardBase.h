@@ -61,6 +61,9 @@ protected:
 	bool bIsDragging = false;
 	UPROPERTY(Transient)
 	FVector2D DragOffset = FVector2D::ZeroVector;
+	
+	UPROPERTY(Transient)
+	bool bActiveCard = true;
 
 	
 
@@ -126,4 +129,18 @@ protected:
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	TObjectPtr<UWidgetAnimation> Anim_CardFlipToFront;
 	// ***** BindWidget *****//
+	
+public:
+	void PlayDrawToHandAnimation(float InDelay = 0.0f);
+
+private:
+	bool bPlayingDrawAnimation = false;
+
+	float DrawAnimationElapsed = 0.0f;
+	float DrawAnimationDelay = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Card Animation")
+	float DrawAnimationDuration = 0.35f;
+
+	FVector2D DrawStartTranslation = FVector2D::ZeroVector;
 };

@@ -4,16 +4,13 @@
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 
-#include "Controllers/MuksiPlayerController.h"
 #include "Muksi/Widgets/Battle/HandWidget.h"
 #include "Kismet/GameplayStatics.h"
-#include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "TimerManager.h"
 
 
 #include "MuksiDebugHelper.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
@@ -21,9 +18,6 @@
 void UWidget_BattleMainScreen::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
-	
-	
 	
 	
 	//아래에 있는 것들 다 제거 예정(다 바뀔거임)
@@ -258,7 +252,7 @@ void UWidget_BattleMainScreen::DisplayBattleStartUI()
 	//전투 시작 UI 표시
 	
 	//InkLine 호출
-	HandWidget->DisplayInkLine(BattleStartText, 3.f);
+	HandWidget->DisplayInkLine(BattleStartText, TurnTime);
 	HandleBattleUIFinishCount += 1;
 	
 	//뭐 다른 UI 표시 있으면 추가하고
@@ -287,7 +281,7 @@ void UWidget_BattleMainScreen::DisplayBattleEndUI()
 	//전투 종료 UI 표시
 
 	//Pipeline UI 표시
-	HandWidget->DisplayInkLine(BattleEndText, 3.f);
+	HandWidget->DisplayInkLine(BattleEndText, TurnTime);
 	HandleBattleUIFinishCount += 1;
 	
 
@@ -319,6 +313,9 @@ void UWidget_BattleMainScreen::RoundStart()
 {
 	RoundCound += 1;
 	HandleRoundStartFinishCount = 0;
+	
+	//RemoveCard 배열 초기화
+	HandWidget->RemoveSelectedCardsData();
 	//일단 다음으로 넘김
 	DisplayRoundStartUI();
 }
@@ -335,7 +332,7 @@ void UWidget_BattleMainScreen::DisplayRoundStartUI()
 	);
 	
 	HandleRoundStartFinishCount += 1;
-	HandWidget->DisplayInkLine(ResultText, 3.f);
+	HandWidget->DisplayInkLine(ResultText, TurnTime);
 	
 	//뭐 다른 UI 표시 있으면 추가하고
 	//HandleBattleStartFinishCount += 1 한 다음
@@ -390,7 +387,7 @@ void UWidget_BattleMainScreen::DisplayRoundEndUI()
 		*RoundEndText
 	);
 	
-	HandWidget->DisplayInkLine(ResultText, 3.f);
+	HandWidget->DisplayInkLine(ResultText, TurnTime);
 	HandleRoundEndFinishCount += 1;
 }
 
@@ -425,7 +422,8 @@ void UWidget_BattleMainScreen::ExchangeStart()
 	//Exchange Index 값 초기화
 	CurrentExchange = 1;
 	//핸드에 카드 배치
-	HandWidget->BuildHandFromCharacter(PlayerBattleCharacter->GetCurrentBattleDeck());
+	SetBattleCardToHand();
+	
 	//턴 종료 버튼 활성화
 	HandWidget->ShowTurnEndButton(true);
 	//임시로 만든 Vertical Box에 있는 Enemy 선택 카드 이미지 지우기
@@ -443,7 +441,7 @@ void UWidget_BattleMainScreen::DisplayExchangeStartUI()
 	//합 시작 UI 표시
 	
 	//InkLine 호출
-	HandWidget->DisplayInkLine(ExchangeStartText, 3.f);
+	HandWidget->DisplayInkLine(ExchangeStartText, TurnTime);
 	HandleExchangeCount += 1;
 	
 	//뭐 다른 UI 표시 있으면 추가하고
@@ -501,7 +499,7 @@ void UWidget_BattleMainScreen::Exchange1Start()
 		CurrentExchange,
 		*ExchangeCountText
 	);
-	HandWidget->DisplayInkLineEnabled(ResultText, 3.0f);
+	HandWidget->DisplayInkLineEnabled(ResultText, TurnTime);
 }
 
 void UWidget_BattleMainScreen::Exchange1End()
@@ -554,7 +552,7 @@ void UWidget_BattleMainScreen::Exchange2Start()
 		CurrentExchange,
 		*ExchangeCountText
 	);
-	HandWidget->DisplayInkLineEnabled(ResultText, 3.0f);
+	HandWidget->DisplayInkLineEnabled(ResultText, TurnTime);
 	
 	
 	//2합 카드 제시 칸 활성화
@@ -616,7 +614,7 @@ void UWidget_BattleMainScreen::Exchange3Start()
 		CurrentExchange,
 		*ExchangeCountText
 	);
-	HandWidget->DisplayInkLineEnabled(ResultText, 3.0f);
+	HandWidget->DisplayInkLineEnabled(ResultText, TurnTime);
 	
 	//3합 카드 제시 칸 활성화
 	HandleExchangeSlot(3, true);
@@ -665,7 +663,7 @@ void UWidget_BattleMainScreen::ExchangeEnd()
 	//턴 종료 버튼 비활성화
 	HandWidget->ShowTurnEndButton(false);
 	//핸드에 있는 카드 패 제거
-	HandWidget->ClearHandCards();
+	ClearBattleCard();
 	//3합 상대방 카드 그리드 표기 제거
 	
 	
@@ -679,7 +677,7 @@ void UWidget_BattleMainScreen::DisplayExchangeEndUI()
 	
 	//InkLine 표시
 	HandleExchangeCount += 1;
-	HandWidget->DisplayInkLine(ExchangeEndText, 3.f);
+	HandWidget->DisplayInkLine(ExchangeEndText, TurnTime);
 }
 
 void UWidget_BattleMainScreen::DisplayExchangeEndUIFinish()
@@ -704,6 +702,30 @@ void UWidget_BattleMainScreen::HandleExchangeEndFinish()
 void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 {
 	HandWidget->EnableExchangeSlot(Index, bActive);
+}
+
+void UWidget_BattleMainScreen::SetBattleCardToHand()
+{
+	//핸드에 남는 카드가 없으면 오른쪽에서 뽑기
+	if (PlayerBattleCharacter->GetCurrentBattleCardCount() == 0)
+	{
+		HandWidget->DrawCards(PlayerBattleCharacter);
+		HandWidget->HitActiveHandCards(true);
+	}else
+	{
+	//핸드에 남는 카드가 있으면 아래에서 올리기	
+		HandWidget->VisibleHandCards();
+		HandWidget->HitActiveHandCards(true);
+		//HandWidget->BuildHandFromCharacter(PlayerBattleCharacter->GetCurrentBattleDeck());
+	}
+	
+	
+}
+
+void UWidget_BattleMainScreen::ClearBattleCard()const
+{
+	HandWidget->InvisibleHandCards();
+	HandWidget->HitActiveHandCards(false);
 }
 
 void UWidget_BattleMainScreen::EnemySelectCardEvent()
@@ -820,7 +842,7 @@ void UWidget_BattleMainScreen::DisplayAttackStartUI()
 	
 	//InkLine 호출
 	HandleAttackStartFinishCount += 1;
-	HandWidget->DisplayInkLine(AttackStartText, 3.f);
+	HandWidget->DisplayInkLine(AttackStartText, TurnTime);
 	
 	//뭐 다른 UI 표시 있으면 추가하고
 	//HandleBattleStartFinishCount += 1 한 다음
@@ -852,7 +874,7 @@ void UWidget_BattleMainScreen::AttackEnd()
 void UWidget_BattleMainScreen::DisplayAttackEndUI()
 {
 	HandleAttackStartFinishCount += 1;
-	HandWidget->DisplayInkLine(AttackEndText, 3.0f);
+	HandWidget->DisplayInkLine(AttackEndText, TurnTime);
 }
 
 void UWidget_BattleMainScreen::DisplayAttackEndUIFinish()

@@ -4,7 +4,6 @@
 #include "Controllers/PlayerMode/PlayerMode_Battle.h"
 
 #include "Controllers/MuksiPlayerController.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "Muksi/Widgets/Battle/CAW/Widget_CharacterData.h"
 #include "Subsystems/MuksiUISubsystem.h"
 
@@ -230,8 +229,7 @@ void UPlayerMode_Battle::PushCharacterDataWidget()
 					if (SelectedActor)
 					{
 						//CharacterDataWidget->GetClickedActor(SelectedActor);
-						UCharacterDataBase* CharacterDataBase = Cast<ABattleCharacterBase>(SelectedActor)->GetCharacterData(); 
-						CharacterDataWidget->GetCharacterData(CharacterDataBase);
+						CharacterDataWidget->GetCharacterData(Cast<ABattleCharacterBase>(SelectedActor));
 					}
 				}
 		},

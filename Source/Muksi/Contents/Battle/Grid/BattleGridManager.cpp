@@ -6,8 +6,6 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
-#include "Muksi/Contents/Battle/CharacterData_Player.h"
-#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"

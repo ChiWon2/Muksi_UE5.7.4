@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
 
@@ -15,6 +16,48 @@ class UMuksiBattleCardDataAsset;
 class UMuksiBattleMovementComponent;
 class UMuksiCharacterDataAsset;
 class UMuksiStatusEffectComponent;
+
+USTRUCT(BlueprintType)
+struct MUKSI_API FCharacterData
+{
+	GENERATED_BODY()
+	
+	void Init(UMuksiCharacterDataAsset* InCharacterData)
+	{
+		CharacterAsset = InCharacterData;
+		MaxHP = InCharacterData->MaxHP;
+		CurrentHP = InCharacterData->MaxHP;
+		CharacterSpeed = InCharacterData->CharacterSpeed;
+		AllBattleDeck = InCharacterData->CharacterDeck;
+	}
+	
+	bool IsValid() const
+	{
+		return CharacterAsset != nullptr;
+	}
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
+	FIntPoint CurrentPosition = FIntPoint::ZeroValue;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UMuksiCharacterDataAsset> CharacterAsset = nullptr;
+
+	UPROPERTY(Transient)
+	int32 CurrentHP = 0;
+
+	UPROPERTY(Transient)
+	int32 MaxHP = 0;
+
+	UPROPERTY(Transient)
+	float CharacterSpeed = 1.0f;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> BattleDeck;
+	
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> AllBattleDeck;
+};
+
 
 UCLASS()
 class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacterInterface
@@ -37,31 +80,25 @@ public:
 	FVector2D GetCurrentSelectCardTime()const;
 	
 	float GetCharacterSpeed()const;
-	
-	
-	FIntPoint GetCharacterPosition()const{return CharacterPosition;};
-	void SetCharacterPosition(FIntPoint NewPosition){CharacterPosition = NewPosition;};
-	
-	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData->GetCharacterDeck();};
-	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData)const{CharacterData->RemoveCard(BattleCardData);};
 
+	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData);
+	
+	FIntPoint GetCharacterPosition()const{return CharacterData.CurrentPosition;};
+	void SetCharacterPosition(FIntPoint NewPosition){CharacterData.CurrentPosition = NewPosition;};
+	
+	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData.BattleDeck;};
+	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData){CharacterData.BattleDeck.Remove(BattleCardData);};
+	
+	int32 GetCurrentBattleCardCount()const;
+	
+	TArray<UMuksiBattleCardDataAsset*> GetAllBattleDeck()const{return CharacterData.AllBattleDeck;};
+	void InitBattleDeck(){CharacterData.BattleDeck = CharacterData.AllBattleDeck;};
 	
 protected:
-	UPROPERTY()
-	TObjectPtr<UCharacterDataBase> CharacterData = nullptr;
+	FCharacterData CharacterData;
 	
 public:
-
 	
-
-	/*TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck() const { return CharacterData ? CharacterData->GetCharacterDeck() : TArray<UMuksiBattleCardDataAsset*>(); }
-	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData) const { if (CharacterData) CharacterData->RemoveCard(BattleCardData); }*/
-
-	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	virtual void SetCharacterData(UCharacterDataBase* InCharacterData);
-
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter")
-	UCharacterDataBase* GetCharacterData() const { return CharacterData; }
 
 	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
 	virtual void SetExchangeCharacter(AExchangeCharacterBase* InExchangeCharacter) { ExchangeCharacterBase = InExchangeCharacter; }
@@ -93,6 +130,7 @@ protected:
 	TObjectPtr<UBoxComponent> ClickCollision = nullptr;
 
 public:
+	//Component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMuksiStatusEffectComponent> StatusEffectComponent = nullptr;
 
@@ -101,14 +139,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMuksiBattleMovementComponent> BattleMovementComponent = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
-	TObjectPtr<UMuksiCharacterDataAsset> CharacterDataAsset = nullptr;
 	
-
+	
 	UPROPERTY(Transient)
 	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
 
-	UPROPERTY(Transient)
-	FIntPoint CharacterPosition = FIntPoint::ZeroValue;
 };

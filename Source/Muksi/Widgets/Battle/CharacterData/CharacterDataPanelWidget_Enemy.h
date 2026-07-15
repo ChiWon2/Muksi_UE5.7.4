@@ -18,10 +18,10 @@ class MUKSI_API UCharacterDataPanelWidget_Enemy : public UCharacterDataPanelWidg
 	
 public:
 	UFUNCTION()
-	void ApplyEnemyData(UCharacterData_Enemy* InEnemyData);
+	void ApplyEnemyData(ABattleCharacter_Enemy* InEnemyData);
 	
 private:
 	UPROPERTY()
-	UCharacterData_Enemy* EnemyData;
+	ABattleCharacter_Enemy* EnemyData;
 	
 };
