@@ -11,7 +11,6 @@ class UCharacterDataBase;
 class ABattleCharacterBase;
 class UBattleGridNavigationComponent;
 
-
 USTRUCT(BlueprintType)
 struct FCubeCoord
 {
@@ -25,7 +24,7 @@ struct FCubeCoord
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Z = 0;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bInRange = true;
 
@@ -36,7 +35,6 @@ struct FCubeCoord
 	{
 	}
 };
-
 
 USTRUCT(BlueprintType)
 struct FBattleGridCell
@@ -63,26 +61,25 @@ public:
 	TObjectPtr<ABattleGridTile> TileActor = nullptr;
 };
 
-
 UCLASS()
 class MUKSI_API ABattleGridManager : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	ABattleGridManager();
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
+
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
 	//HexGrid System Test
 public:
 	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
@@ -106,59 +103,48 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle Grid")
 	ABattleGridTile* GetTileByCoord(const FIntPoint& Coord) const;
 
-/*
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
-	int32 GridWidth = 5;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
-	int32 GridHeight = 5;
-	*/
-
-	/*// 네 프로젝트에 이미 비슷한 배열이 있다면 그걸 쓰면 됨
-	UPROPERTY()
-	TArray<TObjectPtr<ABattleGridTile>> GridTiles;*/
-	
-	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	int32 GridWidth = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	int32 GridHeight = 5;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
-	int32 GridX = 5;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
-	int32 GridY = 5;
 
 	// 중심에서 꼭짓점까지 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	float HexRadius = 100.0f;
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
-	TSubclassOf<ABattleGridTile> TileClass;*/
-	
+	// 인접한 열 사이의 X축 월드 간격.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout", meta = (ClampMin = "1.0"))
+	float GridSpacingX = 150.0f;
+
+	// 같은 열에 있는 인접한 행 사이의 Y축 월드 간격.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout", meta = (ClampMin = "1.0"))
+	float GridSpacingY = 170.0f;
+
+	// 홀수 열이 Y축 방향으로 이동할 GridSpacingY의 비율.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout")
+	float OddColumnYOffsetRatio = 0.5f;
+
+	// 생성되는 각 타일에 추가로 적용할 회전.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout")
+	FRotator TileRotation = FRotator(0.0f, 30.0f, 0.0f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	TArray<TSubclassOf<ABattleGridTile>> TileClasses;
-	
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
-	TArray<TObjectPtr<ABattleGridTile>> GridTilesArray;*/
-	
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	TArray<FBattleGridCell> GridCells;
-	
+
 public:
-	
 	UFUNCTION(BlueprintCallable, Category = "Battle|Character")
 	void MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint);
-	
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Battle|Grid")
 	void GenerateGrid();
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Battle|Grid")
 	void ClearGrid();
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
@@ -169,6 +155,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
 	FVector HexGridToWorld(const FIntPoint& Coord) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
+	float GetAdjacentTileCenterDistance() const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
+	float GetWorldRadiusByGridRange(int32 GridRange, bool bIncludeOuterTileRadius = true) const;
 
 	FBattleGridCell* GetCell(const FIntPoint& Coord);
 	const FBattleGridCell* GetCell(const FIntPoint& Coord) const;
@@ -187,46 +179,46 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	bool MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoord, const FIntPoint& ToCoord);
-	
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Battle|Character")
 	FIntPoint PlayerStartPoint = FIntPoint(0, 0);
+
 	UPROPERTY(EditAnywhere, Category = "Battle|Character")
 	FIntPoint EnemyStartPoint = FIntPoint(4, 4);
-	
+
 public:
 	UFUNCTION()
 	FTransform GetTransformToPosition(FIntPoint InPosition);
+
 	UFUNCTION()
 	bool CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range);
-	
-	
-	
+
 	//카드 효과 관련 public
 public:
 	//카드 공격 범위 관련
 	UPROPERTY()
 	TArray<FIntPoint> TargetGridArray;
+
 	void SetGridHovered(TArray<FIntPoint> NewGridArray);
 	void ClearGridHovered();
 	void AllClearGridHovered();
 	void SetExchangeIndicator(int32 AttackType, TArray<FIntPoint> GridArray);
 	void AllClearExchangeIndicator();
 	//
-	
+
 	//카드 효과 실행 관련
 	void RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint);
 	void MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
 	void RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
 
-	public:
-		UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Battle|Grid|Navigation")
-		TObjectPtr<UBattleGridNavigationComponent> BattleGridNavigationComponent = nullptr;
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Navigation")
+	TObjectPtr<UBattleGridNavigationComponent> BattleGridNavigationComponent = nullptr;
 
-		UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-		UBattleGridNavigationComponent* GetNavigationComponent() const
-		{
-			return BattleGridNavigationComponent;
-		}
-	
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
+	UBattleGridNavigationComponent* GetNavigationComponent() const
+	{
+		return BattleGridNavigationComponent;
+	}
 };

@@ -42,7 +42,7 @@ FMuksiTargetingPreviewCommand FMuksiTargetingPreviewResolver::BuildCommand(ABatt
 
 		if (CirclePatternData)
 		{
-			Command.WorldAreaRadius = CirclePatternData->Radius * GridManager->HexRadius * 2.0f;
+			Command.WorldAreaRadius = GridManager->GetWorldRadiusByGridRange(CirclePatternData->Radius, true);
 		}
 	}
 

@@ -9,6 +9,8 @@ class ABattleGridManager;
 class USceneComponent;
 class USplineComponent;
 class UStaticMeshComponent;
+class UMuksiTargetingPreviewRenderer;
+struct FMuksiTargetingPreviewSettings;
 
 UCLASS(Blueprintable)
 class MUKSI_API AMuksiTargetingPreviewActor : public AActor
@@ -30,29 +32,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-	void UpdateSelectionRangePreview();
-	void UpdateWorldAreaPreview();
-	void UpdatePathPreview();
-	void UpdateStraightPathPreview();
-	void UpdateArrowPathPreview();
-	void UpdateArcPathPreview();
-	void UpdatePathBody(const FVector& StartWorldLocation, const FVector& EndWorldLocation);
-	void UpdatePathSegment(UStaticMeshComponent* SegmentMesh, const FVector& StartWorldLocation, const FVector& EndWorldLocation, float LengthMultiplier = 1.0f);
-	void EnsureArcPathMeshes();
-	void HideArcPathMeshes();
-	void HidePathPreview();
-	void UpdateGridPreview();
-	float GetSelectionRangeWorldRadius() const;
-	FVector GetPlaneScaleByRadius(float Radius) const;
-	FVector GetQuadraticBezierPoint(const FVector& StartPoint, const FVector& ControlPoint, const FVector& EndPoint, float Alpha) const;
-	TArray<FIntPoint> CombineCoords(const TArray<FIntPoint>& A, const TArray<FIntPoint>& B) const;
-
-private:
-	static constexpr float BasePlaneSize = 100.0f;
-	static constexpr float BasePathMeshLength = 100.0f;
-	static constexpr float BasePathMeshWidth = 100.0f;
-	static constexpr float BaseArrowMeshLength = 100.0f;
-	static constexpr float BaseArrowMeshWidth = 100.0f;
+	FMuksiTargetingPreviewSettings MakePreviewSettings() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Preview")
@@ -79,47 +59,47 @@ protected:
 	TObjectPtr<UStaticMeshComponent> StraightPathMesh = nullptr;
 
 	// 사거리 Preview를 바닥보다 위에 표시할 높이.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Selection Range")
 	float RangePreviewHeightOffset = 4.0f;
 
+	// 선택 가능 타일의 중심까지를 사거리 원으로 표시할지 결정한다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Selection Range")
+	bool bIncludeOuterTileRadius = true;
+
 	// 효과 범위 Preview를 바닥보다 위에 표시할 높이.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|World Area")
 	float WorldAreaPreviewHeightOffset = 6.0f;
 
 	// Path Preview를 시작점과 끝점보다 위에 표시할 높이.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Path")
 	float PathPreviewHeightOffset = 8.0f;
 
 	// Straight, Arrow, Arc 경로가 공통으로 사용할 월드 너비.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview", meta = (ClampMin = "1.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Path", meta = (ClampMin = "1.0"))
 	float PathWidth = 35.0f;
 
 	// Arrow 화살촉의 월드 길이.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview", meta = (ClampMin = "1.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Path", meta = (ClampMin = "1.0"))
 	float ArrowHeadLength = 100.0f;
 
 	// Arrow 화살촉의 월드 너비.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview", meta = (ClampMin = "1.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Path", meta = (ClampMin = "1.0"))
 	float ArrowHeadWidth = 100.0f;
 
 	// Arc를 구성할 Plane Segment 개수.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview", meta = (ClampMin = "2", ClampMax = "64"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Path", meta = (ClampMin = "2", ClampMax = "64"))
 	int32 ArcSegmentCount = 16;
 
 	// Arc Segment 사이의 틈을 방지하기 위한 길이 배율.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview", meta = (ClampMin = "1.0", ClampMax = "1.5"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview|Path", meta = (ClampMin = "1.0", ClampMax = "1.5"))
 	float ArcSegmentLengthMultiplier = 1.05f;
-
-	// 선택 가능 타일의 중심까지를 사거리 원으로 표시할지 결정한다.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Preview")
-	bool bIncludeOuterTileRadius = true;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 
 	UPROPERTY(Transient)
-	FMuksiTargetingPreviewCommand CurrentCommand;
+	TObjectPtr<UMuksiTargetingPreviewRenderer> PreviewRenderer = nullptr;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UStaticMeshComponent>> ArcPathMeshes;
+	FMuksiTargetingPreviewCommand CurrentCommand;
 };
