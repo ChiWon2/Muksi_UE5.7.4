@@ -80,25 +80,35 @@ void ABattleCharacterBase::Tick(float DeltaTime)
 
 int32 ABattleCharacterBase::GetCurrentHP() const
 {
-	if (CharacterData){return CharacterData->GetCurrentHP();}
+	if (CharacterData.IsValid()){return CharacterData.CurrentHP;}
 	return -1;
 }
 
 void ABattleCharacterBase::SetCurrentHP(int32 NewHP)
 {
-	if (CharacterData){CharacterData->SetCurrentHP(NewHP);}
+	if (CharacterData.IsValid()){CharacterData.CurrentHP = NewHP;}
 }
 
 FVector2D ABattleCharacterBase::GetCurrentSelectCardTime() const
 {
-	if (CharacterData){return FVector2D(CharacterDataAsset->CardSelectTimeMin, CharacterDataAsset->CardSelectTimeMax);}
+	if (CharacterData.IsValid()){return FVector2D(CharacterData.CharacterAsset->CardSelectTimeMin, CharacterData.CharacterAsset->CardSelectTimeMax);}
 	return FVector2D(1.f,1.f);
 }
 
 
 float ABattleCharacterBase::GetCharacterSpeed() const
 {
-	return CharacterData->GetPlayerSpeed();
+	return CharacterData.CharacterSpeed;
+}
+
+void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData)
+{
+	CharacterData.Init(InCharacterData);
+	if (!CharacterData.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterDataAsset is null"));
+		return;
+	}
 }
 
 void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)
@@ -108,28 +118,11 @@ void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, 
 		*ButtonPressed.ToString());
 }
 
-void ABattleCharacterBase::SetCharacterData(UCharacterDataBase* InCharacterData)
+int32 ABattleCharacterBase::GetCurrentBattleCardCount() const
 {
-	CharacterData = InCharacterData;
-	if (!CharacterDataAsset)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterDataAsset is null"));
-		return;
-	}
-	if (!CharacterData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterData is null"));
-		return;
-	}
-	CharacterData->InitializeFromDataAsset(CharacterDataAsset);
-
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("BattleCharacterBase SetCharacterData: %s"),
-		*GetNameSafe(CharacterData)
-	);
+	return CharacterData.BattleDeck.Num();
 }
+
 
 void ABattleCharacterBase::OnSelected()
 {

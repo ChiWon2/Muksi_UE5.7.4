@@ -236,12 +236,7 @@ public:
 	// Card
 	// =========================
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Card")
-	void UseCardByRowName(
-		UCharacterDataBase* SourceCharacter,
-		UCharacterDataBase* TargetCharacter,
-		FName CardRowName
-	);
+
 
 	void ExecuteCardEffects(
 		const FMMuksiBattleCardTableRow& CardRow,

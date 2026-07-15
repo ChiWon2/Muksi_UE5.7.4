@@ -235,7 +235,8 @@ public:
 	
 protected:
 	void HandleExchangeSlot(int32 Index, bool bActive);
-	
+	void SetBattleCardToHand();
+	void ClearBattleCard()const;
 public:
 
 	UPROPERTY()
@@ -298,4 +299,7 @@ protected:
 	FString AttackEndText = "Attack End!";
 	UPROPERTY()
 	int32 HandleAttackStartFinishCount = 0;
+	
+	UPROPERTY(EditAnywhere)
+	float TurnTime = 0.1f;
 };

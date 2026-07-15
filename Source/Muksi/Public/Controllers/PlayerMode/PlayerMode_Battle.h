@@ -11,6 +11,7 @@ class UDataTable;
 class UCharacterDataBase;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
+class ABattleCharacterBase;
 
 class ABattleGridTile;
 class ABattleManager;
@@ -42,10 +43,10 @@ public:
 	void InitializeBattleTestData();
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Test")
-	UCharacterDataBase* GetPlayerCharacterData() const { return PlayerCharacterData; }
+	ABattleCharacterBase* GetPlayerCharacterData() const { return BattleCharacterPlayer; }
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Test")
-	UCharacterDataBase* GetEnemyCharacterData() const { return EnemyCharacterData; }
+	ABattleCharacterBase* GetEnemyCharacterData() const { return BattleCharacterEnemy; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Test")
@@ -58,10 +59,10 @@ protected:
 	TObjectPtr<UMuksiCharacterDataAsset> TestEnemyCharacterDataAsset = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UCharacterDataBase> PlayerCharacterData = nullptr;
+	TObjectPtr<ABattleCharacterBase> BattleCharacterPlayer = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UCharacterDataBase> EnemyCharacterData = nullptr;
+	TObjectPtr<ABattleCharacterBase> BattleCharacterEnemy = nullptr;
 	
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager = nullptr;

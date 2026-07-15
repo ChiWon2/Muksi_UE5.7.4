@@ -8,7 +8,7 @@
 #include "Controllers/MuksiPlayerController.h"
 #include "Controllers/PlayerMode/PlayerMode_Battle.h"
 #include "Muksi/Widgets/Battle/CharacterData/Widget_CharacterDeckPanel.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 
 void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 {
@@ -26,25 +26,18 @@ void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 		return;
 	}
 
-	ApplyCharacterData(PlayerMode->GetPlayerCharacterData());
+	ApplyCharacterData(Cast<ABattleCharacter_Player>(PlayerMode->GetPlayerCharacterData()));
 }
 
-void UCharacterDataPanelWidget_Player::ApplyCharacterData(UCharacterDataBase* InCharacterData)
+void UCharacterDataPanelWidget_Player::ApplyCharacterData(ABattleCharacter_Player* PlayerData)
 {
-	if (!InCharacterData)
+	if (!PlayerData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("CharacterDataPanelWidget_Player - InCharacterData is null"));
 		return;
 	}
-	CharacterDeckPanelWidget->SetDeckData(InCharacterData->GetCharacterDeck());
-
-	/*if (CharacterDeckPanelWidget)
-	{
-		CharacterDeckPanelWidget->SetDeckData(
-			InCharacterData->GetCardDataTable(),
-			InCharacterData->GetDeckCardRowNames()
-		);
-	}*/
+	CharacterDeckPanelWidget->SetDeckData(PlayerData->GetAllBattleDeck());
+	
 }
 
 void UCharacterDataPanelWidget_Player::NativeConstruct()

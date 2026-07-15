@@ -201,7 +201,6 @@ bool UWidget_CardEquipSlot::ClearEquipSlot()
 
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
-	SlotData.TargetCharacter = nullptr;
 
 	RefreshSlotVisual();
 
@@ -224,8 +223,7 @@ void UWidget_CardEquipSlot::SetSlotInfo(int32 InSlotIndex, int32 InExchangeNumbe
 	RefreshSlotVisual();
 }
 
-void UWidget_CardEquipSlot::EquipCardData(UMuksiBattleCardDataAsset* InCardData, UCharacterDataBase* InSourceCharacter,
-	UCharacterDataBase* InTargetCharacter)
+void UWidget_CardEquipSlot::EquipCardData(UMuksiBattleCardDataAsset* InCardData, ABattleCharacterBase* InSourceCharacter)
 {
 	if (SlotData.bConfirmed)
 	{
@@ -253,16 +251,13 @@ void UWidget_CardEquipSlot::EquipCardData(UMuksiBattleCardDataAsset* InCardData,
 
 	SlotData.CardData = InCardData;
 	SlotData.SourceCharacter = InSourceCharacter;
-	SlotData.TargetCharacter = InTargetCharacter;
 
 	RefreshSlotVisual();
 }
 
-void UWidget_CardEquipSlot::SetBattleContext(UCharacterDataBase* InSourceCharacter,
-	UCharacterDataBase* InTargetCharacter)
+void UWidget_CardEquipSlot::SetBattleContext(ABattleCharacterBase* InSourceCharacter)
 {
 	SlotData.SourceCharacter = InSourceCharacter;
-	SlotData.TargetCharacter = InTargetCharacter;
 
 	RefreshSlotVisual();
 }
@@ -275,12 +270,11 @@ void UWidget_CardEquipSlot::ClearSlot()
 		//UE_LOG(LogTemp, Warning, TEXT("ClearSlot ignored: slot already confirmed"));
 		return;
 	}
-	if (EquippedCard)EquippedCard->RemoveFromParent(); //빼는 애니메이션 있으면 넣기
+	//if (EquippedCard)EquippedCard->RemoveFromParent(); //빼는 애니메이션 있으면 넣기
 	EquippedCard = nullptr;
 
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
-	SlotData.TargetCharacter = nullptr;
 
 	RefreshSlotVisual();
 }
@@ -291,7 +285,6 @@ void UWidget_CardEquipSlot::ForceClearSlot()
 
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
-	SlotData.TargetCharacter = nullptr;
 	SlotData.bConfirmed = false;
 
 	bSlotEnabled = false;
@@ -384,7 +377,6 @@ bool UWidget_CardEquipSlot::UnequipCard(UHandWidget* HandWidget)
 	EquippedCard = nullptr;
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
-	SlotData.TargetCharacter = nullptr;
 	
 	CardToReturn->SetCardRenderAngle(0.0f);
 	
