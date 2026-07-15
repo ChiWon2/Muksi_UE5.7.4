@@ -196,20 +196,7 @@ void ABattleManager::ResolveCurrentAttack()
 	// - 공격 후 효과 처리
 }
 
-void ABattleManager::UseCardByRowName(
-	UCharacterDataBase* SourceCharacter,
-	UCharacterDataBase* TargetCharacter,
-	FName CardRowName
-)
-{
-	if (!SourceCharacter)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("UseCardByRowName: SourceCharacter is null"));
-		return;
-	}
 
-	
-}
 
 void ABattleManager::ExecuteCardEffects(
 	const FMMuksiBattleCardTableRow& CardRow,
@@ -318,7 +305,7 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-	PlayerBattleCharacter->CharacterDataAsset = TestPlayerCharacterDataAsset;
+	PlayerBattleCharacter->SetCharacterData(TestPlayerCharacterDataAsset);
 
 	//Enemy BattleCharacter Spawn
 	EnemyBattleCharacter = World->SpawnActor<ABattleCharacter_Enemy>(EnemyClass, EnemySpawnPoint->GetActorTransform());
@@ -327,7 +314,7 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-	EnemyBattleCharacter->CharacterDataAsset = TestEnemyCharacterDataAsset;
+	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset);
 	BattleGridManager->MoveCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->MoveCharacter(EnemyBattleCharacter, StartEnemyPoint);
 
