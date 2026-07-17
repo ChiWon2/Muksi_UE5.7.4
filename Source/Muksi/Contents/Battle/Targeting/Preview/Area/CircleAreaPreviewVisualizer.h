@@ -22,7 +22,7 @@ public:
 	virtual const UScriptStruct* GetSupportedPatternDataStruct() const override;
 
 private:
-	float CalculateWorldRadius(const FTargetingPreviewContext& Context, const FVector& CenterLocation) const;
+	float CalculateWorldRadius(const FTargetingPreviewContext& Context, int32 GridRange) const;
 
 private:
 	UPROPERTY(Transient)

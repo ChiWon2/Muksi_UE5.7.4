@@ -338,14 +338,21 @@ bool UBattleTargetingManager::ApplyFinalPattern()
 	TargetingResult.AffectedCoords.Empty();
 	TargetingResult.PathCoords.Empty();
 
-	if (!TargetingData.HasFinalPattern())
+	const FTargetingStepCardData* StepData = TargetingData.GetStep(CurrentStepIndex);
+
+	if (!StepData)
+	{
+		return false;
+	}
+
+	if (!StepData->PatternClass)
 	{
 		return true;
 	}
 
-	const UAreaPattern* FinalPattern = TargetingData.FinalPatternClass->GetDefaultObject<UAreaPattern>();
+	const UAreaPattern* Pattern = StepData->PatternClass->GetDefaultObject<UAreaPattern>();
 
-	if (!FinalPattern)
+	if (!Pattern)
 	{
 		return false;
 	}
@@ -354,11 +361,10 @@ bool UBattleTargetingManager::ApplyFinalPattern()
 	PatternContext.SourceCharacter = SourceCharacter;
 	PatternContext.GridManager = GridManager;
 
-	FinalPattern->ApplyPattern(PatternContext, TargetingData.FinalPatternData, TargetingResult);
+	Pattern->ApplyPattern(PatternContext, StepData->PatternData, TargetingResult);
 
 	return true;
 }
-
 bool UBattleTargetingManager::BuildPreviewResult(FTargetingResult& OutPreviewResult) const
 {
 	OutPreviewResult = TargetingResult;
@@ -366,6 +372,13 @@ bool UBattleTargetingManager::BuildPreviewResult(FTargetingResult& OutPreviewRes
 	OutPreviewResult.PathCoords.Empty();
 
 	if (!CurrentStepContext.bCanConfirm)
+	{
+		return false;
+	}
+
+	const FTargetingStepCardData* StepData = TargetingData.GetStep(CurrentStepIndex);
+
+	if (!StepData)
 	{
 		return false;
 	}
@@ -380,14 +393,14 @@ bool UBattleTargetingManager::BuildPreviewResult(FTargetingResult& OutPreviewRes
 		}
 	}
 
-	if (!TargetingData.HasFinalPattern())
+	if (!StepData->PatternClass)
 	{
 		return true;
 	}
 
-	const UAreaPattern* FinalPattern = TargetingData.FinalPatternClass->GetDefaultObject<UAreaPattern>();
+	const UAreaPattern* Pattern = StepData->PatternClass->GetDefaultObject<UAreaPattern>();
 
-	if (!FinalPattern)
+	if (!Pattern)
 	{
 		return false;
 	}
@@ -396,7 +409,7 @@ bool UBattleTargetingManager::BuildPreviewResult(FTargetingResult& OutPreviewRes
 	PatternContext.SourceCharacter = SourceCharacter;
 	PatternContext.GridManager = GridManager;
 
-	FinalPattern->ApplyPattern(PatternContext, TargetingData.FinalPatternData, OutPreviewResult);
+	Pattern->ApplyPattern(PatternContext, StepData->PatternData, OutPreviewResult);
 
 	return true;
 }
@@ -431,7 +444,6 @@ bool UBattleTargetingManager::EnsurePreviewActor()
 	}
 
 	PreviewActor->Initialize(GridManager.Get());
-	PreviewActor->SetGridPreviewMode(TargetingData.GridPreviewMode);
 
 	return true;
 }
@@ -441,18 +453,6 @@ void UBattleTargetingManager::InitializePreviewVisualizers()
 	if (!EnsurePreviewActor())
 	{
 		return;
-	}
-
-	ActiveAreaPreviewVisualizer = nullptr;
-
-	if (TargetingData.AreaPreviewClass && !TargetingData.AreaPreviewClass->HasAnyClassFlags(CLASS_Abstract))
-	{
-		ActiveAreaPreviewVisualizer = NewObject<UAreaPreviewVisualizer>(this, TargetingData.AreaPreviewClass);
-	}
-
-	if (ActiveAreaPreviewVisualizer)
-	{
-		ActiveAreaPreviewVisualizer->Initialize(PreviewActor.Get());
 	}
 
 	InitializeStepPreviewVisualizers();
@@ -475,8 +475,14 @@ void UBattleTargetingManager::InitializeStepPreviewVisualizers()
 		ActivePathPreviewVisualizer->ClearPreview();
 	}
 
+	if (ActiveAreaPreviewVisualizer)
+	{
+		ActiveAreaPreviewVisualizer->ClearPreview();
+	}
+
 	ActiveSelectionPreviewVisualizer = nullptr;
 	ActivePathPreviewVisualizer = nullptr;
+	ActiveAreaPreviewVisualizer = nullptr;
 
 	const FTargetingStepCardData* StepData = TargetingData.GetStep(CurrentStepIndex);
 
@@ -484,6 +490,8 @@ void UBattleTargetingManager::InitializeStepPreviewVisualizers()
 	{
 		return;
 	}
+
+	PreviewActor->SetGridPreviewMode(StepData->GridPreviewMode);
 
 	if (StepData->SelectionPreviewClass && !StepData->SelectionPreviewClass->HasAnyClassFlags(CLASS_Abstract))
 	{
@@ -495,6 +503,11 @@ void UBattleTargetingManager::InitializeStepPreviewVisualizers()
 		ActivePathPreviewVisualizer = NewObject<UPathPreviewVisualizer>(this, StepData->PathPreviewClass);
 	}
 
+	if (StepData->AreaPreviewClass && !StepData->AreaPreviewClass->HasAnyClassFlags(CLASS_Abstract))
+	{
+		ActiveAreaPreviewVisualizer = NewObject<UAreaPreviewVisualizer>(this, StepData->AreaPreviewClass);
+	}
+
 	if (ActiveSelectionPreviewVisualizer)
 	{
 		ActiveSelectionPreviewVisualizer->Initialize(PreviewActor.Get());
@@ -504,8 +517,12 @@ void UBattleTargetingManager::InitializeStepPreviewVisualizers()
 	{
 		ActivePathPreviewVisualizer->Initialize(PreviewActor.Get());
 	}
-}
 
+	if (ActiveAreaPreviewVisualizer)
+	{
+		ActiveAreaPreviewVisualizer->Initialize(PreviewActor.Get());
+	}
+}
 void UBattleTargetingManager::DestroyPreviewState()
 {
 	ClearPreview();
@@ -528,8 +545,6 @@ void UBattleTargetingManager::UpdatePreview()
 		return;
 	}
 
-	FTargetingResult PreviewResult;
-	const bool bHasPreviewResult = BuildPreviewResult(PreviewResult);
 	const FTargetingStepCardData* StepData = TargetingData.GetStep(CurrentStepIndex);
 
 	if (!StepData)
@@ -537,6 +552,9 @@ void UBattleTargetingManager::UpdatePreview()
 		ClearPreview();
 		return;
 	}
+
+	FTargetingResult PreviewResult;
+	const bool bHasPreviewResult = BuildPreviewResult(PreviewResult);
 
 	FTargetingPreviewContext PreviewContext;
 	PreviewContext.SourceCharacter = SourceCharacter.Get();
@@ -547,7 +565,7 @@ void UBattleTargetingManager::UpdatePreview()
 	PreviewContext.PreviewResult = bHasPreviewResult ? &PreviewResult : nullptr;
 	PreviewContext.StepIndex = CurrentStepIndex;
 
-	PreviewActor->SetGridPreviewMode(TargetingData.GridPreviewMode);
+	PreviewActor->SetGridPreviewMode(StepData->GridPreviewMode);
 
 	if (ActiveSelectionPreviewVisualizer)
 	{

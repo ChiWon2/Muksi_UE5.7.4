@@ -6,6 +6,8 @@
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
+#include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelectionData.h"
 
 void UCircleRangePreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewActor)
 {
@@ -74,26 +76,17 @@ void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext
 
 float UCircleRangePreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context) const
 {
-	if (!Context.GridManager || !Context.StepContext)
+	if (!Context.GridManager || !Context.StepData)
 	{
 		return 0.0f;
 	}
 
-	float MaximumDistance = 0.0f;
+	const FTileSelectionData* Data = Context.StepData->SelectionData.GetPtr<FTileSelectionData>();
 
-	for (const FIntPoint& Coord : Context.StepContext->SelectableCoords)
+	if (!Data)
 	{
-		const FBattleGridCell* Cell = Context.GridManager->GetCell(Coord);
-
-		if (!Cell)
-		{
-			continue;
-		}
-
-		FVector Difference = Cell->WorldLocation - Context.StepContext->OriginWorldLocation;
-		Difference.Z = 0.0f;
-		MaximumDistance = FMath::Max(MaximumDistance, Difference.Size());
+		return 0.0f;
 	}
 
-	return MaximumDistance + FMath::Max(0.0f, Context.GridManager->HexRadius);
+	return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(0, Data->SelectionRange), true);
 }
