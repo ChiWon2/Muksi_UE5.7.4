@@ -87,7 +87,7 @@ public:
 	void SetCharacterPosition(FIntPoint NewPosition){CharacterData.CurrentPosition = NewPosition;};
 	
 	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData.BattleDeck;};
-	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData){CharacterData.BattleDeck.Remove(BattleCardData);};
+	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData);
 	
 	int32 GetCurrentBattleCardCount()const;
 	

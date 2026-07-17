@@ -69,4 +69,8 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	FMuksiBattleCardAttackTypeData AttackType;
+	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
+	TArray<FText> CardEffectsDescription;
 };
