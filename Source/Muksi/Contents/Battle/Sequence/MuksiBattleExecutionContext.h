@@ -11,11 +11,7 @@ class UMuksiBattleExecution;
 
 struct FMuksiBattleExecutionContext;
 
-DECLARE_DELEGATE_TwoParams(
-	FMuksiRequestSystemExecution,
-	TSubclassOf<UMuksiBattleExecution>,
-	const FMuksiBattleExecutionContext&
-);
+DECLARE_DELEGATE_TwoParams(FMuksiRequestSystemExecution, TSubclassOf<UMuksiBattleExecution>, const FMuksiBattleExecutionContext&);
 
 USTRUCT(BlueprintType)
 struct FMuksiBattleExecutionContext

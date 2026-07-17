@@ -19,19 +19,18 @@
 #include "Grid/BattleGridManager.h"
 #include "Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
-#include "Muksi/Contents/Battle/Targeting/Component/MuksiCardTargetingComponent.h"
-#include "Muksi/Contents/Battle/Targeting/Preview/MuksiTargetingPreviewActor.h"
-#include "Muksi/Contents/Battle/Targeting/Preview/MuksiTargetingPreviewResolver.h"
+#include "Muksi/Contents/Battle/Targeting/Manager/BattleTargetingManager.h"
 
 ABattleManager::ABattleManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	CardTargetingComponent = CreateDefaultSubobject<UMuksiCardTargetingComponent>(TEXT("CardTargetingComponent"));
 }
 
 void ABattleManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	BattleTargetingManager = NewObject<UBattleTargetingManager>(this);
 
 	if (!BattleMainScreen)
 	{
@@ -43,6 +42,9 @@ void ABattleManager::BeginPlay()
 
 void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	CancelCurrentCardTargeting();
+	BattleTargetingManager = nullptr;
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearAllTimersForObject(this);
@@ -324,7 +326,7 @@ void ABattleManager::CreateCharacter()
 
 bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card)
 {
-	if (!CardTargetingComponent)
+	if (!BattleTargetingManager)
 	{
 		return false;
 	}
@@ -334,68 +336,62 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card)
 		return false;
 	}
 
+	if (!BattleGridManager)
+	{
+		return false;
+	}
+
 	if (!Card)
 	{
 		return false;
 	}
 
-	if (TargetingPreviewActor)
-	{
-		TargetingPreviewActor->HidePreview();
-	}
-
-	CurrentTargetingResult.Reset();
 	TargetPoints.Empty();
 
-	return CardTargetingComponent->StartTargeting(PlayerBattleCharacter, Card);
+	return BattleTargetingManager->StartTargeting(PlayerBattleCharacter, BattleGridManager, Card->TargetingData);
 }
 
-void ABattleManager::UpdateCurrentCardTargeting(const FMuksiCardTargetingContext& Context)
+bool ABattleManager::UpdateCurrentCardTargeting(const FTargetingInputContext& InputContext)
 {
-	if (!CardTargetingComponent)
+	if (!BattleTargetingManager)
 	{
-		return;
+		return false;
 	}
 
-	if (!CardTargetingComponent->IsTargeting())
+	if (!BattleTargetingManager->IsTargeting())
 	{
-		return;
+		return false;
 	}
 
-	CardTargetingComponent->UpdateTargeting(Context);
-	CurrentTargetingResult = CardTargetingComponent->GetCurrentResult();
-
-	if (!TargetingPreviewActor)
-	{
-		return;
-	}
-
-	const FMuksiTargetingPreviewCommand PreviewCommand = FMuksiTargetingPreviewResolver::BuildCommand(CardTargetingComponent->GetSourceCharacter(), CardTargetingComponent->GetCurrentCard(), CurrentTargetingResult, BattleGridManager);
-	TargetingPreviewActor->UpdatePreview(PreviewCommand);
+	return BattleTargetingManager->UpdateTargeting(InputContext);
 }
 
 bool ABattleManager::ConfirmCurrentCardTargeting()
 {
-	if (!CardTargetingComponent)
+	if (!BattleTargetingManager)
 	{
 		return false;
 	}
 
-	if (!CardTargetingComponent->ConfirmTargeting(CurrentTargetingResult))
+	const ETargetingConfirmResult ConfirmResult = BattleTargetingManager->ConfirmCurrentStep();
+
+	if (ConfirmResult == ETargetingConfirmResult::Failed)
 	{
 		return false;
 	}
 
-	TargetPoints = CurrentTargetingResult.AffectedCoords;
-
-	if (TargetPoints.IsEmpty() && CurrentTargetingResult.HasSelectedCoord())
+	if (ConfirmResult == ETargetingConfirmResult::AdvancedToNextStep)
 	{
-		TargetPoints.Add(CurrentTargetingResult.SelectedCoord);
+		return false;
 	}
 
-	if (TargetingPreviewActor)
+	const FTargetingResult& TargetingResult = BattleTargetingManager->GetTargetingResult();
+
+	TargetPoints = TargetingResult.AffectedCoords;
+
+	if (TargetPoints.IsEmpty() && TargetingResult.HasSelectedCoord())
 	{
-		TargetingPreviewActor->HidePreview();
+		TargetPoints.Add(TargetingResult.GetSelectedCoord());
 	}
 
 	return !TargetPoints.IsEmpty();
@@ -403,24 +399,19 @@ bool ABattleManager::ConfirmCurrentCardTargeting()
 
 void ABattleManager::CancelCurrentCardTargeting()
 {
-	if (CardTargetingComponent)
+	if (BattleTargetingManager)
 	{
-		CardTargetingComponent->CancelTargeting();
+		BattleTargetingManager->CancelTargeting();
 	}
 
-	if (TargetingPreviewActor)
-	{
-		TargetingPreviewActor->HidePreview();
-	}
-
-	CurrentTargetingResult.Reset();
 	TargetPoints.Empty();
 }
 
 bool ABattleManager::IsCardTargeting() const
 {
-	return CardTargetingComponent && CardTargetingComponent->IsTargeting();
+	return BattleTargetingManager && BattleTargetingManager->IsTargeting();
 }
+
 
 //===========================================준비(Ready)================================================================
 //게임 실행 첫 프레임 이내로 끝남
@@ -470,14 +461,14 @@ void ABattleManager::ReadyEnd()
 
 void ABattleManager::ComponentInit()
 {
-	if (CardTargetingComponent)
-	{
-		CardTargetingComponent->InitializeTargetingComponent(BattleGridManager);
-	}
-	if (TargetingPreviewActor)
-	{
-		TargetingPreviewActor->InitializePreviewActor(BattleGridManager);
-	}
+	//if (CardTargetingComponent)
+	//{
+	//	CardTargetingComponent->InitializeTargetingComponent(BattleGridManager);
+	//}
+	//if (TargetingPreviewActor)
+	//{
+	//	TargetingPreviewActor->InitializePreviewActor(BattleGridManager);
+	//}
 }
 
 //==========================================전투(Battle)================================================================

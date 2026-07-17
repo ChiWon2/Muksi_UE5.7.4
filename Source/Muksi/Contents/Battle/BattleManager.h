@@ -7,8 +7,7 @@
 #include "Character/BattleCharacter_Enemy.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
-#include "Muksi/Contents/Battle/Targeting/Types/MuksiCardTargetingContext.h"
-#include "Muksi/Contents/Battle/Targeting/Types/MuksiCardTargetingResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingInputContext.h"
 #include "BattleManager.generated.h"
 
 class ABattleCharacter_Player;
@@ -21,8 +20,8 @@ class ATargetPoint;
 class ABattleGridManager;
 class ABattleSequenceManager;
 
-class UMuksiCardTargetingComponent;
 class AMuksiTargetingPreviewActor;
+class UBattleTargetingManager;
 
 //리펙토링
 class UWidget_BattleMainScreen;
@@ -235,17 +234,6 @@ public:
 public:
 	bool bHandWidgetReady = false;
 
-	//*****Ready Battle Settings
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Targeting")
-	TObjectPtr<UMuksiCardTargetingComponent> CardTargetingComponent = nullptr;
-
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Targeting")
-	TObjectPtr<AMuksiTargetingPreviewActor> TargetingPreviewActor = nullptr;
-
-	UPROPERTY(Transient)
-	FMuksiCardTargetingResult CurrentTargetingResult;
-
 	UPROPERTY(EditAnywhere, Category = "Battle|Test")
 	TObjectPtr<UMuksiBattleCardDataAsset> TestBattleCardDataAsset = nullptr;
 
@@ -285,21 +273,17 @@ public:
 	//Battle Mouse 관련 함수
 public:
 	bool StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card);
-	void UpdateCurrentCardTargeting(const FMuksiCardTargetingContext& Context);
+	bool UpdateCurrentCardTargeting(const FTargetingInputContext& InputContext);
 	bool ConfirmCurrentCardTargeting();
 	void CancelCurrentCardTargeting();
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Targeting")
 	bool IsCardTargeting() const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Targeting")
-	UMuksiCardTargetingComponent* GetCardTargetingComponent() const { return CardTargetingComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
 	ABattleGridManager* GetBattleGridManager() const { return BattleGridManager; }
 
-	UFUNCTION(BlueprintPure, Category = "Battle|Targeting")
-	AMuksiTargetingPreviewActor* GetTargetingPreviewActor() const { return TargetingPreviewActor; }
+protected:
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleTargetingManager> BattleTargetingManager = nullptr;
 
 	//=========================================GetSet====================================================================
 public:

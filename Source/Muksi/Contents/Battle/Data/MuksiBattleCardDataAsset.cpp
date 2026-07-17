@@ -1,8 +1,5 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
-#include "Muksi/Contents/Battle/Targeting/Pattern/MuksiCardAreaPattern.h"
-#include "Muksi/Contents/Battle/Targeting/Policy/MuksiCardTargetingPolicy.h"
-
 UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
 {
 	CardID = NAME_None;
@@ -18,8 +15,7 @@ void UMuksiBattleCardDataAsset::PostEditChangeProperty(FPropertyChangedEvent& Pr
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	SyncExecutionDataTypes();
-	SyncTargetingDataType();
-	SyncAreaPatternDataType();
+	SyncTargetingDataTypes();
 }
 
 void UMuksiBattleCardDataAsset::SyncExecutionDataTypes()
@@ -35,68 +31,9 @@ void UMuksiBattleCardDataAsset::SyncExecutionDataTypes()
 	}
 }
 
-void UMuksiBattleCardDataAsset::SyncTargetingDataType()
+void UMuksiBattleCardDataAsset::SyncTargetingDataTypes()
 {
-	if (!TargetingPolicyClass)
-	{
-		TargetingData.Reset();
-		return;
-	}
-
-	const UMuksiCardTargetingPolicy* TargetingPolicyCDO = TargetingPolicyClass.GetDefaultObject();
-
-	if (!TargetingPolicyCDO)
-	{
-		TargetingData.Reset();
-		return;
-	}
-
-	const UScriptStruct* ExpectedStruct = TargetingPolicyCDO->GetTargetingDataStruct();
-
-	if (!ExpectedStruct)
-	{
-		TargetingData.Reset();
-		return;
-	}
-
-	if (TargetingData.GetScriptStruct() == ExpectedStruct)
-	{
-		return;
-	}
-
-	TargetingData.InitializeAs(ExpectedStruct);
-}
-
-void UMuksiBattleCardDataAsset::SyncAreaPatternDataType()
-{
-	if (!AreaPatternClass)
-	{
-		AreaPatternData.Reset();
-		return;
-	}
-
-	const UMuksiCardAreaPattern* AreaPatternCDO = AreaPatternClass.GetDefaultObject();
-
-	if (!AreaPatternCDO)
-	{
-		AreaPatternData.Reset();
-		return;
-	}
-
-	const UScriptStruct* ExpectedStruct = AreaPatternCDO->GetAreaPatternDataStruct();
-
-	if (!ExpectedStruct)
-	{
-		AreaPatternData.Reset();
-		return;
-	}
-
-	if (AreaPatternData.GetScriptStruct() == ExpectedStruct)
-	{
-		return;
-	}
-
-	AreaPatternData.InitializeAs(ExpectedStruct);
+	TargetingData.SyncDataTypes();
 }
 
 #endif
