@@ -22,7 +22,7 @@ public:
 	
 public:
 	UEnemyBattleAIComponent* BattleAIComponent;
-	virtual void SetCharacterData(UCharacterDataBase* InCharacterData) override;
+	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData) override;
 	
 	UMuksiBattleCardDataAsset* GetSelectEnemyCardDataAsset(ABattleGridManager* GridManager, ABattleManager* BattleManager)const;
 	TArray<FIntPoint> GetSelectEnemyCardCoord()const;

@@ -10,6 +10,7 @@ class UWidget_PlayerProfilePanel;
 class UCharacterDataBase;
 class UWidget_CharacterDeckPanel;
 class UCommonAnimatedSwitcher;
+class ABattleCharacter_Player;
 class UButton;
 
 /**
@@ -22,7 +23,7 @@ class MUKSI_API UCharacterDataPanelWidget_Player : public UCharacterDataPanelWid
 	
 public:
 	void InitializeFromPlayerMode();
-	void ApplyCharacterData(UCharacterDataBase* InCharacterData);
+	void ApplyCharacterData(ABattleCharacter_Player* PlayerData);
 	
 	
 protected:

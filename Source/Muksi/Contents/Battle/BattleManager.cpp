@@ -4,13 +4,12 @@
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
 
-#include "CharacterData_Enemy.h"
-#include "CharacterData_Player.h"
+#include "BattleCardEffectComponent.h"
+#include "BattleCardPreviewComponent.h"
 #include "TimerManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 
@@ -20,19 +19,18 @@
 #include "Grid/BattleGridManager.h"
 #include "Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
-#include "Muksi/Contents/Battle/Targeting/Component/MuksiCardTargetingComponent.h"
-#include "Muksi/Contents/Battle/Targeting/Preview/MuksiTargetingPreviewActor.h"
-#include "Muksi/Contents/Battle/Targeting/Preview/MuksiTargetingPreviewResolver.h"
+#include "Muksi/Contents/Battle/Targeting/Manager/BattleTargetingManager.h"
 
 ABattleManager::ABattleManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	CardTargetingComponent = CreateDefaultSubobject<UMuksiCardTargetingComponent>(TEXT("CardTargetingComponent"));
 }
 
 void ABattleManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	BattleTargetingManager = NewObject<UBattleTargetingManager>(this);
 
 	if (!BattleMainScreen)
 	{
@@ -44,6 +42,9 @@ void ABattleManager::BeginPlay()
 
 void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	CancelCurrentCardTargeting();
+	BattleTargetingManager = nullptr;
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearAllTimersForObject(this);
@@ -59,12 +60,37 @@ void ABattleManager::Tick(float DeltaTime)
 
 UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount)
 {
-	return PlayerSelectAction[ExchangeCount].Card;
+	if (PlayerSelectAction.Num() - 1 < ExchangeCount)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Exchange Count is bigger then PlayerSelectAction.Num (BattleManager.cpp)"));
+		return nullptr;
+	}
+	UMuksiBattleCardDataAsset* Card = PlayerSelectAction[ExchangeCount].Card;
+	if (!Card)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
+		return nullptr;
+	}
+	
+	
+	return Card;
 }
 
 UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount)
 {
-	return EnemySelectAction[ExchangeCount].Card;
+	if (EnemySelectAction.Num() - 1 < ExchangeCount)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Exchange Count is bigger then EnemySelectAction.Num (BattleManager.cpp)"));
+		UE_LOG(LogTemp, Error, TEXT("EnemySelectAction size : %d  Exchange Count %d"), EnemySelectAction.Num(), ExchangeCount);
+		return nullptr;
+	}
+	UMuksiBattleCardDataAsset* Card = EnemySelectAction[ExchangeCount].Card;
+	if (!Card)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
+		return nullptr;
+	}
+	return Card;
 }
 
 FIntPoint ABattleManager::GetPlayerPoint() const
@@ -172,15 +198,13 @@ void ABattleManager::ResolveCurrentAttack()
 	// - 공격 후 효과 처리
 }
 
-void ABattleManager::UseCardByRowName(UCharacterDataBase* SourceCharacter, UCharacterDataBase* TargetCharacter, FName CardRowName)
-{
-	if (!SourceCharacter)
-	{
-		return;
-	}
-}
 
-void ABattleManager::ExecuteCardEffects(const FMMuksiBattleCardTableRow& CardRow, UCharacterDataBase* SourceCharacter, UCharacterDataBase* TargetCharacter)
+
+void ABattleManager::ExecuteCardEffects(
+	const FMMuksiBattleCardTableRow& CardRow,
+	UCharacterDataBase* SourceCharacter,
+	UCharacterDataBase* TargetCharacter
+)
 {
 	// TODO:
 	// 기존에 주석 처리해둔 카드 효과 처리 코드를
@@ -283,9 +307,7 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-
-	PlayerBattleCharacter->CharacterDataAsset = TestPlayerCharacterDataAsset;
-	PlayerBattleCharacter->SetCharacterData(NewObject<UCharacterData_Player>(this));
+	PlayerBattleCharacter->SetCharacterData(TestPlayerCharacterDataAsset);
 
 	//Enemy BattleCharacter Spawn
 	EnemyBattleCharacter = World->SpawnActor<ABattleCharacter_Enemy>(EnemyClass, EnemySpawnPoint->GetActorTransform());
@@ -294,10 +316,7 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-
-	EnemyBattleCharacter->CharacterDataAsset = TestEnemyCharacterDataAsset;
-	EnemyBattleCharacter->SetCharacterData(NewObject<UCharacterData_Enemy>(this));
-
+	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset);
 	BattleGridManager->MoveCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->MoveCharacter(EnemyBattleCharacter, StartEnemyPoint);
 
@@ -307,7 +326,7 @@ void ABattleManager::CreateCharacter()
 
 bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card)
 {
-	if (!CardTargetingComponent)
+	if (!BattleTargetingManager)
 	{
 		return false;
 	}
@@ -317,68 +336,62 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card)
 		return false;
 	}
 
+	if (!BattleGridManager)
+	{
+		return false;
+	}
+
 	if (!Card)
 	{
 		return false;
 	}
 
-	if (TargetingPreviewActor)
-	{
-		TargetingPreviewActor->HidePreview();
-	}
-
-	CurrentTargetingResult.Reset();
 	TargetPoints.Empty();
 
-	return CardTargetingComponent->StartTargeting(PlayerBattleCharacter, Card);
+	return BattleTargetingManager->StartTargeting(PlayerBattleCharacter, BattleGridManager, Card->TargetingData);
 }
 
-void ABattleManager::UpdateCurrentCardTargeting(const FMuksiCardTargetingContext& Context)
+bool ABattleManager::UpdateCurrentCardTargeting(const FTargetingInputContext& InputContext)
 {
-	if (!CardTargetingComponent)
+	if (!BattleTargetingManager)
 	{
-		return;
+		return false;
 	}
 
-	if (!CardTargetingComponent->IsTargeting())
+	if (!BattleTargetingManager->IsTargeting())
 	{
-		return;
+		return false;
 	}
 
-	CardTargetingComponent->UpdateTargeting(Context);
-	CurrentTargetingResult = CardTargetingComponent->GetCurrentResult();
-
-	if (!TargetingPreviewActor)
-	{
-		return;
-	}
-
-	const FMuksiTargetingPreviewCommand PreviewCommand = FMuksiTargetingPreviewResolver::BuildCommand(CardTargetingComponent->GetSourceCharacter(), CardTargetingComponent->GetCurrentCard(), CurrentTargetingResult, BattleGridManager);
-	TargetingPreviewActor->UpdatePreview(PreviewCommand);
+	return BattleTargetingManager->UpdateTargeting(InputContext);
 }
 
 bool ABattleManager::ConfirmCurrentCardTargeting()
 {
-	if (!CardTargetingComponent)
+	if (!BattleTargetingManager)
 	{
 		return false;
 	}
 
-	if (!CardTargetingComponent->ConfirmTargeting(CurrentTargetingResult))
+	const ETargetingConfirmResult ConfirmResult = BattleTargetingManager->ConfirmCurrentStep();
+
+	if (ConfirmResult == ETargetingConfirmResult::Failed)
 	{
 		return false;
 	}
 
-	TargetPoints = CurrentTargetingResult.AffectedCoords;
-
-	if (TargetPoints.IsEmpty() && CurrentTargetingResult.HasSelectedCoord())
+	if (ConfirmResult == ETargetingConfirmResult::AdvancedToNextStep)
 	{
-		TargetPoints.Add(CurrentTargetingResult.SelectedCoord);
+		return false;
 	}
 
-	if (TargetingPreviewActor)
+	const FTargetingResult& TargetingResult = BattleTargetingManager->GetTargetingResult();
+
+	TargetPoints = TargetingResult.AffectedCoords;
+
+	if (TargetPoints.IsEmpty() && TargetingResult.HasSelectedCoord())
 	{
-		TargetingPreviewActor->HidePreview();
+		TargetPoints.Add(TargetingResult.GetSelectedCoord());
 	}
 
 	return !TargetPoints.IsEmpty();
@@ -386,24 +399,19 @@ bool ABattleManager::ConfirmCurrentCardTargeting()
 
 void ABattleManager::CancelCurrentCardTargeting()
 {
-	if (CardTargetingComponent)
+	if (BattleTargetingManager)
 	{
-		CardTargetingComponent->CancelTargeting();
+		BattleTargetingManager->CancelTargeting();
 	}
 
-	if (TargetingPreviewActor)
-	{
-		TargetingPreviewActor->HidePreview();
-	}
-
-	CurrentTargetingResult.Reset();
 	TargetPoints.Empty();
 }
 
 bool ABattleManager::IsCardTargeting() const
 {
-	return CardTargetingComponent && CardTargetingComponent->IsTargeting();
+	return BattleTargetingManager && BattleTargetingManager->IsTargeting();
 }
+
 
 //===========================================준비(Ready)================================================================
 //게임 실행 첫 프레임 이내로 끝남
@@ -453,14 +461,14 @@ void ABattleManager::ReadyEnd()
 
 void ABattleManager::ComponentInit()
 {
-	if (CardTargetingComponent)
-	{
-		CardTargetingComponent->InitializeTargetingComponent(BattleGridManager);
-	}
-	if (TargetingPreviewActor)
-	{
-		TargetingPreviewActor->InitializePreviewActor(BattleGridManager);
-	}
+	//if (CardTargetingComponent)
+	//{
+	//	CardTargetingComponent->InitializeTargetingComponent(BattleGridManager);
+	//}
+	//if (TargetingPreviewActor)
+	//{
+	//	TargetingPreviewActor->InitializePreviewActor(BattleGridManager);
+	//}
 }
 
 //==========================================전투(Battle)================================================================
@@ -653,6 +661,13 @@ void ABattleManager::SetEnemyBattleAction()
 	BattleAction.Card = EnemyBattleCharacter->GetSelectEnemyCardDataAsset(BattleGridManager, this);
 	BattleAction.Attacker = EnemyBattleCharacter;
 	BattleAction.bPlayerAction = false;
+	
+	if (BattleAction.Card == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyBattleCharacter->GetSelectEnemyCardDataAsset is null!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
+		return;
+	}
+	//좌표 구하는거
 	BattleAction.TargetPoints = EnemyBattleCharacter->GetSelectEnemyCardCoord();
 
 	AttackActions.Add(BattleAction);

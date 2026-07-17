@@ -7,6 +7,8 @@
 #include "Components/ActorComponent.h"
 #include "EnemyBattleAIComponent.generated.h"
 
+class UMuksiCharacterDataAsset;
+class ABattleCharacterBase;
 class UEnemyCardSelectStrategyBase;
 class UCharacterDataBase;
 class UMuksiBattleCardDataAsset;
@@ -22,10 +24,10 @@ class MUKSI_API UEnemyBattleAIComponent : public UActorComponent
 public:	
 	UEnemyBattleAIComponent();
 	
-	void InitializeAI(UCharacterDataBase* InEnemyData);
+	void InitializeAI(UMuksiCharacterDataAsset* CharacterDataAsset);
 
 	UMuksiBattleCardDataAsset* SelectCardForExchange(
-		UCharacterDataBase* EnemyData,
+		FCharacterData EnemyData,
 		ABattleGridManager* GridManager,
 		ABattleManager* BattleManager
 	);

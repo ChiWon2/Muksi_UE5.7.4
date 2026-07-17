@@ -10,10 +10,8 @@
 #include "Data/MuksiBattleCardEffectData.h"
 #include "Grid/BattleGridManager.h"
 #include "Grid/BattleGridTile.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
-#include "Muksi/Contents/Battle/CharacterData_Player.h"
-#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
-#include "Muksi/Contents/Battle/Grid/CardRange/CardRangeDataAssetBase.h"
+
+
 
 
 // Sets default values for this component's properties

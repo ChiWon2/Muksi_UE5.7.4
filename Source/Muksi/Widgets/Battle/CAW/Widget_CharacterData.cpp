@@ -3,16 +3,13 @@
 
 #include "Muksi/Widgets/Battle/CAW/Widget_CharacterData.h"
 
-#include "Controllers/MuksiPlayerController.h"
 #include "Components/Button.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Widgets/Battle/CharacterData/CharacterDataPanelWidget_Player.h"
 #include "Muksi/Widgets/Battle/CharacterData/CharacterDataPanelWidget_Enemy.h"
 
-#include "MuksiDebugHelper.h"
-#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
-#include "Muksi/Contents/Battle/CharacterData_Player.h"
+
 
 
 void UWidget_CharacterData::CloseActivatableWidget()
@@ -55,17 +52,17 @@ void UWidget_CharacterData::NativeOnDeactivated()
 	
 }
 
-void UWidget_CharacterData::GetCharacterData(UCharacterDataBase* CharacterData)
+void UWidget_CharacterData::GetCharacterData(ABattleCharacterBase* CharacterData)
 {
 	PlayerData = nullptr;
 	EnemyData = nullptr;
 	
 	UE_LOG(LogTemp, Warning, TEXT("GetCharacterData this: %s / %p"), *GetNameSafe(this), this);
 	
-	if (UCharacterData_Player* Player = Cast<UCharacterData_Player>(CharacterData))
+	if (ABattleCharacter_Player* Player = Cast<ABattleCharacter_Player>(CharacterData))
 	{
 		PlayerData = Player;
-	}else if (UCharacterData_Enemy* Enemy = Cast<UCharacterData_Enemy>(CharacterData))
+	}else if (ABattleCharacter_Enemy* Enemy = Cast<ABattleCharacter_Enemy>(CharacterData))
 	{
 		EnemyData = Enemy;
 	}

@@ -11,6 +11,7 @@ class UDataTable;
 class UCharacterDataBase;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
+class ABattleCharacterBase;
 
 class ABattleGridTile;
 class ABattleManager;
@@ -31,6 +32,7 @@ public:
 	virtual int32 GetInputMappingPriority() const override { return 10; }
 
 	virtual void HandleLeftClick(const FInputActionValue& Value) override;
+	virtual void HandleRightClick(const FInputActionValue& Value) override;
 	virtual void HandleRPressedKey(const FInputActionValue& Value) override;
 	//~ End UPlayerModeBase Interface
 
@@ -45,10 +47,10 @@ public:
 	void InitializeBattleTestData();
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Test")
-	UCharacterDataBase* GetPlayerCharacterData() const { return PlayerCharacterData; }
+	ABattleCharacterBase* GetPlayerCharacterData() const { return BattleCharacterPlayer; }
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Test")
-	UCharacterDataBase* GetEnemyCharacterData() const { return EnemyCharacterData; }
+	ABattleCharacterBase* GetEnemyCharacterData() const { return BattleCharacterEnemy; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Test")
@@ -61,11 +63,11 @@ protected:
 	TObjectPtr<UMuksiCharacterDataAsset> TestEnemyCharacterDataAsset = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UCharacterDataBase> PlayerCharacterData = nullptr;
+	TObjectPtr<ABattleCharacterBase> BattleCharacterPlayer = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UCharacterDataBase> EnemyCharacterData = nullptr;
-
+	TObjectPtr<ABattleCharacterBase> BattleCharacterEnemy = nullptr;
+	
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
 

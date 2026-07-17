@@ -6,6 +6,7 @@
 #include "CommonTextBlock.h"
 #include "HandWidget.h"
 #include "Widget_CardEquipSlot.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
@@ -31,26 +32,8 @@ void UWidget_BattleCardBase::NativeConstruct()
 
 void UWidget_BattleCardBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
-	Super::NativeTick(MyGeometry, InDeltaTime);
+	/*Super::NativeTick(MyGeometry, InDeltaTime);
 	MoveTimeline.TickTimeline(InDeltaTime);
-	
-	/*if (bIsDragging && OwningHandWidget)
-	{
-		if (APlayerController* PC = GetOwningPlayer())
-		{
-			const FVector2D MouseViewportPos =
-				UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
-
-			const FGeometry& HandGeometry = OwningHandWidget->GetHandCanvasGeometry();
-			const FVector2D LocalMousePos = HandGeometry.AbsoluteToLocal(MouseViewportPos);
-
-			if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
-			{
-				const FVector2D NewPosition = LocalMousePos - DragOffset;
-				CanvasSlot->SetPosition(NewPosition);
-			}
-		}
-	}*/
 	
 	if (bIsDragging && OwningHandWidget)
 	{
@@ -63,6 +46,154 @@ void UWidget_BattleCardBase::NativeTick(const FGeometry& MyGeometry, float InDel
 		{
 			CanvasSlot->SetPosition(LocalMousePos - DragOffset);
 		}
+	}
+	
+	if (!bPlayingDrawAnimation)
+	{
+		return;
+	}
+
+	DrawAnimationElapsed += InDeltaTime;
+
+	// 카드별 등장 지연시간
+	if (DrawAnimationElapsed < DrawAnimationDelay)
+	{
+		return;
+	}
+
+	const float AnimationElapsed =
+		DrawAnimationElapsed - DrawAnimationDelay;
+
+	const float Alpha = FMath::Clamp(
+		AnimationElapsed / DrawAnimationDuration,
+		0.0f,
+		1.0f
+	);
+
+	// 처음에는 빠르게 움직이고 마지막에는 감속
+	const float EasedAlpha =
+		FMath::InterpEaseOut(
+			0.0f,
+			1.0f,
+			Alpha,
+			3.0f
+		);
+
+	const FVector2D CurrentTranslation =
+		FMath::Lerp(
+			DrawStartTranslation,
+			FVector2D::ZeroVector,
+			EasedAlpha
+		);
+
+	SetRenderTranslation(CurrentTranslation);
+
+	// 처음 등장할 때만 빠르게 불투명해짐
+	const float OpacityAlpha =
+		FMath::Clamp(Alpha * 4.0f, 0.0f, 1.0f);
+
+	SetRenderOpacity(OpacityAlpha);
+
+	if (Alpha >= 1.0f)
+	{
+		SetRenderTranslation(FVector2D::ZeroVector);
+		SetRenderOpacity(1.0f);
+		SetIsEnabled(true);
+
+		bPlayingDrawAnimation = false;
+	}*/
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	MoveTimeline.TickTimeline(InDeltaTime);
+
+	// 드로우 애니메이션 중에는 드래그하지 않음
+	if (bIsDragging &&
+		OwningHandWidget &&
+		!bPlayingDrawAnimation)
+	{
+		const FVector2D MouseScreenPos =
+			FSlateApplication::Get().GetCursorPos();
+
+		const FGeometry& HandGeometry =
+			OwningHandWidget->GetHandCanvasGeometry();
+
+		const FVector2D LocalMousePos =
+			HandGeometry.AbsoluteToLocal(MouseScreenPos);
+
+		if (UCanvasPanelSlot* CanvasSlot =
+			Cast<UCanvasPanelSlot>(Slot))
+		{
+			CanvasSlot->SetPosition(
+				LocalMousePos - DragOffset
+			);
+		}
+	}
+
+	if (!bPlayingDrawAnimation)
+	{
+		return;
+	}
+
+	DrawAnimationElapsed += InDeltaTime;
+
+	// 카드별 시작 지연
+	if (DrawAnimationElapsed < DrawAnimationDelay)
+	{
+		return;
+	}
+
+	const float AnimationElapsed =
+		DrawAnimationElapsed - DrawAnimationDelay;
+
+	const float SafeDuration =
+		FMath::Max(
+			DrawAnimationDuration,
+			KINDA_SMALL_NUMBER
+		);
+
+	const float Alpha =
+		FMath::Clamp(
+			AnimationElapsed / SafeDuration,
+			0.0f,
+			1.0f
+		);
+
+	const float EasedAlpha =
+		FMath::InterpEaseOut(
+			0.0f,
+			1.0f,
+			Alpha,
+			3.0f
+		);
+
+	const FVector2D CurrentTranslation =
+		FMath::Lerp(
+			DrawStartTranslation,
+			FVector2D::ZeroVector,
+			EasedAlpha
+		);
+
+	SetRenderTranslation(CurrentTranslation);
+
+	const float OpacityAlpha =
+		FMath::Clamp(
+			Alpha * 4.0f,
+			0.0f,
+			1.0f
+		);
+
+	SetRenderOpacity(OpacityAlpha);
+
+	if (Alpha >= 1.0f)
+	{
+		SetRenderTranslation(
+			FVector2D::ZeroVector
+		);
+
+		SetRenderOpacity(1.0f);
+		SetIsEnabled(true);
+
+		bPlayingDrawAnimation = false;
 	}
 }
 
@@ -353,6 +484,46 @@ void UWidget_BattleCardBase::PlayCardFlipToFront()
 	}
 
 	PlayAnimation(Anim_CardFlipToFront);
+}
+
+void UWidget_BattleCardBase::PlayDrawToHandAnimation(float InDelay)
+{
+	DrawAnimationDelay = FMath::Max(0.0f, InDelay);
+	DrawAnimationElapsed = 0.0f;
+	bPlayingDrawAnimation = true;
+
+	if (!OwningHandWidget)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("PlayDrawToHandAnimation: OwningHandWidget is null")
+		);
+
+		bPlayingDrawAnimation = false;
+		return;
+	}
+
+	const FVector2D SpawnPosition =
+		OwningHandWidget->GetCardDrawStartLocalPosition();
+
+	FVector2D FinalCardPosition =
+		FVector2D::ZeroVector;
+
+	if (const UCanvasPanelSlot* CanvasSlot =
+		Cast<UCanvasPanelSlot>(Slot))
+	{
+		FinalCardPosition =
+			CanvasSlot->GetPosition();
+	}
+
+	// 최종 카드 위치에서 SpawnPoint까지의 차이
+	DrawStartTranslation =
+		SpawnPosition - FinalCardPosition;
+
+	SetRenderTranslation(DrawStartTranslation);
+	SetRenderOpacity(0.0f);
+	SetIsEnabled(false);
 }
 
 

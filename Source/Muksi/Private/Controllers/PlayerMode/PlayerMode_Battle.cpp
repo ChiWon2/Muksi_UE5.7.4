@@ -3,7 +3,6 @@
 #include "Controllers/PlayerMode/PlayerMode_Battle.h"
 
 #include "Controllers/MuksiPlayerController.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
 #include "Muksi/Widgets/Battle/CAW/Widget_CharacterData.h"
 #include "Subsystems/MuksiUISubsystem.h"
 
@@ -16,8 +15,8 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
-#include "Muksi/Contents/Battle/Targeting/Types/MuksiCardTargetingContext.h"
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingInputContext.h"
 
 void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 {
@@ -88,7 +87,6 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 
 	if (!PC)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PlayerMode_Battle::HandleLeftClick - PC is nullptr"));
 		return;
 	}
 
@@ -116,20 +114,14 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 
 		BattleMainScreen->PlayerSelectCardFinish = true;
 		BattleManager->ExchangeN_EndReady();
+
 		return;
 	}
 
 	FHitResult HitResult;
 
-	const bool bHit = PC->GetHitResultUnderCursorByChannel(
-		UEngineTypes::ConvertToTraceType(ECC_Visibility),
-		true,
-		HitResult
-	);
-
-	if (!bHit)
+	if (!PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
 	{
-		Debug::Print(TEXT("Nothing Hit"));
 		return;
 	}
 
@@ -137,7 +129,6 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 
 	if (!HitActor)
 	{
-		Debug::Print(TEXT("Hit, But No Actor"));
 		return;
 	}
 
@@ -145,15 +136,30 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 	{
 		SelectedActor = HitActor;
 		PushCharacterDataWidget();
+		return;
 	}
-	else if (HitActor->GetClass()->ImplementsInterface(USelectGridInterface::StaticClass()))
+
+	if (HitActor->GetClass()->ImplementsInterface(USelectGridInterface::StaticClass()))
 	{
 		ISelectGridInterface::Execute_OnGridSelected(HitActor);
 	}
-	else
+}
+
+void UPlayerMode_Battle::HandleRightClick(const FInputActionValue& Value)
+{
+	Super::HandleRightClick(Value);
+
+	if (!BattleManager)
 	{
-		Debug::Print(FString::Printf(TEXT("Not Selectable : %s"), *HitActor->GetName()));
+		return;
 	}
+
+	if (!BattleManager->IsCardTargeting())
+	{
+		return;
+	}
+
+	BattleManager->CancelCurrentCardTargeting();
 }
 
 void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
@@ -163,12 +169,7 @@ void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
 
 void UPlayerMode_Battle::UpdateHoveredGridTile()
 {
-	if (!PC)
-	{
-		return;
-	}
-
-	if (!BattleManager)
+	if (!PC || !BattleManager)
 	{
 		return;
 	}
@@ -177,11 +178,37 @@ void UPlayerMode_Battle::UpdateHoveredGridTile()
 
 	if (!PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
 	{
+		if (HoveredGridTile)
+		{
+			HoveredGridTile->OnHoverEnd();
+		}
+
 		HoveredGridTile = nullptr;
+
+		if (BattleManager->IsCardTargeting())
+		{
+			BattleManager->UpdateCurrentCardTargeting(FTargetingInputContext());
+		}
+
 		return;
 	}
 
-	HoveredGridTile = Cast<ABattleGridTile>(HitResult.GetActor());
+	ABattleGridTile* NewHoveredGridTile = Cast<ABattleGridTile>(HitResult.GetActor());
+
+	if (HoveredGridTile != NewHoveredGridTile)
+	{
+		if (HoveredGridTile)
+		{
+			HoveredGridTile->OnHoverEnd();
+		}
+
+		HoveredGridTile = NewHoveredGridTile;
+
+		if (HoveredGridTile)
+		{
+			HoveredGridTile->OnHoverBegin();
+		}
+	}
 
 	if (BattleManager->IsCardTargeting())
 	{
@@ -191,7 +218,7 @@ void UPlayerMode_Battle::UpdateHoveredGridTile()
 
 void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 {
-	if (!BattleManager)
+	if (!BattleManager || !BattleManager->IsCardTargeting())
 	{
 		return;
 	}
@@ -203,54 +230,53 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 		return;
 	}
 
-	FMuksiCardTargetingContext Context;
-	Context.AimWorldLocation = HitResult.ImpactPoint;
+	FTargetingInputContext InputContext;
+	InputContext.AimWorldLocation = HitResult.ImpactPoint;
 
 	AActor* HitActor = HitResult.GetActor();
 
 	if (ABattleGridTile* HitTile = Cast<ABattleGridTile>(HitActor))
 	{
-		Context.HoveredCoord = HitTile->GetGridCoord();
+		InputContext.HoveredCoord = HitTile->GetGridCoord();
 
-		const FBattleGridCell* Cell = GridManager->GetCell(Context.HoveredCoord);
+		const FBattleGridCell* Cell = GridManager->GetCell(InputContext.HoveredCoord);
 
 		if (Cell)
 		{
 			if (ABattleCharacterBase* CandidateCharacter = Cast<ABattleCharacterBase>(Cell->OccupyingActor))
 			{
-				Context.CandidateCharacters.AddUnique(CandidateCharacter);
+				InputContext.CandidateCharacters.AddUnique(CandidateCharacter);
 			}
 		}
 	}
 	else if (ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
 	{
-		Context.HoveredCoord = HitCharacter->GetCharacterPosition();
-		Context.CandidateCharacters.AddUnique(HitCharacter);
+		InputContext.HoveredCoord = HitCharacter->GetCharacterPosition();
+		InputContext.CandidateCharacters.AddUnique(HitCharacter);
 	}
 
-	BattleManager->UpdateCurrentCardTargeting(Context);
+	BattleManager->UpdateCurrentCardTargeting(InputContext);
 }
-
 void UPlayerMode_Battle::InitializeBattleTestData()
 {
-	/*if (!BattleCardDataTable || !TestPlayerCharacterDataAsset || !TestEnemyCharacterDataAsset)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UPlayerMode::InitializeBattleTestData - Required asset is missing"));
-		return;
-	}
+	//if (!BattleCardDataTable || !TestPlayerCharacterDataAsset || !TestEnemyCharacterDataAsset)
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("UPlayerMode::InitializeBattleTestData - Required asset is missing"));
+	//	return;
+	//}
 
-	PlayerCharacterData = NewObject<UCharacterDataBase>(this);
-	EnemyCharacterData = NewObject<UCharacterDataBase>(this);
+	//PlayerCharacterData = NewObject<UCharacterDataBase>(this);
+	//EnemyCharacterData = NewObject<UCharacterDataBase>(this);
 
-	if (PlayerCharacterData)
-	{
-		PlayerCharacterData->InitializeFromDataAsset(TestPlayerCharacterDataAsset);
-	}
+	//if (PlayerCharacterData)
+	//{
+	//	PlayerCharacterData->InitializeFromDataAsset(TestPlayerCharacterDataAsset);
+	//}
 
-	if (EnemyCharacterData)
-	{
-		EnemyCharacterData->InitializeFromDataAsset(TestEnemyCharacterDataAsset);
-	}*/
+	//if (EnemyCharacterData)
+	//{
+	//	EnemyCharacterData->InitializeFromDataAsset(TestEnemyCharacterDataAsset);
+	//}
 }
 
 void UPlayerMode_Battle::PushCharacterDataWidget()
@@ -291,9 +317,12 @@ void UPlayerMode_Battle::PushCharacterDataWidget()
 				//초기화
 				if (SelectedActor)
 				{
-					//CharacterDataWidget->GetClickedActor(SelectedActor);
-					UCharacterDataBase* CharacterDataBase = Cast<ABattleCharacterBase>(SelectedActor)->GetCharacterData();
-					CharacterDataWidget->GetCharacterData(CharacterDataBase);
+					//초기화
+					if (SelectedActor)
+					{
+						//CharacterDataWidget->GetClickedActor(SelectedActor);
+						CharacterDataWidget->GetCharacterData(Cast<ABattleCharacterBase>(SelectedActor));
+					}
 				}
 			}
 		},

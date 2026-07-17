@@ -5,8 +5,6 @@
 
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
-#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
 
 // Sets default values for this component's properties
@@ -19,14 +17,14 @@ UEnemyBattleAIComponent::UEnemyBattleAIComponent()
 	// ...
 }
 
-void UEnemyBattleAIComponent::InitializeAI(UCharacterDataBase* InEnemyData)
+void UEnemyBattleAIComponent::InitializeAI(UMuksiCharacterDataAsset* InCharacterDataAsset)
 {
-	if (!InEnemyData)
+	if (!InCharacterDataAsset)
 	{
 		return;
 	}
 
-	UMuksiCharacterDataAsset* CharacterAsset = InEnemyData->GetSourceCharacterDataAsset();
+	UMuksiCharacterDataAsset* CharacterAsset = InCharacterDataAsset;
 
 	if (!CharacterAsset || !CharacterAsset->CardSelectStrategyClass)
 	{
@@ -41,7 +39,7 @@ void UEnemyBattleAIComponent::InitializeAI(UCharacterDataBase* InEnemyData)
 }
 
 UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
-	UCharacterDataBase* EnemyData,
+	FCharacterData EnemyData,
 	ABattleGridManager* GridManager,
 	ABattleManager* BattleManager
 )
@@ -50,6 +48,12 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 	{
 		UE_LOG(LogTemp, Warning, TEXT("CardSelectStrategy is null"));
 		return nullptr;
+	}
+	
+	//카드가 없으면 다시 뽑기
+	if (EnemyData.BattleDeck.Num() == 0)
+	{
+		EnemyData.BattleDeck = EnemyData.AllBattleDeck;
 	}
 
 	Result = CardSelectStrategy->SelectCardForExchange(
@@ -66,19 +70,6 @@ TArray<FIntPoint> UEnemyBattleAIComponent::GetPointForExchange()const
 	return Result.SelectedCoordArray;
 }
 
-/*UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardsForExchange(UCharacterDataBase* EnemyData)
-{
-	
-	if (!CardSelectStrategy)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CardSelectStrategy is null"));
-		return nullptr;
-	}
-
-	return CardSelectStrategy->SelectCardsForExchange(
-		EnemyData
-	);
-}*/
 
 
 // Called when the game starts

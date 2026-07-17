@@ -4,37 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Muksi/Contents/Battle/Grid/Hex/HexGridCoord.h"
 #include "BattleGridManager.generated.h"
 
 class ABattleGridTile;
 class UCharacterDataBase;
 class ABattleCharacterBase;
 class UBattleGridNavigationComponent;
-
-USTRUCT(BlueprintType)
-struct FCubeCoord
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 X = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Y = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Z = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bInRange = true;
-
-	FCubeCoord() {}
-
-	FCubeCoord(int32 InX, int32 InY, int32 InZ)
-		: X(InX), Y(InY), Z(InZ)
-	{
-	}
-};
 
 USTRUCT(BlueprintType)
 struct FBattleGridCell

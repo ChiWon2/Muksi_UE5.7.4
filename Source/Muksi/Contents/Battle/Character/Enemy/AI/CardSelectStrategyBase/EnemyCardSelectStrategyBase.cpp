@@ -4,16 +4,16 @@
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 
 #include "Muksi/Contents/Battle/Grid/CardRange/CardRangeDataAssetBase.h"
-#include "Muksi/Contents/Battle/CharacterDataBase.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
-FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Implementation(UCharacterDataBase* EnemyData,
+FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Implementation(FCharacterData EnemyData,
                                                                                           ABattleGridManager* GridManager, const FIntPoint& EnemyCoord, const FIntPoint& PlayerCoord)
 {
 	FEnemyCardSelectResult BestResult;
 
-	if (!EnemyData)
+	if (!EnemyData.IsValid())
 	{
 		return BestResult;
 	}
@@ -22,7 +22,7 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 		return BestResult;
 	}
 
-	TArray<UMuksiBattleCardDataAsset*> Deck = EnemyData->GetCharacterDeck();
+	TArray<UMuksiBattleCardDataAsset*> Deck = EnemyData.BattleDeck;
 	if (Deck.Num() <= 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Enemy deck is empty"));
@@ -42,52 +42,17 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 	FIntPoint SelectedCoord = CandidateCoords[0];
 	BestResult.SelectedCoordArray = Card->AttackType.RangeDataAsset->GetRangeCoords(GridManager, SelectedCoord, 0);
 	BestResult.SelectedCard = Card;
-	EnemyData->RemoveCard(Card);
-
-	//점수 제 로 좋은 카드 구하는 코드 <- Base 단계에선 필요없음
-	/*float BestScore = TNumericLimits<float>::Lowest();
-
-	for (UMuksiBattleCardDataAsset* Card : Deck)
-	{
-		if (!Card)
-		{
-			continue;
-		}
-
-		
-		for (const FIntPoint& CandidateCoord : CandidateCoords)
-		{
-			const float Score = EvaluateCardCoord(
-				Card,
-				CandidateCoord,
-				PlayerCoord,
-				GridManager
-			);
-
-			if (!BestResult.bValid || Score > BestScore)
-			{
-				BestScore = Score;
-				BestResult.SelectedCard = Card;
-				BestResult.SelectedCoord = CandidateCoord;
-				BestResult.bValid = true;
-			}
-		}
-	}*/
-	//몰라
-	/*if (BestResult.bValid && BestResult.SelectedCard)
-	{
-		EnemyData->RemoveCard(BestResult.SelectedCard);
-	}*/
+	EnemyData.BattleDeck.Remove(Card);
 
 	return BestResult;
 }
 
-TArray<FIntPoint> UEnemyCardSelectStrategyBase::GetCandidateCoords(UCharacterDataBase* EnemyData,
+TArray<FIntPoint> UEnemyCardSelectStrategyBase::GetCandidateCoords(FCharacterData EnemyData,
 	UMuksiBattleCardDataAsset* Card, ABattleGridManager* GridManager, const FIntPoint& EnemyCoord, const FIntPoint& PlayerCoord)
 {
 	TArray<FIntPoint> Result;
 
-	if (!EnemyData || !Card || !GridManager)
+	if (!EnemyData.IsValid() || !Card || !GridManager)
 	{
 		return Result;
 	}

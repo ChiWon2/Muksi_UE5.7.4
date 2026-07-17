@@ -5,11 +5,10 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
-#include "Muksi/Contents/Battle/CharacterData_Player.h"
-#include "Muksi/Contents/Battle/CharacterData_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
+#include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
 
 // Sets default values
 ABattleGridManager::ABattleGridManager()
@@ -41,56 +40,17 @@ void ABattleGridManager::Tick(float DeltaTime)
 
 FCubeCoord ABattleGridManager::OddQToCube(const FIntPoint& Coord) const
 {
-	const int32 Col = Coord.X;
-	const int32 Row = Coord.Y;
-	const int32 CubeX = Col;
-	const int32 CubeZ = Row - (Col - (Col & 1)) / 2;
-	const int32 CubeY = -CubeX - CubeZ;
-
-	return FCubeCoord(CubeX, CubeY, CubeZ);
+	return FHexGridMath::OddQToCube(Coord);
 }
 
 FIntPoint ABattleGridManager::CubeToOddQ(const FCubeCoord& Cube) const
 {
-	const int32 Col = Cube.X;
-	const int32 Row = Cube.Z + (Cube.X - (Cube.X & 1)) / 2;
-
-	return FIntPoint(Col, Row);
+	return FHexGridMath::CubeToOddQ(Cube);
 }
 
 FCubeCoord ABattleGridManager::GetCubeDirection(int32 Direction) const
 {
-	Direction = ((Direction % 6) + 6) % 6;
-
-	switch (Direction)
-	{
-	case 0:
-		// 오른쪽
-		return FCubeCoord(1, -1, 0);
-
-	case 1:
-		// 오른쪽 아래
-		return FCubeCoord(1, 0, -1);
-
-	case 2:
-		// 왼쪽 아래
-		return FCubeCoord(0, 1, -1);
-
-	case 3:
-		// 왼쪽
-		return FCubeCoord(-1, 1, 0);
-
-	case 4:
-		// 왼쪽 위
-		return FCubeCoord(-1, 0, 1);
-
-	case 5:
-		// 오른쪽 위
-		return FCubeCoord(0, -1, 1);
-
-	default:
-		return FCubeCoord(1, -1, 0);
-	}
+	return FHexGridMath::GetCubeDirection(Direction);
 }
 
 FCubeCoord ABattleGridManager::RotateCubeRight60(const FCubeCoord& Cube) const
