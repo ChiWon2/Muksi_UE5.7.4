@@ -521,6 +521,7 @@ void ABattleManager::RoundEnd()
 void ABattleManager::ExchangeStart()
 {
 	SetPhase(EBattlePhase::ExchangeStart);
+	CurrentExchange = 0;
 
 	AttackActions.Empty();
 
@@ -536,6 +537,7 @@ void ABattleManager::ExchangeStart()
 
 void ABattleManager::Exchange1Start()
 {
+	//CurrentExchange += 1;
 	BattleMainScreen->Exchange1Start();
 }
 

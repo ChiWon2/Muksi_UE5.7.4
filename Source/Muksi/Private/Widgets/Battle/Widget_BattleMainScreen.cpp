@@ -365,10 +365,19 @@ void UWidget_BattleMainScreen::RoundEnd()
 
 void UWidget_BattleMainScreen::RemoveSelectCards()const
 {
-	for (int32 Count = 0; Count < 3; Count++)
+	for (int32 Count = 1; Count < 4; Count++)
+	{
+		UMuksiBattleCardDataAsset* DataAsset = HandWidget->GetExchangeDataIndex_Player(Count);
+		if (DataAsset != nullptr){UE_LOG(LogTemp, Error, TEXT("Remove Select Cards is %s"), *DataAsset->GetName());}
+		else{	UE_LOG(LogTemp, Error, TEXT("Remove Select Cards is nullptr"));}
+	}
+	
+	for (int32 Count = 1; Count < 4; Count++)
 	{
 		PlayerBattleCharacter->RemoveBattleCard(HandWidget->GetExchangeDataIndex_Player(Count));
 		EnemyBattleCharacter->RemoveBattleCard(HandWidget->GetExchangeDataIndex_Enemy(Count));
+		
+		
 	}
 }
 
@@ -706,13 +715,16 @@ void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 
 void UWidget_BattleMainScreen::SetBattleCardToHand()
 {
+	UE_LOG(LogTemp, Error, TEXT("1111111111111111111   %d"), PlayerBattleCharacter->GetCurrentBattleCardCount());
 	//핸드에 남는 카드가 없으면 오른쪽에서 뽑기
 	if (PlayerBattleCharacter->GetCurrentBattleCardCount() == 0)
 	{
+		UE_LOG(LogTemp, Error, TEXT("222222222222222222222"));
 		HandWidget->DrawCards(PlayerBattleCharacter);
 		HandWidget->HitActiveHandCards(true);
 	}else
 	{
+		UE_LOG(LogTemp, Error, TEXT("33333333333333333333333333"));
 	//핸드에 남는 카드가 있으면 아래에서 올리기	
 		HandWidget->VisibleHandCards();
 		HandWidget->HitActiveHandCards(true);

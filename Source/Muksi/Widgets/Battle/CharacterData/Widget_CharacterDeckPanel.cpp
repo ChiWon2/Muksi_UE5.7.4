@@ -3,10 +3,11 @@
 
 #include "Muksi/Widgets/Battle/CharacterData/Widget_CharacterDeckPanel.h"
 
+#include "Components/ScrollBox.h"
 #include "Muksi/Widgets/Battle/Widget_DeckCardEntry.h"
 #include "Components/WrapBox.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
-
+#include "Muksi/Widgets/Battle/StatPanel/CardInfo/CardInfoPanel.h"
 
 
 /*void UWidget_CharacterDeckPanel::SetDeckData(UDataTable* InCardDataTable, const TArray<FName>& InDeckCardRowNames)
@@ -20,9 +21,11 @@
 void UWidget_CharacterDeckPanel::SetDeckData(TArray<UMuksiBattleCardDataAsset*> InCardDataArray)
 {
 	CachedCardDataArray.Reset();
+	CardInfoPanelArray.Empty();
 
 	for (UMuksiBattleCardDataAsset* CardData : InCardDataArray)
 	{
+		
 		if (IsValid(CardData))
 		{
 			CachedCardDataArray.Add(CardData);
@@ -31,6 +34,9 @@ void UWidget_CharacterDeckPanel::SetDeckData(TArray<UMuksiBattleCardDataAsset*> 
 		{
 			UE_LOG(LogTemp, Warning, TEXT("SetDeckDataFromArray - Invalid CardData"));
 		}
+		UCardInfoPanel* CardInfoPanel = CreateWidget<UCardInfoPanel>(GetOwningPlayer(), CardInfoPanelClass);
+		CardInfoPanel->SetCardData(CardData);
+		CardInfoPanelArray.Add(CardInfoPanel);
 	}
 
 	RefreshDeckPanelFromArray();
@@ -40,7 +46,7 @@ void UWidget_CharacterDeckPanel::RefreshDeckPanelFromArray()
 {
 	ClearDeckPanel();
 
-	if (!DeckWrapBox)
+	if (!DeckScrollBox)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("RefreshDeckPanelFromArray - DeckWrapBox is null"));
 		return;
@@ -51,8 +57,15 @@ void UWidget_CharacterDeckPanel::RefreshDeckPanelFromArray()
 		UE_LOG(LogTemp, Warning, TEXT("RefreshDeckPanelFromArray - DeckCardEntryClass is null"));
 		return;
 	}
+	
+	for (UCardInfoPanel* CardInfoPanel : CardInfoPanelArray)
+	{
+		if (!CardInfoPanel)continue;
+		//DeckWrapBox->AddChildToWrapBox(CardInfoPanel);
+		DeckScrollBox->AddChild(CardInfoPanel);
+	}
 
-	for (UMuksiBattleCardDataAsset* CardData : CachedCardDataArray)
+	/*for (UMuksiBattleCardDataAsset* CardData : CachedCardDataArray)
 	{
 		if (!IsValid(CardData))
 		{
@@ -78,16 +91,16 @@ void UWidget_CharacterDeckPanel::RefreshDeckPanelFromArray()
 			TEXT("Created Card Entry: %s"),
 			*CardData->CardName.ToString()
 		);
-	}
+	}*/
 }
 
 void UWidget_CharacterDeckPanel::RefreshDeckPanel()
 {
 	ClearDeckPanel();
 
-	if (!DeckWrapBox)
+	if (!DeckScrollBox)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UWidget_CharacterDeckPanel::RefreshDeckPanel - DeckWrapBox is null"));
+		UE_LOG(LogTemp, Warning, TEXT("UWidget_CharacterDeckPanel::RefreshDeckPanel - DeckScrollBox is null"));
 		return;
 	}
 
@@ -116,16 +129,17 @@ void UWidget_CharacterDeckPanel::RefreshDeckPanel()
 		CardEntry->SetCardRowData(CachedCardDataTable, CardRowName);
 		FString Text = CardRowName.ToString();
 		UE_LOG(LogTemp, Log, TEXT("CachedCardDataTable %s"), *Text);
-		DeckWrapBox->AddChildToWrapBox(CardEntry);
+		DeckScrollBox->AddChild(CardEntry);
+		//DeckWrapBox->AddChildToWrapBox(CardEntry);
 	}
 }
 
 
 void UWidget_CharacterDeckPanel::ClearDeckPanel()
 {
-	if (DeckWrapBox)
+	if (DeckScrollBox)
 	{
-		DeckWrapBox->ClearChildren();
+		DeckScrollBox->ClearChildren();
 	}
 }
 
