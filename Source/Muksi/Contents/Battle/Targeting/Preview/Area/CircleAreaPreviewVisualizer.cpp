@@ -66,7 +66,7 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	}
 
 	const FVector CenterLocation = StepContext->SelectedWorldLocation;
-	const float WorldRadius = CalculateWorldRadius(Context, CenterLocation);
+	const float WorldRadius = CalculateWorldRadius(Context, Data->Radius);
 
 	if (WorldRadius <= KINDA_SMALL_NUMBER)
 	{
@@ -89,32 +89,15 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	PreviewMeshComponent->SetVisibility(true);
 }
 
-float UCircleAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context, const FVector& CenterLocation) const
+float UCircleAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context, int32 GridRange) const
 {
-	if (!Context.GridManager || !Context.PreviewResult)
+	if (!Context.GridManager)
 	{
 		return 0.0f;
 	}
 
-	float MaximumDistance = 0.0f;
-
-	for (const FIntPoint& Coord : Context.PreviewResult->AffectedCoords)
-	{
-		const FBattleGridCell* Cell = Context.GridManager->GetCell(Coord);
-
-		if (!Cell)
-		{
-			continue;
-		}
-
-		FVector Difference = Cell->WorldLocation - CenterLocation;
-		Difference.Z = 0.0f;
-		MaximumDistance = FMath::Max(MaximumDistance, Difference.Size());
-	}
-
-	return MaximumDistance + FMath::Max(0.0f, Context.GridManager->HexRadius);
+	return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(0, GridRange), true);
 }
-
 const UScriptStruct* UCircleAreaPreviewVisualizer::GetSupportedPatternDataStruct() const
 {
 	return FCirclePatternData::StaticStruct();
