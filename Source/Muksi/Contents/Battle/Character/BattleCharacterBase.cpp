@@ -118,6 +118,22 @@ void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, 
 		*ButtonPressed.ToString());
 }
 
+void ABattleCharacterBase::RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData)
+{
+	const int32 FoundIndex =
+		CharacterData.BattleDeck.Find(BattleCardData);
+
+	if (FoundIndex != INDEX_NONE)
+	{
+		CharacterData.BattleDeck.RemoveAt(FoundIndex);
+	}
+	/*for (UMuksiBattleCardDataAsset* Card : CharacterData.BattleDeck)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Remove Battle Card %s"), *Card->GetName());
+	}*/
+	
+}
+
 int32 ABattleCharacterBase::GetCurrentBattleCardCount() const
 {
 	return CharacterData.BattleDeck.Num();

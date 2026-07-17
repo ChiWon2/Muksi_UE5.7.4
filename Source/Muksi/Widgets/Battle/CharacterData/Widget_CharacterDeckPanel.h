@@ -9,6 +9,8 @@
 class UWidget_DeckCardEntry;
 class UWrapBox;
 class UMuksiBattleCardDataAsset;
+class UCardInfoPanel;
+class UScrollBox;
 
 /**
  * 
@@ -39,13 +41,22 @@ protected:
 	//~ End UUserWidget Interface
 protected:
 	// ***** BindWidget *****
+	/*UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWrapBox> DeckWrapBox;*/
+	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWrapBox> DeckWrapBox;
+	TObjectPtr<UScrollBox> DeckScrollBox;
 	// ***** BindWidget *****
 	
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Deck Panel")
 	TSubclassOf<UWidget_DeckCardEntry> DeckCardEntryClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Deck Panel")
+	TSubclassOf<UCardInfoPanel> CardInfoPanelClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Deck Panel")
+	TArray<TObjectPtr<UCardInfoPanel>> CardInfoPanelArray;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UDataTable> CachedCardDataTable = nullptr;
