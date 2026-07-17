@@ -2,7 +2,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
@@ -31,17 +31,17 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.TargetingData || !Context.PreviewResult)
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepData || !Context.PreviewResult)
 	{
 		return;
 	}
 
-	if (!IsPatternDataValid(Context.TargetingData->FinalPatternData))
+	if (!IsPatternDataValid(Context.StepData->PatternData))
 	{
 		return;
 	}
 
-	const FCirclePatternData* Data = Context.TargetingData->FinalPatternData.GetPtr<FCirclePatternData>();
+	const FCirclePatternData* Data = Context.StepData->PatternData.GetPtr<FCirclePatternData>();
 	const FTargetingStepContext* StepContext = Context.PreviewResult->GetLastStepContext();
 
 	if (!Data || !StepContext || !StepContext->HasSelectedCoord())
@@ -88,7 +88,6 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	PreviewMeshComponent->SetWorldScale3D(FVector(PreviewScale, PreviewScale, 1.0f));
 	PreviewMeshComponent->SetVisibility(true);
 }
-
 float UCircleAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context, int32 GridRange) const
 {
 	if (!Context.GridManager)

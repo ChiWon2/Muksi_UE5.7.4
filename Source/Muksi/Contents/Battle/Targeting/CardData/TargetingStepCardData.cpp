@@ -1,5 +1,6 @@
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 
+#include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/PathPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
 
@@ -9,6 +10,7 @@ void FTargetingStepCardData::SyncDataTypes()
 {
 	SyncSelectionDataType();
 	SyncPathPreviewDataType();
+	SyncPatternDataType();
 }
 
 void FTargetingStepCardData::SyncSelectionDataType()
@@ -73,6 +75,38 @@ void FTargetingStepCardData::SyncPathPreviewDataType()
 	}
 
 	PathPreviewData.InitializeAs(ExpectedDataStruct);
+}
+
+void FTargetingStepCardData::SyncPatternDataType()
+{
+	if (!PatternClass)
+	{
+		PatternData.Reset();
+		return;
+	}
+
+	const UAreaPattern* PatternCDO = PatternClass.GetDefaultObject();
+
+	if (!PatternCDO)
+	{
+		PatternData.Reset();
+		return;
+	}
+
+	const UScriptStruct* ExpectedDataStruct = PatternCDO->GetPatternDataStruct();
+
+	if (!ExpectedDataStruct)
+	{
+		PatternData.Reset();
+		return;
+	}
+
+	if (PatternData.GetScriptStruct() == ExpectedDataStruct)
+	{
+		return;
+	}
+
+	PatternData.InitializeAs(ExpectedDataStruct);
 }
 
 #endif

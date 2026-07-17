@@ -1,6 +1,6 @@
 #include "Muksi/Contents/Battle/Targeting/Preview/Area/PointAreaPreviewVisualizer.h"
 
-#include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Point/PointPatternData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
@@ -10,12 +10,12 @@ void UPointAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& 
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.TargetingData || !Context.PreviewResult)
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepData || !Context.PreviewResult)
 	{
 		return;
 	}
 
-	if (!IsPatternDataValid(Context.TargetingData->FinalPatternData))
+	if (!IsPatternDataValid(Context.StepData->PatternData))
 	{
 		return;
 	}

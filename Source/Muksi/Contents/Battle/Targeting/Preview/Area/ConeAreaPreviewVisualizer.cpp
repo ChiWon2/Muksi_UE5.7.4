@@ -3,7 +3,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
@@ -37,17 +37,17 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.TargetingData || !Context.PreviewResult)
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepData || !Context.PreviewResult)
 	{
 		return;
 	}
 
-	if (!IsPatternDataValid(Context.TargetingData->FinalPatternData))
+	if (!IsPatternDataValid(Context.StepData->PatternData))
 	{
 		return;
 	}
 
-	const FConePatternData* Data = Context.TargetingData->FinalPatternData.GetPtr<FConePatternData>();
+	const FConePatternData* Data = Context.StepData->PatternData.GetPtr<FConePatternData>();
 	const FTargetingStepContext* StepContext = Context.PreviewResult->GetLastStepContext();
 
 	if (!Data || !StepContext || !StepContext->HasOriginCoord())
@@ -108,7 +108,6 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 	PreviewMeshComponent->SetWorldScale3D(FVector(PreviewScale, PreviewScale, 1.0f));
 	PreviewMeshComponent->SetVisibility(true);
 }
-
 float UConeAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context, int32 GridRange) const
 {
 	if (!Context.GridManager)
