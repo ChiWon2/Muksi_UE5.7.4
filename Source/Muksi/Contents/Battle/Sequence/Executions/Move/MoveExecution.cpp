@@ -1,4 +1,4 @@
-#include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattleMoveExecution.h"
+#include "Muksi/Contents/Battle/Sequence/Executions/Move/MoveExecution.h"
 
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
@@ -6,7 +6,7 @@
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 
-void UMuksiBattleMoveExecution::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
+void UMoveExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;
 	bHasMoveData = false;
@@ -14,7 +14,7 @@ void UMuksiBattleMoveExecution::Execute(const FMuksiBattleExecutionContext& Cont
 	MovingCharacter = Context.Attacker.Get();
 	GridManager = Context.BattleGridManager.Get();
 
-	const FMuksiBattleMoveExecutionData* MoveData = Context.GetExecutionData<FMuksiBattleMoveExecutionData>();
+	const FMoveExecutionData* MoveData = Context.GetExecutionData<FMoveExecutionData>();
 
 	if (!MovingCharacter || !GridManager || !MoveData)
 	{
@@ -71,7 +71,7 @@ void UMuksiBattleMoveExecution::Execute(const FMuksiBattleExecutionContext& Cont
 	}
 }
 
-bool UMuksiBattleMoveExecution::ValidateDestination() const
+bool UMoveExecution::ValidateDestination() const
 {
 	if (!NavigationComponent || !MovingCharacter)
 	{
@@ -86,7 +86,7 @@ bool UMuksiBattleMoveExecution::ValidateDestination() const
 	return NavigationComponent->IsCellAvailable(DestinationCoord, MovingCharacter.Get());
 }
 
-void UMuksiBattleMoveExecution::StartTeleportMovement()
+void UMoveExecution::StartTeleportMovement()
 {
 	FVector TargetWorldLocation = FVector::ZeroVector;
 
@@ -97,12 +97,12 @@ void UMuksiBattleMoveExecution::StartTeleportMovement()
 	}
 
 	FMuksiBattleMovementFinished OnMovementFinished;
-	OnMovementFinished.BindUObject(this, &UMuksiBattleMoveExecution::HandleMovementFinished);
+	OnMovementFinished.BindUObject(this, &UMoveExecution::HandleMovementFinished);
 
 	MovementComponent->StartTeleportMove(TargetWorldLocation, OnMovementFinished);
 }
 
-void UMuksiBattleMoveExecution::StartJumpMovement()
+void UMoveExecution::StartJumpMovement()
 {
 	FVector TargetWorldLocation = FVector::ZeroVector;
 
@@ -113,12 +113,12 @@ void UMuksiBattleMoveExecution::StartJumpMovement()
 	}
 
 	FMuksiBattleMovementFinished OnMovementFinished;
-	OnMovementFinished.BindUObject(this, &UMuksiBattleMoveExecution::HandleMovementFinished);
+	OnMovementFinished.BindUObject(this, &UMoveExecution::HandleMovementFinished);
 
 	MovementComponent->StartArcMove(TargetWorldLocation, CachedMoveData.JumpDuration, CachedMoveData.JumpArcHeight, OnMovementFinished);
 }
 
-void UMuksiBattleMoveExecution::StartGroundPathMovement()
+void UMoveExecution::StartGroundPathMovement()
 {
 	TArray<FIntPoint> GridPath;
 
@@ -143,12 +143,12 @@ void UMuksiBattleMoveExecution::StartGroundPathMovement()
 	}
 
 	FMuksiBattleMovementFinished OnMovementFinished;
-	OnMovementFinished.BindUObject(this, &UMuksiBattleMoveExecution::HandleMovementFinished);
+	OnMovementFinished.BindUObject(this, &UMoveExecution::HandleMovementFinished);
 
 	MovementComponent->StartPathMove(WorldPath, CachedMoveData.GroundMoveSpeed, OnMovementFinished);
 }
 
-void UMuksiBattleMoveExecution::HandleMovementFinished(bool bInterrupted)
+void UMoveExecution::HandleMovementFinished(bool bInterrupted)
 {
 	if (IsExecutionFinished())
 	{
@@ -174,7 +174,7 @@ void UMuksiBattleMoveExecution::HandleMovementFinished(bool bInterrupted)
 	FinishMoveExecution(true);
 }
 
-bool UMuksiBattleMoveExecution::CommitGridMovement()
+bool UMoveExecution::CommitGridMovement()
 {
 	if (!MovingCharacter || !GridManager || !NavigationComponent)
 	{
@@ -195,7 +195,7 @@ bool UMuksiBattleMoveExecution::CommitGridMovement()
 	return true;
 }
 
-void UMuksiBattleMoveExecution::RestoreStartWorldLocation()
+void UMoveExecution::RestoreStartWorldLocation()
 {
 	if (!MovingCharacter || !NavigationComponent)
 	{
@@ -210,7 +210,7 @@ void UMuksiBattleMoveExecution::RestoreStartWorldLocation()
 	}
 }
 
-void UMuksiBattleMoveExecution::RequestMovementEndAnimation()
+void UMoveExecution::RequestMovementEndAnimation()
 {
 	if (!AnimationComponent || !bHasMoveData)
 	{
@@ -227,7 +227,7 @@ void UMuksiBattleMoveExecution::RequestMovementEndAnimation()
 	UE_LOG(LogTemp, Log, TEXT("[MoveExecution] Request End Section. Section=%s Result=%s"), *CachedMoveData.GroundPathEndSection.ToString(), bJumpedToSection ? TEXT("Success") : TEXT("Failed"));
 }
 
-void UMuksiBattleMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
+void UMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
 {
 	if (IsExecutionFinished())
 	{
@@ -245,7 +245,7 @@ void UMuksiBattleMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
 	MovementComponent = nullptr;
 	AnimationComponent = nullptr;
 
-	CachedMoveData = FMuksiBattleMoveExecutionData();
+	CachedMoveData = FMoveExecutionData();
 	StartCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
 	DestinationCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
 	bHasMoveData = false;
@@ -253,7 +253,7 @@ void UMuksiBattleMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
 	FinishExecution(CachedOnFinished);
 }
 
-const UScriptStruct* UMuksiBattleMoveExecution::GetExecutionDataStruct() const
+const UScriptStruct* UMoveExecution::GetExecutionDataStruct() const
 {
-	return FMuksiBattleMoveExecutionData::StaticStruct();
+	return FMoveExecutionData::StaticStruct();
 }

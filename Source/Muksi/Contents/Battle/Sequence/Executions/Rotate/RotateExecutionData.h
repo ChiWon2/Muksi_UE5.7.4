@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Muksi/Contents/Battle/Sequence/Data/MuksiBattleSequenceDataTypes.h"
-#include "MuksiBattleRotateExecutionData.generated.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
+#include "RotateExecutionData.generated.h"
 
 USTRUCT(BlueprintType)
-struct FMuksiBattleRotateExecutionData : public FMuksiBattleExecutionData
+struct FRotateExecutionData : public FBattleExecutionData
 {
 	GENERATED_BODY()
 

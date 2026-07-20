@@ -2,19 +2,19 @@
 
 #include "CoreMinimal.h"
 #include "StructUtils/InstancedStruct.h"
-#include "MuksiBattleExecutionContext.generated.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
+#include "BattleExecutionContext.generated.h"
 
 class ABattleCharacterBase;
 class ABattleGridManager;
 class UMuksiBattleCardDataAsset;
-class UMuksiBattleExecution;
 
-struct FMuksiBattleExecutionContext;
+struct FBattleExecutionContext;
 
-DECLARE_DELEGATE_TwoParams(FMuksiRequestSystemExecution, TSubclassOf<UMuksiBattleExecution>, const FMuksiBattleExecutionContext&);
+DECLARE_DELEGATE_TwoParams(FRequestRuntimeExecutionChain, const TArray<FBattleExecutionEntry>&, const FBattleExecutionContext&);
 
 USTRUCT(BlueprintType)
-struct FMuksiBattleExecutionContext
+struct FBattleExecutionContext
 {
 	GENERATED_BODY()
 
@@ -22,7 +22,7 @@ struct FMuksiBattleExecutionContext
 	TObjectPtr<ABattleCharacterBase> Attacker = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<ABattleCharacterBase> TargetCharacter = nullptr;
+	TObjectPtr<ABattleCharacterBase> ExecutionTarget = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
@@ -39,7 +39,7 @@ struct FMuksiBattleExecutionContext
 	UPROPERTY(BlueprintReadOnly)
 	FInstancedStruct ExecutionData;
 
-	FMuksiRequestSystemExecution RequestSystemExecution;
+	FRequestRuntimeExecutionChain RequestRuntimeExecutionChain;
 
 	bool IsValidContext() const
 	{
@@ -51,9 +51,9 @@ struct FMuksiBattleExecutionContext
 		return TargetPoints.IsValidIndex(0) ? TargetPoints[0] : FIntPoint(INDEX_NONE, INDEX_NONE);
 	}
 
-	bool CanRequestSystemExecution() const
+	bool CanRequestRuntimeExecutionChain() const
 	{
-		return RequestSystemExecution.IsBound();
+		return RequestRuntimeExecutionChain.IsBound();
 	}
 
 	bool HasExecutionData() const

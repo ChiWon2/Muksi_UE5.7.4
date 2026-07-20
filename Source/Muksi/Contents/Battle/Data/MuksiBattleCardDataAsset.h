@@ -7,7 +7,7 @@
 #include "StructUtils/InstancedStruct.h"
 
 #include "MuksiBattleCardEffectData.h"
-#include "Muksi/Contents/Battle/Sequence/Data/MuksiBattleSequenceDataTypes.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 
 #include "MuksiBattleCardDataAsset.generated.h"
@@ -49,13 +49,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	float CardSpeed = 1.0f;
 
-	// 카드 시작 시 순서대로 실행되는 Execution 목록.
+	// 카드 시작 시 순서대로 실행되는 Main Execution 목록.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
-	TArray<FMuksiBattleExecutionEntry> ExecutionChain;
+	TArray<FBattleExecutionEntry> MainExecutions;
 
-	// Montage NotifyKey와 순차 Execution 목록의 연결 정보.
+	// Montage NotifyKey에서 시작되는 Execution Chain 목록.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
-	TArray<FMuksiBattleNotifyExecutionBinding> NotifyExecutionBindings;
+	TArray<FBattleNotifyExecutionChain> NotifyExecutionChains;
 
 	// 카드가 사용하는 단계별 Targeting 설정.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Targeting")
@@ -69,7 +69,7 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	FMuksiBattleCardAttackTypeData AttackType;
-	
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	TArray<FText> CardEffectsDescription;

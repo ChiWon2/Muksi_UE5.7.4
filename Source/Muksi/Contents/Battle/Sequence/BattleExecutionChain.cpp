@@ -1,6 +1,6 @@
-#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecutionChain.h"
+#include "Muksi/Contents/Battle/Sequence/BattleExecutionChain.h"
 
-void UMuksiBattleExecutionChain::InitializeChain(const TArray<FMuksiBattleExecutionEntry>& InExecutionEntries)
+void UBattleExecutionChain::InitializeChain(const TArray<FBattleExecutionEntry>& InExecutionEntries)
 {
 	ExecutionEntries = InExecutionEntries;
 	CurrentExecution = nullptr;
@@ -9,7 +9,7 @@ void UMuksiBattleExecutionChain::InitializeChain(const TArray<FMuksiBattleExecut
 	bChainFinished = false;
 }
 
-void UMuksiBattleExecutionChain::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
+void UBattleExecutionChain::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	CachedContext = Context;
 	CachedOnFinished = OnFinished;
@@ -21,7 +21,7 @@ void UMuksiBattleExecutionChain::Execute(const FMuksiBattleExecutionContext& Con
 	ExecuteNextExecution();
 }
 
-void UMuksiBattleExecutionChain::ExecuteNextExecution()
+void UBattleExecutionChain::ExecuteNextExecution()
 {
 	if (bChainFinished || bWaitingForCurrentExecution)
 	{
@@ -41,7 +41,7 @@ void UMuksiBattleExecutionChain::ExecuteNextExecution()
 		return;
 	}
 
-	const FMuksiBattleExecutionEntry& Entry = ExecutionEntries[CurrentExecutionIndex];
+	const FBattleExecutionEntry& Entry = ExecutionEntries[CurrentExecutionIndex];
 
 	if (!Entry.ExecutionClass || Entry.ExecutionClass->HasAnyClassFlags(CLASS_Abstract))
 	{
@@ -49,7 +49,7 @@ void UMuksiBattleExecutionChain::ExecuteNextExecution()
 		return;
 	}
 
-	CurrentExecution = NewObject<UMuksiBattleExecution>(this, Entry.ExecutionClass);
+	CurrentExecution = NewObject<UBattleExecution>(this, Entry.ExecutionClass);
 
 	if (!CurrentExecution)
 	{
@@ -57,19 +57,19 @@ void UMuksiBattleExecutionChain::ExecuteNextExecution()
 		return;
 	}
 
-	FMuksiBattleExecutionContext ExecutionContext = CachedContext;
+	FBattleExecutionContext ExecutionContext = CachedContext;
 	ExecutionContext.ExecutionData = Entry.ExecutionData;
 
-	UMuksiBattleExecution* StartedExecution = CurrentExecution.Get();
+	UBattleExecution* StartedExecution = CurrentExecution.Get();
 
-	FMuksiBattleExecutionFinished OnExecutionFinished;
-	OnExecutionFinished.BindUObject(this, &UMuksiBattleExecutionChain::HandleCurrentExecutionFinished, StartedExecution);
+	FBattleExecutionFinished OnExecutionFinished;
+	OnExecutionFinished.BindUObject(this, &UBattleExecutionChain::HandleCurrentExecutionFinished, StartedExecution);
 
 	bWaitingForCurrentExecution = true;
 	StartedExecution->Execute(ExecutionContext, OnExecutionFinished);
 }
 
-void UMuksiBattleExecutionChain::HandleCurrentExecutionFinished(UMuksiBattleExecution* FinishedExecution)
+void UBattleExecutionChain::HandleCurrentExecutionFinished(UBattleExecution* FinishedExecution)
 {
 	if (bChainFinished || !bWaitingForCurrentExecution || !FinishedExecution || FinishedExecution != CurrentExecution)
 	{
@@ -82,7 +82,7 @@ void UMuksiBattleExecutionChain::HandleCurrentExecutionFinished(UMuksiBattleExec
 	ExecuteNextExecution();
 }
 
-void UMuksiBattleExecutionChain::FinishChain()
+void UBattleExecutionChain::FinishChain()
 {
 	if (bChainFinished)
 	{
@@ -93,10 +93,10 @@ void UMuksiBattleExecutionChain::FinishChain()
 	bWaitingForCurrentExecution = false;
 	CurrentExecution = nullptr;
 	ExecutionEntries.Empty();
-	CachedContext = FMuksiBattleExecutionContext();
+	CachedContext = FBattleExecutionContext();
 	CurrentExecutionIndex = INDEX_NONE;
 
-	FMuksiBattleExecutionFinished OnChainFinished = CachedOnFinished;
+	FBattleExecutionFinished OnChainFinished = CachedOnFinished;
 	CachedOnFinished.Unbind();
 
 	FinishExecution(OnChainFinished);

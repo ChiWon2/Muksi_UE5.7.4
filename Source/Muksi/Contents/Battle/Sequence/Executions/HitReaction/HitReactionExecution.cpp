@@ -1,14 +1,14 @@
-#include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattleHitReactionExecution.h"
+#include "Muksi/Contents/Battle/Sequence/Executions/HitReaction/HitReactionExecution.h"
 
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationKeys.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
-void UMuksiBattleHitReactionExecution::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
+void UHitReactionExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;
 
-	ABattleCharacterBase* TargetCharacter = Context.TargetCharacter.Get();
+	ABattleCharacterBase* TargetCharacter = Context.ExecutionTarget.Get();
 
 	if (!TargetCharacter)
 	{
@@ -25,23 +25,23 @@ void UMuksiBattleHitReactionExecution::Execute(const FMuksiBattleExecutionContex
 		return;
 	}
 
-	TargetAnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UMuksiBattleHitReactionExecution::HandleHitReactionFinished);
+	TargetAnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UHitReactionExecution::HandleHitReactionFinished);
 
 	const bool bPlayed = TargetAnimationComponent->PlayBattleAnimation(MuksiBattleAnimationKeys::HitReaction);
 
 	if (!bPlayed)
 	{
-		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UMuksiBattleHitReactionExecution::HandleHitReactionFinished);
+		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UHitReactionExecution::HandleHitReactionFinished);
 		FinishHitReaction();
 	}
 }
 
-void UMuksiBattleHitReactionExecution::HandleHitReactionFinished(bool bInterrupted)
+void UHitReactionExecution::HandleHitReactionFinished(bool bInterrupted)
 {
 	FinishHitReaction();
 }
 
-void UMuksiBattleHitReactionExecution::FinishHitReaction()
+void UHitReactionExecution::FinishHitReaction()
 {
 	if (IsExecutionFinished())
 	{
@@ -50,7 +50,7 @@ void UMuksiBattleHitReactionExecution::FinishHitReaction()
 
 	if (TargetAnimationComponent)
 	{
-		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UMuksiBattleHitReactionExecution::HandleHitReactionFinished);
+		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UHitReactionExecution::HandleHitReactionFinished);
 	}
 
 	TargetAnimationComponent = nullptr;

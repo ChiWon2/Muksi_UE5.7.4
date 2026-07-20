@@ -1,11 +1,11 @@
-#include "Muksi/Contents/Battle/Sequence/Executions/MuksiBattleRotateExecution.h"
+#include "Muksi/Contents/Battle/Sequence/Executions/Rotate/RotateExecution.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
-#include "Muksi/Contents/Battle/Sequence/Data/ExecutionData/MuksiBattleRotateExecutionData.h"
+#include "Muksi/Contents/Battle/Sequence/Executions/Rotate/RotateExecutionData.h"
 
-void UMuksiBattleRotateExecution::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
+void URotateExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;
 	RotatingCharacter = Context.Attacker.Get();
@@ -16,7 +16,7 @@ void UMuksiBattleRotateExecution::Execute(const FMuksiBattleExecutionContext& Co
 		return;
 	}
 
-	const FMuksiBattleRotateExecutionData* RotateData = Context.GetExecutionData<FMuksiBattleRotateExecutionData>();
+	const FRotateExecutionData* RotateData = Context.GetExecutionData<FRotateExecutionData>();
 
 	if (!RotateData)
 	{
@@ -44,17 +44,17 @@ void UMuksiBattleRotateExecution::Execute(const FMuksiBattleExecutionContext& Co
 	const FVector TargetWorldLocation = Context.BattleGridManager->GetTransformToPosition(TargetPoint).GetLocation();
 
 	FMuksiBattleMovementFinished OnRotationFinished;
-	OnRotationFinished.BindUObject(this, &UMuksiBattleRotateExecution::HandleRotationFinished);
+	OnRotationFinished.BindUObject(this, &URotateExecution::HandleRotationFinished);
 
 	MovementComponent->StartRotateTowardLocation(TargetWorldLocation, RotateData->RotationSpeed, OnRotationFinished);
 }
 
-void UMuksiBattleRotateExecution::HandleRotationFinished(bool bInterrupted)
+void URotateExecution::HandleRotationFinished(bool bInterrupted)
 {
 	FinishRotateExecution();
 }
 
-void UMuksiBattleRotateExecution::FinishRotateExecution()
+void URotateExecution::FinishRotateExecution()
 {
 	if (IsExecutionFinished())
 	{
@@ -67,7 +67,7 @@ void UMuksiBattleRotateExecution::FinishRotateExecution()
 	FinishExecution(CachedOnFinished);
 }
 
-const UScriptStruct* UMuksiBattleRotateExecution::GetExecutionDataStruct() const
+const UScriptStruct* URotateExecution::GetExecutionDataStruct() const
 {
-	return FMuksiBattleRotateExecutionData::StaticStruct();
+	return FRotateExecutionData::StaticStruct();
 }

@@ -20,14 +20,14 @@ void UMuksiBattleCardDataAsset::PostEditChangeProperty(FPropertyChangedEvent& Pr
 
 void UMuksiBattleCardDataAsset::SyncExecutionDataTypes()
 {
-	for (FMuksiBattleExecutionEntry& Entry : ExecutionChain)
+	for (FBattleExecutionEntry& Entry : MainExecutions)
 	{
 		Entry.SyncExecutionDataType();
 	}
 
-	for (FMuksiBattleNotifyExecutionBinding& Binding : NotifyExecutionBindings)
+	for (FBattleNotifyExecutionChain& NotifyChain : NotifyExecutionChains)
 	{
-		Binding.SyncExecutionDataTypes();
+		NotifyChain.SyncExecutionDataTypes();
 	}
 }
 

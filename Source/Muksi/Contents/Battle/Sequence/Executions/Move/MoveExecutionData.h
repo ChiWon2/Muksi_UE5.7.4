@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardEffectData.h"
-#include "Muksi/Contents/Battle/Sequence/Data/MuksiBattleSequenceDataTypes.h"
-#include "MuksiBattleMoveExecutionData.generated.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
+#include "MoveExecutionData.generated.h"
 
 USTRUCT(BlueprintType)
-struct FMuksiBattleMoveExecutionData : public FMuksiBattleExecutionData
+struct FMoveExecutionData : public FBattleExecutionData
 {
 	GENERATED_BODY()
 

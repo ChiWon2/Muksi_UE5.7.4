@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Muksi/Contents/Battle/Sequence/Data/MuksiBattleSequenceDataTypes.h"
-#include "MuksiBattleDamageExecutionData.generated.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
+#include "DamageExecutionData.generated.h"
 
 USTRUCT(BlueprintType)
-struct FMuksiBattleDamageExecutionData : public FMuksiBattleExecutionData
+struct FDamageExecutionData : public FBattleExecutionData
 {
 	GENERATED_BODY()
 
@@ -15,4 +15,3 @@ struct FMuksiBattleDamageExecutionData : public FMuksiBattleExecutionData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
 	bool bTriggerHitReaction = true;
 };
-

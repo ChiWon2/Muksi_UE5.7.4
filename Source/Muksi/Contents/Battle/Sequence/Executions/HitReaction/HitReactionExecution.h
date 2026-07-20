@@ -1,18 +1,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecution.h"
-#include "MuksiBattleHitReactionExecution.generated.h"
+#include "Muksi/Contents/Battle/Sequence/BattleExecution.h"
+#include "HitReactionExecution.generated.h"
 
 class UMuksiBattleAnimationComponent;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
-class MUKSI_API UMuksiBattleHitReactionExecution : public UMuksiBattleExecution
+class MUKSI_API UHitReactionExecution : public UBattleExecution
 {
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished) override;
+	virtual void Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished) override;
 
 private:
 	UFUNCTION()
@@ -24,5 +24,5 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleAnimationComponent> TargetAnimationComponent = nullptr;
 
-	FMuksiBattleExecutionFinished CachedOnFinished;
+	FBattleExecutionFinished CachedOnFinished;
 };

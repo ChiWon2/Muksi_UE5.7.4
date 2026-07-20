@@ -3,13 +3,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
-#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecution.h"
-#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecutionContext.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionContext.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
 #include "BattleSequenceManager.generated.h"
 
 class ABattleGridManager;
+class UBattleExecutionChain;
 class UMuksiBattleAnimationComponent;
-class UMuksiBattleExecution;
 
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
 
@@ -41,7 +41,7 @@ private:
 	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMuksiBattleExecution>> RunningExecutions;
+	TArray<TObjectPtr<UBattleExecutionChain>> ActiveExecutionChains;
 
 	bool bSequenceRunning = false;
 
@@ -50,20 +50,17 @@ private:
 	bool BindAttackerNotify();
 	void UnbindAttackerNotify();
 
-	void StartInitialExecutionChain();
-	void ExecuteNotifyExecutionBindings(FName NotifyKey);
+	void StartMainExecutionChain();
+	void StartNotifyExecutionChains(FName NotifyKey);
+	void StartExecutionChain(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
+	void HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
 
 	UFUNCTION()
 	void HandleBattleExecutionNotify(FName NotifyKey);
 
-	void ExecuteExecutionClass(TSubclassOf<UMuksiBattleExecution> ExecutionClass, FName NotifyKey);
-	void ExecuteExecutionClassWithContext(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context);
-	void ExecuteExecutionInstanceWithContext(UMuksiBattleExecution* Execution, const FMuksiBattleExecutionContext& Context);
-	void HandleSystemExecutionRequested(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context);
+	FBattleExecutionContext MakeExecutionContext(FName NotifyKey);
 
-	FMuksiBattleExecutionContext MakeExecutionContext(FName NotifyKey);
-
-	void HandleExecutionFinished(UMuksiBattleExecution* FinishedExecution);
+	void HandleExecutionChainFinished(UBattleExecutionChain* FinishedChain);
 	void TryFinishSequence();
 	void FinishSequence();
 };

@@ -1,18 +1,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecution.h"
-#include "MuksiBattlePlayMontageExecution.generated.h"
+#include "Muksi/Contents/Battle/Sequence/BattleExecution.h"
+#include "PlayMontageExecution.generated.h"
 
 class UMuksiBattleAnimationComponent;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
-class MUKSI_API UMuksiBattlePlayMontageExecution : public UMuksiBattleExecution
+class MUKSI_API UPlayMontageExecution : public UBattleExecution
 {
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished) override;
+	virtual void Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished) override;
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
@@ -25,5 +25,5 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleAnimationComponent> AnimationComponent = nullptr;
 
-	FMuksiBattleExecutionFinished CachedOnFinished;
+	FBattleExecutionFinished CachedOnFinished;
 };
