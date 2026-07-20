@@ -16,7 +16,7 @@ public:
 
 private:
 	void ExecuteNextExecution();
-	void HandleCurrentExecutionFinished();
+	void HandleCurrentExecutionFinished(UMuksiBattleExecution* FinishedExecution);
 	void FinishChain();
 
 private:
@@ -30,5 +30,6 @@ private:
 	FMuksiBattleExecutionFinished CachedOnFinished;
 
 	int32 CurrentExecutionIndex = INDEX_NONE;
+	bool bWaitingForCurrentExecution = false;
 	bool bChainFinished = false;
 };

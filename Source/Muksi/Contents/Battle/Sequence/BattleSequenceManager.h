@@ -44,7 +44,6 @@ private:
 	TArray<TObjectPtr<UMuksiBattleExecution>> RunningExecutions;
 
 	bool bSequenceRunning = false;
-	int32 PendingExecutionCount = 0;
 
 private:
 	bool ValidateAction(const FBattleAction& InAction) const;
@@ -52,7 +51,8 @@ private:
 	void UnbindAttackerNotify();
 
 	void StartInitialExecutionChain();
-	void ExecuteNotifyExecutionBinding(FName NotifyKey);
+	void ExecuteNotifyExecutionBindings(FName NotifyKey);
+
 	UFUNCTION()
 	void HandleBattleExecutionNotify(FName NotifyKey);
 
@@ -63,7 +63,7 @@ private:
 
 	FMuksiBattleExecutionContext MakeExecutionContext(FName NotifyKey);
 
-	void HandleExecutionFinished();
+	void HandleExecutionFinished(UMuksiBattleExecution* FinishedExecution);
 	void TryFinishSequence();
 	void FinishSequence();
 };

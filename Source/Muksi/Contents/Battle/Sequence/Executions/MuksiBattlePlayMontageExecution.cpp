@@ -7,7 +7,6 @@
 void UMuksiBattlePlayMontageExecution::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;
-	bExecutionFinished = false;
 
 	if (!Context.Attacker)
 	{
@@ -49,12 +48,10 @@ void UMuksiBattlePlayMontageExecution::HandleMontageFinished(bool bInterrupted)
 
 void UMuksiBattlePlayMontageExecution::FinishPlayMontage()
 {
-	if (bExecutionFinished)
+	if (IsExecutionFinished())
 	{
 		return;
 	}
-
-	bExecutionFinished = true;
 
 	if (AnimationComponent)
 	{

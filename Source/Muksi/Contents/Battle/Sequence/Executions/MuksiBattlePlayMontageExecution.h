@@ -26,5 +26,4 @@ private:
 	TObjectPtr<UMuksiBattleAnimationComponent> AnimationComponent = nullptr;
 
 	FMuksiBattleExecutionFinished CachedOnFinished;
-	bool bExecutionFinished = false;
 };

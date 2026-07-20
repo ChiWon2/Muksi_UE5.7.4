@@ -10,7 +10,16 @@ const UScriptStruct* UMuksiBattleExecution::GetExecutionDataStruct() const
 	return nullptr;
 }
 
-void UMuksiBattleExecution::FinishExecution(FMuksiBattleExecutionFinished& OnFinished) const
+void UMuksiBattleExecution::FinishExecution(FMuksiBattleExecutionFinished& OnFinished)
 {
-	OnFinished.ExecuteIfBound();
+	if (bExecutionFinished)
+	{
+		return;
+	}
+
+	bExecutionFinished = true;
+
+	FMuksiBattleExecutionFinished FinishedDelegate = OnFinished;
+	OnFinished.Unbind();
+	FinishedDelegate.ExecuteIfBound();
 }

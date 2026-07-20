@@ -12,17 +12,17 @@ class MUKSI_API UMuksiBattleHitReactionExecution : public UMuksiBattleExecution
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(const FMuksiBattleExecutionContext& Context,FMuksiBattleExecutionFinished OnFinished) override;
-
-private:
-	UPROPERTY(Transient)
-	TObjectPtr<UMuksiBattleAnimationComponent> TargetAnimationComponent = nullptr;
-
-	FMuksiBattleExecutionFinished CachedOnFinished;
+	virtual void Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished) override;
 
 private:
 	UFUNCTION()
 	void HandleHitReactionFinished(bool bInterrupted);
 
 	void FinishHitReaction();
+
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UMuksiBattleAnimationComponent> TargetAnimationComponent = nullptr;
+
+	FMuksiBattleExecutionFinished CachedOnFinished;
 };

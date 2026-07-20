@@ -17,5 +17,9 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const;
 
 protected:
-	void FinishExecution(FMuksiBattleExecutionFinished& OnFinished) const;
+	void FinishExecution(FMuksiBattleExecutionFinished& OnFinished);
+	bool IsExecutionFinished() const { return bExecutionFinished; }
+
+private:
+	bool bExecutionFinished = false;
 };

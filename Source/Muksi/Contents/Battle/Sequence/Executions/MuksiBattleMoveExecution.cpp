@@ -9,7 +9,6 @@
 void UMuksiBattleMoveExecution::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;
-	bExecutionFinished = false;
 	bHasMoveData = false;
 
 	MovingCharacter = Context.Attacker.Get();
@@ -151,7 +150,7 @@ void UMuksiBattleMoveExecution::StartGroundPathMovement()
 
 void UMuksiBattleMoveExecution::HandleMovementFinished(bool bInterrupted)
 {
-	if (bExecutionFinished)
+	if (IsExecutionFinished())
 	{
 		return;
 	}
@@ -230,12 +229,10 @@ void UMuksiBattleMoveExecution::RequestMovementEndAnimation()
 
 void UMuksiBattleMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
 {
-	if (bExecutionFinished)
+	if (IsExecutionFinished())
 	{
 		return;
 	}
-
-	bExecutionFinished = true;
 
 	if (bRequestEndAnimation)
 	{
@@ -249,6 +246,8 @@ void UMuksiBattleMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
 	AnimationComponent = nullptr;
 
 	CachedMoveData = FMuksiBattleMoveExecutionData();
+	StartCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
+	DestinationCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
 	bHasMoveData = false;
 
 	FinishExecution(CachedOnFinished);

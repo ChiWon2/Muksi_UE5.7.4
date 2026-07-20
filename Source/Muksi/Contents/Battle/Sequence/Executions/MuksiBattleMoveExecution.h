@@ -57,5 +57,4 @@ private:
 	FMuksiBattleExecutionFinished CachedOnFinished;
 
 	bool bHasMoveData = false;
-	bool bExecutionFinished = false;
 };

@@ -3,13 +3,19 @@
 void UMuksiBattleExecutionChain::InitializeChain(const TArray<FMuksiBattleExecutionEntry>& InExecutionEntries)
 {
 	ExecutionEntries = InExecutionEntries;
+	CurrentExecution = nullptr;
+	CurrentExecutionIndex = INDEX_NONE;
+	bWaitingForCurrentExecution = false;
+	bChainFinished = false;
 }
 
 void UMuksiBattleExecutionChain::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
 {
 	CachedContext = Context;
 	CachedOnFinished = OnFinished;
+	CurrentExecution = nullptr;
 	CurrentExecutionIndex = INDEX_NONE;
+	bWaitingForCurrentExecution = false;
 	bChainFinished = false;
 
 	ExecuteNextExecution();
@@ -17,7 +23,7 @@ void UMuksiBattleExecutionChain::Execute(const FMuksiBattleExecutionContext& Con
 
 void UMuksiBattleExecutionChain::ExecuteNextExecution()
 {
-	if (bChainFinished)
+	if (bChainFinished || bWaitingForCurrentExecution)
 	{
 		return;
 	}
@@ -37,7 +43,7 @@ void UMuksiBattleExecutionChain::ExecuteNextExecution()
 
 	const FMuksiBattleExecutionEntry& Entry = ExecutionEntries[CurrentExecutionIndex];
 
-	if (Entry.ExecutionClass->HasAnyClassFlags(CLASS_Abstract))
+	if (!Entry.ExecutionClass || Entry.ExecutionClass->HasAnyClassFlags(CLASS_Abstract))
 	{
 		ExecuteNextExecution();
 		return;
@@ -54,15 +60,25 @@ void UMuksiBattleExecutionChain::ExecuteNextExecution()
 	FMuksiBattleExecutionContext ExecutionContext = CachedContext;
 	ExecutionContext.ExecutionData = Entry.ExecutionData;
 
-	FMuksiBattleExecutionFinished OnExecutionFinished;
-	OnExecutionFinished.BindUObject(this, &UMuksiBattleExecutionChain::HandleCurrentExecutionFinished);
+	UMuksiBattleExecution* StartedExecution = CurrentExecution.Get();
 
-	CurrentExecution->Execute(ExecutionContext, OnExecutionFinished);
+	FMuksiBattleExecutionFinished OnExecutionFinished;
+	OnExecutionFinished.BindUObject(this, &UMuksiBattleExecutionChain::HandleCurrentExecutionFinished, StartedExecution);
+
+	bWaitingForCurrentExecution = true;
+	StartedExecution->Execute(ExecutionContext, OnExecutionFinished);
 }
 
-void UMuksiBattleExecutionChain::HandleCurrentExecutionFinished()
+void UMuksiBattleExecutionChain::HandleCurrentExecutionFinished(UMuksiBattleExecution* FinishedExecution)
 {
+	if (bChainFinished || !bWaitingForCurrentExecution || !FinishedExecution || FinishedExecution != CurrentExecution)
+	{
+		return;
+	}
+
+	bWaitingForCurrentExecution = false;
 	CurrentExecution = nullptr;
+
 	ExecuteNextExecution();
 }
 
@@ -74,8 +90,14 @@ void UMuksiBattleExecutionChain::FinishChain()
 	}
 
 	bChainFinished = true;
+	bWaitingForCurrentExecution = false;
 	CurrentExecution = nullptr;
 	ExecutionEntries.Empty();
+	CachedContext = FMuksiBattleExecutionContext();
+	CurrentExecutionIndex = INDEX_NONE;
 
-	FinishExecution(CachedOnFinished);
+	FMuksiBattleExecutionFinished OnChainFinished = CachedOnFinished;
+	CachedOnFinished.Unbind();
+
+	FinishExecution(OnChainFinished);
 }

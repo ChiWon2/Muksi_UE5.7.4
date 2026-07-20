@@ -42,6 +42,8 @@ void UMuksiBattleDamageExecution::ApplyDamageToTarget(const FMuksiBattleExecutio
 	const int32 NewHP = FMath::Max(0, TargetCharacter->GetCurrentHP() - DamageData.DamageValue);
 	TargetCharacter->SetCurrentHP(NewHP);
 
+	//BattleCharacter-> ApplyDamage()
+
 	UE_LOG(LogTemp, Log, TEXT("[DamageExecution] Damage=%d Target=%s NewHP=%d"), DamageData.DamageValue, *GetNameSafe(TargetCharacter), NewHP);
 
 	if (DamageData.bTriggerHitReaction)

@@ -20,7 +20,6 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 
 	CurrentAction = InAction;
 	bSequenceRunning = true;
-	PendingExecutionCount = 0;
 	RunningExecutions.Empty();
 
 	if (!BindAttackerNotify())
@@ -40,6 +39,11 @@ bool ABattleSequenceManager::ValidateAction(const FBattleAction& InAction) const
 
 bool ABattleSequenceManager::BindAttackerNotify()
 {
+	if (!CurrentAction.Card || CurrentAction.Card->NotifyExecutionBindings.IsEmpty())
+	{
+		return true;
+	}
+
 	if (!CurrentAction.Attacker)
 	{
 		return false;
@@ -49,6 +53,7 @@ bool ABattleSequenceManager::BindAttackerNotify()
 
 	if (!AttackerAnimationComponent)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] AnimationComponent not found. Attacker=%s"), *GetNameSafe(CurrentAction.Attacker.Get()));
 		return false;
 	}
 
@@ -93,10 +98,10 @@ void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
 		return;
 	}
 
-	ExecuteNotifyExecutionBinding(NotifyKey);
+	ExecuteNotifyExecutionBindings(NotifyKey);
 }
 
-void ABattleSequenceManager::ExecuteNotifyExecutionBinding(FName NotifyKey)
+void ABattleSequenceManager::ExecuteNotifyExecutionBindings(FName NotifyKey)
 {
 	if (!CurrentAction.Card)
 	{
@@ -114,12 +119,11 @@ void ABattleSequenceManager::ExecuteNotifyExecutionBinding(FName NotifyKey)
 
 		if (!ExecutionChain)
 		{
-			return;
+			continue;
 		}
 
 		ExecutionChain->InitializeChain(Binding.ExecutionChain);
 		ExecuteExecutionInstanceWithContext(ExecutionChain, MakeExecutionContext(NotifyKey));
-		return;
 	}
 }
 
@@ -130,7 +134,7 @@ void ABattleSequenceManager::ExecuteExecutionClass(TSubclassOf<UMuksiBattleExecu
 
 void ABattleSequenceManager::ExecuteExecutionClassWithContext(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context)
 {
-	if (!bSequenceRunning || !ExecutionClass)
+	if (!bSequenceRunning || !ExecutionClass || ExecutionClass->HasAnyClassFlags(CLASS_Abstract))
 	{
 		return;
 	}
@@ -147,18 +151,17 @@ void ABattleSequenceManager::ExecuteExecutionClassWithContext(TSubclassOf<UMuksi
 
 void ABattleSequenceManager::ExecuteExecutionInstanceWithContext(UMuksiBattleExecution* Execution, const FMuksiBattleExecutionContext& Context)
 {
-	if (!bSequenceRunning || !Execution)
+	if (!bSequenceRunning || !Execution || RunningExecutions.Contains(Execution))
 	{
 		return;
 	}
 
 	RunningExecutions.Add(Execution);
-	++PendingExecutionCount;
 
-	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Started. Execution=%s Pending=%d"), *GetNameSafe(Execution), PendingExecutionCount);
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Started. Execution=%s Running=%d"), *GetNameSafe(Execution), RunningExecutions.Num());
 
 	FMuksiBattleExecutionFinished OnFinished;
-	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionFinished);
+	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionFinished, Execution);
 
 	Execution->Execute(Context, OnFinished);
 }
@@ -182,18 +185,28 @@ FMuksiBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName 
 	return Context;
 }
 
-void ABattleSequenceManager::HandleExecutionFinished()
+void ABattleSequenceManager::HandleExecutionFinished(UMuksiBattleExecution* FinishedExecution)
 {
-	PendingExecutionCount = FMath::Max(0, PendingExecutionCount - 1);
+	if (!bSequenceRunning || !FinishedExecution)
+	{
+		return;
+	}
 
-	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Finished. Pending=%d"), PendingExecutionCount);
+	const int32 RemovedCount = RunningExecutions.RemoveSingle(FinishedExecution);
+
+	if (RemovedCount == 0)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Finished. Execution=%s Running=%d"), *GetNameSafe(FinishedExecution), RunningExecutions.Num());
 
 	TryFinishSequence();
 }
 
 void ABattleSequenceManager::TryFinishSequence()
 {
-	if (!bSequenceRunning || PendingExecutionCount > 0)
+	if (!bSequenceRunning || !RunningExecutions.IsEmpty())
 	{
 		return;
 	}
@@ -211,7 +224,6 @@ void ABattleSequenceManager::FinishSequence()
 	UnbindAttackerNotify();
 
 	bSequenceRunning = false;
-	PendingExecutionCount = 0;
 	CurrentAction = FBattleAction();
 	AttackerAnimationComponent = nullptr;
 	RunningExecutions.Empty();

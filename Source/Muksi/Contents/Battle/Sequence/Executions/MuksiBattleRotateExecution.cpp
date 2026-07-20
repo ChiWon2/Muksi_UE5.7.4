@@ -8,7 +8,6 @@
 void UMuksiBattleRotateExecution::Execute(const FMuksiBattleExecutionContext& Context, FMuksiBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;
-	bExecutionFinished = false;
 	RotatingCharacter = Context.Attacker.Get();
 
 	if (!RotatingCharacter || !Context.BattleGridManager)
@@ -57,12 +56,11 @@ void UMuksiBattleRotateExecution::HandleRotationFinished(bool bInterrupted)
 
 void UMuksiBattleRotateExecution::FinishRotateExecution()
 {
-	if (bExecutionFinished)
+	if (IsExecutionFinished())
 	{
 		return;
 	}
 
-	bExecutionFinished = true;
 	RotatingCharacter = nullptr;
 	MovementComponent = nullptr;
 
