@@ -147,9 +147,14 @@ FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName Notif
 	Context.Attacker = CurrentAction.Attacker;
 	Context.Card = CurrentAction.Card;
 	Context.BattleGridManager = BattleGridManager;
-	Context.TargetPoints = CurrentAction.TargetPoints;
+	Context.TargetPoints = CurrentAction.TargetingResult.AffectedCoords;
 	Context.NotifyKey = NotifyKey;
 	Context.RequestRuntimeExecutionChain.BindUObject(this, &ABattleSequenceManager::HandleRuntimeExecutionChainRequested);
+
+	if (Context.TargetPoints.IsEmpty() && CurrentAction.TargetingResult.HasSelectedCoord())
+	{
+		Context.TargetPoints.Add(CurrentAction.TargetingResult.GetSelectedCoord());
+	}
 
 	return Context;
 }
