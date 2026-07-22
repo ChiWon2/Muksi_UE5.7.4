@@ -8,6 +8,8 @@
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
 
+class ABattleManager;
+class UWidget_BattleMainScreen;
 class AExchangeCharacterBase;
 class UBoxComponent;
 class UCharacterDataBase;
@@ -16,19 +18,24 @@ class UMuksiBattleCardDataAsset;
 class UMuksiBattleMovementComponent;
 class UMuksiCharacterDataAsset;
 class UMuksiStatusEffectComponent;
+class UCharacterPassiveComponent;
+class UBattleStatComponent;
 
 USTRUCT(BlueprintType)
 struct MUKSI_API FCharacterData
 {
 	GENERATED_BODY()
 	
-	void Init(UMuksiCharacterDataAsset* InCharacterData)
+	void Init_DataAsset(UMuksiCharacterDataAsset* InCharacterData)
 	{
 		CharacterAsset = InCharacterData;
 		MaxHP = InCharacterData->MaxHP;
-		CurrentHP = InCharacterData->MaxHP;
+		AttackValue = InCharacterData->AttackValue;
 		CharacterSpeed = InCharacterData->CharacterSpeed;
+		DefenseValue = InCharacterData->DefenseValue;
+		
 		AllBattleDeck = InCharacterData->CharacterDeck;
+		CharacterPassives = InCharacterData->CharacterPassiveClass;
 	}
 	
 	bool IsValid() const
@@ -43,10 +50,13 @@ struct MUKSI_API FCharacterData
 	TObjectPtr<UMuksiCharacterDataAsset> CharacterAsset = nullptr;
 
 	UPROPERTY(Transient)
-	int32 CurrentHP = 0;
-
-	UPROPERTY(Transient)
 	int32 MaxHP = 0;
+	
+	UPROPERTY(Transient)
+	float AttackValue = 0.f;
+	
+	UPROPERTY(Transient)
+	float DefenseValue = 0.f;
 
 	UPROPERTY(Transient)
 	float CharacterSpeed = 1.0f;
@@ -56,6 +66,9 @@ struct MUKSI_API FCharacterData
 	
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> AllBattleDeck;
+	
+	UPROPERTY(Transient)
+	TArray<TSubclassOf<UCharacterPassive>> CharacterPassives;
 };
 
 
@@ -81,7 +94,7 @@ public:
 	
 	float GetCharacterSpeed()const;
 
-	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData);
+	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen);
 	
 	FIntPoint GetCharacterPosition()const{return CharacterData.CurrentPosition;};
 	void SetCharacterPosition(FIntPoint NewPosition){CharacterData.CurrentPosition = NewPosition;};
@@ -93,6 +106,13 @@ public:
 	
 	TArray<UMuksiBattleCardDataAsset*> GetAllBattleDeck()const{return CharacterData.AllBattleDeck;};
 	void InitBattleDeck(){CharacterData.BattleDeck = CharacterData.AllBattleDeck;};
+	
+	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives();
+
+	UCharacterPassiveComponent* GetPassiveComponent() const
+	{
+		return PassiveComponent;
+	}
 	
 protected:
 	FCharacterData CharacterData;
@@ -140,8 +160,19 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMuksiBattleMovementComponent> BattleMovementComponent = nullptr;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;
+	
 	
 	UPROPERTY(Transient)
 	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
+	
+	UPROPERTY(
+	VisibleAnywhere,
+	BlueprintReadOnly,
+	Category = "Passive",
+	meta = (AllowPrivateAccess = "true")
+)
+	TObjectPtr<UCharacterPassiveComponent> PassiveComponent;
 
 };

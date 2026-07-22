@@ -8,6 +8,7 @@
 #include "BattleCardPreviewComponent.h"
 #include "TimerManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Contents/Battle/Passive/CharacterPassive.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
@@ -20,6 +21,7 @@
 #include "Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Targeting/Manager/BattleTargetingManager.h"
+#include "Passive/CharacterPassiveComponent.h"
 
 ABattleManager::ABattleManager()
 {
@@ -116,7 +118,7 @@ void ABattleManager::SetPhase(EBattlePhase NewPhase)
 
 void ABattleManager::ChangePhase(EBattlePhase NewPhase)
 {
-	CurrentPhase = NewPhase;
+	SetPhase(NewPhase);
 
 	//각 델리게이트 호출하는 형식
 	//레벨에 있는 오브젝트의 델리게이트 호출 (UI는 Widget_BattleMainScreen에서)
@@ -128,15 +130,19 @@ void ABattleManager::ChangePhase(EBattlePhase NewPhase)
 		break;
 
 	case EBattlePhase::BattleStart:
+		OnBattleStarted.Broadcast();
 		break;
 
 	case EBattlePhase::RoundStart:
+		OnRoundStarted.Broadcast();
 		break;
 
 	case EBattlePhase::ExchangeStart:
+		OnExchangeStarted.Broadcast();
 		break;
 
 	case EBattlePhase::AttackStart:
+		OnAttackStarted.Broadcast();
 		break;
 
 	default:
@@ -150,15 +156,19 @@ void ABattleManager::ChangePhase(EBattlePhase NewPhase)
 		break;
 
 	case EBattlePhase::BattleEnd:
+		OnBattleEnded.Broadcast();
 		break;
 
 	case EBattlePhase::RoundEnd:
+		OnRoundEnded.Broadcast();
 		break;
 
 	case EBattlePhase::ExchangeEnd:
+		OnExchangeEnded.Broadcast();
 		break;
 
 	case EBattlePhase::AttackEnd:
+		OnAttackEnded.Broadcast();
 		break;
 
 	default:
@@ -242,7 +252,7 @@ void ABattleManager::StartBattleInternal()
 
 void ABattleManager::StartBattleReady()
 {
-	SetPhase(EBattlePhase::Ready);
+	ChangePhase(EBattlePhase::Ready);
 
 	//TODO BattleCharacter Spawn
 	CreateCharacter();
@@ -307,7 +317,7 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-	PlayerBattleCharacter->SetCharacterData(TestPlayerCharacterDataAsset);
+	PlayerBattleCharacter->SetCharacterData(TestPlayerCharacterDataAsset, this, BattleMainScreen);
 
 	//Enemy BattleCharacter Spawn
 	EnemyBattleCharacter = World->SpawnActor<ABattleCharacter_Enemy>(EnemyClass, EnemySpawnPoint->GetActorTransform());
@@ -316,13 +326,19 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset);
+	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset, this, BattleMainScreen);
+	
+	
+	
 	BattleGridManager->MoveCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->MoveCharacter(EnemyBattleCharacter, StartEnemyPoint);
 
 	BattleGridManager->SetOccupied(StartPlayerPoint, PlayerBattleCharacter);
 	BattleGridManager->SetOccupied(StartEnemyPoint, EnemyBattleCharacter);
 }
+
+
+
 
 bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card)
 {
@@ -466,6 +482,8 @@ void ABattleManager::BattleStart()
 	//Current Phase 설정
 	//BattleManager 델리게이트 <- 전투 시작 모션/ 기타 등등
 	ChangePhase(EBattlePhase::BattleStart);
+	
+	
 
 	//전투 시작 UI ex) 활협전의 한판붙자? UI 같은거
 	BattleMainScreen->BattleStart();
@@ -482,29 +500,31 @@ void ABattleManager::BattleEnd()
 //국 시작	Round 시작
 void ABattleManager::RoundStart()
 {
-	SetPhase(EBattlePhase::RoundStart);
+	ChangePhase(EBattlePhase::RoundStart);
 
 	AttackActions.Empty();
 	PlayerSelectAction.Empty();
 	EnemySelectAction.Empty();
+	
 
 	BattleMainScreen->RoundStart();
 }
 
 void ABattleManager::RoundEnd()
 {
-	SetPhase(EBattlePhase::RoundEnd);
+	ChangePhase(EBattlePhase::RoundEnd);
 	BattleMainScreen->RoundEnd();
 }
 
 //===============================================합(Exchange)===========================================================
 void ABattleManager::ExchangeStart()
 {
-	SetPhase(EBattlePhase::ExchangeStart);
+	ChangePhase(EBattlePhase::ExchangeStart);
 	CurrentExchange = 0;
 
 	AttackActions.Empty();
-
+	
+	
 	if (BattleMainScreen)
 	{
 		BattleMainScreen->ExchangeStart();
@@ -576,7 +596,7 @@ void ABattleManager::Exchange3End()
 
 void ABattleManager::ExchangeEnd()
 {
-	SetPhase(EBattlePhase::ExchangeEnd);
+	ChangePhase(EBattlePhase::ExchangeEnd);
 
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
@@ -792,7 +812,7 @@ void ABattleManager::SortAttackActions()
 
 void ABattleManager::AttackStart()
 {
-	SetPhase(EBattlePhase::AttackStart);
+	ChangePhase(EBattlePhase::AttackStart);
 	CurrentAttackActionIndex = 0;
 
 	if (AttackActions.IsEmpty())
@@ -945,7 +965,7 @@ void ABattleManager::FinishCurrentAttackAction()
 
 void ABattleManager::AttackEnd()
 {
-	SetPhase(EBattlePhase::AttackEnd);
+	ChangePhase(EBattlePhase::AttackEnd);
 
 	UE_LOG(LogTemp, Log, TEXT("AttackEnd: All attack actions finished"));
 

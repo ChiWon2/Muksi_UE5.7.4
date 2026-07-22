@@ -3,12 +3,14 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
+#include "BattleStatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
+#include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
 
 
 // Sets default values
@@ -55,12 +57,16 @@ ABattleCharacterBase::ABattleCharacterBase()
 		ECC_Visibility,
 		ECR_Ignore
 	);
+	
+	PassiveComponent = CreateDefaultSubobject<UCharacterPassiveComponent>(TEXT("PassiveComponent"));
 
 	StatusEffectComponent = CreateDefaultSubobject<UMuksiStatusEffectComponent>(TEXT("StatusEffectComponent"));
 
 	BattleAnimationComponent = CreateDefaultSubobject<UMuksiBattleAnimationComponent>(TEXT("BattleAnimationComponent"));
 
 	BattleMovementComponent =CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
+	
+	BattleStatComponent = CreateDefaultSubobject<UBattleStatComponent>(TEXT("BattleStatComponent"));
 
 }
 
@@ -80,13 +86,13 @@ void ABattleCharacterBase::Tick(float DeltaTime)
 
 int32 ABattleCharacterBase::GetCurrentHP() const
 {
-	if (CharacterData.IsValid()){return CharacterData.CurrentHP;}
+	if (BattleStatComponent){return BattleStatComponent->GetCurrentHP();}
 	return -1;
 }
 
 void ABattleCharacterBase::SetCurrentHP(int32 NewHP)
 {
-	if (CharacterData.IsValid()){CharacterData.CurrentHP = NewHP;}
+	if (BattleStatComponent){BattleStatComponent->SetCurrentHP(NewHP);}
 }
 
 FVector2D ABattleCharacterBase::GetCurrentSelectCardTime() const
@@ -101,14 +107,35 @@ float ABattleCharacterBase::GetCharacterSpeed() const
 	return CharacterData.CharacterSpeed;
 }
 
-void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData)
+void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
 {
-	CharacterData.Init(InCharacterData);
+	CharacterData.Init_DataAsset(InCharacterData);
 	if (!CharacterData.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterDataAsset is null"));
 		return;
 	}
+	
+	if (!PassiveComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PassiveComponent is null (BattleCharacterBase.cpp)"));
+		return;
+	}
+	UE_LOG(LogTemp, Error, TEXT("CharacterData CharacterPassives %d"), CharacterData.CharacterPassives.Num());
+	PassiveComponent->InitializePassives(CharacterData.CharacterPassives, BattleManager, BattleMainScreen);
+	
+	if (!BattleStatComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleStatComponent is null (BattleCharacterBase.cpp)"));
+		return;
+	}
+	FBattleStats BattleStats = FBattleStats();
+	BattleStats.Attack = CharacterData.AttackValue;
+	BattleStats.Defense = CharacterData.DefenseValue;
+	BattleStats.Speed = CharacterData.CharacterSpeed;
+	BattleStats.HP = CharacterData.MaxHP;
+	BattleStatComponent->InitializeStats(BattleStats);
+	
 }
 
 void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)
@@ -137,6 +164,16 @@ void ABattleCharacterBase::RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCar
 int32 ABattleCharacterBase::GetCurrentBattleCardCount() const
 {
 	return CharacterData.BattleDeck.Num();
+}
+
+TArray<TObjectPtr<UCharacterPassive>> ABattleCharacterBase::GetCharacterPassives()
+{
+	if (!PassiveComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PassiveComponent is Error (BattleCharacterBase.cpp)"));
+		return TArray<TObjectPtr<UCharacterPassive>>();
+	}
+	return PassiveComponent->GetCharacterPassives();
 }
 
 
