@@ -13,9 +13,9 @@ ABattleCharacter_Enemy::ABattleCharacter_Enemy()
 	
 }
 
-void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData)
+void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
 {
-	Super::SetCharacterData(InCharacterData);
+	Super::SetCharacterData(InCharacterData, BattleManager, BattleMainScreen);
 	InitData();
 }
 

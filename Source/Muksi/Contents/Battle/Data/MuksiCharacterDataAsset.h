@@ -10,6 +10,7 @@
 class UEnemyCardSelectStrategyBase;
 class UMuksiBattleCardDataAsset;
 class ABattleCharacterBase;
+class UCharacterPassive;
 
 
 /**
@@ -34,6 +35,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 체력
 	int32 MaxHP = 100;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")
+	float AttackValue = 10.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")
+	float DefenseValue = 10.0f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 선후공 속도
 	float CharacterSpeed = 1.0f;
 	
@@ -41,6 +48,8 @@ public:
 	float CardSelectTimeMax = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 시간-최솟값
 	float CardSelectTimeMin = 1.f;
+	
+	
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
 	FText FactionName;
@@ -54,6 +63,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|AI")
 	TSubclassOf<UEnemyCardSelectStrategyBase> CardSelectStrategyClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Passive")
+	TArray<TSubclassOf<UCharacterPassive>> CharacterPassiveClass;
 	
 public:
 	//캐릭터 모델, 클래스 등등.
