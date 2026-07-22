@@ -10,6 +10,7 @@
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingInputContext.h"
 #include "BattleManager.generated.h"
 
+enum class EMuksiPassiveTriggerType : uint8;
 class ABattleCharacter_Player;
 class ABattleCharacter_Enemy;
 class ABattleCharacterBase;
@@ -63,18 +64,21 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(
 );
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(
+	FOnRoundEnded
+);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(
 	FOnExchangeStarted
+);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(
+	FOnExchangeEnded
 );
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(
 	FOnAttackStarted
 );
 
-/*DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnExchangeStarted,
-	int32,
-	ExchangeNumber
-);*/
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnAttack,
@@ -82,16 +86,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	AttackNumber
 );
 
-/*DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnAttackStarted,
-	int32,
-	AttackNumber
-);*/
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnAttackEnded,
-	int32,
-	AttackNumber
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(
+	FOnAttackEnded
 );
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(
@@ -202,9 +198,15 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnRoundStarted OnRoundStarted;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
+	FOnRoundEnded OnRoundEnded;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnExchangeStarted OnExchangeStarted;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
+	FOnExchangeEnded OnExchangeEnded;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnAttack OnAttack;
@@ -268,7 +270,6 @@ protected:
 	//원래 기획대로라면 다른 곳에서 생성 후 받는 형식
 
 	//Battle 실행 관련 캐릭터 이동
-public:
 
 	//Battle Mouse 관련 함수
 public:

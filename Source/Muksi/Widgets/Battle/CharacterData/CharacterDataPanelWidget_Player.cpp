@@ -9,6 +9,7 @@
 #include "Controllers/PlayerMode/PlayerMode_Battle.h"
 #include "Muksi/Widgets/Battle/CharacterData/Widget_CharacterDeckPanel.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
+#include "Muksi/Widgets/Battle/Passive/Widget_CharacterPassivePanel.h"
 
 void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 {
@@ -37,6 +38,7 @@ void UCharacterDataPanelWidget_Player::ApplyCharacterData(ABattleCharacter_Playe
 		return;
 	}
 	CharacterDeckPanelWidget->SetDeckData(PlayerData->GetAllBattleDeck());
+	CharacterPassivePanelWidget->SetPassiveData(PlayerData->GetCharacterPassives());
 	
 }
 
@@ -51,6 +53,11 @@ void UCharacterDataPanelWidget_Player::NativeConstruct()
 	if (Button_Deck)
 	{
 		Button_Deck->OnClicked.AddDynamic(this, &UCharacterDataPanelWidget_Player::OnDeckButtonClicked);
+	}
+	
+	if (Button_Passive)
+	{
+		Button_Passive->OnClicked.AddDynamic(this, &UCharacterDataPanelWidget_Player::OnPassiveButtonClicked);
 	}
 
 	// 처음 열렸을 때 기본으로 프로필 패널 표시
@@ -69,6 +76,11 @@ void UCharacterDataPanelWidget_Player::NativeDestruct()
 		Button_Deck->OnClicked.RemoveDynamic(this, &UCharacterDataPanelWidget_Player::OnDeckButtonClicked);
 	}
 	
+	if (Button_Passive)
+	{
+		Button_Passive->OnClicked.RemoveDynamic(this, &UCharacterDataPanelWidget_Player::OnPassiveButtonClicked);
+	}
+	
 	Super::NativeDestruct();
 }
 
@@ -80,6 +92,11 @@ void UCharacterDataPanelWidget_Player::OnProfileButtonClicked()
 void UCharacterDataPanelWidget_Player::OnDeckButtonClicked()
 {
 	SwitchPlayerPanel(1);
+}
+
+void UCharacterDataPanelWidget_Player::OnPassiveButtonClicked()
+{
+	SwitchPlayerPanel(2);
 }
 
 void UCharacterDataPanelWidget_Player::SwitchPlayerPanel(int32 PanelIndex)

@@ -6,6 +6,7 @@
 #include "Muksi/Widgets/Battle/CharacterData/CharacterDataPanelWidget.h"
 #include "CharacterDataPanelWidget_Player.generated.h"
 
+class UWidget_CharacterPassivePanel;
 class UWidget_PlayerProfilePanel;
 class UCharacterDataBase;
 class UWidget_CharacterDeckPanel;
@@ -42,12 +43,16 @@ protected:
 	TObjectPtr<UButton> Button_Profile;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Deck;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> Button_Passive;
 	
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_PlayerProfilePanel> PlayerProfilePanel;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CharacterDeckPanel> CharacterDeckPanelWidget;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_CharacterPassivePanel> CharacterPassivePanelWidget;
 	//***** BindWidget *****
 	
 private:
@@ -56,6 +61,8 @@ private:
 	void OnProfileButtonClicked();
 	UFUNCTION()
 	void OnDeckButtonClicked();
+	UFUNCTION()
+	void OnPassiveButtonClicked();
 	
 	void SwitchPlayerPanel(int32 PanelIndex);
 };
