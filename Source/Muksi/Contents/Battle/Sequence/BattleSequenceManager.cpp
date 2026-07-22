@@ -4,7 +4,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Sequence/MuksiBattleExecutionChain.h"
+#include "Muksi/Contents/Battle/Sequence/BattleExecutionChain.h"
 
 ABattleSequenceManager::ABattleSequenceManager()
 {
@@ -20,8 +20,7 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 
 	CurrentAction = InAction;
 	bSequenceRunning = true;
-	PendingExecutionCount = 0;
-	RunningExecutions.Empty();
+	ActiveExecutionChains.Empty();
 
 	if (!BindAttackerNotify())
 	{
@@ -29,17 +28,22 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 		return false;
 	}
 
-	StartInitialExecutionChain();
+	StartMainExecutionChain();
 	return true;
 }
 
 bool ABattleSequenceManager::ValidateAction(const FBattleAction& InAction) const
 {
-	return IsValid(InAction.Attacker) && IsValid(InAction.Card) && !InAction.Card->ExecutionChain.IsEmpty();
+	return IsValid(InAction.Attacker) && IsValid(InAction.Card) && !InAction.Card->MainExecutions.IsEmpty();
 }
 
 bool ABattleSequenceManager::BindAttackerNotify()
 {
+	if (!CurrentAction.Card || CurrentAction.Card->NotifyExecutionChains.IsEmpty())
+	{
+		return true;
+	}
+
 	if (!CurrentAction.Attacker)
 	{
 		return false;
@@ -49,6 +53,7 @@ bool ABattleSequenceManager::BindAttackerNotify()
 
 	if (!AttackerAnimationComponent)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] AnimationComponent not found. Attacker=%s"), *GetNameSafe(CurrentAction.Attacker.Get()));
 		return false;
 	}
 
@@ -66,24 +71,15 @@ void ABattleSequenceManager::UnbindAttackerNotify()
 	AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &ABattleSequenceManager::HandleBattleExecutionNotify);
 }
 
-void ABattleSequenceManager::StartInitialExecutionChain()
+void ABattleSequenceManager::StartMainExecutionChain()
 {
-	if (!CurrentAction.Card || CurrentAction.Card->ExecutionChain.IsEmpty())
+	if (!CurrentAction.Card || CurrentAction.Card->MainExecutions.IsEmpty())
 	{
 		FinishSequence();
 		return;
 	}
 
-	UMuksiBattleExecutionChain* ExecutionChain = NewObject<UMuksiBattleExecutionChain>(this);
-
-	if (!ExecutionChain)
-	{
-		FinishSequence();
-		return;
-	}
-
-	ExecutionChain->InitializeChain(CurrentAction.Card->ExecutionChain);
-	ExecuteExecutionInstanceWithContext(ExecutionChain, MakeExecutionContext(NAME_None));
+	StartExecutionChain(CurrentAction.Card->MainExecutions, MakeExecutionContext(NAME_None));
 }
 
 void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
@@ -93,107 +89,93 @@ void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
 		return;
 	}
 
-	ExecuteNotifyExecutionBinding(NotifyKey);
+	StartNotifyExecutionChains(NotifyKey);
 }
 
-void ABattleSequenceManager::ExecuteNotifyExecutionBinding(FName NotifyKey)
+void ABattleSequenceManager::StartNotifyExecutionChains(FName NotifyKey)
 {
 	if (!CurrentAction.Card)
 	{
 		return;
 	}
 
-	for (const FMuksiBattleNotifyExecutionBinding& Binding : CurrentAction.Card->NotifyExecutionBindings)
+	for (const FBattleNotifyExecutionChain& NotifyChain : CurrentAction.Card->NotifyExecutionChains)
 	{
-		if (!Binding.IsValid() || Binding.NotifyKey != NotifyKey)
+		if (!NotifyChain.IsValid() || NotifyChain.NotifyKey != NotifyKey)
 		{
 			continue;
 		}
 
-		UMuksiBattleExecutionChain* ExecutionChain = NewObject<UMuksiBattleExecutionChain>(this);
-
-		if (!ExecutionChain)
-		{
-			return;
-		}
-
-		ExecutionChain->InitializeChain(Binding.ExecutionChain);
-		ExecuteExecutionInstanceWithContext(ExecutionChain, MakeExecutionContext(NotifyKey));
-		return;
+		StartExecutionChain(NotifyChain.Executions, MakeExecutionContext(NotifyKey));
 	}
 }
 
-void ABattleSequenceManager::ExecuteExecutionClass(TSubclassOf<UMuksiBattleExecution> ExecutionClass, FName NotifyKey)
+void ABattleSequenceManager::StartExecutionChain(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
 {
-	ExecuteExecutionClassWithContext(ExecutionClass, MakeExecutionContext(NotifyKey));
-}
-
-void ABattleSequenceManager::ExecuteExecutionClassWithContext(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context)
-{
-	if (!bSequenceRunning || !ExecutionClass)
+	if (!bSequenceRunning || ExecutionEntries.IsEmpty())
 	{
 		return;
 	}
 
-	UMuksiBattleExecution* Execution = NewObject<UMuksiBattleExecution>(this, ExecutionClass);
+	UBattleExecutionChain* ExecutionChain = NewObject<UBattleExecutionChain>(this);
 
-	if (!Execution)
+	if (!ExecutionChain)
 	{
 		return;
 	}
 
-	ExecuteExecutionInstanceWithContext(Execution, Context);
+	ExecutionChain->InitializeChain(ExecutionEntries);
+	ActiveExecutionChains.Add(ExecutionChain);
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] ExecutionChain Started. Chain=%s ActiveChains=%d"), *GetNameSafe(ExecutionChain), ActiveExecutionChains.Num());
+
+	FBattleExecutionFinished OnFinished;
+	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionChainFinished, ExecutionChain);
+
+	ExecutionChain->Execute(Context, OnFinished);
 }
 
-void ABattleSequenceManager::ExecuteExecutionInstanceWithContext(UMuksiBattleExecution* Execution, const FMuksiBattleExecutionContext& Context)
+void ABattleSequenceManager::HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
 {
-	if (!bSequenceRunning || !Execution)
-	{
-		return;
-	}
-
-	RunningExecutions.Add(Execution);
-	++PendingExecutionCount;
-
-	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Started. Execution=%s Pending=%d"), *GetNameSafe(Execution), PendingExecutionCount);
-
-	FMuksiBattleExecutionFinished OnFinished;
-	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionFinished);
-
-	Execution->Execute(Context, OnFinished);
+	StartExecutionChain(ExecutionEntries, Context);
 }
 
-void ABattleSequenceManager::HandleSystemExecutionRequested(TSubclassOf<UMuksiBattleExecution> ExecutionClass, const FMuksiBattleExecutionContext& Context)
+FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName NotifyKey)
 {
-	ExecuteExecutionClassWithContext(ExecutionClass, Context);
-}
-
-FMuksiBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName NotifyKey)
-{
-	FMuksiBattleExecutionContext Context;
+	FBattleExecutionContext Context;
 
 	Context.Attacker = CurrentAction.Attacker;
 	Context.Card = CurrentAction.Card;
+	Context.TargetingResult = CurrentAction.TargetingResult;
 	Context.BattleGridManager = BattleGridManager;
-	Context.TargetPoints = CurrentAction.TargetPoints;
 	Context.NotifyKey = NotifyKey;
-	Context.RequestSystemExecution.BindUObject(this, &ABattleSequenceManager::HandleSystemExecutionRequested);
+	Context.RequestRuntimeExecutionChain.BindUObject(this, &ABattleSequenceManager::HandleRuntimeExecutionChainRequested);
 
 	return Context;
 }
 
-void ABattleSequenceManager::HandleExecutionFinished()
+void ABattleSequenceManager::HandleExecutionChainFinished(UBattleExecutionChain* FinishedChain)
 {
-	PendingExecutionCount = FMath::Max(0, PendingExecutionCount - 1);
+	if (!bSequenceRunning || !FinishedChain)
+	{
+		return;
+	}
 
-	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Execution Finished. Pending=%d"), PendingExecutionCount);
+	const int32 RemovedCount = ActiveExecutionChains.RemoveSingle(FinishedChain);
+
+	if (RemovedCount == 0)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] ExecutionChain Finished. Chain=%s ActiveChains=%d"), *GetNameSafe(FinishedChain), ActiveExecutionChains.Num());
 
 	TryFinishSequence();
 }
 
 void ABattleSequenceManager::TryFinishSequence()
 {
-	if (!bSequenceRunning || PendingExecutionCount > 0)
+	if (!bSequenceRunning || !ActiveExecutionChains.IsEmpty())
 	{
 		return;
 	}
@@ -211,10 +193,9 @@ void ABattleSequenceManager::FinishSequence()
 	UnbindAttackerNotify();
 
 	bSequenceRunning = false;
-	PendingExecutionCount = 0;
 	CurrentAction = FBattleAction();
 	AttackerAnimationComponent = nullptr;
-	RunningExecutions.Empty();
+	ActiveExecutionChains.Empty();
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Sequence Finished."));
 

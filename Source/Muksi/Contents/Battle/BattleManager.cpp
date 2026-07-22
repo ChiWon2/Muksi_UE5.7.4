@@ -362,8 +362,6 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card)
 		return false;
 	}
 
-	TargetPoints.Empty();
-
 	return BattleTargetingManager->StartTargeting(PlayerBattleCharacter, BattleGridManager, Card->TargetingData);
 }
 
@@ -401,16 +399,9 @@ bool ABattleManager::ConfirmCurrentCardTargeting()
 		return false;
 	}
 
-	const FTargetingResult& TargetingResult = BattleTargetingManager->GetTargetingResult();
+	const FTargetingResult& ConfirmedTargetingResult = BattleTargetingManager->GetTargetingResult();
 
-	TargetPoints = TargetingResult.AffectedCoords;
-
-	if (TargetPoints.IsEmpty() && TargetingResult.HasSelectedCoord())
-	{
-		TargetPoints.Add(TargetingResult.GetSelectedCoord());
-	}
-
-	return !TargetPoints.IsEmpty();
+	return !ConfirmedTargetingResult.AffectedCoords.IsEmpty() || ConfirmedTargetingResult.HasSelectedCoord();
 }
 
 void ABattleManager::CancelCurrentCardTargeting()
@@ -419,8 +410,6 @@ void ABattleManager::CancelCurrentCardTargeting()
 	{
 		BattleTargetingManager->CancelTargeting();
 	}
-
-	TargetPoints.Empty();
 }
 
 bool ABattleManager::IsCardTargeting() const
@@ -662,13 +651,19 @@ void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
 
 void ABattleManager::SetPlayerBattleAction()
 {
+	if (!BattleTargetingManager)
+	{
+		return;
+	}
+
 	FBattleAction BattleAction;
+
 	BattleAction.ExchangeIndex = CurrentExchange;
 	BattleAction.Card = AttackBattleCardDataAsset;
 	BattleAction.Speed = PlayerBattleCharacter->GetCharacterSpeed() + AttackBattleCardDataAsset->CardSpeed;
 	BattleAction.Attacker = PlayerBattleCharacter;
 	BattleAction.bPlayerAction = true;
-	BattleAction.TargetPoints = TargetPoints;
+	BattleAction.TargetingResult = BattleTargetingManager->GetTargetingResult();
 
 	PlayerSelectAction.Add(BattleAction);
 	AttackActions.Add(BattleAction);
@@ -679,18 +674,20 @@ void ABattleManager::SetPlayerBattleAction()
 void ABattleManager::SetEnemyBattleAction()
 {
 	FBattleAction BattleAction;
+
 	BattleAction.ExchangeIndex = CurrentExchange;
 	BattleAction.Card = EnemyBattleCharacter->GetSelectEnemyCardDataAsset(BattleGridManager, this);
 	BattleAction.Attacker = EnemyBattleCharacter;
 	BattleAction.bPlayerAction = false;
-	
+
 	if (BattleAction.Card == nullptr)
 	{
 		UE_LOG(LogTemp, Error, TEXT("EnemyBattleCharacter->GetSelectEnemyCardDataAsset is null!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
 		return;
 	}
 	//좌표 구하는거
-	BattleAction.TargetPoints = EnemyBattleCharacter->GetSelectEnemyCardCoord();
+	BattleAction.Speed = EnemyBattleCharacter->GetCharacterSpeed() + BattleAction.Card->CardSpeed;
+	BattleAction.TargetingResult.AffectedCoords = EnemyBattleCharacter->GetSelectEnemyCardCoord();
 
 	AttackActions.Add(BattleAction);
 	EnemySelectAction.Add(BattleAction);
@@ -701,28 +698,25 @@ void ABattleManager::SetExchangeGrid()
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
 
-	FBattleAction PlayerBattleAction = PlayerSelectAction[CurrentExchange];
+	const FBattleAction& PlayerBattleAction = PlayerSelectAction[CurrentExchange];
 
 	UE_LOG(LogTemp, Log, TEXT("Current Exchange num %d"), PlayerSelectAction.Num());
 
-	int32 AttackType = 0;
+	int32 PlayerAttackType = 0;
 
 	switch (PlayerBattleAction.Card->AttackType.AttackType)
 	{
 	case EMuksiBattleCardAttackType::Rush:
-		AttackType = 0;
-		break;
-
 	case EMuksiBattleCardAttackType::RangeAttack:
-		AttackType = 0;
+		PlayerAttackType = 0;
 		break;
 
 	case EMuksiBattleCardAttackType::Move:
-		AttackType = 1;
+		PlayerAttackType = 1;
 		break;
 
 	case EMuksiBattleCardAttackType::Defense:
-		AttackType = 2;
+		PlayerAttackType = 2;
 		break;
 
 	default:
@@ -730,24 +724,29 @@ void ABattleManager::SetExchangeGrid()
 		break;
 	}
 
-	BattleGridManager->SetExchangeIndicator(AttackType, PlayerBattleAction.TargetPoints);
+	TArray<FIntPoint> PlayerTargetCoords = PlayerBattleAction.TargetingResult.AffectedCoords;
+
+	if (PlayerTargetCoords.IsEmpty() && PlayerBattleAction.TargetingResult.HasSelectedCoord())
+	{
+		PlayerTargetCoords.Add(PlayerBattleAction.TargetingResult.GetSelectedCoord());
+	}
+
+	BattleGridManager->SetExchangeIndicator(PlayerAttackType, PlayerTargetCoords);
 
 	UE_LOG(LogTemp, Log, TEXT("SelectCard %s"), *PlayerBattleAction.Card->CardName.ToString());
 
-	if (!PlayerBattleAction.TargetPoints.IsEmpty())
+	if (!PlayerTargetCoords.IsEmpty())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Player select Point {%d} , {%d}"), PlayerBattleAction.TargetPoints[0].X, PlayerBattleAction.TargetPoints[0].Y);
+		UE_LOG(LogTemp, Log, TEXT("Player select Point {%d}, {%d}"), PlayerTargetCoords[0].X, PlayerTargetCoords[0].Y);
 	}
 
-	FBattleAction EnemyBattleAction = EnemySelectAction[CurrentExchange];
+	const FBattleAction& EnemyBattleAction = EnemySelectAction[CurrentExchange];
+
 	int32 EnemyAttackType = 0;
 
 	switch (EnemyBattleAction.Card->AttackType.AttackType)
 	{
 	case EMuksiBattleCardAttackType::Rush:
-		EnemyAttackType = 0;
-		break;
-
 	case EMuksiBattleCardAttackType::RangeAttack:
 		EnemyAttackType = 0;
 		break;
@@ -765,18 +764,24 @@ void ABattleManager::SetExchangeGrid()
 		break;
 	}
 
-	if (!EnemyBattleAction.TargetPoints.IsEmpty())
+	TArray<FIntPoint> EnemyTargetCoords = EnemyBattleAction.TargetingResult.AffectedCoords;
+
+	if (EnemyTargetCoords.IsEmpty() && EnemyBattleAction.TargetingResult.HasSelectedCoord())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Enemy select Point {%d} , {%d}"), EnemyBattleAction.TargetPoints[0].X, EnemyBattleAction.TargetPoints[0].Y);
+		EnemyTargetCoords.Add(EnemyBattleAction.TargetingResult.GetSelectedCoord());
 	}
 
-	BattleGridManager->SetExchangeIndicator(EnemyAttackType, EnemyBattleAction.TargetPoints);
+	if (!EnemyTargetCoords.IsEmpty())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Enemy select Point {%d}, {%d}"), EnemyTargetCoords[0].X, EnemyTargetCoords[0].Y);
+	}
+
+	BattleGridManager->SetExchangeIndicator(EnemyAttackType, EnemyTargetCoords);
 }
 
 void ABattleManager::SetExchangeCharacter()
 {
-	//BattleGridManager->MoveActorOnGrid(PlayerBattleCharacter, PlayerBattleCharacter->GetCharacterPosition(),PlayerSelectAction[CurrentExchange].TargetPoints[0]);
-	//BattleGridManager->MoveActorOnGrid(EnemyBattleCharacter, EnemyBattleCharacter->GetCharacterPosition(), EnemySelectAction[CurrentExchange].TargetPoints[0]);
+
 }
 
 //===============================================공격(Attack)===========================================================

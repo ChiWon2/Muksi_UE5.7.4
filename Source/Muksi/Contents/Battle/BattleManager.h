@@ -7,7 +7,10 @@
 #include "Character/BattleCharacter_Enemy.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
+
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingInputContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
+
 #include "BattleManager.generated.h"
 
 enum class EMuksiPassiveTriggerType : uint8;
@@ -120,9 +123,9 @@ struct FBattleAction
 	UPROPERTY(BlueprintReadOnly)
 	bool bPlayerAction = false;
 
-	//공격좌표 (인덱스0 - 메인 좌표/ 그 이외는 범위 공격) <- 이거 아니면 좌표 계산하는 코드가 잘못된거
+	// 카드 선택 과정에서 확정된 전체 Targeting 결과
 	UPROPERTY(BlueprintReadOnly)
-	TArray<FIntPoint> TargetPoints;
+	FTargetingResult TargetingResult;
 };
 
 UCLASS()
@@ -428,7 +431,8 @@ public:
 	//해당 합 동안 미리 보여주는 캐릭터 위치
 	void SetExchangeCharacter();
 
-	TArray<FIntPoint> TargetPoints;
+	//UPROPERTY(BlueprintReadOnly)
+	//FTargetingResult TargetingResult;
 
 	//==================================================================================================================
 
