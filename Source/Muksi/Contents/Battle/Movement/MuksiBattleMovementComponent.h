@@ -30,7 +30,7 @@ public:
 	void StartRotateTowardLocation(const FVector& TargetWorldLocation, float RotationSpeed, FMuksiBattleMovementFinished OnFinished);
 	void StartTeleportMove(const FVector& TargetWorldLocation, FMuksiBattleMovementFinished OnFinished);
 	void StartArcMove(const FVector& TargetWorldLocation, float Duration, float ArcHeight, FMuksiBattleMovementFinished OnFinished);
-	void StartPathMove(const TArray<FVector>& WorldPath, float MoveSpeed, FMuksiBattleMovementFinished OnFinished);
+	void StartPathMove(const TArray<FVector>& WorldPath, float MoveSpeed, FMuksiBattleMovementFinished OnFinished, bool bRotateTowardPath = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Movement")
 	void StopMovement(bool bNotifyInterruption = true);
@@ -58,6 +58,8 @@ private:
 	float ArcDuration = 0.0f;
 	float ArcElapsedTime = 0.0f;
 	float CurrentArcHeight = 0.0f;
+
+	bool bCurrentPathRotationEnabled = true;
 
 	TArray<FVector> CurrentWorldPath;
 	int32 CurrentPathIndex = INDEX_NONE;

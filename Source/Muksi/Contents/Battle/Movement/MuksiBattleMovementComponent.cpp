@@ -115,7 +115,7 @@ void UMuksiBattleMovementComponent::StartArcMove(const FVector& TargetWorldLocat
 	SetComponentTickEnabled(true);
 }
 
-void UMuksiBattleMovementComponent::StartPathMove(const TArray<FVector>& WorldPath, float MoveSpeed, FMuksiBattleMovementFinished OnFinished)
+void UMuksiBattleMovementComponent::StartPathMove(const TArray<FVector>& WorldPath, float MoveSpeed, FMuksiBattleMovementFinished OnFinished, bool bRotateTowardPath)
 {
 	if (IsMoving())
 	{
@@ -147,10 +147,10 @@ void UMuksiBattleMovementComponent::StartPathMove(const TArray<FVector>& WorldPa
 	CurrentWorldPath = WorldPath;
 	CurrentPathIndex = 0;
 	CurrentMoveSpeed = MoveSpeed;
+	bCurrentPathRotationEnabled = bRotateTowardPath;
 
 	SetComponentTickEnabled(true);
 }
-
 void UMuksiBattleMovementComponent::StopMovement(bool bNotifyInterruption)
 {
 	if (!IsMoving())
@@ -262,8 +262,10 @@ void UMuksiBattleMovementComponent::UpdatePathMovement(float DeltaTime)
 			continue;
 		}
 
-		RotateOwnerToward(ToTarget, DeltaTime);
-
+		if (bCurrentPathRotationEnabled)
+		{
+			RotateOwnerToward(ToTarget, DeltaTime);
+		}
 		if (RemainingMoveDistance >= DistanceToTarget)
 		{
 			Owner->SetActorLocation(TargetLocation);
@@ -302,6 +304,8 @@ void UMuksiBattleMovementComponent::ResetMovementState()
 
 	RotationTargetLocation = FVector::ZeroVector;
 	CurrentRotationSpeed = 0.0f;
+
+	bCurrentPathRotationEnabled = true;
 
 	ArcStartLocation = FVector::ZeroVector;
 	ArcTargetLocation = FVector::ZeroVector;
