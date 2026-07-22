@@ -23,7 +23,7 @@ public:
 	
 	auto InitializePassives(
 		const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager,
-		UWidget_BattleMainScreen* BattleMainSCreen
+		UWidget_BattleMainScreen* BattleMainScreen
 	) -> void;
 
 	void TriggerPassives(

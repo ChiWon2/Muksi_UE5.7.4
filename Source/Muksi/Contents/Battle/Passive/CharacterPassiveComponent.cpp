@@ -18,7 +18,7 @@ UCharacterPassiveComponent::UCharacterPassiveComponent()
 
 
 
-void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainSCreen)
+void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
 {
 	ActivePassives.Empty();
 
@@ -50,7 +50,7 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 			continue;
 		}
 		NewPassive->InitializePassive(OwnerCharacter);
-		NewPassive->BindingEvent(BattleManager, BattleMainSCreen);
+		NewPassive->BindingEvent(BattleManager, BattleMainScreen);
 		ActivePassives.Add(NewPassive);
 	}
 }
