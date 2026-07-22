@@ -24,6 +24,7 @@ public class Muksi : ModuleRules
             "NavigationSystem",
             "StructUtils",
             "Landscape",
+            "Niagara"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]

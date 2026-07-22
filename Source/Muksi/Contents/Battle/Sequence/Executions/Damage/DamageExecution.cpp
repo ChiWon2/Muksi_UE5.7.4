@@ -16,9 +16,9 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		return;
 	}
 
-	for (const FIntPoint& TargetPoint : Context.TargetPoints)
+	for (const FIntPoint& AffectedCoord : Context.TargetingResult.AffectedCoords)
 	{
-		const FBattleGridCell* Cell = Context.BattleGridManager->GetCell(TargetPoint);
+		const FBattleGridCell* Cell = Context.BattleGridManager->GetCell(AffectedCoord);
 
 		if (!Cell || !Cell->OccupyingActor)
 		{

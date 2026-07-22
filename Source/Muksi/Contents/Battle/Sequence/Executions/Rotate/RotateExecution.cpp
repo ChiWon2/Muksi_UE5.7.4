@@ -33,15 +33,14 @@ void URotateExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		return;
 	}
 
-	const FIntPoint TargetPoint = Context.GetMainTargetPoint();
-
-	if (TargetPoint.X == INDEX_NONE || TargetPoint.Y == INDEX_NONE)
+	if (!Context.TargetingResult.HasSelectedCoord())
 	{
 		FinishRotateExecution();
 		return;
 	}
 
-	const FVector TargetWorldLocation = Context.BattleGridManager->GetTransformToPosition(TargetPoint).GetLocation();
+	const FIntPoint SelectedCoord = Context.TargetingResult.GetSelectedCoord();
+	const FVector TargetWorldLocation = Context.BattleGridManager->GetTransformToPosition(SelectedCoord).GetLocation();
 
 	FMuksiBattleMovementFinished OnRotationFinished;
 	OnRotationFinished.BindUObject(this, &URotateExecution::HandleRotationFinished);

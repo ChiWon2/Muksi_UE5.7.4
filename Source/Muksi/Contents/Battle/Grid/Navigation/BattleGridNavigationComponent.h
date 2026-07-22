@@ -17,10 +17,7 @@ class ABattleGridManager;
  * - Cell 이동 비용 계산
  * - 이후 Rush / Jump / Knockback 목적지 계산
  */
-UCLASS(
-	ClassGroup = (Battle),
-	meta = (BlueprintSpawnableComponent)
-)
+UCLASS(ClassGroup = (Battle), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UBattleGridNavigationComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -39,10 +36,7 @@ public:
 	 * @param IgnoredActor 점유 검사에서 무시할 Actor
 	 */
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	bool IsCellAvailable(
-		const FIntPoint& Coord,
-		const AActor* IgnoredActor = nullptr
-	) const;
+	bool IsCellAvailable(const FIntPoint& Coord, const AActor* IgnoredActor = nullptr) const;
 
 	/**
 	 * Hex Grid에서 점유 Cell과 이동 불가 Cell을 피하는 A* 경로를 계산한다.
@@ -51,12 +45,7 @@ public:
 	 * DestinationCoord는 포함된다.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid|Navigation")
-	bool FindGroundPath(
-		const FIntPoint& StartCoord,
-		const FIntPoint& DestinationCoord,
-		TArray<FIntPoint>& OutPath,
-		const AActor* MovingActor = nullptr
-	) const;
+	bool FindGroundPath(const FIntPoint& StartCoord, const FIntPoint& DestinationCoord, TArray<FIntPoint>& OutPath, const AActor* MovingActor = nullptr) const;
 
 	/**
 	 * 현재 Cell의 이동 비용을 반환한다.
@@ -73,10 +62,7 @@ public:
 	 * Odd-Q Offset 좌표를 Cube 좌표로 변환하여 계산한다.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	float CalculateHexDistance(
-		const FIntPoint& A,
-		const FIntPoint& B
-	) const;
+	float CalculateHexDistance(const FIntPoint& A, const FIntPoint& B) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
 	ABattleGridManager* GetGridManager() const
@@ -84,24 +70,39 @@ public:
 		return GridManager;
 	}
 
+	/**
+	 * Grid 좌표 경로를 실제 Actor 이동에 사용할
+	 * World Location 경로로 변환한다.
+	 *
+	 * 각 Grid의 BattleGridTile에 설정된
+	 * CharacterSpawnTransform 위치를 사용한다.
+	 *
+	 * @param GridPath 변환할 Grid 좌표 경로
+	 * @param OutWorldPath 변환된 월드 위치 경로
+	 *
+	 * @return 모든 Grid 좌표를 정상적으로 변환했으면 true
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid|Navigation")
+	bool ConvertGridPathToWorldPath(const TArray<FIntPoint>& GridPath, TArray<FVector>& OutWorldPath) const;
+
+	/**
+	 * 하나의 Grid 좌표에 해당하는
+	 * Character Spawn World Location을 반환한다.
+	 *
+	 * @return 유효한 Grid 위치를 찾았으면 true
+	 */
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
+	bool GetGridWorldLocation(const FIntPoint& Coord, FVector& OutWorldLocation) const;
+
 private:
 	void CacheGridManager();
 
-	bool ReconstructPath(
-		const FIntPoint& StartCoord,
-		const FIntPoint& DestinationCoord,
-		const TMap<FIntPoint, FIntPoint>& CameFrom,
-		TArray<FIntPoint>& OutPath
-	) const;
+	bool ReconstructPath(const FIntPoint& StartCoord, const FIntPoint& DestinationCoord, const TMap<FIntPoint, FIntPoint>& CameFrom, TArray<FIntPoint>& OutPath) const;
 
 	/**
 	 * OpenSet에서 가장 낮은 FScore를 가진 좌표를 찾는다.
 	 */
-	bool FindLowestScoreCoord(
-		const TArray<FIntPoint>& OpenSet,
-		const TMap<FIntPoint, float>& FScore,
-		FIntPoint& OutCoord
-	) const;
+	bool FindLowestScoreCoord(const TArray<FIntPoint>& OpenSet, const TMap<FIntPoint, float>& FScore, FIntPoint& OutCoord) const;
 
 private:
 	UPROPERTY(Transient)
@@ -122,36 +123,4 @@ private:
 	 */
 	UPROPERTY(EditAnywhere, Category = "Battle|Grid|Navigation")
 	float MinimumMovementCost = 1.0f;
-
-
-	/**
-	 * Grid 좌표 경로를 실제 Actor 이동에 사용할
-	 * World Location 경로로 변환한다.
-	 *
-	 * 각 Grid의 BattleGridTile에 설정된
-	 * CharacterSpawnTransform 위치를 사용한다.
-	 *
-	 * @param GridPath 변환할 Grid 좌표 경로
-	 * @param OutWorldPath 변환된 월드 위치 경로
-	 *
-	 * @return 모든 Grid 좌표를 정상적으로 변환했으면 true
-	 */
-public:
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid|Navigation")
-	bool ConvertGridPathToWorldPath(
-		const TArray<FIntPoint>& GridPath,
-		TArray<FVector>& OutWorldPath
-	) const;
-
-	/**
-	 * 하나의 Grid 좌표에 해당하는
-	 * Character Spawn World Location을 반환한다.
-	 *
-	 * @return 유효한 Grid 위치를 찾았으면 true
-	 */
-	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	bool GetGridWorldLocation(
-		const FIntPoint& Coord,
-		FVector& OutWorldLocation
-	) const;
 };
