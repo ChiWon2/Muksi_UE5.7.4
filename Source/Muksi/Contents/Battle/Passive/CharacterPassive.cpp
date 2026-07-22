@@ -5,7 +5,7 @@
 
 void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner)
 {
-	
+	OwnerCharacter = InOwner;
 }
 
 bool UCharacterPassive::CanActivatePassive(EMuksiPassiveTriggerType InTriggerType,
