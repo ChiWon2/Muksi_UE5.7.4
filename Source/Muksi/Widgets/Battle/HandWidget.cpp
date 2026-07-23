@@ -17,6 +17,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 #include "MuksiDebugHelper.h"
+#include "Status/CharacterStatusWidget.h"
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 
@@ -1378,6 +1379,12 @@ void UHandWidget::RemoveSelectedCardsData()
 		Widget->RemoveFromParent();
 	}
 	RemoveCardArray.Empty();
+}
+
+void UHandWidget::SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
+{
+	CharacterStatusWidget_Player->SetData(Player);
+	CharacterStatusWidget_Enemy->SetData(Enemy);
 }
 
 

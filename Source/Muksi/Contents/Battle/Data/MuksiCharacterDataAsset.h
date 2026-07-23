@@ -33,7 +33,7 @@ public:
 public:
 	//캐릭터 스탯 관련
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 체력
-	int32 MaxHP = 100;
+	float MaxHP = 100.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")
 	float AttackValue = 10.0f;

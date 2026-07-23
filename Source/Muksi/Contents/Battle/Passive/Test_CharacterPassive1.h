@@ -18,10 +18,7 @@ public:
 	
 	virtual void BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen) override;
 	
-	virtual void ActivatePassive(
-		EMuksiPassiveTriggerType InTriggerType,
-		FMuksiPassiveContext& Context
-	) override;
+
 	
 protected:
 	UFUNCTION()

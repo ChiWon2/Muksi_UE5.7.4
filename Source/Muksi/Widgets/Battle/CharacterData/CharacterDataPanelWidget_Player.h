@@ -48,7 +48,7 @@ protected:
 	
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget_PlayerProfilePanel> PlayerProfilePanel;
+	TObjectPtr<UWidget_PlayerProfilePanel> PlayerProfilePanelWidget;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CharacterDeckPanel> CharacterDeckPanelWidget;
 	UPROPERTY(meta = (BindWidget))

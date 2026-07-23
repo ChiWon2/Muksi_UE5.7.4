@@ -10,6 +10,7 @@
 class UWidget_CharacterData;
 class UHandWidget;
 class UInkLineWidget;
+class UPassiveActivePopupWidget;
 
 
 class ABattleCharacter_Player;
@@ -59,7 +60,8 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UHandWidget* HandWidget;
 	
-	
+	UPROPERTY(meta = (BindWidget))
+	UPassiveActivePopupWidget* ActivePassiveWidget;
 
 	//***** Bound Widgets ****
 	
@@ -74,7 +76,8 @@ private:
 	
 	
 public:
-
+	UFUNCTION()
+	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
 	
 	UFUNCTION(BlueprintCallable)
 	void BindHandWidgetEvents();
