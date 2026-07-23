@@ -10,7 +10,8 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
-
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
 
 // Sets default values
 AMuksiTestActor::AMuksiTestActor()
@@ -42,6 +43,7 @@ void AMuksiTestActor::Tick(float DeltaTime)
 
 void AMuksiTestActor::TestPlayAnimation()
 {
+
 	ABattleCharacterBase* BattleCharacter =Cast<ABattleCharacterBase>(UGameplayStatics::GetActorOfClass(GetWorld(),ABattleCharacterBase::StaticClass()));
 
 	if (!BattleCharacter)

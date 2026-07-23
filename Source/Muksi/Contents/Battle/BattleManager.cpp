@@ -22,6 +22,7 @@
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Targeting/Manager/BattleTargetingManager.h"
 #include "Passive/CharacterPassiveComponent.h"
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 ABattleManager::ABattleManager()
 {
@@ -31,6 +32,11 @@ ABattleManager::ABattleManager()
 void ABattleManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	{
+		ManagerSubsystem->RegisterManager<ABattleManager>(this);
+	}
 
 	BattleTargetingManager = NewObject<UBattleTargetingManager>(this);
 
@@ -52,6 +58,10 @@ void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearAllTimersForObject(this);
 	}
 
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	{
+		ManagerSubsystem->UnregisterManager<ABattleManager>(this);
+	}
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -999,4 +1009,9 @@ void ABattleManager::NotifyAttackEndFinished()
 	}
 
 	RoundEnd();
+}
+
+void ABattleManager::TestFunc()
+{
+	UE_LOG(LogTemp, Error, TEXT("For Test MuksiWorldManager Subsystem"));
 }

@@ -467,4 +467,7 @@ public:
 
 	UPROPERTY()
 	bool bWaitingForAttackActionFinish = true;
+
+	public:
+		void TestFunc();
 };
