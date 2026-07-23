@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 #include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 // Sets default values
 ABattleGridManager::ABattleGridManager()
@@ -23,6 +24,21 @@ ABattleGridManager::ABattleGridManager()
 void ABattleGridManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	{
+		ManagerSubsystem->RegisterManager<ABattleGridManager>(this);
+	}
+}
+
+void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	{
+		ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ABattleGridManager::OnConstruction(const FTransform& Transform)

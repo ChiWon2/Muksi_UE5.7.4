@@ -20,7 +20,9 @@ class MUKSI_API ABattleSequenceManager : public AActor
 
 public:
 	ABattleSequenceManager();
-
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 public:
 	FOnBattleSequenceFinished OnSequenceFinished;
 

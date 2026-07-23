@@ -5,10 +5,31 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleExecutionChain.h"
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 ABattleSequenceManager::ABattleSequenceManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
+}
+
+void ABattleSequenceManager::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	{
+		ManagerSubsystem->RegisterManager<ABattleSequenceManager>(this);
+	}
+}
+
+void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	{
+		ManagerSubsystem->UnregisterManager<ABattleSequenceManager>(this);
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
