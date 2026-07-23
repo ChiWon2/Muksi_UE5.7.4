@@ -16,6 +16,7 @@
 #include "GameFramework/Pawn.h"
 #include "Components/Button.h"
 #include "Components/UniformGridPanel.h"
+#include"Components/TextBlock.h"
 
 void UWidget_Forge::NativeOnActivated()
 {
