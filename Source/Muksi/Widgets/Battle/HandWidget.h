@@ -21,6 +21,7 @@ class ABattleCharacterBase;
 class UMuksiCharacterDataAsset;
 class UMuksiBattleCardDataAsset;
 class UWidget_BattleMainScreen;
+class UCharacterStatusWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndTurnRequested);
 
@@ -186,6 +187,11 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCardBase>> EnemySelectedBattleCards;
 	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Player;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Enemy;
+	
 
 	//****** Bind Widget ******
 	
@@ -330,5 +336,8 @@ public:
 public:
 	
 	void RemoveSelectedCardsData();
+	
+public:
+	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
 	
 };

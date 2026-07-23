@@ -8,7 +8,6 @@
 
 UTest_CharacterPassive1::UTest_CharacterPassive1()
 {
-	TriggerType = EMuksiPassiveTriggerType::RoundEnd;
 	PassiveName = FText::FromString(TEXT("운기조식"));
 	
 	Passive1();
@@ -22,11 +21,7 @@ void UTest_CharacterPassive1::BindingEvent(ABattleManager* BattleManager, UWidge
 	BattleManager->OnRoundStarted.AddDynamic(this, &UTest_CharacterPassive1::Passive2_);
 }
 
-void UTest_CharacterPassive1::ActivatePassive(EMuksiPassiveTriggerType InTriggerType, FMuksiPassiveContext& Context)
-{
-	Super::ActivatePassive(InTriggerType, Context);
 
-}
 
 void UTest_CharacterPassive1::Passive1()
 {
@@ -47,6 +42,9 @@ void UTest_CharacterPassive1::Passive1_()
 	//지금 당장 힐 이펙트가 없으니까
 	ABattleCharacterBase* Character = GetOwnerCharacter();
 	Character->SetCurrentHP(Character->GetCurrentHP() + 2);
+	
+	//패시브 작동 UI 띄우기
+	OnPassiveActive.Broadcast(PassiveImage, PassiveName);
 }
 
 void UTest_CharacterPassive1::Passive2()
@@ -69,4 +67,7 @@ void UTest_CharacterPassive1::Passive2_()
 	ABattleCharacterBase* Character = GetOwnerCharacter();
 	Character->SetCurrentHP(Character->GetCurrentHP() + 2);
 	//나중에는 막 버프 넣기 같은 거 넣을 수 도 있음
+	
+	//패시브 작동 UI 띄우기
+	OnPassiveActive.Broadcast(PassiveImage, PassiveName);
 }

@@ -8,16 +8,6 @@ void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner)
 	OwnerCharacter = InOwner;
 }
 
-bool UCharacterPassive::CanActivatePassive(EMuksiPassiveTriggerType InTriggerType,
-	const FMuksiPassiveContext& Context) const
-{
-	return true;
-}
-
-void UCharacterPassive::ActivatePassive(EMuksiPassiveTriggerType InTriggerType, FMuksiPassiveContext& Context)
-{
-	
-}
 
 void UCharacterPassive::BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
 {

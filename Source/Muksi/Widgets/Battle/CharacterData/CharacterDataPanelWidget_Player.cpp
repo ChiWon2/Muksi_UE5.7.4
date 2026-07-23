@@ -10,6 +10,7 @@
 #include "Muksi/Widgets/Battle/CharacterData/Widget_CharacterDeckPanel.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Widgets/Battle/Passive/Widget_CharacterPassivePanel.h"
+#include "Player/Widget_PlayerProfilePanel.h"
 
 void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 {
@@ -37,6 +38,8 @@ void UCharacterDataPanelWidget_Player::ApplyCharacterData(ABattleCharacter_Playe
 		UE_LOG(LogTemp, Warning, TEXT("CharacterDataPanelWidget_Player - InCharacterData is null"));
 		return;
 	}
+	PlayerProfilePanelWidget->SetBattleCharacter(PlayerData);
+	PlayerProfilePanelWidget->SetData(PlayerData->GetCharacterData());
 	CharacterDeckPanelWidget->SetDeckData(PlayerData->GetAllBattleDeck());
 	CharacterPassivePanelWidget->SetPassiveData(PlayerData->GetCharacterPassives());
 	
