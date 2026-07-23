@@ -96,6 +96,8 @@ public:
 
 	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen);
 	
+	UMuksiCharacterDataAsset* GetCharacterData()const{return CharacterData.CharacterAsset;};
+	
 	FIntPoint GetCharacterPosition()const{return CharacterData.CurrentPosition;};
 	void SetCharacterPosition(FIntPoint NewPosition){CharacterData.CurrentPosition = NewPosition;};
 	

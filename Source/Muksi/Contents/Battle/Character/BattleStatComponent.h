@@ -36,6 +36,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	float, MaxHP
 );
 
+
+
 //죽은 거 감지하기 위한 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleCharacterDead);
 
@@ -139,6 +141,7 @@ public:
 	// 체력이 변경됐을 때 호출
 	UPROPERTY(BlueprintAssignable, Category = "Battle Stat|Event")
 	FOnBattleHPChanged OnHPChanged;
+
 
 	// 체력이 0이 되어 사망했을 때 호출
 	UPROPERTY(BlueprintAssignable, Category = "Battle Stat|Event")

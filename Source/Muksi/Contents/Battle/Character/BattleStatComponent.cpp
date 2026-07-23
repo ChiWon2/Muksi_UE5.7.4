@@ -23,8 +23,7 @@ void UBattleStatComponent::InitializeStats(const FBattleStats& InStats)
 
 	CurrentHP = CurrentStats.HP;
 	bIsDead = false;
-
-	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
+	
 }
 
 float UBattleStatComponent::ApplyDamage(float Damage)
@@ -50,8 +49,10 @@ float UBattleStatComponent::ApplyDamage(float Damage)
 	);
 
 	const float AppliedDamage = PreviousHP - CurrentHP;
-
-	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
+	
+	CurrentStats.HP = CurrentHP;
+	
+	OnHPChanged.Broadcast(PreviousHP, CurrentStats.HP);
 
 	if (CurrentHP <= 0.0f)
 	{
@@ -83,7 +84,7 @@ float UBattleStatComponent::Heal(float HealAmount)
 
 	const float AppliedHeal = CurrentHP - PreviousHP;
 
-	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
+	OnHPChanged.Broadcast(PreviousHP, CurrentStats.HP);
 
 	return AppliedHeal;
 }
@@ -101,7 +102,7 @@ void UBattleStatComponent::SetCurrentHP(float NewHP)
 		CurrentStats.HP
 	);
 
-	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
+	//OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
 
 	if (CurrentHP <= 0.0f)
 	{
@@ -117,7 +118,7 @@ void UBattleStatComponent::RestoreFullHP()
 	}
 
 	CurrentHP = CurrentStats.HP;
-
+	CurrentStats.HP = BaseStats.HP;
 	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
 }
 

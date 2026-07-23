@@ -8,7 +8,6 @@
 
 class ABattleManager;
 class UWidget_BattleMainScreen;
-struct FMuksiPassiveContext;
 enum class EMuksiPassiveTriggerType : uint8;
 class UMuksiCharacterDataAsset;
 class ABattleCharacterBase;
@@ -25,11 +24,7 @@ public:
 		const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager,
 		UWidget_BattleMainScreen* BattleMainScreen
 	) -> void;
-
-	void TriggerPassives(
-		EMuksiPassiveTriggerType InTriggerType,
-		FMuksiPassiveContext& Context
-	);
+	
 	
 	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives(){return ActivePassives;};
 

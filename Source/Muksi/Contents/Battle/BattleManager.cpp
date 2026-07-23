@@ -471,7 +471,8 @@ void ABattleManager::ReadyEnd()
 	CreateCharacter();
 
 	//Phase 넘기기
-	BattleStart();
+	BattleMainScreen->ReadyEnd();
+	//BattleStart();
 }
 
 void ABattleManager::ComponentInit()

@@ -13,6 +13,7 @@
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Widgets/Battle/Passive/PassiveActivePopupWidget.h"
 
 
 void UWidget_BattleMainScreen::NativeConstruct()
@@ -69,6 +70,12 @@ void UWidget_BattleMainScreen::NativeOnActivated()
 }
 
 
+void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
+{
+	HandWidget->SetCharacterData(Player, Enemy);
+	ActivePassiveWidget->SetData(Player, Enemy);
+	
+}
 
 void UWidget_BattleMainScreen::BindHandWidgetEvents()
 {
@@ -225,13 +232,15 @@ void UWidget_BattleMainScreen::ReadyStart()
 	PlayerBattleCharacter = CachedBattleManager->GetPlayerBattleCharacter();
 	EnemyBattleCharacter = CachedBattleManager->GetEnemyBattleCharacter();
 	
-	ReadyEnd();
+	CachedBattleManager->ReadyEnd();
 }
 
 void UWidget_BattleMainScreen::ReadyEnd()
 {
+	//ReadyEnd 때 소환된 BattleCharacter 정보 입력
+	SetCharacterData(CachedBattleManager->GetPlayerBattleCharacter(), CachedBattleManager->GetEnemyBattleCharacter());
 	//최종 확인 후 BattleManager에 통보
-	CachedBattleManager->ReadyEnd();
+	CachedBattleManager->BattleStart();
 }
 
 void UWidget_BattleMainScreen::SetBattleManager()

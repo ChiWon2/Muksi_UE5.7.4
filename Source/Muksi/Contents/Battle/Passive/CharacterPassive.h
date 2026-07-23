@@ -11,12 +11,11 @@ class ABattleCharacterBase;
 class ABattleManager;
 class UMuksiBattleCardDataAsset;
 
+//안씀	언제쯤 호출되게 하는게 보기 좋은지 보는 용도
 UENUM(BlueprintType)
 enum class EMuksiPassiveTriggerType : uint8
 {
-	None,
-	Delegate,			//기타 등등의 상황에 알아서 ex)특정 버프를 만들고 그 버프가 종료 될 시 / 체력이 50% 미만이 되었을 시 등등
-
+	
 	BattleStart,        // 전투 시작
 	BattleEnd,			// 전투 종료
 	RoundStart,         // 국 시작
@@ -37,33 +36,6 @@ enum class EMuksiPassiveTriggerType : uint8
 	CharacterKilled     // 적 처치
 };
 
-USTRUCT(BlueprintType)
-struct MUKSI_API FMuksiPassiveContext
-{
-	GENERATED_BODY()
-
-	// 패시브를 소유한 캐릭터
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<ABattleCharacterBase> OwnerCharacter = nullptr;
-
-	// 이벤트의 대상 캐릭터
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<ABattleCharacterBase> TargetCharacter = nullptr;
-
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<ABattleManager> BattleManager = nullptr;
-
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UMuksiBattleCardDataAsset> UsedCard = nullptr;
-
-	// 피해량, 회복량 등 이벤트에 따라 사용하는 값
-	UPROPERTY(BlueprintReadWrite)
-	int32 Value = 0;
-
-	// 후속 처리를 취소할지 여부
-	UPROPERTY(BlueprintReadWrite)
-	bool bCancelled = false;
-};
 
 USTRUCT(BlueprintType)
 struct MUKSI_API FPassiveTextLine
@@ -71,6 +43,12 @@ struct MUKSI_API FPassiveTextLine
 	GENERATED_BODY()
 	TArray<FText> Text;
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnPassiveActive,
+	UTexture2D*, CharacterPortrait,
+	FText, CharacterName
+);
 
 UCLASS(Abstract, Blueprintable)
 class MUKSI_API UCharacterPassive : public UObject
@@ -82,15 +60,6 @@ public:
 		ABattleCharacterBase* InOwner
 	);
 
-	virtual bool CanActivatePassive(
-		EMuksiPassiveTriggerType InTriggerType,
-		const FMuksiPassiveContext& Context
-	) const;
-
-	virtual void ActivatePassive(
-		EMuksiPassiveTriggerType InTriggerType,
-		FMuksiPassiveContext& Context
-	);
 	
 	virtual void BindingEvent(ABattleManager* BattleManager,UWidget_BattleMainScreen* BattleMainScreen);
 
@@ -99,10 +68,6 @@ public:
 		return OwnerCharacter.Get();
 	}
 
-	EMuksiPassiveTriggerType GetTriggerType() const
-	{
-		return TriggerType;
-	}
 
 	int32 GetPriority() const
 	{
@@ -116,11 +81,22 @@ public:
 	
 	FText GetPassiveName() const{return PassiveName;}
 	TArray<FPassiveTextLine> GetPassiveDescription() const{return PassiveDescriptions;}
-
+	
+	UPROPERTY(BlueprintAssignable, Category = "Passive|Event")
+	FOnPassiveActive OnPassiveActive;
+	
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Passive")
 	TObjectPtr<ABattleCharacterBase> OwnerCharacter = nullptr;
 
+	UPROPERTY(
+		EditDefaultsOnly,
+		BlueprintReadOnly,
+		Category = "Passive"
+	)
+	TObjectPtr<UTexture2D> PassiveImage;
+	
 	UPROPERTY(
 		EditDefaultsOnly,
 		BlueprintReadOnly,
@@ -136,14 +112,7 @@ protected:
 	)
 	
 	TArray<FPassiveTextLine>PassiveDescriptions;
-
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Passive"
-	)
-	EMuksiPassiveTriggerType TriggerType =
-		EMuksiPassiveTriggerType::None;
+	
 
 	UPROPERTY(
 		EditDefaultsOnly,

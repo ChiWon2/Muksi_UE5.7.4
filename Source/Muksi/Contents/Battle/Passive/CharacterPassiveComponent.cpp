@@ -55,37 +55,4 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 	}
 }
 
-void UCharacterPassiveComponent::TriggerPassives(EMuksiPassiveTriggerType InTriggerType, FMuksiPassiveContext& Context)
-{
-	if (!IsValid(OwnerCharacter))
-	{
-		return;
-	}
 
-	Context.OwnerCharacter = OwnerCharacter;
-
-	for (UCharacterPassive* Passive : ActivePassives)
-	{
-		if (!IsValid(Passive))
-		{
-			continue;
-		}
-
-		if (!Passive->CanActivatePassive(
-			InTriggerType,
-			Context))
-		{
-			continue;
-		}
-
-		Passive->ActivatePassive(
-			InTriggerType,
-			Context
-		);
-
-		if (Context.bCancelled)
-		{
-			break;
-		}
-	}
-}
