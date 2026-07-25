@@ -17,6 +17,11 @@ void ABattleSequenceManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!bWorldManagerRegistrationEnabled)
+	{
+		return;
+	}
+
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 	{
 		ManagerSubsystem->RegisterManager<ABattleSequenceManager>(this);
@@ -25,9 +30,12 @@ void ABattleSequenceManager::BeginPlay()
 
 void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	if (bWorldManagerRegistrationEnabled)
 	{
-		ManagerSubsystem->UnregisterManager<ABattleSequenceManager>(this);
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+		{
+			ManagerSubsystem->UnregisterManager<ABattleSequenceManager>(this);
+		}
 	}
 
 	Super::EndPlay(EndPlayReason);

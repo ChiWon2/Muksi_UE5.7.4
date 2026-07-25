@@ -45,8 +45,12 @@ class MUKSI_API ABattleGridManager : public AActor
 public:
 	// Sets default values for this actor's properties
 	ABattleGridManager();
-
+	void SetRuntimeClone(bool bInRuntimeClone) { bRuntimeClone = bInRuntimeClone; }
+	bool InitializeRuntimeClone(const ABattleGridManager* SourceGridManager);
+	bool ReplaceOccupyingActor(AActor* SourceActor, AActor* ReplacementActor);
 protected:
+	UPROPERTY(Transient)
+	bool bRuntimeClone = false;
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -185,8 +189,6 @@ public:
 
 	//카드 효과 실행 관련
 	void RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint);
-	void MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
-	void RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint);
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Navigation")

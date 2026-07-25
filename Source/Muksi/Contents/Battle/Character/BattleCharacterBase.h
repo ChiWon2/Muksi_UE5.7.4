@@ -123,11 +123,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter")
 	AExchangeCharacterBase* GetExchangeCharacter() const { return ExchangeCharacterBase; }
 
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Mesh")
+	USkeletalMeshComponent* GetMeshComponent() const { return MeshComponent; }
+
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Movement")
 	UMuksiBattleMovementComponent* GetBattleMovementComponent() const { return BattleMovementComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
+
+
 
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;

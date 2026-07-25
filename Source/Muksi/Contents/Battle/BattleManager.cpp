@@ -23,6 +23,8 @@
 #include "Muksi/Contents/Battle/Targeting/Manager/BattleTargetingManager.h"
 #include "Passive/CharacterPassiveComponent.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
+#include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
+#include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 
 ABattleManager::ABattleManager()
 {
@@ -350,29 +352,31 @@ void ABattleManager::CreateCharacter()
 
 
 
-bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card)
+bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardData)
 {
-	if (!BattleTargetingManager)
+	if (!BattleTargetingManager || !CardData)
 	{
 		return false;
 	}
 
-	if (!PlayerBattleCharacter)
+	ABattleCharacterBase* TargetingSourceCharacter = GetCurrentTargetingSourceCharacter();
+	ABattleGridManager* TargetingGridManager = GetCurrentTargetingGridManager();
+
+	if (!TargetingSourceCharacter || !TargetingGridManager)
 	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to resolve simulation targeting runtime"));
 		return false;
 	}
 
-	if (!BattleGridManager)
-	{
-		return false;
-	}
+	AttackBattleCardDataAsset = CardData;
 
-	if (!Card)
-	{
-		return false;
-	}
+	BattleTargetingManager->StartTargeting(
+		TargetingSourceCharacter,
+		TargetingGridManager,
+		CardData->TargetingData
+	);
 
-	return BattleTargetingManager->StartTargeting(PlayerBattleCharacter, BattleGridManager, Card->TargetingData);
+	return BattleTargetingManager->IsTargeting();
 }
 
 bool ABattleManager::UpdateCurrentCardTargeting(const FTargetingInputContext& InputContext)
@@ -523,6 +527,13 @@ void ABattleManager::RoundStart()
 
 void ABattleManager::RoundEnd()
 {
+	if (BattleSimulationManager)
+	{
+		BattleSimulationManager->OnSimulationExchangeFinished.RemoveAll(this);
+		BattleSimulationManager->OnBattleSimulationFinished.RemoveAll(this);
+		BattleSimulationManager->StopSimulation();
+	}
+
 	ChangePhase(EBattlePhase::RoundEnd);
 	BattleMainScreen->RoundEnd();
 }
@@ -534,8 +545,28 @@ void ABattleManager::ExchangeStart()
 	CurrentExchange = 0;
 
 	AttackActions.Empty();
-	
-	
+
+	if (!BattleSimulationManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] BattleSimulationManager is null"));
+		return;
+	}
+
+	TArray<ABattleCharacterBase*> SourceCharacters;
+	SourceCharacters.Add(PlayerBattleCharacter);
+	SourceCharacters.Add(EnemyBattleCharacter);
+
+	BattleSimulationManager->OnSimulationExchangeFinished.RemoveAll(this);
+	BattleSimulationManager->OnBattleSimulationFinished.RemoveAll(this);
+	BattleSimulationManager->OnSimulationExchangeFinished.AddUObject(this, &ABattleManager::HandleSimulationExchangeFinished);
+	BattleSimulationManager->OnBattleSimulationFinished.AddUObject(this, &ABattleManager::HandleBattleSimulationFinished);
+
+	if (!BattleSimulationManager->StartSimulation(BattleGridManager, SourceCharacters))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to start battle simulation"));
+		return;
+	}
+
 	if (BattleMainScreen)
 	{
 		BattleMainScreen->ExchangeStart();
@@ -554,15 +585,12 @@ void ABattleManager::Exchange1Start()
 
 void ABattleManager::Exchange1End()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exchange1 End!!!!"));
+	UE_LOG(LogTemp, Log, TEXT("Exchange1 simulation start"));
 
-	SetPlayerBattleAction();
-	SetEnemyBattleAction();
-
-	SetExchangeGrid();
-	SetExchangeCharacter();
-
-	BattleMainScreen->Exchange1End();
+	if (!StartCurrentExchangeSimulation())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to start Exchange1 simulation"));
+	}
 }
 
 void ABattleManager::Exchange2Start()
@@ -571,18 +599,17 @@ void ABattleManager::Exchange2Start()
 	BattleMainScreen->Exchange2Start();
 }
 
+
+
 void ABattleManager::Exchange2End()
 {
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
 
-	SetPlayerBattleAction();
-	SetEnemyBattleAction();
-
-	SetExchangeGrid();
-	SetExchangeCharacter();
-
-	BattleMainScreen->Exchange2End();
+	if (!StartCurrentExchangeSimulation())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to start Exchange2 simulation"));
+	}
 }
 
 void ABattleManager::Exchange3Start()
@@ -596,13 +623,10 @@ void ABattleManager::Exchange3End()
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
 
-	SetPlayerBattleAction();
-	SetEnemyBattleAction();
-
-	SetExchangeGrid();
-	SetExchangeCharacter();
-
-	BattleMainScreen->Exchange3End();
+	if (!StartCurrentExchangeSimulation())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to start Exchange3 simulation"));
+	}
 }
 
 void ABattleManager::ExchangeEnd()
@@ -644,6 +668,92 @@ void ABattleManager::ExchangeN_End(int32 InIndex)
 	}
 }
 
+bool ABattleManager::StartCurrentExchangeSimulation()
+{
+	if (!BattleSimulationManager)
+	{
+		return false;
+	}
+
+	SetPlayerBattleAction();
+	SetEnemyBattleAction();
+
+	if (!PlayerSelectAction.IsValidIndex(CurrentExchange))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Player action is invalid. Exchange: %d"), CurrentExchange);
+		return false;
+	}
+
+	if (!EnemySelectAction.IsValidIndex(CurrentExchange))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Enemy action is invalid. Exchange: %d"), CurrentExchange);
+		return false;
+	}
+
+	SetExchangeGrid();
+	SetExchangeCharacter();
+
+	if (!BattleSimulationManager->SetEnemyAction(EnemySelectAction[CurrentExchange]))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to set enemy simulation action. Exchange: %d"), CurrentExchange);
+		return false;
+	}
+
+	if (!BattleSimulationManager->SetPlayerAction(PlayerSelectAction[CurrentExchange]))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to set player simulation action. Exchange: %d"), CurrentExchange);
+		return false;
+	}
+
+	return true;
+}
+
+void ABattleManager::HandleSimulationExchangeFinished(int32 FinishedExchangeIndex)
+{
+	UE_LOG(LogTemp, Log, TEXT("[BattleManager] Simulation exchange finished: %d"), FinishedExchangeIndex);
+
+	CompleteExchangePresentation(FinishedExchangeIndex);
+}
+
+void ABattleManager::HandleBattleSimulationFinished()
+{
+	if (!BattleSimulationManager)
+	{
+		return;
+	}
+
+	AttackActions = BattleSimulationManager->GetSequenceActionQueue();
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleManager] Battle simulation finished. Sequence action count: %d"), AttackActions.Num());
+}
+
+void ABattleManager::CompleteExchangePresentation(int32 FinishedExchangeIndex)
+{
+	if (!BattleMainScreen)
+	{
+		return;
+	}
+
+	switch (FinishedExchangeIndex)
+	{
+	case 0:
+		BattleMainScreen->Exchange1End();
+		break;
+
+	case 1:
+		BattleMainScreen->Exchange2End();
+		break;
+
+	case 2:
+		BattleMainScreen->Exchange3End();
+		break;
+
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Invalid finished exchange index: %d"), FinishedExchangeIndex);
+		break;
+	}
+}
+
 void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
 {
 	if (!ExchangeCard)
@@ -662,24 +772,31 @@ void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
 
 void ABattleManager::SetPlayerBattleAction()
 {
-	if (!BattleTargetingManager)
+	if (!BattleTargetingManager || !PlayerBattleCharacter || !AttackBattleCardDataAsset)
 	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to create player battle action"));
 		return;
 	}
 
-	FBattleAction BattleAction;
+	FTargetingResult TargetingResult = BattleTargetingManager->GetTargetingResult();
 
+	if (BattleSimulationManager && BattleSimulationManager->IsSimulationRunning())
+	{
+		BattleSimulationManager->ConvertToSourceTargetingResult(TargetingResult);
+	}
+
+	FBattleAction BattleAction;
 	BattleAction.ExchangeIndex = CurrentExchange;
 	BattleAction.Card = AttackBattleCardDataAsset;
 	BattleAction.Speed = PlayerBattleCharacter->GetCharacterSpeed() + AttackBattleCardDataAsset->CardSpeed;
 	BattleAction.Attacker = PlayerBattleCharacter;
 	BattleAction.bPlayerAction = true;
-	BattleAction.TargetingResult = BattleTargetingManager->GetTargetingResult();
+	BattleAction.TargetingResult = TargetingResult;
 
-	PlayerSelectAction.Add(BattleAction);
-	AttackActions.Add(BattleAction);
+	PlayerSelectAction.SetNum(CurrentExchange + 1);
+	PlayerSelectAction[CurrentExchange] = BattleAction;
 
-	UE_LOG(LogTemp, Log, TEXT("SetPlayerBattleAction add %d"), PlayerSelectAction.Num());
+	UE_LOG(LogTemp, Log, TEXT("SetPlayerBattleAction exchange: %d"), CurrentExchange);
 }
 
 void ABattleManager::SetEnemyBattleAction()
@@ -1012,7 +1129,49 @@ void ABattleManager::NotifyAttackEndFinished()
 	RoundEnd();
 }
 
-void ABattleManager::TestFunc()
+
+ABattleGridManager* ABattleManager::GetCurrentTargetingGridManager() const
 {
-	UE_LOG(LogTemp, Error, TEXT("For Test MuksiWorldManager Subsystem"));
+	if (BattleSimulationManager && BattleSimulationManager->IsSimulationRunning())
+	{
+		if (ABattleGridManager* SimulationGridManager = BattleSimulationManager->GetSimulationGridManager())
+		{
+			return SimulationGridManager;
+		}
+	}
+
+	return BattleGridManager;
+}
+
+ABattleCharacterBase* ABattleManager::GetCurrentTargetingSourceCharacter() const
+{
+	if (BattleSimulationManager && BattleSimulationManager->IsSimulationRunning())
+	{
+		if (ABattleCharacterBase* SimulationCharacter = BattleSimulationManager->GetSimulationCharacter(PlayerBattleCharacter))
+		{
+			return SimulationCharacter;
+		}
+	}
+
+	return PlayerBattleCharacter;
+}
+
+ABattleCharacterBase* ABattleManager::ResolveCurrentTargetingCharacter(ABattleCharacterBase* Character) const
+{
+	if (!Character)
+	{
+		return nullptr;
+	}
+
+	if (!BattleSimulationManager || !BattleSimulationManager->IsSimulationRunning())
+	{
+		return Character;
+	}
+
+	if (ABattleCharacterBase* SimulationCharacter = BattleSimulationManager->GetSimulationCharacter(Character))
+	{
+		return SimulationCharacter;
+	}
+
+	return Character;
 }

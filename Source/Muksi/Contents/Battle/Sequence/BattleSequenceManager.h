@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "BattleSequenceManager.generated.h"
@@ -24,7 +24,11 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	bool bWorldManagerRegistrationEnabled = true;
 public:
+	void SetWorldManagerRegistrationEnabled(bool bEnabled) { bWorldManagerRegistrationEnabled = bEnabled; }
+
 	FOnBattleSequenceFinished OnSequenceFinished;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")

@@ -25,6 +25,11 @@ void ABattleGridManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (bRuntimeClone)
+	{
+		return;
+	}
+
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 	{
 		ManagerSubsystem->RegisterManager<ABattleGridManager>(this);
@@ -33,9 +38,12 @@ void ABattleGridManager::BeginPlay()
 
 void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	if (!bRuntimeClone)
 	{
-		ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+		{
+			ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
+		}
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -44,6 +52,11 @@ void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ABattleGridManager::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+
+	if (!bRuntimeClone)
+	{
+		GenerateGrid();
+	}
 
 	GenerateGrid();
 }
@@ -187,11 +200,14 @@ void ABattleGridManager::GenerateGrid()
 
 void ABattleGridManager::ClearGrid()
 {
-	for (FBattleGridCell& Cell : GridCells)
+	if (!bRuntimeClone)
 	{
-		if (IsValid(Cell.TileActor))
+		for (FBattleGridCell& Cell : GridCells)
 		{
-			Cell.TileActor->Destroy();
+			if (IsValid(Cell.TileActor))
+			{
+				Cell.TileActor->Destroy();
+			}
 		}
 	}
 
@@ -629,10 +645,43 @@ void ABattleGridManager::RushPosition(ABattleCharacterBase* BattleCharacter, FIn
 	}
 }
 
-void ABattleGridManager::MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
+bool ABattleGridManager::InitializeRuntimeClone(const ABattleGridManager* SourceGridManager)
 {
+	if (!IsValid(SourceGridManager))
+	{
+		return false;
+	}
+
+	bRuntimeClone = true;
+	GridWidth = SourceGridManager->GridWidth;
+	GridHeight = SourceGridManager->GridHeight;
+	HexRadius = SourceGridManager->HexRadius;
+	GridSpacingX = SourceGridManager->GridSpacingX;
+	GridSpacingY = SourceGridManager->GridSpacingY;
+	OddColumnYOffsetRatio = SourceGridManager->OddColumnYOffsetRatio;
+	TileRotation = SourceGridManager->TileRotation;
+	TileClasses = SourceGridManager->TileClasses;
+	GridCells = SourceGridManager->GridCells;
+	TargetGridArray.Empty();
+
+	return !GridCells.IsEmpty();
 }
 
-void ABattleGridManager::RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
+bool ABattleGridManager::ReplaceOccupyingActor(AActor* SourceActor, AActor* ReplacementActor)
 {
+	if (!IsValid(SourceActor) || !IsValid(ReplacementActor))
+	{
+		return false;
+	}
+
+	for (FBattleGridCell& Cell : GridCells)
+	{
+		if (Cell.OccupyingActor == SourceActor)
+		{
+			Cell.OccupyingActor = ReplacementActor;
+			return true;
+		}
+	}
+
+	return false;
 }

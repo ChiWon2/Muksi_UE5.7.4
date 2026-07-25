@@ -7,11 +7,13 @@
 #include "Character/BattleCharacter_Enemy.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
 
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingInputContext.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
-
+#include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "BattleManager.generated.h"
+
 
 enum class EMuksiPassiveTriggerType : uint8;
 class ABattleCharacter_Player;
@@ -23,6 +25,7 @@ class UCharacterDataBase;
 class ATargetPoint;
 class ABattleGridManager;
 class ABattleSequenceManager;
+class ABattleSimulationManager;
 
 class AMuksiTargetingPreviewActor;
 class UBattleTargetingManager;
@@ -48,85 +51,28 @@ enum class EBattlePhase : uint8
 	BattleEnd UMETA(DisplayName = "Battle End")
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnBattlePhaseChanged,
-	EBattlePhase,
-	NewPhase
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattlePhaseChanged, EBattlePhase, NewPhase);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnBattleReady
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleReady);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnBattleStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleStarted);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnRoundStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundStarted);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnRoundEnded
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundEnded);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnExchangeStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnExchangeStarted);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnExchangeEnded
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnExchangeEnded);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnAttackStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackStarted);
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnAttack,
-	int32,
-	AttackNumber
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttack,int32,AttackNumber);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnAttackEnded
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnBattleEnded
-);
-
-//공격 행동 구조체
-USTRUCT(BlueprintType)
-struct FBattleAction
-{
-	GENERATED_BODY()
-
-	// 몇 번째 합의 행동인지: 0, 1, 2
-	UPROPERTY(BlueprintReadOnly)
-	int32 ExchangeIndex = INDEX_NONE;
-
-	// 행동하는 캐릭터
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<ABattleCharacterBase> Attacker = nullptr;
-
-	// 사용하는 카드
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
-
-	// 행동 생성 시점의 속도
-	UPROPERTY(BlueprintReadOnly)
-	int32 Speed = 0;
-
-	// 플레이어 행동인지
-	UPROPERTY(BlueprintReadOnly)
-	bool bPlayerAction = false;
-
-	// 카드 선택 과정에서 확정된 전체 Targeting 결과
-	UPROPERTY(BlueprintReadOnly)
-	FTargetingResult TargetingResult;
-};
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleEnded);
 
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
@@ -259,6 +205,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
 	TObjectPtr<ABattleSequenceManager> BattleSequenceManager = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
+	TObjectPtr<ABattleSimulationManager> BattleSimulationManager = nullptr;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacter_Player> PlayerBattleCharacter = nullptr;
@@ -367,6 +316,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
 	FIntPoint StartEnemyPoint = FIntPoint(4, 4);
 
+public:
+	bool StartCurrentExchangeSimulation();
+	void HandleSimulationExchangeFinished(int32 FinishedExchangeIndex);
+	void HandleBattleSimulationFinished();
+	void CompleteExchangePresentation(int32 FinishedExchangeIndex);
+
+	ABattleGridManager* GetCurrentTargetingGridManager() const;
+	ABattleCharacterBase* GetCurrentTargetingSourceCharacter() const;
+	ABattleCharacterBase* ResolveCurrentTargetingCharacter(ABattleCharacterBase* Character) const;
+
 	//=============================================Battle 단계 관련===============================================================
 public:
 	void BattleStart();
@@ -413,6 +372,7 @@ public:
 
 	void ExchangeN_EndReady();
 	void ExchangeN_End(int32 InIndex);
+
 
 	//합 도중 쓰는 함수
 public:
@@ -467,7 +427,4 @@ public:
 
 	UPROPERTY()
 	bool bWaitingForAttackActionFinish = true;
-
-	public:
-		void TestFunc();
 };

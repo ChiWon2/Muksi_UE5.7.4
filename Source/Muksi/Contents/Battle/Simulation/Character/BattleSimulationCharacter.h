@@ -13,4 +13,11 @@ public:
 	ABattleSimulationCharacter();
 
 	void InitializeFromCharacter(const ABattleCharacterBase* SourceCharacter);
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
+	ABattleCharacterBase* GetSourceCharacter() const { return SourceCharacter; }
+
+protected:
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
 };
