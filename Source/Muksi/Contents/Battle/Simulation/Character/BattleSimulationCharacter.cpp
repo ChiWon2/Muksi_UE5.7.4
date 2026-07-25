@@ -3,10 +3,12 @@
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
+#include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 
 ABattleSimulationCharacter::ABattleSimulationCharacter()
 {
 	ClickCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BattleMovementComponent->MovementYawOffset = -90.0f;
 }
 
 void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterBase* InSourceCharacter)
