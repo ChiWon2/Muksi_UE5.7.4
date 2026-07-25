@@ -3,13 +3,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
-#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionContext.h"
-#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "BattleSequenceManager.generated.h"
 
 class ABattleGridManager;
-class UBattleExecutionChain;
+class UBattleExecutionRunner;
 class UMuksiBattleAnimationComponent;
+class UBattleSequenceExecutionEnvironment;
 
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
 
@@ -43,18 +44,22 @@ private:
 	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UBattleExecutionChain>> ActiveExecutionChains;
+	TArray<TObjectPtr<UBattleExecutionRunner>> ActiveExecutionRunners;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleSequenceExecutionEnvironment> ExecutionEnvironment = nullptr;
 
 	bool bSequenceRunning = false;
 
 private:
 	bool ValidateAction(const FBattleAction& InAction) const;
+	bool InitializeExecutionEnvironment();
 	bool BindAttackerNotify();
 	void UnbindAttackerNotify();
 
 	void StartMainExecutionChain();
 	void StartNotifyExecutionChains(FName NotifyKey);
-	void StartExecutionChain(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
+	void StartExecutionRunner(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
 	void HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
 
 	UFUNCTION()
@@ -62,7 +67,7 @@ private:
 
 	FBattleExecutionContext MakeExecutionContext(FName NotifyKey);
 
-	void HandleExecutionChainFinished(UBattleExecutionChain* FinishedChain);
+	void HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
 	void TryFinishSequence();
 	void FinishSequence();
 };

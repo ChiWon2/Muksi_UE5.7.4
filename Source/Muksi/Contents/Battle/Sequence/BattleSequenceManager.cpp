@@ -4,7 +4,8 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Sequence/BattleExecutionChain.h"
+#include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
+#include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 ABattleSequenceManager::ABattleSequenceManager()
@@ -41,7 +42,13 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 
 	CurrentAction = InAction;
 	bSequenceRunning = true;
-	ActiveExecutionChains.Empty();
+	ActiveExecutionRunners.Empty();
+
+	if (!InitializeExecutionEnvironment())
+	{
+		FinishSequence();
+		return false;
+	}
 
 	if (!BindAttackerNotify())
 	{
@@ -56,6 +63,19 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 bool ABattleSequenceManager::ValidateAction(const FBattleAction& InAction) const
 {
 	return IsValid(InAction.Attacker) && IsValid(InAction.Card) && !InAction.Card->MainExecutions.IsEmpty();
+}
+
+bool ABattleSequenceManager::InitializeExecutionEnvironment()
+{
+	ExecutionEnvironment = NewObject<UBattleSequenceExecutionEnvironment>(this);
+
+	if (!ExecutionEnvironment)
+	{
+		return false;
+	}
+
+	ExecutionEnvironment->InitializeSequence(CurrentAction.Attacker, CurrentAction.Card, BattleGridManager);
+	return ExecutionEnvironment->IsValidEnvironment();
 }
 
 bool ABattleSequenceManager::BindAttackerNotify()
@@ -100,7 +120,7 @@ void ABattleSequenceManager::StartMainExecutionChain()
 		return;
 	}
 
-	StartExecutionChain(CurrentAction.Card->MainExecutions, MakeExecutionContext(NAME_None));
+	StartExecutionRunner(CurrentAction.Card->MainExecutions, MakeExecutionContext(NAME_None));
 }
 
 void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
@@ -127,38 +147,37 @@ void ABattleSequenceManager::StartNotifyExecutionChains(FName NotifyKey)
 			continue;
 		}
 
-		StartExecutionChain(NotifyChain.Executions, MakeExecutionContext(NotifyKey));
+		StartExecutionRunner(NotifyChain.Executions, MakeExecutionContext(NotifyKey));
 	}
 }
 
-void ABattleSequenceManager::StartExecutionChain(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
+void ABattleSequenceManager::StartExecutionRunner(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
 {
 	if (!bSequenceRunning || ExecutionEntries.IsEmpty())
 	{
 		return;
 	}
 
-	UBattleExecutionChain* ExecutionChain = NewObject<UBattleExecutionChain>(this);
+	UBattleExecutionRunner* ExecutionRunner = NewObject<UBattleExecutionRunner>(this);
 
-	if (!ExecutionChain)
+	if (!ExecutionRunner)
 	{
 		return;
 	}
 
-	ExecutionChain->InitializeChain(ExecutionEntries);
-	ActiveExecutionChains.Add(ExecutionChain);
+	ActiveExecutionRunners.Add(ExecutionRunner);
 
-	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] ExecutionChain Started. Chain=%s ActiveChains=%d"), *GetNameSafe(ExecutionChain), ActiveExecutionChains.Num());
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] ExecutionRunner Started. Runner=%s ActiveRunners=%d"), *GetNameSafe(ExecutionRunner), ActiveExecutionRunners.Num());
 
-	FBattleExecutionFinished OnFinished;
-	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionChainFinished, ExecutionChain);
+	FBattleExecutionRunnerFinished OnFinished;
+	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionRunnerFinished);
 
-	ExecutionChain->Execute(Context, OnFinished);
+	ExecutionRunner->Run(ExecutionEntries, Context, OnFinished);
 }
 
 void ABattleSequenceManager::HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
 {
-	StartExecutionChain(ExecutionEntries, Context);
+	StartExecutionRunner(ExecutionEntries, Context);
 }
 
 FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName NotifyKey)
@@ -167,6 +186,8 @@ FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName Notif
 
 	Context.Attacker = CurrentAction.Attacker;
 	Context.Card = CurrentAction.Card;
+	Context.ExecutionMode = EBattleExecutionMode::Sequence;
+	Context.Environment = ExecutionEnvironment;
 	Context.TargetingResult = CurrentAction.TargetingResult;
 	Context.BattleGridManager = BattleGridManager;
 	Context.NotifyKey = NotifyKey;
@@ -175,28 +196,28 @@ FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName Notif
 	return Context;
 }
 
-void ABattleSequenceManager::HandleExecutionChainFinished(UBattleExecutionChain* FinishedChain)
+void ABattleSequenceManager::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
 {
-	if (!bSequenceRunning || !FinishedChain)
+	if (!bSequenceRunning || !FinishedRunner)
 	{
 		return;
 	}
 
-	const int32 RemovedCount = ActiveExecutionChains.RemoveSingle(FinishedChain);
+	const int32 RemovedCount = ActiveExecutionRunners.RemoveSingle(FinishedRunner);
 
 	if (RemovedCount == 0)
 	{
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] ExecutionChain Finished. Chain=%s ActiveChains=%d"), *GetNameSafe(FinishedChain), ActiveExecutionChains.Num());
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] ExecutionRunner Finished. Runner=%s ActiveRunners=%d"), *GetNameSafe(FinishedRunner), ActiveExecutionRunners.Num());
 
 	TryFinishSequence();
 }
 
 void ABattleSequenceManager::TryFinishSequence()
 {
-	if (!bSequenceRunning || !ActiveExecutionChains.IsEmpty())
+	if (!bSequenceRunning || !ActiveExecutionRunners.IsEmpty())
 	{
 		return;
 	}
@@ -216,7 +237,8 @@ void ABattleSequenceManager::FinishSequence()
 	bSequenceRunning = false;
 	CurrentAction = FBattleAction();
 	AttackerAnimationComponent = nullptr;
-	ActiveExecutionChains.Empty();
+	ActiveExecutionRunners.Empty();
+	ExecutionEnvironment = nullptr;
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Sequence Finished."));
 

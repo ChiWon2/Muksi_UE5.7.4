@@ -12,11 +12,9 @@ class ABattleManager;
 class UWidget_BattleMainScreen;
 class AExchangeCharacterBase;
 class UBoxComponent;
-class UCharacterDataBase;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 class UMuksiBattleMovementComponent;
-class UMuksiCharacterDataAsset;
 class UMuksiStatusEffectComponent;
 class UCharacterPassiveComponent;
 class UBattleStatComponent;
@@ -80,12 +78,6 @@ class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacte
 public:
 	ABattleCharacterBase();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
-	virtual void Tick(float DeltaTime) override;
-
 public:
 	int32 GetCurrentHP() const;
 	void SetCurrentHP(int32 NewHP);
@@ -117,6 +109,9 @@ public:
 	}
 	
 protected:
+	void InitializeBattleStats();
+	void CopyBattleStateFrom(const ABattleCharacterBase& SourceCharacter);
+
 	FCharacterData CharacterData;
 	
 public:

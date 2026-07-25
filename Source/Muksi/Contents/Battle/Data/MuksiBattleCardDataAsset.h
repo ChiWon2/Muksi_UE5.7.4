@@ -7,7 +7,7 @@
 #include "StructUtils/InstancedStruct.h"
 
 #include "MuksiBattleCardEffectData.h"
-#include "Muksi/Contents/Battle/Sequence/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 
 #include "MuksiBattleCardDataAsset.generated.h"
