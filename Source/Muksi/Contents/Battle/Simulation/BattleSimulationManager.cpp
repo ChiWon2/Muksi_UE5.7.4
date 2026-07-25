@@ -5,15 +5,19 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
+#include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 
 ABattleSimulationManager::ABattleSimulationManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	SimulationCharacterClass = ABattleSimulationCharacter::StaticClass();
+	SimulationPostProcessVolumeClass = ABattleSimulationPostProcessVolume::StaticClass();
 }
 
 void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	RestoreSourceCharacters();
+	DestroySimulationPostProcess();
 	DestroySimulationRuntime();
 	Super::EndPlay(EndPlayReason);
 }
@@ -28,11 +32,13 @@ bool ABattleSimulationManager::StartSimulation(ABattleGridManager* SourceGridMan
 	ResetSimulationRuntime();
 	SetSimulationState(EBattleSimulationState::Starting);
 
-	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(SourceGridManager))
+	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(SourceGridManager) || !CreateSimulationPostProcess())
 	{
 		ResetSimulationRuntime();
 		return false;
 	}
+
+	HideSourceCharacters();
 
 	CurrentExchange.Reset(0);
 	SetSimulationState(EBattleSimulationState::WaitingForPlayerTargeting);
@@ -77,6 +83,8 @@ bool ABattleSimulationManager::SetEnemyAction(const FBattleAction& EnemyAction)
 
 void ABattleSimulationManager::StopSimulation()
 {
+	RestoreSourceCharacters();
+	DestroySimulationPostProcess();
 	DestroySimulationRuntime();
 	CurrentExchange.Reset(INDEX_NONE);
 	SetSimulationState(EBattleSimulationState::Completed);
@@ -120,6 +128,7 @@ void ABattleSimulationManager::ConvertToSourceTargetingResult(FTargetingResult& 
 		}
 	}
 }
+
 ABattleCharacterBase* ABattleSimulationManager::GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const
 {
 	return IsValid(SimulationCharacter) ? SimulationCharacter->GetSourceCharacter() : nullptr;
@@ -201,6 +210,91 @@ bool ABattleSimulationManager::CreateSimulationExecutionEnvironment(ABattleGridM
 	SimulationSequenceManager->OnSequenceFinished.AddUObject(this, &ABattleSimulationManager::HandleSimulationSequenceFinished);
 
 	return true;
+}
+
+bool ABattleSimulationManager::CreateSimulationPostProcess()
+{
+	if (IsValid(SimulationPostProcessVolume))
+	{
+		SimulationPostProcessVolume->ActivateSimulationPostProcess();
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+
+	if (!World || !SimulationPostProcessVolumeClass)
+	{
+		return false;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnParameters.ObjectFlags |= RF_Transient;
+
+	SimulationPostProcessVolume = World->SpawnActor<ABattleSimulationPostProcessVolume>(
+		SimulationPostProcessVolumeClass,
+		GetActorTransform(),
+		SpawnParameters
+	);
+
+	if (!SimulationPostProcessVolume)
+	{
+		return false;
+	}
+
+	SimulationPostProcessVolume->ActivateSimulationPostProcess();
+	return true;
+}
+
+void ABattleSimulationManager::DestroySimulationPostProcess()
+{
+	if (!IsValid(SimulationPostProcessVolume))
+	{
+		SimulationPostProcessVolume = nullptr;
+		return;
+	}
+
+	SimulationPostProcessVolume->DeactivateSimulationPostProcess();
+	SimulationPostProcessVolume->Destroy();
+	SimulationPostProcessVolume = nullptr;
+}
+
+void ABattleSimulationManager::HideSourceCharacters()
+{
+	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
+	{
+		ABattleCharacterBase* SourceCharacter = Pair.Key.Get();
+
+		if (!IsValid(SourceCharacter))
+		{
+			continue;
+		}
+
+		if (!SourceCharacterHiddenStates.Contains(SourceCharacter))
+		{
+			SourceCharacterHiddenStates.Add(SourceCharacter, SourceCharacter->IsHidden());
+		}
+
+		SourceCharacter->SetActorHiddenInGame(true);
+	}
+}
+
+void ABattleSimulationManager::RestoreSourceCharacters()
+{
+	for (const TPair<TObjectPtr<ABattleCharacterBase>, bool>& Pair : SourceCharacterHiddenStates)
+	{
+		ABattleCharacterBase* SourceCharacter = Pair.Key.Get();
+
+		if (!IsValid(SourceCharacter))
+		{
+			continue;
+		}
+
+		SourceCharacter->SetActorHiddenInGame(Pair.Value);
+	}
+
+	SourceCharacterHiddenStates.Empty();
 }
 
 bool ABattleSimulationManager::TryExecuteCurrentExchange()
@@ -310,6 +404,8 @@ void ABattleSimulationManager::FinishCurrentExchange()
 	{
 		SetSimulationState(EBattleSimulationState::FinishingSimulation);
 		OnSimulationExchangeFinished.Broadcast(FinishedExchangeIndex);
+		RestoreSourceCharacters();
+		DestroySimulationPostProcess();
 		DestroySimulationRuntime();
 		CurrentExchange.Reset(INDEX_NONE);
 		SetSimulationState(EBattleSimulationState::Completed);
@@ -321,6 +417,7 @@ void ABattleSimulationManager::FinishCurrentExchange()
 	SetSimulationState(EBattleSimulationState::WaitingForPlayerTargeting);
 	OnSimulationExchangeFinished.Broadcast(FinishedExchangeIndex);
 }
+
 void ABattleSimulationManager::DestroySimulationRuntime()
 {
 	if (SimulationSequenceManager)
@@ -349,6 +446,8 @@ void ABattleSimulationManager::DestroySimulationRuntime()
 
 void ABattleSimulationManager::ResetSimulationRuntime()
 {
+	RestoreSourceCharacters();
+	DestroySimulationPostProcess();
 	DestroySimulationRuntime();
 	CurrentExchange.Reset(INDEX_NONE);
 	SequenceActionQueue.Empty();

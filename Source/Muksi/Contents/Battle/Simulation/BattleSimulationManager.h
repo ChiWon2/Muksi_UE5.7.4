@@ -9,6 +9,7 @@ class ABattleCharacterBase;
 class ABattleGridManager;
 class ABattleSequenceManager;
 class ABattleSimulationCharacter;
+class ABattleSimulationPostProcessVolume;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSimulationExchangeFinished, int32);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSimulationFinished);
@@ -22,6 +23,7 @@ public:
 	ABattleSimulationManager();
 	FOnSimulationExchangeFinished OnSimulationExchangeFinished;
 	FOnBattleSimulationFinished OnBattleSimulationFinished;
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -62,6 +64,10 @@ public:
 public:
 	bool CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool CreateSimulationExecutionEnvironment(ABattleGridManager* SourceGridManager);
+	bool CreateSimulationPostProcess();
+	void DestroySimulationPostProcess();
+	void HideSourceCharacters();
+	void RestoreSourceCharacters();
 	bool TryExecuteCurrentExchange();
 	bool ExecuteSimulationAction(const FBattleAction& SourceAction);
 	bool ConvertToSimulationAction(const FBattleAction& SourceAction, FBattleAction& OutSimulationAction) const;
@@ -93,8 +99,17 @@ protected:
 	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> SimulationCharacterMap;
 
 	UPROPERTY(Transient)
+	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
+
+	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> SimulationGridManager = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSequenceManager> SimulationSequenceManager = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
+	TSubclassOf<ABattleSimulationPostProcessVolume> SimulationPostProcessVolumeClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleSimulationPostProcessVolume> SimulationPostProcessVolume = nullptr;
 };
