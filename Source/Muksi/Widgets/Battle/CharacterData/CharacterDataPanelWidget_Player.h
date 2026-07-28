@@ -8,7 +8,6 @@
 
 class UWidget_CharacterPassivePanel;
 class UWidget_PlayerProfilePanel;
-class UCharacterDataBase;
 class UWidget_CharacterDeckPanel;
 class UCommonAnimatedSwitcher;
 class ABattleCharacter_Player;

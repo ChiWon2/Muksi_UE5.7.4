@@ -32,7 +32,7 @@ bool ABattleSimulationManager::StartSimulation(ABattleGridManager* SourceGridMan
 	ResetSimulationRuntime();
 	SetSimulationState(EBattleSimulationState::Starting);
 
-	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(SourceGridManager) || !CreateSimulationPostProcess())
+	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(SourceGridManager))
 	{
 		ResetSimulationRuntime();
 		return false;

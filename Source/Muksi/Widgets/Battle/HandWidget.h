@@ -13,7 +13,6 @@ class UWidget_CardEquipSlot;
 class UCanvasPanel;
 class UCanvasPanelSlot;
 class UCommonButtonBase;
-class UCharacterDataBase;
 class UButton;
 class UVerticalBox;
 class ABattleCharacterBase;

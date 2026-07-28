@@ -116,13 +116,6 @@ protected:
 	
 public:
 	
-
-	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	virtual void SetExchangeCharacter(AExchangeCharacterBase* InExchangeCharacter) { ExchangeCharacterBase = InExchangeCharacter; }
-
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter")
-	AExchangeCharacterBase* GetExchangeCharacter() const { return ExchangeCharacterBase; }
-
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Mesh")
 	USkeletalMeshComponent* GetMeshComponent() const { return MeshComponent; }
 
@@ -165,16 +158,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;
 	
-	
-	UPROPERTY(Transient)
-	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
-	
-	UPROPERTY(
-	VisibleAnywhere,
-	BlueprintReadOnly,
-	Category = "Passive",
-	meta = (AllowPrivateAccess = "true")
-)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Passive", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCharacterPassiveComponent> PassiveComponent;
 
 };

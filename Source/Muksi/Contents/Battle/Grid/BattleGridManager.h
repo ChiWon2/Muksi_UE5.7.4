@@ -8,7 +8,6 @@
 #include "BattleGridManager.generated.h"
 
 class ABattleGridTile;
-class UCharacterDataBase;
 class ABattleCharacterBase;
 class UBattleGridNavigationComponent;
 
