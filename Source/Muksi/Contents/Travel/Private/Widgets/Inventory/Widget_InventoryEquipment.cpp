@@ -71,10 +71,22 @@ void UWidget_InventoryEquipment::NativeOnActivated()
 		ConsumableCategoryButton->OnClicked.AddDynamic(this, &ThisClass::HandleConsumableCategoryClicked);
 	}
 
-	if (SpecialCategoryButton)
+	if (MaterialCategoryButton)
 	{
-		SpecialCategoryButton->OnClicked.RemoveAll(this);
-		SpecialCategoryButton->OnClicked.AddDynamic(this, &ThisClass::HandleSpecialCategoryClicked);
+		MaterialCategoryButton->OnClicked.RemoveAll(this);
+		MaterialCategoryButton->OnClicked.AddDynamic(this, &ThisClass::HandleMaterialCategoryClicked);
+	}
+
+	if (MiscCategoryButton)
+	{
+		MiscCategoryButton->OnClicked.RemoveAll(this);
+		MiscCategoryButton->OnClicked.AddDynamic(this, &ThisClass::HandleMiscCategoryClicked);
+	}
+
+	if (QuestCategoryButton)
+	{
+		QuestCategoryButton->OnClicked.RemoveAll(this);
+		QuestCategoryButton->OnClicked.AddDynamic(this, &ThisClass::HandleQuestCategoryClicked);
 	}
 
 	if (CharacterInfoButton)
@@ -163,9 +175,19 @@ void UWidget_InventoryEquipment::HandleConsumableCategoryClicked()
 	SetCategoryFilter(EInventoryCategoryFilter::Consumable);
 }
 
-void UWidget_InventoryEquipment::HandleSpecialCategoryClicked()
+void UWidget_InventoryEquipment::HandleMaterialCategoryClicked()
 {
-	SetCategoryFilter(EInventoryCategoryFilter::Special);
+	SetCategoryFilter(EInventoryCategoryFilter::Material);
+}
+
+void UWidget_InventoryEquipment::HandleMiscCategoryClicked()
+{
+	SetCategoryFilter(EInventoryCategoryFilter::Misc);
+}
+
+void UWidget_InventoryEquipment::HandleQuestCategoryClicked()
+{
+	SetCategoryFilter(EInventoryCategoryFilter::Quest);
 }
 
 void UWidget_InventoryEquipment::HandleItemSlotClicked(FGuid InstanceId)
@@ -384,9 +406,14 @@ bool UWidget_InventoryEquipment::DoesItemPassCategoryFilter(const FMuksiInventor
 	case EInventoryCategoryFilter::Consumable:
 		return Entry.ItemData->ItemType == EMuksiItemType::Consumable;
 
-	case EInventoryCategoryFilter::Special:
-		return Entry.ItemData->ItemType == EMuksiItemType::Material ||
-			Entry.ItemData->ItemType == EMuksiItemType::Quest;
+	case EInventoryCategoryFilter::Material:
+		return Entry.ItemData->ItemType == EMuksiItemType::Material;
+
+	case EInventoryCategoryFilter::Misc:
+		return Entry.ItemData->ItemType == EMuksiItemType::Misc;
+
+	case EInventoryCategoryFilter::Quest:
+		return Entry.ItemData->ItemType == EMuksiItemType::Quest;
 
 	default:
 		return false;

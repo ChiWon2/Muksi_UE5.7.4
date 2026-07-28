@@ -3,6 +3,7 @@
 #include "Muksi/Contents/Travel/Public/Widgets/Shop/Widget_ShopItemEntry.h"
 #include "Muksi/Contents/Travel/Public/Widgets/Shop/Widget_ShopInventoryPanel.h"
 
+#include "Muksi/Contents/Travel/Public/MuksiTypes/MuksiItemTypes.h"
 #include "Muksi/Contents/Travel/Public/Data/Items/MuksiItemDataAsset.h"
 #include "Muksi/Contents/Travel/Public/Components/Player/InventoryComponent.h"
 #include "Muksi/Contents/Travel/Public/Components/Player/EquipmentComponent.h"
@@ -23,10 +24,10 @@ void UWidget_Shop::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	if (Button_Buy)
+	if (Button_BuyOrSell)
 	{
-		Button_Buy->OnClicked.RemoveAll(this);
-		Button_Buy->OnClicked.AddDynamic(this, &ThisClass::HandleBuyClicked);
+		Button_BuyOrSell->OnClicked.RemoveAll(this);
+		Button_BuyOrSell->OnClicked.AddDynamic(this, &ThisClass::HandleActionClicked);
 	}
 
 	if (Button_Close)
@@ -52,46 +53,41 @@ void UWidget_Shop::NativeOnInitialized()
 		Button_TabRebuy->OnClicked.RemoveAll(this);
 		Button_TabRebuy->OnClicked.AddDynamic(this, &ThisClass::HandleRebuyTabClicked);
 	}
-}
 
-void UWidget_Shop::NativeOnActivated()
-{
-	Super::NativeOnActivated();
-
-	UMuksiPlayerDataSubsystem* PlayerData =
-		UMuksiPlayerDataSubsystem::Get(this);
-
-	UInventoryComponent* InventoryComponent =
-		PlayerData ? PlayerData->GetPlayerInventoryComponent() : nullptr;
-
-	UEquipmentComponent* EquipmentComponent =
-		PlayerData ? PlayerData->GetPlayerEquipmentComponent() : nullptr;
-
-	UPlayerCurrencyComponent* CurrencyComponent =
-		PlayerData ? PlayerData->GetPlayerCurrencyComponent() : nullptr;
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("[Widget_Shop] PlayerData=%s Inventory=%s Equipment=%s Currency=%s Owner=%s"),
-		*GetNameSafe(PlayerData),
-		*GetNameSafe(InventoryComponent),
-		*GetNameSafe(EquipmentComponent),
-		*GetNameSafe(CurrencyComponent),
-		CurrencyComponent ? *GetNameSafe(CurrencyComponent->GetOwner()) : TEXT("None"));
-
-	if (CurrencyComponent)
-	{
-		CurrencyComponent->OnGoldChanged.RemoveAll(this);
-		CurrencyComponent->OnGoldChanged.AddDynamic(
-			this, &ThisClass::HandleGoldChanged);
-	}
-
-	RefreshShop();
+	RefreshTabContent();
 	RefreshSelection();
 
 	if (ShopInventoryPanel)
 	{
 		ShopInventoryPanel->Refresh();
 	}
+}
+
+void UWidget_Shop::NativeOnActivated()
+{
+	Super::NativeOnActivated();
+
+	if (UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent())
+	{
+		CurrencyComponent->OnGoldChanged.RemoveAll(this);
+		CurrencyComponent->OnGoldChanged.AddDynamic(this, &ThisClass::HandleGoldChanged);
+	}
+
+	if (ShopInventoryPanel)
+	{
+		ShopInventoryPanel->OnItemSelected.RemoveAll(this);
+		ShopInventoryPanel->OnItemSelected.AddDynamic(
+			this,
+			&ThisClass::HandleSellInventoryItemSelected);
+	}
+
+	bHasSelectedSellItem = false;
+	SelectedSellItem = FMuksiInventoryEntry();
+	SelectedSellInstanceId.Invalidate();
+
+	RefreshTabContent();
+	RefreshSelection();
+	RefreshActionButtonText();
 }
 
 void UWidget_Shop::NativeOnDeactivated()
@@ -119,7 +115,7 @@ void UWidget_Shop::SetShopData(UShopDataAsset* InShopData)
 
 	if (IsActivated())
 	{
-		RefreshShop();
+		RefreshBuyItems();
 		RefreshSelection();
 	}
 }
@@ -146,14 +142,9 @@ UMuksiShopSubsystem* UWidget_Shop::GetShopSubsystem() const
 	return UMuksiShopSubsystem::Get(this);
 }
 
-void UWidget_Shop::RefreshShop()
+void UWidget_Shop::RefreshBuyItems()
 {
 	if (!ItemGridPanel)
-	{
-		return;
-	}
-
-	if (CurrentTab != EShopTab::Buy)
 	{
 		return;
 	}
@@ -178,9 +169,6 @@ void UWidget_Shop::RefreshShop()
 		UMuksiItemDataAsset* ItemData = ResolveShopItemData(Entry);
 		if (!ItemData)
 		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("[Widget_Shop] Shop item skipped. ItemID=%s"),
-				*Entry.ItemID.ToString());
 			continue;
 		}
 
@@ -195,8 +183,8 @@ void UWidget_Shop::RefreshShop()
 		EntryWidget->Setup(Entry, ItemData);
 		EntryWidget->SetSelected(
 			bHasSelectedItem &&
-			SelectedShopItem.ShopEntryId == Entry.ShopEntryId
-		);
+			SelectedShopItem.ShopEntryId == Entry.ShopEntryId);
+
 		EntryWidget->OnClicked.BindUObject(this, &ThisClass::SelectShopItem);
 
 		const int32 Row = VisibleIndex / SafeColumnCount;
@@ -205,7 +193,7 @@ void UWidget_Shop::RefreshShop()
 		ItemGridPanel->AddChildToUniformGrid(EntryWidget, Row, Column);
 		++VisibleIndex;
 	}
-}
+}	
 
 void UWidget_Shop::SelectShopItem(const FShopItemEntry& Entry)
 {
@@ -219,7 +207,7 @@ void UWidget_Shop::SelectShopItem(const FShopItemEntry& Entry)
 	SelectedShopItem = Entry;
 	bHasSelectedItem = true;
 
-	RefreshShop();
+	RefreshBuyItems();
 	RefreshSelection();
 }
 
@@ -239,6 +227,45 @@ void UWidget_Shop::RefreshSelection()
 	if (Text_CurrentGold)
 	{
 		Text_CurrentGold->SetText(FText::AsNumber(CurrentGold));
+	}
+
+	if (CurrentTab == EShopTab::Sell)
+	{
+		const bool bCanSell = CanSellSelectedItem();
+		const int32 SellPrice = bHasSelectedSellItem ? GetSellPrice(SelectedSellItem) : 0;
+
+		if (Text_SelectedItemName)
+		{
+			Text_SelectedItemName->SetText(
+				bHasSelectedSellItem && SelectedSellItem.ItemData
+				? SelectedSellItem.ItemData->DisplayName
+				: FText::FromString(TEXT("-")));
+		}
+
+		if (Text_SelectedItemDescription)
+		{
+			Text_SelectedItemDescription->SetText(
+				bHasSelectedSellItem && SelectedSellItem.ItemData
+				? SelectedSellItem.ItemData->Description
+				: FText::GetEmpty());
+		}
+
+		if (Text_Price)
+		{
+			Text_Price->SetText(FText::AsNumber(SellPrice));
+		}
+
+		if (Text_AfterGold)
+		{
+			Text_AfterGold->SetText(FText::AsNumber(CurrentGold + SellPrice));
+		}
+
+		if (Button_BuyOrSell)
+		{
+			Button_BuyOrSell->SetIsEnabled(bCanSell);
+		}
+
+		return;
 	}
 
 	if (!bHasSelectedItem || !SelectedItemData)
@@ -263,9 +290,9 @@ void UWidget_Shop::RefreshSelection()
 			Text_AfterGold->SetText(FText::AsNumber(CurrentGold));
 		}
 
-		if (Button_Buy)
+		if (Button_BuyOrSell)
 		{
-			Button_Buy->SetIsEnabled(false);
+			Button_BuyOrSell->SetIsEnabled(false);
 		}
 
 		return;
@@ -296,9 +323,9 @@ void UWidget_Shop::RefreshSelection()
 		Text_AfterGold->SetText(FText::AsNumber(AfterGold));
 	}
 
-	if (Button_Buy)
+	if (Button_BuyOrSell)
 	{
-		Button_Buy->SetIsEnabled(bCanBuy);
+		Button_BuyOrSell->SetIsEnabled(bCanBuy);
 	}
 
 	UE_LOG(
@@ -555,15 +582,173 @@ bool UWidget_Shop::TryBuySelectedItem()
 	return true;
 }
 
-void UWidget_Shop::HandleBuyClicked()
+bool UWidget_Shop::CanSellSelectedItem() const
 {
-	if (!TryBuySelectedItem())
+	if (CurrentTab != EShopTab::Sell ||
+		!bHasSelectedSellItem ||
+		!SelectedSellInstanceId.IsValid())
+	{
+		return false;
+	}
+
+	return IsSellableItem(SelectedSellItem) && GetSellPrice(SelectedSellItem) > 0;
+}
+
+bool UWidget_Shop::IsSellableItem(const FMuksiInventoryEntry& Entry) const
+{
+	if (!Entry.InstanceId.IsValid() || !Entry.ItemData)
+	{
+		return false;
+	}
+
+	if (!Entry.ItemData->bCanSell)
+	{
+		return false;
+	}
+
+	if (Entry.ItemData->ItemType == EMuksiItemType::Quest)
+	{
+		return false;
+	}
+
+	switch (Entry.ItemData->ItemType)
+	{
+	case EMuksiItemType::Equipment:
+	case EMuksiItemType::Consumable:
+	case EMuksiItemType::Material:
+	case EMuksiItemType::Misc:
+		break;
+
+	default:
+		return false;
+	}
+
+	if (Entry.ItemData->ItemType == EMuksiItemType::Equipment)
+	{
+		const UEquipmentComponent* EquipmentComponent = GetEquipmentComponent();
+		if (EquipmentComponent && EquipmentComponent->IsEquipped(Entry.InstanceId))
+		{
+			return false;
+		}
+	}
+
+	return Entry.ItemData->Price > 0;
+}
+
+int32 UWidget_Shop::GetSellPrice(const FMuksiInventoryEntry& Entry) const
+{
+	if (!Entry.ItemData)
+	{
+		return 0;
+	}
+
+	if (Entry.ItemData->ItemType == EMuksiItemType::Quest)
+	{
+		return 0;
+	}
+
+	constexpr float SellPriceRate = 0.5f;
+	return FMath::Max(1, FMath::FloorToInt(static_cast<float>(Entry.ItemData->Price) * SellPriceRate));
+}
+
+bool UWidget_Shop::TrySellSelectedItem()
+{
+	UInventoryComponent* InventoryComponent = GetInventoryComponent();
+	UPlayerCurrencyComponent* CurrencyComponent = GetCurrencyComponent();
+
+	if (!InventoryComponent || !CurrencyComponent)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Widget_Shop] Sell Failed: Inventory=%s Currency=%s"),
+			*GetNameSafe(InventoryComponent),
+			*GetNameSafe(CurrencyComponent));
+		return false;
+	}
+
+	if (!bHasSelectedSellItem || !SelectedSellInstanceId.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Widget_Shop] Sell Failed: no selected item"));
+		return false;
+	}
+
+	FMuksiInventoryEntry CurrentEntry;
+	if (!InventoryComponent->FindItemByInstanceId(SelectedSellInstanceId, CurrentEntry) || !CurrentEntry.ItemData)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Widget_Shop] Sell Failed: item not found InstanceId=%s"),
+			*SelectedSellInstanceId.ToString());
+		return false;
+	}
+
+	if (!IsSellableItem(CurrentEntry))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Widget_Shop] Sell Failed: not sellable ItemID=%s Type=%d"),
+			*CurrentEntry.ItemID.ToString(),
+			static_cast<int32>(CurrentEntry.ItemData->ItemType));
+		return false;
+	}
+
+	const int32 SellQuantity = 1;
+	const int32 SellPrice = GetSellPrice(CurrentEntry) * SellQuantity;
+	const int32 GoldBefore = CurrencyComponent->GetGold();
+
+	if (SellPrice <= 0)
+	{
+		return false;
+	}
+
+	if (!InventoryComponent->RemoveItemByInstanceId(SelectedSellInstanceId, SellQuantity))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Widget_Shop] Sell Failed: RemoveItemByInstanceId failed InstanceId=%s"),
+			*SelectedSellInstanceId.ToString());
+		return false;
+	}
+
+	CurrencyComponent->AddGold(SellPrice);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[Widget_Shop] Sell Success InstanceId=%s ItemID=%s Quantity=%d SellPrice=%d GoldBefore=%d GoldAfter=%d"),
+		*SelectedSellInstanceId.ToString(),
+		*CurrentEntry.ItemID.ToString(),
+		SellQuantity,
+		SellPrice,
+		GoldBefore,
+		CurrencyComponent->GetGold());
+
+	bHasSelectedSellItem = false;
+	SelectedSellItem = FMuksiInventoryEntry();
+	SelectedSellInstanceId.Invalidate();
+
+	return true;
+}
+
+void UWidget_Shop::HandleActionClicked()
+{
+	bool bSucceeded = false;
+
+	switch (CurrentTab)
+	{
+	case EShopTab::Buy:
+		bSucceeded = TryBuySelectedItem();
+		break;
+
+	case EShopTab::Sell:
+		bSucceeded = TrySellSelectedItem();
+		break;
+
+	default:
+		break;
+	}
+
+	if (!bSucceeded)
 	{
 		RefreshSelection();
 		return;
 	}
 
-	RefreshShop();
+	RefreshTabContent();
 	RefreshSelection();
 
 	if (ShopInventoryPanel)
@@ -586,12 +771,62 @@ void UWidget_Shop::HandleGoldChanged(int32 NewGold)
 	RefreshSelection();
 }
 
+void UWidget_Shop::HandleSellInventoryItemSelected(FGuid InstanceId)
+{
+	SelectSellItem(InstanceId);
+}
+
+void UWidget_Shop::SelectSellItem(FGuid InstanceId)
+{
+	UInventoryComponent* InventoryComponent = GetInventoryComponent();
+	if (!InventoryComponent || !InstanceId.IsValid())
+	{
+		return;
+	}
+
+	FMuksiInventoryEntry FoundEntry;
+	if (!InventoryComponent->FindItemByInstanceId(InstanceId, FoundEntry) || !FoundEntry.ItemData)
+	{
+		return;
+	}
+
+	SelectedSellInstanceId = InstanceId;
+	SelectedSellItem = FoundEntry;
+	bHasSelectedSellItem = true;
+
+	if (ShopInventoryPanel)
+	{
+		ShopInventoryPanel->SetSelectedInstanceId(SelectedSellInstanceId);
+		ShopInventoryPanel->Refresh();
+	}
+
+	RefreshSelection();
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[Widget_Shop] SelectSellItem InstanceId=%s ItemID=%s Type=%d Quantity=%d SellPrice=%d"),
+		*InstanceId.ToString(),
+		*FoundEntry.ItemID.ToString(),
+		static_cast<int32>(FoundEntry.ItemData->ItemType),
+		FoundEntry.Quantity,
+		GetSellPrice(FoundEntry));
+}
+
 UInventoryComponent* UWidget_Shop::GetInventoryComponent() const
 {
 	if (UMuksiPlayerDataSubsystem* PlayerData =
 		UMuksiPlayerDataSubsystem::Get(this))
 	{
 		return PlayerData->GetPlayerInventoryComponent();
+	}
+
+	return nullptr;
+}
+
+UEquipmentComponent* UWidget_Shop::GetEquipmentComponent() const
+{
+	if (UMuksiPlayerDataSubsystem* PlayerData = UMuksiPlayerDataSubsystem::Get(this))
+	{
+		return PlayerData->GetPlayerEquipmentComponent();
 	}
 
 	return nullptr;
@@ -629,6 +864,7 @@ void UWidget_Shop::SetCurrentTab(EShopTab NewTab)
 	{
 		RefreshTabContent();
 		RefreshSelection();
+		RefreshActionButtonText();
 		return;
 	}
 
@@ -637,8 +873,14 @@ void UWidget_Shop::SetCurrentTab(EShopTab NewTab)
 	bHasSelectedItem = false;
 	SelectedShopItem = FShopItemEntry();
 
+	bHasSelectedSellItem = false;
+	SelectedSellItem = FMuksiInventoryEntry();
+	SelectedSellInstanceId.Invalidate();
+
+
 	RefreshTabContent();
 	RefreshSelection();
+	RefreshActionButtonText();
 }
 
 void UWidget_Shop::RefreshTabContent()
@@ -650,22 +892,65 @@ void UWidget_Shop::RefreshTabContent()
 		{
 			Text_EmptyMessage->SetVisibility(ESlateVisibility::Collapsed);
 		}
-		RefreshShop();
+
+		if (ShopInventoryPanel)
+		{
+			ShopInventoryPanel->SetPanelMode(EShopInventoryPanelMode::ViewOnly);
+			ShopInventoryPanel->SetItemTypeFilter(EMuksiItemType::None);
+			ShopInventoryPanel->SetSelectedInstanceId(FGuid());
+			ShopInventoryPanel->Refresh();
+		}
+
+		RefreshBuyItems();
 		break;
 
 	case EShopTab::Sell:
 		ClearItemGrid();
-		ShowEmptyMessage(FText::FromString(TEXT("판매 기능 준비중")));
-		UE_LOG(LogTemp, Log, TEXT("[Shop] Sell tab clicked. Sell feature is not implemented yet."));
+
+		if (ShopInventoryPanel)
+		{
+			ShopInventoryPanel->SetPanelMode(EShopInventoryPanelMode::Sell);
+			ShopInventoryPanel->SetItemTypeFilter(CurrentSellItemTypeFilter);
+			ShopInventoryPanel->SetSelectedInstanceId(SelectedSellInstanceId);
+			ShopInventoryPanel->Refresh();
+		}
+
+		ShowEmptyMessage(FText::FromString(TEXT("판매할 아이템을 선택하세요.")));
 		break;
 
 	case EShopTab::ReBuy:
 		ClearItemGrid();
 		ShowEmptyMessage(FText::FromString(TEXT("재구매 기능 준비중")));
-		UE_LOG(LogTemp, Log, TEXT("[Shop] ReBuy tab clicked. ReBuy feature is not implemented yet."));
 		break;
 
 	default:
+		break;
+	}
+}
+
+void UWidget_Shop::RefreshActionButtonText()
+{
+	if (!Text_ActionButton)
+	{
+		return;
+	}
+
+	switch (CurrentTab)
+	{
+	case EShopTab::Buy:
+		Text_ActionButton->SetText(FText::FromString(TEXT("Buy")));
+		break;
+
+	case EShopTab::Sell:
+		Text_ActionButton->SetText(FText::FromString(TEXT("Sell")));
+		break;
+
+	case EShopTab::ReBuy:
+		Text_ActionButton->SetText(FText::FromString(TEXT("ReBuy")));
+		break;
+
+	default:
+		Text_ActionButton->SetText(FText::FromString(TEXT("Buy")));
 		break;
 	}
 }

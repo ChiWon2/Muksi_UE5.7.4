@@ -25,7 +25,9 @@ enum class EInventoryCategoryFilter : uint8
 {
 	Equipment	UMETA(DisplayName = "Equipment"),
 	Consumable	UMETA(DisplayName = "Consumable"),
-	Special		UMETA(DisplayName = "Special")
+	Material	UMETA(DisplayName = "Material"),
+	Misc		UMETA(DisplayName = "Misc"),
+	Quest		UMETA(DisplayName = "Quest")
 };
 
 UCLASS()
@@ -56,7 +58,13 @@ protected:
 	TObjectPtr<UButton> ConsumableCategoryButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> SpecialCategoryButton;
+	TObjectPtr<UButton> MaterialCategoryButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> MiscCategoryButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> QuestCategoryButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UWidget_CharacterInfoPanel> CharacterInfoPanel;
@@ -96,7 +104,13 @@ private:
 	void HandleConsumableCategoryClicked();
 
 	UFUNCTION()
-	void HandleSpecialCategoryClicked();
+	void HandleMaterialCategoryClicked();
+
+	UFUNCTION()
+	void HandleMiscCategoryClicked();
+
+	UFUNCTION()
+	void HandleQuestCategoryClicked();
 
 	UFUNCTION()
 	void HandleItemSlotClicked(FGuid InstanceId);

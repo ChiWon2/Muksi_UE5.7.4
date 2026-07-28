@@ -45,6 +45,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	bool bStackable = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Shop")
+	bool bCanSell = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	int32 Price = 0;
 };
