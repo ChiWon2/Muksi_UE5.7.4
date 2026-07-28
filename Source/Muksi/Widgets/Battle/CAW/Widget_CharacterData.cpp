@@ -4,6 +4,7 @@
 #include "Muksi/Widgets/Battle/CAW/Widget_CharacterData.h"
 
 #include "Components/Button.h"
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Widgets/Battle/CharacterData/CharacterDataPanelWidget_Player.h"
@@ -16,6 +17,8 @@ void UWidget_CharacterData::CloseActivatableWidget()
 {
 	//TODO Close Effect
 	DeactivateWidget();
+	//카메라 원래 탑뷰 위치로 옮기기
+	ReturnCameraPosition();
 }
 
 void UWidget_CharacterData::NativeConstruct()
@@ -84,6 +87,22 @@ void UWidget_CharacterData::SetWidgetVisible()
 		UE_LOG(LogTemp, Warning, TEXT("Enemy Data Print"));
 		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
 		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void UWidget_CharacterData::ReturnCameraPosition()
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem =
+			World->GetSubsystem<UMuksiWorldManagerSubsystem>())
+		{
+			if (ABattleCameraManager* CameraManager =
+				ManagerSubsystem->GetManager<ABattleCameraManager>())
+			{
+				CameraManager->ReturnToOverview();
+			}
+		}
 	}
 }
 

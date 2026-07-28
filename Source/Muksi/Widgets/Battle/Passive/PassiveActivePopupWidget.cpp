@@ -25,6 +25,8 @@ void UPassiveActivePopupWidget::SetData(ABattleCharacterBase* Player, ABattleCha
 	{
 		CharacterPassive->OnPassiveActive.AddDynamic(this, &UPassiveActivePopupWidget::SetPassiveInfo_Enemy);
 	}
+	
+	
 }
 
 void UPassiveActivePopupWidget::SetPassiveInfo_Player(UTexture2D* CharacterImage, FText PassiveName)
@@ -91,6 +93,7 @@ void UPassiveActivePopupWidget::SetPassiveInfo_Player(UTexture2D* CharacterImage
 	}
 
 	NewPopup->SetData(CharacterImage, PassiveName);
+	NewPopup->StartRemoveTimer(3.0f);
 
 	PopupSlot->SetHorizontalAlignment(HAlign_Fill);
 	PopupSlot->SetVerticalAlignment(VAlign_Top);
@@ -163,6 +166,7 @@ void UPassiveActivePopupWidget::SetPassiveInfo_Enemy(UTexture2D* CharacterImage,
 	}
 
 	NewPopup->SetData(CharacterImage, PassiveName);
+	NewPopup->StartRemoveTimer(3.0f);
 
 	PopupSlot->SetHorizontalAlignment(HAlign_Fill);
 	PopupSlot->SetVerticalAlignment(VAlign_Top);

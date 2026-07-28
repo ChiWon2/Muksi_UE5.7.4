@@ -43,3 +43,26 @@ void UPassiveActivePopup::SetData(UTexture2D* CharacterImage, FText PassiveName)
 
 	TextBlock_PassiveName->SetText(PassiveName);
 }
+
+void UPassiveActivePopup::StartRemoveTimer(float LifeTime)
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	GetWorld()->GetTimerManager().ClearTimer(RemoveTimerHandle);
+
+	GetWorld()->GetTimerManager().SetTimer(
+		RemoveTimerHandle,
+		this,
+		&UPassiveActivePopup::RemovePopup,
+		LifeTime,
+		false
+	);
+}
+
+void UPassiveActivePopup::RemovePopup()
+{
+	RemoveFromParent();
+}

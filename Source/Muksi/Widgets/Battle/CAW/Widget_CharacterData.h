@@ -70,4 +70,6 @@ protected:
 	TObjectPtr<ABattleCharacter_Enemy> EnemyData = nullptr;
 	
 	void SetWidgetVisible();
+	
+	void ReturnCameraPosition();
 };

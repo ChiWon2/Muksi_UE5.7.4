@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Widgets/Widget_ActivatableBase.h"
 #include "Muksi/Quest/QuestKey.h"
+#include "Muksi/Contents/Travel/Public/Data/Towns/TownInteractionData.h"
+
 #include "Widget_TangClan.generated.h"
 
 class UButton;
@@ -18,6 +20,9 @@ class MUKSI_API UWidget_TangClan : public UWidget_ActivatableBase
 {
 	GENERATED_BODY()
 
+public:
+	void InitializeTangClan(const FTangClanData& InTangClanData);
+
 protected:
 	virtual void NativeOnActivated() override;
 
@@ -29,27 +34,31 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> SB_QuestEntries;
-	
+
+private:
+	UPROPERTY()
+	FTangClanData CurrentTangClanData;
 
 //TODO :: Refactoring this test variables
 
-#pragma region ForTest
-	TArray<FQuestKey> TestQuestKeys;
+//#pragma region ForTest
+//	TArray<FQuestKey> TestQuestKeys;
 
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestEntryWidget_ForTown> QuestEntryWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestEntryWidget_ForTown> QuestEntryWidgetClass;
 
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestLogWidget> QuestLogWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestLogWidget> QuestLogWidgetClass;
 	
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestGiverWidget> QuestGiverWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestGiverWidget> QuestGiverWidgetClass;
 
-	UPROPERTY(EditAnywhere, Category = "ForTest")
-	TSubclassOf<UQuestRewardWidget> QuestRewardWidgetClass;
+//	UPROPERTY(EditAnywhere, Category = "ForTest")
+//	TSubclassOf<UQuestRewardWidget> QuestRewardWidgetClass;
 
-	void RefreshTangClanWidget();
-#pragma endregion
+//	void RefreshTangClanWidget();
+//#pragma endregion
+
 	UFUNCTION()
 	void HandleBackButtonClicked();
 	UFUNCTION()
@@ -57,4 +66,5 @@ protected:
 	UFUNCTION()
 	void HandleQuestCompleted(UQuestInstance_Base* QuestBase);
 
+	void RefreshTangClanWidget();
 };

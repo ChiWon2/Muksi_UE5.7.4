@@ -13,12 +13,16 @@ class UUniformGridPanel;
 
 class UInventoryComponent;
 class UPlayerCurrencyComponent;
+class UEquipmentComponent;
+
+class UMuksiItemDataSubsystem;
 class UMuksiShopSubsystem;
+
 class UMuksiItemDataAsset;
 class UWidget_ShopInventoryPanel;
 
+class UWidget_ItemSlot;
 class UWidget_ShopItemEntry;
-class UMuksiItemDataSubsystem;
 
 UENUM(BlueprintType)
 enum class EShopTab : uint8
@@ -51,6 +55,21 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Shop")
 	bool bHasSelectedItem = false;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Shop|Sell")
+	FMuksiInventoryEntry SelectedSellItem;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Shop|Sell")
+	bool bHasSelectedSellItem = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Shop|Sell")
+	FGuid SelectedSellInstanceId;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Shop|Sell")
+	EMuksiItemType CurrentSellItemTypeFilter = EMuksiItemType::None;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop|Sell")
+	TSubclassOf<UWidget_ItemSlot> ItemSlotClass;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")
 	TSubclassOf<UWidget_ShopItemEntry> ShopItemEntryClass;
 
@@ -82,7 +101,10 @@ protected:
 	TObjectPtr<UTextBlock> Text_AfterGold;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> Button_Buy;
+	TObjectPtr<UButton> Button_BuyOrSell;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_ActionButton;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Close;
@@ -103,7 +125,7 @@ protected:
 	TObjectPtr<UWidget_ShopInventoryPanel> ShopInventoryPanel;
 
 	UFUNCTION()
-	void HandleBuyClicked();
+	void HandleActionClicked();
 
 	UFUNCTION()
 	void HandleCloseClicked();
@@ -120,9 +142,17 @@ protected:
 	UFUNCTION()
 	void HandleGoldChanged(int32 NewGold);
 
-	void RefreshShop();
+	UFUNCTION()
+	void HandleSellInventoryItemSelected(FGuid InstanceId);
+
+	void RefreshBuyItems();
+	void RefreshSellItems();
 	void RefreshSelection();
+
+	void RefreshActionButtonText();
+
 	void SelectShopItem(const FShopItemEntry& Entry);
+	void SelectSellItem(FGuid InstanceId);
 
 	void SetCurrentTab(EShopTab NewTab);
 	void RefreshTabContent();
@@ -132,7 +162,14 @@ protected:
 	bool CanBuySelectedItem() const;
 	bool TryBuySelectedItem();
 
+	bool CanSellSelectedItem() const;
+	bool TrySellSelectedItem();
+
+	bool IsSellableItem(const FMuksiInventoryEntry& Entry) const;
+	int32 GetSellPrice(const FMuksiInventoryEntry& Entry) const;
+
 	UInventoryComponent* GetInventoryComponent() const;
+	UEquipmentComponent* GetEquipmentComponent() const;
 	UPlayerCurrencyComponent* GetCurrencyComponent() const;
 
 	UMuksiShopSubsystem* GetShopSubsystem() const;

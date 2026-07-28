@@ -3,6 +3,8 @@
 #include "Components/TextBlock.h"
 #include"Components/ScrollBox.h"
 
+#include "Muksi/Contents/Travel/Public/Data/Towns/TownDataAsset.h"
+
 #include"Muksi/Quest/QuestSubsystem.h"
 
 #include"Muksi/Quest/Widgets/QuestEntryWidget_ForTown.h"
@@ -16,22 +18,31 @@
 #include"Muksi/Public/Subsystems/MuksiUISubsystem.h"
 #include"Muksi/Public/MuksiGameplayTags.h"
 
+void UWidget_TangClan::InitializeTangClan(const FTangClanData& InTangClanData)
+{
+	CurrentTangClanData = InTangClanData;
+
+	UE_LOG(LogTemp, Warning, TEXT("[TangClan] QuestCount=%d"),
+		CurrentTangClanData.QuestKeys.Num());
+
+	RefreshTangClanWidget();
+}
 
 void UWidget_TangClan::NativeOnActivated()
 {
 	Super::NativeOnActivated();
 
-	//TODO :: refactoring this ForTest Fucntion
-#pragma region ForTest
-	TestQuestKeys.Empty();
-
-	TestQuestKeys.Add(FQuestKey("ForTest", "TestTest"));
-	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_0"));
-	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_1"));
-	TestQuestKeys.Add(FQuestKey("ForTest", "TestInventory"));
-
-	RefreshTangClanWidget();
-#pragma endregion
+//	//TODO :: refactoring this ForTest Fucntion
+//#pragma region ForTest
+//	TestQuestKeys.Empty();
+//
+//	TestQuestKeys.Add(FQuestKey("ForTest", "TestTest"));
+//	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_0"));
+//	TestQuestKeys.Add(FQuestKey("ForTown", "ForTownTest_1"));
+//	TestQuestKeys.Add(FQuestKey("ForTest", "TestInventory"));
+//
+//	RefreshTangClanWidget();
+//#pragma endregion
 
 
 	UE_LOG(LogTemp, Log, TEXT("[TangClan] Opened"));
@@ -58,7 +69,11 @@ void UWidget_TangClan::RefreshTangClanWidget()
 	const UQuestDeveloperSettings* Settings = GetDefault<UQuestDeveloperSettings>();
 	UQuestSubsystem* QuestSubsys = UQuestSubsystem::Get(this);
 
-	for (const FQuestKey& QuestKey : TestQuestKeys)
+	//CurrentTownData.QuestKeys 기준으로 리스트를 생성
+	const TArray<FQuestKey>& QuestKeys = CurrentTangClanData.QuestKeys;
+
+	//for (const FQuestKey& QuestKey : TestQuestKeys)
+	for(const FQuestKey& QuestKey : QuestKeys)
 	{
 		if (QuestSubsys->GetCompleteQuestInstance(QuestKey))
 		{
@@ -88,7 +103,6 @@ void UWidget_TangClan::HandleBackButtonClicked()
 
 	DeactivateWidget();
 }
-
 
 void UWidget_TangClan::HandleQuestEntryClicked(FQuestKey QuestKey)
 {
