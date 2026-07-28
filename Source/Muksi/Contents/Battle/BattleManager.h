@@ -3,130 +3,52 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Character/BattleCharacterBase.h"
-#include "Character/BattleCharacter_Enemy.h"
 #include "GameFramework/Actor.h"
-#include "Muksi/Contents/Battle/Data/MMuksiBattleCardTableRow.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingInputContext.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
-
 #include "BattleManager.generated.h"
 
-enum class EMuksiPassiveTriggerType : uint8;
+class UMuksiCharacterDataAsset;
+class ABattleCharacterBase;
 class ABattleCharacter_Player;
 class ABattleCharacter_Enemy;
-class ABattleCharacterBase;
-class UMuksiCharacterDataAsset;
-class UHandWidget;
-class UCharacterDataBase;
+
+class UMuksiBattleCardDataAsset;
 class ATargetPoint;
+
 class ABattleGridManager;
 class ABattleSequenceManager;
-
-class AMuksiTargetingPreviewActor;
 class UBattleTargetingManager;
+class ABattleSimulationManager;
 
-//리펙토링
 class UWidget_BattleMainScreen;
 
-//Test
-class UMuksiBattleCardDataAsset;
 
-UENUM(BlueprintType)
-enum class EBattlePhase : uint8
-{
-	None UMETA(DisplayName = "None"),
-	Ready UMETA(DisplayName = "Ready"),
-	BattleStart UMETA(DisplayName = "Battle Start"),
-	RoundStart UMETA(DisplayName = "Round Start"),
-	RoundEnd UMETA(DisplayName = "Round End"),
-	ExchangeStart UMETA(DisplayName = "Exchange Start"),
-	ExchangeEnd UMETA(DisplayName = "Exchange End"),
-	AttackStart UMETA(DisplayName = "Attack Start"),
-	AttackEnd UMETA(DisplayName = "Attack End"),
-	BattleEnd UMETA(DisplayName = "Battle End")
-};
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattlePhaseChanged, EBattlePhase, NewPhase);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnBattlePhaseChanged,
-	EBattlePhase,
-	NewPhase
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleReady);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnBattleReady
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleStarted);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnBattleStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundStarted);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnRoundStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundEnded);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnRoundEnded
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnExchangeStarted);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnExchangeStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnExchangeEnded);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnExchangeEnded
-);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnAttackStarted
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackStarted);
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnAttack,
-	int32,
-	AttackNumber
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttack,int32,AttackNumber);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnAttackEnded
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(
-	FOnBattleEnded
-);
-
-//공격 행동 구조체
-USTRUCT(BlueprintType)
-struct FBattleAction
-{
-	GENERATED_BODY()
-
-	// 몇 번째 합의 행동인지: 0, 1, 2
-	UPROPERTY(BlueprintReadOnly)
-	int32 ExchangeIndex = INDEX_NONE;
-
-	// 행동하는 캐릭터
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<ABattleCharacterBase> Attacker = nullptr;
-
-	// 사용하는 카드
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
-
-	// 행동 생성 시점의 속도
-	UPROPERTY(BlueprintReadOnly)
-	int32 Speed = 0;
-
-	// 플레이어 행동인지
-	UPROPERTY(BlueprintReadOnly)
-	bool bPlayerAction = false;
-
-	// 카드 선택 과정에서 확정된 전체 Targeting 결과
-	UPROPERTY(BlueprintReadOnly)
-	FTargetingResult TargetingResult;
-};
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleEnded);
 
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
@@ -141,7 +63,6 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	virtual void Tick(float DeltaTime) override;
 
 	// =========================
 	// Battle Flow
@@ -162,10 +83,6 @@ public:
 protected:
 	// 나중에 전투 종료 조건을 여기서 판단
 	bool ShouldEndBattle() const;
-
-	// 나중에 합/공격 계산을 넣을 위치
-	void ResolveCurrentExchange();
-	void ResolveCurrentAttack();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
 	int32 CurrentRound = 0;
@@ -194,7 +111,7 @@ public:
 	FOnBattlePhaseChanged OnBattlePhaseChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnBattleStarted OnBattleReady;
+	FOnBattleReady OnBattleReady;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnBattleStarted OnBattleStarted;
@@ -223,32 +140,16 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnBattleEnded OnBattleEnded;
 
-public:
 	// =========================
 	// Card
 	// =========================
 
-
-
-	void ExecuteCardEffects(
-		const FMMuksiBattleCardTableRow& CardRow,
-		UCharacterDataBase* SourceCharacter,
-		UCharacterDataBase* TargetCharacter
-	);
-
 public:
-	bool bHandWidgetReady = false;
-
-	UPROPERTY(EditAnywhere, Category = "Battle|Test")
-	TObjectPtr<UMuksiBattleCardDataAsset> TestBattleCardDataAsset = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Battle|Attack")
 	TObjectPtr<UMuksiBattleCardDataAsset> AttackBattleCardDataAsset = nullptr;
 	
 protected:
-	bool CanStartBattle() const;
-	void StartBattleInternal();
-	void StartBattleReady();
 	void CreateCharacter();
 
 	//월드 레벨 오브젝트 관리
@@ -259,6 +160,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
 	TObjectPtr<ABattleSequenceManager> BattleSequenceManager = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
+	TObjectPtr<ABattleSimulationManager> BattleSimulationManager = nullptr;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacter_Player> PlayerBattleCharacter = nullptr;
@@ -266,14 +170,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter = nullptr;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleTargetingManager> BattleTargetingManager = nullptr;
+
 	UPROPERTY()
 	int32 CurrentAttackActionIndex = 0;
 
-	//아래 데이터는 테스트 용도로 넣는 데이터 에셋
-	//원래 기획대로라면 다른 곳에서 생성 후 받는 형식
-
 	//Battle 실행 관련 캐릭터 이동
-
 	//Battle Mouse 관련 함수
 public:
 	bool StartCurrentCardTargeting(UMuksiBattleCardDataAsset* Card);
@@ -284,10 +187,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
 	ABattleGridManager* GetBattleGridManager() const { return BattleGridManager; }
-
-protected:
-	UPROPERTY(Transient)
-	TObjectPtr<UBattleTargetingManager> BattleTargetingManager = nullptr;
 
 	//=========================================GetSet====================================================================
 public:
@@ -309,7 +208,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
 
-	void SetPhase(EBattlePhase NewPhase);
 	void ChangePhase(EBattlePhase NewPhase);
 
 	UWidget_BattleMainScreen* GetBattleMainScreen() { return BattleMainScreen; }
@@ -337,8 +235,6 @@ public:
 	void ReadyStart();
 	void ReadyEnd();
 
-protected:
-	void ComponentInit();
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
 	TObjectPtr<ATargetPoint> PlayerSpawnPoint = nullptr;
@@ -367,6 +263,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
 	FIntPoint StartEnemyPoint = FIntPoint(4, 4);
 
+public:
+	bool StartCurrentExchangeSimulation();
+	void HandleSimulationExchangeFinished(int32 FinishedExchangeIndex);
+	void HandleBattleSimulationFinished();
+	void CompleteExchangePresentation(int32 FinishedExchangeIndex);
+
+	ABattleGridManager* GetCurrentTargetingGridManager() const;
+	ABattleCharacterBase* GetCurrentTargetingSourceCharacter() const;
+	ABattleCharacterBase* ResolveCurrentTargetingCharacter(ABattleCharacterBase* Character) const;
+
 	//=============================================Battle 단계 관련===============================================================
 public:
 	void BattleStart();
@@ -379,8 +285,7 @@ public:
 	void RoundStart();
 	void RoundEnd();
 
-protected:
-	int32 RoundCount = 0;
+
 
 	//===============================================합 관련 ===========================================================
 	//---------------------------------Battle 관련 턴 흐름 관리 함수 <합>--------------------------------------------------
@@ -414,6 +319,7 @@ public:
 	void ExchangeN_EndReady();
 	void ExchangeN_End(int32 InIndex);
 
+
 	//합 도중 쓰는 함수
 public:
 	//합 도중 선택 된 카드 방향 정하기
@@ -428,12 +334,6 @@ public:
 	//Player/Enemy가 정한 카드 Grid 표시
 	void SetExchangeGrid();
 
-	//해당 합 동안 미리 보여주는 캐릭터 위치
-	void SetExchangeCharacter();
-
-	//UPROPERTY(BlueprintReadOnly)
-	//FTargetingResult TargetingResult;
-
 	//==================================================================================================================
 
 	//===============================================공격 관련 ===========================================================
@@ -442,14 +342,15 @@ public:
 	void SortAttackActions();
 	void AttackStart();
 	void StartCurrentAttackAction();
-	void ResolveCurrentAttackAction();
-	void PlayAttackAction();
+	void PlayAttackAction(const FBattleAction& Action);
 	void NotifyAttackActionFinished();
 	void FinishCurrentAttackAction();
 	void AttackEnd();
 	void NotifyAttackEndFinished();
 
-public:
+
+
+protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> PlayerSelectedCards;
 
@@ -464,10 +365,4 @@ public:
 
 	UPROPERTY()
 	TArray<FBattleAction> EnemySelectAction;
-
-	UPROPERTY()
-	bool bWaitingForAttackActionFinish = true;
-
-	public:
-		void TestFunc();
 };

@@ -15,7 +15,7 @@ TArray<FIntPoint> UDA_CardRange_Point::GetRangeCoords(const ABattleGridManager* 
 		return Result;
 	}
 
-	if (!GridManager->IsValidGridCoord(OriginCoord))
+	if (!GridManager->IsValidCoord(OriginCoord))
 	{
 		return Result;
 	}

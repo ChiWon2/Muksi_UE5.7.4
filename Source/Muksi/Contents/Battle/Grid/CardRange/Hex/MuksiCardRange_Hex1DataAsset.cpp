@@ -16,7 +16,7 @@ TArray<FIntPoint> UMuksiCardRange_Hex1DataAsset::GetRangeCoords(const ABattleGri
 		return Result;
 	}
 
-	if (!GridManager->IsValidGridCoord(OriginCoord))
+	if (!GridManager->IsValidCoord(OriginCoord))
 	{
 		return Result;
 	}
@@ -44,7 +44,7 @@ TArray<FIntPoint> UMuksiCardRange_Hex1DataAsset::GetRangeCoords(const ABattleGri
 		const FIntPoint CurrentCoord =
 			GridManager->CubeToOddQ(CurrentCube);
 
-		if (!GridManager->IsValidGridCoord(CurrentCoord))
+		if (!GridManager->IsValidCoord(CurrentCoord))
 		{
 			continue;
 		}

@@ -74,6 +74,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation", meta = (ClampMin = "0.0"))
 	float RotationTolerance = 1.0f;
 
+public:
 	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation")
 	float MovementYawOffset = 0.0f;
 };

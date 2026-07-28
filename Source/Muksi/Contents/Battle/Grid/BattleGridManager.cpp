@@ -1,29 +1,26 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 #include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
-// Sets default values
 ABattleGridManager::ABattleGridManager()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
-
 	BattleGridNavigationComponent = CreateDefaultSubobject<UBattleGridNavigationComponent>(TEXT("BattleGridNavigationComponent"));
 }
 
-// Called when the game starts or when spawned
 void ABattleGridManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (bRuntimeClone)
+	{
+		return;
+	}
 
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 	{
@@ -33,11 +30,13 @@ void ABattleGridManager::BeginPlay()
 
 void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	if (!bRuntimeClone)
 	{
-		ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+		{
+			ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
+		}
 	}
-
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -45,13 +44,10 @@ void ABattleGridManager::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	GenerateGrid();
-}
-
-// Called every frame
-void ABattleGridManager::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
+	if (!bRuntimeClone)
+	{
+		GenerateGrid();
+	}
 }
 
 FCubeCoord ABattleGridManager::OddQToCube(const FIntPoint& Coord) const
@@ -81,31 +77,19 @@ FCubeCoord ABattleGridManager::RotateCubeLeft60(const FCubeCoord& Cube) const
 	return FCubeCoord(-Cube.Y, -Cube.Z, -Cube.X);
 }
 
-bool ABattleGridManager::IsValidGridCoord(const FIntPoint& Coord) const
+bool ABattleGridManager::IsValidCoord(const FIntPoint& Coord) const
 {
 	return Coord.X >= 0 && Coord.X < GridWidth && Coord.Y >= 0 && Coord.Y < GridHeight;
 }
 
 ABattleGridTile* ABattleGridManager::GetTileByCoord(const FIntPoint& Coord) const
 {
-	if (!IsValidGridCoord(Coord))
-	{
-		return nullptr;
-	}
-
-	const int32 Index = CoordToIndex(Coord);
-
-	if (!GridCells.IsValidIndex(Index))
-	{
-		return nullptr;
-	}
-
-	return GridCells[Index].TileActor;
+	const FBattleGridCell* Cell = GetCell(Coord);
+	return Cell ? Cell->TileActor.Get() : nullptr;
 }
 
 //Test Hex Cell Dir Cal
-
-void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint)
+void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, const FIntPoint& InPoint)
 {
 	if (!CharacterBase)
 	{
@@ -187,21 +171,19 @@ void ABattleGridManager::GenerateGrid()
 
 void ABattleGridManager::ClearGrid()
 {
-	for (FBattleGridCell& Cell : GridCells)
+	if (!bRuntimeClone)
 	{
-		if (IsValid(Cell.TileActor))
+		for (FBattleGridCell& Cell : GridCells)
 		{
-			Cell.TileActor->Destroy();
+			if (IsValid(Cell.TileActor))
+			{
+				Cell.TileActor->Destroy();
+			}
 		}
 	}
 
 	GridCells.Empty();
 	TargetGridArray.Empty();
-}
-
-bool ABattleGridManager::IsValidCoord(const FIntPoint& Coord) const
-{
-	return Coord.X >= 0 && Coord.Y >= 0 && Coord.X < GridWidth && Coord.Y < GridHeight;
 }
 
 int32 ABattleGridManager::CoordToIndex(const FIntPoint& Coord) const
@@ -514,7 +496,7 @@ bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoo
 	return true;
 }
 
-FTransform ABattleGridManager::GetTransformToPosition(FIntPoint InPosition)
+FTransform ABattleGridManager::GetTransformToPosition(const FIntPoint& InPosition)
 {
 	const FBattleGridCell* Cell = GetCell(InPosition);
 
@@ -526,7 +508,7 @@ FTransform ABattleGridManager::GetTransformToPosition(FIntPoint InPosition)
 	return Cell->TileActor->GetCharacterSpawnTransform();
 }
 
-bool ABattleGridManager::CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range)
+bool ABattleGridManager::CheckGridInRange(const FIntPoint& A, const FIntPoint& B, int32 Range)
 {
 	if (!IsValidCoord(A) || !IsValidCoord(B) || Range < 0)
 	{
@@ -540,7 +522,7 @@ bool ABattleGridManager::CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range)
 	return Distance <= Range;
 }
 
-void ABattleGridManager::SetGridHovered(TArray<FIntPoint> NewGridArray)
+void ABattleGridManager::SetGridHovered(const TArray<FIntPoint>& NewGridArray)
 {
 	TargetGridArray.Empty();
 
@@ -588,7 +570,7 @@ void ABattleGridManager::AllClearGridHovered()
 	TargetGridArray.Empty();
 }
 
-void ABattleGridManager::SetExchangeIndicator(int32 AttackType, TArray<FIntPoint> GridArray)
+void ABattleGridManager::SetExchangeIndicator(int32 AttackType, const TArray<FIntPoint>& GridArray)
 {
 	for (const FIntPoint& Coord : GridArray)
 	{
@@ -616,23 +598,43 @@ void ABattleGridManager::AllClearExchangeIndicator()
 	}
 }
 
-void ABattleGridManager::RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint)
+bool ABattleGridManager::InitializeRuntimeClone(const ABattleGridManager* SourceGridManager)
 {
-	//일단 Move와 똑같이
-	if (ABattleCharacter_Player* PlayerCharacter = Cast<ABattleCharacter_Player>(BattleCharacter))
+	if (!IsValid(SourceGridManager))
 	{
-		MoveActorOnGrid(PlayerCharacter, PlayerCharacter->GetCharacterPosition(), TargetPoint);
+		return false;
 	}
-	else if (ABattleCharacter_Enemy* EnemyCharacter = Cast<ABattleCharacter_Enemy>(BattleCharacter))
-	{
-		MoveActorOnGrid(EnemyCharacter, EnemyCharacter->GetCharacterPosition(), TargetPoint);
-	}
+
+	bRuntimeClone = true;
+	GridWidth = SourceGridManager->GridWidth;
+	GridHeight = SourceGridManager->GridHeight;
+	HexRadius = SourceGridManager->HexRadius;
+	GridSpacingX = SourceGridManager->GridSpacingX;
+	GridSpacingY = SourceGridManager->GridSpacingY;
+	OddColumnYOffsetRatio = SourceGridManager->OddColumnYOffsetRatio;
+	TileRotation = SourceGridManager->TileRotation;
+	TileClasses = SourceGridManager->TileClasses;
+	GridCells = SourceGridManager->GridCells;
+	TargetGridArray.Empty();
+
+	return !GridCells.IsEmpty();
 }
 
-void ABattleGridManager::MovePosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
+bool ABattleGridManager::ReplaceOccupyingActor(AActor* SourceActor, AActor* ReplacementActor)
 {
-}
+	if (!IsValid(SourceActor) || !IsValid(ReplacementActor))
+	{
+		return false;
+	}
 
-void ABattleGridManager::RangeAttackPosition(UCharacterDataBase* CharacterDataBase, FIntPoint TargetPoint)
-{
+	for (FBattleGridCell& Cell : GridCells)
+	{
+		if (Cell.OccupyingActor == SourceActor)
+		{
+			Cell.OccupyingActor = ReplacementActor;
+			return true;
+		}
+	}
+
+	return false;
 }

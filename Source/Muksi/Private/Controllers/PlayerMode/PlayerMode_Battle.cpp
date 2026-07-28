@@ -223,7 +223,7 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 		return;
 	}
 
-	ABattleGridManager* GridManager = BattleManager->GetBattleGridManager();
+	ABattleGridManager* GridManager = BattleManager->GetCurrentTargetingGridManager();
 
 	if (!GridManager)
 	{
@@ -252,12 +252,15 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 	else if (ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
 	{
 		InputContext.HoveredCoord = HitCharacter->GetCharacterPosition();
-		InputContext.CandidateCharacters.AddUnique(HitCharacter);
+
+		if (ABattleCharacterBase* TargetingCharacter = BattleManager->ResolveCurrentTargetingCharacter(HitCharacter))
+		{
+			InputContext.CandidateCharacters.AddUnique(TargetingCharacter);
+		}
 	}
 
 	BattleManager->UpdateCurrentCardTargeting(InputContext);
-}
-void UPlayerMode_Battle::InitializeBattleTestData()
+}void UPlayerMode_Battle::InitializeBattleTestData()
 {
 	//if (!BattleCardDataTable || !TestPlayerCharacterDataAsset || !TestEnemyCharacterDataAsset)
 	//{

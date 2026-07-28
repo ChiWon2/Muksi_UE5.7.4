@@ -12,11 +12,9 @@ class ABattleManager;
 class UWidget_BattleMainScreen;
 class AExchangeCharacterBase;
 class UBoxComponent;
-class UCharacterDataBase;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 class UMuksiBattleMovementComponent;
-class UMuksiCharacterDataAsset;
 class UMuksiStatusEffectComponent;
 class UCharacterPassiveComponent;
 class UBattleStatComponent;
@@ -80,12 +78,6 @@ class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacte
 public:
 	ABattleCharacterBase();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
-	virtual void Tick(float DeltaTime) override;
-
 public:
 	int32 GetCurrentHP() const;
 	void SetCurrentHP(int32 NewHP);
@@ -117,22 +109,23 @@ public:
 	}
 	
 protected:
+	void InitializeBattleStats();
+	void CopyBattleStateFrom(const ABattleCharacterBase& SourceCharacter);
+
 	FCharacterData CharacterData;
 	
 public:
 	
-
-	UFUNCTION(BlueprintCallable, Category = "BattleCharacter")
-	virtual void SetExchangeCharacter(AExchangeCharacterBase* InExchangeCharacter) { ExchangeCharacterBase = InExchangeCharacter; }
-
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter")
-	AExchangeCharacterBase* GetExchangeCharacter() const { return ExchangeCharacterBase; }
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Mesh")
+	USkeletalMeshComponent* GetMeshComponent() const { return MeshComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Movement")
 	UMuksiBattleMovementComponent* GetBattleMovementComponent() const { return BattleMovementComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
+
+
 
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
@@ -165,16 +158,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;
 	
-	
-	UPROPERTY(Transient)
-	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;
-	
-	UPROPERTY(
-	VisibleAnywhere,
-	BlueprintReadOnly,
-	Category = "Passive",
-	meta = (AllowPrivateAccess = "true")
-)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Passive", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCharacterPassiveComponent> PassiveComponent;
 
 };

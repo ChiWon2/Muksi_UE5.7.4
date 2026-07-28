@@ -70,20 +70,6 @@ ABattleCharacterBase::ABattleCharacterBase()
 
 }
 
-// Called when the game starts or when spawned
-void ABattleCharacterBase::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void ABattleCharacterBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
 int32 ABattleCharacterBase::GetCurrentHP() const
 {
 	if (BattleStatComponent){return BattleStatComponent->GetCurrentHP();}
@@ -124,6 +110,11 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 	UE_LOG(LogTemp, Error, TEXT("CharacterData CharacterPassives %d"), CharacterData.CharacterPassives.Num());
 	PassiveComponent->InitializePassives(CharacterData.CharacterPassives, BattleManager, BattleMainScreen);
 	
+	InitializeBattleStats();
+}
+
+void ABattleCharacterBase::InitializeBattleStats()
+{
 	if (!BattleStatComponent)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BattleStatComponent is null (BattleCharacterBase.cpp)"));
@@ -135,7 +126,13 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 	BattleStats.Speed = CharacterData.CharacterSpeed;
 	BattleStats.HP = CharacterData.MaxHP;
 	BattleStatComponent->InitializeStats(BattleStats);
-	
+}
+
+void ABattleCharacterBase::CopyBattleStateFrom(const ABattleCharacterBase& SourceCharacter)
+{
+	CharacterData = SourceCharacter.CharacterData;
+	InitializeBattleStats();
+	SetCurrentHP(SourceCharacter.GetCurrentHP());
 }
 
 void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)
@@ -186,5 +183,4 @@ void ABattleCharacterBase::OnDeselected()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Deselected"));
 }
-
 

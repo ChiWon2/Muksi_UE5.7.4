@@ -200,6 +200,20 @@ void UMuksiBattleMovementComponent::UpdateRotationMovement(float DeltaTime)
 
 	const FRotator NewRotation = FMath::RInterpConstantTo(CurrentRotation, TargetRotation, DeltaTime, CurrentRotationSpeed);
 	Owner->SetActorRotation(NewRotation);
+	
+	const bool bRotationApplied = Owner->SetActorRotation(NewRotation);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[BattleMovement][Rotation] Owner=%s Current=%s New=%s Applied=%s Root=%s Mobility=%d"),
+		*GetNameSafe(Owner),
+		*CurrentRotation.ToString(),
+		*NewRotation.ToString(),
+		bRotationApplied ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(Owner->GetRootComponent()),
+		Owner->GetRootComponent() ? static_cast<int32>(Owner->GetRootComponent()->Mobility) : -1
+	);
 }
 
 void UMuksiBattleMovementComponent::UpdateArcMovement(float DeltaTime)
@@ -346,4 +360,18 @@ void UMuksiBattleMovementComponent::RotateOwnerToward(const FVector& Direction, 
 	const FRotator NewRotation = FMath::RInterpConstantTo(CurrentRotation, TargetRotation, DeltaTime, PathRotationSpeed);
 
 	Owner->SetActorRotation(NewRotation);
+
+	const bool bRotationApplied = Owner->SetActorRotation(NewRotation);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[BattleMovement][PathRotation] Owner=%s Current=%s New=%s Applied=%s Root=%s Mobility=%d"),
+		*GetNameSafe(Owner),
+		*CurrentRotation.ToString(),
+		*NewRotation.ToString(),
+		bRotationApplied ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(Owner->GetRootComponent()),
+		Owner->GetRootComponent() ? static_cast<int32>(Owner->GetRootComponent()->Mobility) : -1
+	);
 }

@@ -16,7 +16,6 @@ class ABattleCharacterBase;
 class ABattleCharacter_Player;
 class ABattleCharacter_Enemy;
 
-class UCharacterDataBase;
 class UCharacterData_Player;
 class UCharacterData_Enemy;
 /**

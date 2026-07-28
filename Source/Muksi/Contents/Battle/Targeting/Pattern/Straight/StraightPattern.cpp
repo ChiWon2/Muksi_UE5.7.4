@@ -25,7 +25,7 @@ void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FI
 
 		const FIntPoint CurrentCoord = Context.GridManager->CubeToOddQ(CurrentCube);
 
-		if (!Context.GridManager->IsValidGridCoord(CurrentCoord))
+		if (!Context.GridManager->IsValidCoord(CurrentCoord))
 		{
 			break;
 		}

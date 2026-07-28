@@ -18,7 +18,7 @@ void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FIns
 
 	const FIntPoint CenterCoord = StepContext->SelectedCoord;
 
-	if (!Context.GridManager->IsValidGridCoord(CenterCoord))
+	if (!Context.GridManager->IsValidCoord(CenterCoord))
 	{
 		return;
 	}
@@ -31,7 +31,7 @@ void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FIns
 		{
 			const FIntPoint CandidateCoord(X, Y);
 
-			if (!Context.GridManager->IsValidGridCoord(CandidateCoord))
+			if (!Context.GridManager->IsValidCoord(CandidateCoord))
 			{
 				continue;
 			}

@@ -10,7 +10,6 @@
 class UMuksiBattleCardDataAsset;
 class UBorder;
 class UWidget_BattleCardBase;
-class UCharacterDataBase;
 class UHandWidget;
 class UOverlay;
 

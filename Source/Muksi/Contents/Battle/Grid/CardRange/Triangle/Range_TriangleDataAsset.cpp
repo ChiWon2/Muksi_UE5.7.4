@@ -10,7 +10,7 @@ TArray<FIntPoint> URange_TriangleDataAsset::GetRangeCoords(const ABattleGridMana
 {
 	TArray<FIntPoint> Result;
 
-	if (!GridManager || !GridManager->IsValidGridCoord(OriginCoord))
+	if (!GridManager || !GridManager->IsValidCoord(OriginCoord))
 	{
 		return Result;
 	}
@@ -65,7 +65,7 @@ TArray<FIntPoint> URange_TriangleDataAsset::GetRangeCoords(const ABattleGridMana
 			const FIntPoint CurrentCoord =
 				GridManager->CubeToOddQ(CurrentCube);
 
-			if (!GridManager->IsValidGridCoord(CurrentCoord))
+			if (!GridManager->IsValidCoord(CurrentCoord))
 			{
 				continue;
 			}

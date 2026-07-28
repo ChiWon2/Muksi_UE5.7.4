@@ -26,7 +26,7 @@ void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FIns
 		{
 			const FIntPoint CandidateCoord(X, Y);
 
-			if (!Context.GridManager->IsValidGridCoord(CandidateCoord))
+			if (!Context.GridManager->IsValidCoord(CandidateCoord))
 			{
 				continue;
 			}
@@ -52,7 +52,7 @@ void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FIns
 		return;
 	}
 
-	if (!Context.GridManager->IsValidGridCoord(Context.InputContext.HoveredCoord))
+	if (!Context.GridManager->IsValidCoord(Context.InputContext.HoveredCoord))
 	{
 		return;
 	}

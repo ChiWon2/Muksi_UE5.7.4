@@ -11,7 +11,7 @@ TArray<FIntPoint> URange_TrapezoidDataAsset::GetRangeCoords(const ABattleGridMan
 	//return Super::GetRangeCoords(GridManager, OriginCoord, Direction);
 	TArray<FIntPoint> Result;
 
-	if (!GridManager || !GridManager->IsValidGridCoord(OriginCoord))
+	if (!GridManager || !GridManager->IsValidCoord(OriginCoord))
 	{
 		return Result;
 	}
@@ -64,7 +64,7 @@ TArray<FIntPoint> URange_TrapezoidDataAsset::GetRangeCoords(const ABattleGridMan
 			const FIntPoint CurrentCoord =
 				GridManager->CubeToOddQ(CurrentCube);
 
-			if (!GridManager->IsValidGridCoord(CurrentCoord))
+			if (!GridManager->IsValidCoord(CurrentCoord))
 			{
 				continue;
 			}
@@ -101,7 +101,7 @@ TArray<FIntPoint> URange_TrapezoidDataAsset::GetRangeCoords(const ABattleGridMan
 			const FIntPoint CurrentCoord =
 				GridManager->CubeToOddQ(CurrentCube);
 
-			if (GridManager->IsValidGridCoord(CurrentCoord))
+			if (GridManager->IsValidCoord(CurrentCoord))
 			{
 				Result.AddUnique(CurrentCoord);
 			}

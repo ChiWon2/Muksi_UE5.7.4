@@ -8,7 +8,6 @@
 
 class UWidget_BattleMainScreen;
 class UDataTable;
-class UCharacterDataBase;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
 class ABattleCharacterBase;

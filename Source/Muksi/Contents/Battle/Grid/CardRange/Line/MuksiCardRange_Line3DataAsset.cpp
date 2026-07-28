@@ -18,7 +18,7 @@ TArray<FIntPoint> UMuksiCardRange_Line3DataAsset::GetRangeCoords(const ABattleGr
 		return Result;
 	}
 
-	if (!GridManager->IsValidGridCoord(OriginCoord))
+	if (!GridManager->IsValidCoord(OriginCoord))
 	{
 		return Result;
 	}
@@ -47,7 +47,7 @@ TArray<FIntPoint> UMuksiCardRange_Line3DataAsset::GetRangeCoords(const ABattleGr
 		
 		UE_LOG(LogTemp, Error, TEXT("cal Point X : %d, Y : %d"), CurrentCoord.X, CurrentCoord.Y);
 
-		if (!GridManager->IsValidGridCoord(CurrentCoord))
+		if (!GridManager->IsValidCoord(CurrentCoord))
 		{
 			continue;
 		}
@@ -71,7 +71,7 @@ TArray<FIntPoint> UMuksiCardRange_Line3DataAsset::GetRangeCoords(const ABattleGr
 		
 		UE_LOG(LogTemp, Error, TEXT("cal Point X : %d, Y : %d"), CurrentCoord.X, CurrentCoord.Y);
 
-		if (!GridManager->IsValidGridCoord(CurrentCoord))
+		if (!GridManager->IsValidCoord(CurrentCoord))
 		{
 			continue;
 		}

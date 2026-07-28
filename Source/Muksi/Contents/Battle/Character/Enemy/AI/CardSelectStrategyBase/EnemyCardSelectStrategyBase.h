@@ -8,7 +8,6 @@
 
 struct FCharacterData;
 class UMuksiBattleCardDataAsset;
-class UCharacterDataBase;
 class ABattleGridManager;
 
 USTRUCT(BlueprintType)
