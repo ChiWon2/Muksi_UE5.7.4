@@ -5,7 +5,9 @@
 #include "UObject/Object.h"
 
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPatternContext.h"
+
 
 #include "AreaPattern.generated.h"
 

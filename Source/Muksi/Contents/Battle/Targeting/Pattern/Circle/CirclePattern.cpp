@@ -25,9 +25,9 @@ void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FIns
 
 	const int32 SafeRadius = FMath::Max(0, Data->Radius);
 
-	for (int32 X = 0; X < Context.GridManager->GridWidth; ++X)
+	for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
 	{
-		for (int32 Y = 0; Y < Context.GridManager->GridHeight; ++Y)
+		for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
 		{
 			const FHexOffsetCoord CandidateCoord(X, Y);
 

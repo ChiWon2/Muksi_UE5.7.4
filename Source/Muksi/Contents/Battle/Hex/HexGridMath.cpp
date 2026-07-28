@@ -94,3 +94,13 @@ int32 FHexGridMath::GetClosestDirectionByWorldVector(const FVector& WorldDirecti
 
 	return BestDirection;
 }
+
+FHexCubeCoord FHexGridMath::GetRotateCubeRight60(const FHexCubeCoord& Cube)
+{
+	return FHexCubeCoord(-Cube.Z, -Cube.X, -Cube.Y);
+}
+
+FHexCubeCoord FHexGridMath::GetRotateCubeLeft60(const FHexCubeCoord& Cube)
+{
+	return FHexCubeCoord(-Cube.Y, -Cube.Z, -Cube.X);
+}

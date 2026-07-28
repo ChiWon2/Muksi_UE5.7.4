@@ -5,6 +5,7 @@
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Knockback/KnockbackExecutionData.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 
 void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
@@ -109,9 +110,9 @@ bool UKnockbackExecution::FindActorGridCoord(const ABattleGridManager* GridManag
 		return false;
 	}
 
-	for (int32 X = 0; X < GridManager->GridWidth; ++X)
+	for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
 	{
-		for (int32 Y = 0; Y < GridManager->GridHeight; ++Y)
+		for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
 		{
 			const FHexOffsetCoord Coord(X, Y);
 			const FBattleGridCell* Cell = GridManager->GetCell(Coord);
@@ -149,7 +150,7 @@ bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridM
 
 	for (int32 DirectionIndex = 0; DirectionIndex < 6; ++DirectionIndex)
 	{
-		const FHexCubeCoord CubeDirection = GridManager->GetCubeDirection(DirectionIndex);
+		const FHexCubeCoord CubeDirection = FHexGridMath::GetCubeDirection(DirectionIndex);
 		const FHexOffsetCoord NeighborCoord = GetNextCoord(GridManager, TargetCoord, CubeDirection);
 		FVector NeighborDirection = GridManager->HexGridToWorld(NeighborCoord) - TargetLocation;
 		NeighborDirection.Z = 0.0f;
@@ -174,10 +175,10 @@ bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridM
 
 FHexOffsetCoord UKnockbackExecution::GetNextCoord(const ABattleGridManager* GridManager, const FHexOffsetCoord& CurrentCoord, const FHexCubeCoord& Direction) const
 {
-	const FHexCubeCoord CurrentCube = GridManager->OffsetToCube(CurrentCoord);
+	const FHexCubeCoord CurrentCube = FHexGridMath::OffsetToCube(CurrentCoord);
 	const FHexCubeCoord NextCube(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
 
-	return GridManager->CubeToOffset(NextCube);
+	return FHexGridMath::CubeToOffset(NextCube);
 }
 
 void UKnockbackExecution::HandleMovementFinished(bool bInterrupted)

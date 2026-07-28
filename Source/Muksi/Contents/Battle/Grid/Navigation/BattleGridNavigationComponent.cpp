@@ -106,8 +106,8 @@ float UBattleGridNavigationComponent::CalculateHexDistance(const FHexOffsetCoord
 		return 0.0f;
 	}
 
-	const FHexCubeCoord CubeA = GridManager->OffsetToCube(A);
-	const FHexCubeCoord CubeB = GridManager->OffsetToCube(B);
+	const FHexCubeCoord CubeA = FHexGridMath::OffsetToCube(A);
+	const FHexCubeCoord CubeB = FHexGridMath::OffsetToCube(B);
 	const int32 Distance = FMath::Max3(FMath::Abs(CubeA.X - CubeB.X), FMath::Abs(CubeA.Y - CubeB.Y), FMath::Abs(CubeA.Z - CubeB.Z));
 
 	return static_cast<float>(Distance);

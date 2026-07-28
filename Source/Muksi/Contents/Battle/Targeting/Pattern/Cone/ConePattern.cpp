@@ -37,9 +37,9 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 		AddAffectedCoord(InOutResult, OriginCoord);
 	}
 
-	for (int32 X = 0; X < Context.GridManager->GridWidth; ++X)
+	for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
 	{
-		for (int32 Y = 0; Y < Context.GridManager->GridHeight; ++Y)
+		for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
 		{
 			const FHexOffsetCoord CandidateCoord(X, Y);
 
@@ -48,7 +48,7 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 				continue;
 			}
 
-			if (!Context.GridManager->IsValidCoord(CandidateCoord))
+			if (!CandidateCoord.IsValid())
 			{
 				continue;
 			}

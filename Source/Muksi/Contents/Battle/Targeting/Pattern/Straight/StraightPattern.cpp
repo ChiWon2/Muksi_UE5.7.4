@@ -16,14 +16,14 @@ void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FI
 		return;
 	}
 
-	const FHexCubeCoord Direction = Context.GridManager->GetCubeDirection(StepContext->Direction);
-	FHexCubeCoord CurrentCube = Context.GridManager->OffsetToCube(StepContext->OriginCoord);
+	const FHexCubeCoord Direction = FHexGridMath::GetCubeDirection(StepContext->Direction);
+	FHexCubeCoord CurrentCube = FHexGridMath::OffsetToCube(StepContext->OriginCoord);
 
 	for (int32 Distance = 1; Distance <= StraightData->Range; ++Distance)
 	{
 		CurrentCube = FHexCubeCoord(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
 
-		const FHexOffsetCoord CurrentCoord = Context.GridManager->CubeToOffset(CurrentCube);
+		const FHexOffsetCoord CurrentCoord = FHexGridMath::CubeToOffset(CurrentCube);
 
 		if (!Context.GridManager->IsValidCoord(CurrentCoord))
 		{

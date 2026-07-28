@@ -20,9 +20,9 @@ void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FIns
 
 	const int32 SafeSelectionRange = FMath::Max(0, Data->SelectionRange);
 
-	for (int32 Y = 0; Y < Context.GridManager->GridHeight; ++Y)
+	for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
 	{
-		for (int32 X = 0; X < Context.GridManager->GridWidth; ++X)
+		for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
 		{
 			const FHexOffsetCoord CandidateCoord(X, Y);
 

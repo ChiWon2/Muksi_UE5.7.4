@@ -1,13 +1,9 @@
 #pragma once
-
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
-#include "Muksi/Contents/Battle/Grid/Presentation/BattleGridIndicatorType.h"
 #include "BattleGridIndicatorComponent.generated.h"
-
 class ABattleGridManager;
-
 UCLASS(ClassGroup=(Battle), meta=(BlueprintSpawnableComponent))
 class MUKSI_API UBattleGridIndicatorComponent : public UActorComponent
 {
@@ -15,11 +11,12 @@ class MUKSI_API UBattleGridIndicatorComponent : public UActorComponent
 public:
 	UBattleGridIndicatorComponent();
 	void Initialize(ABattleGridManager* InGridManager);
-	void Show(EBattleGridIndicatorType Type, const TArray<FHexOffsetCoord>& Coords);
-	void Clear(EBattleGridIndicatorType Type);
-	void ClearAll();
+	void SetHovered(const TArray<FHexOffsetCoord>& Coords);
+	void ClearHovered();
+	void ClearAllHovered();
+	void SetExchange(int32 AttackType, const TArray<FHexOffsetCoord>& Coords);
+	void ClearExchange();
 private:
-	UPROPERTY(Transient) 
-	TObjectPtr<ABattleGridManager> GridManager;
-	TMap<EBattleGridIndicatorType, TArray<FHexOffsetCoord>> ActiveCoords;
+	ABattleGridManager* ResolveGridManager();
+	UPROPERTY(Transient) TObjectPtr<ABattleGridManager> GridManager;
 };

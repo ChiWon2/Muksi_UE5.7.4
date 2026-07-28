@@ -18,17 +18,10 @@ class MUKSI_API ABattleGridTile : public AActor, public ISelectGridInterface
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	ABattleGridTile();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	
 	
 public:
 	UFUNCTION()
@@ -57,8 +50,6 @@ public:
 	void OnHoverBegin();
 	UFUNCTION()
 	void OnHoverEnd();
-
-	
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -66,7 +57,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UArrowComponent> CenterPointComponent;
-	
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
@@ -94,10 +84,6 @@ protected:
 	
 	UPROPERTY()
 	ABattleGridManager* GridManager;
-	
-	
-	
-	
 public:
 	virtual void OnGridSelected_Implementation() override;
 

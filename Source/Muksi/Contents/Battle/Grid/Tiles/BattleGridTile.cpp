@@ -5,10 +5,8 @@
 
 #include "Components/ArrowComponent.h"
 
-// Sets default values
 ABattleGridTile::ABattleGridTile()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
@@ -35,18 +33,10 @@ ABattleGridTile::ABattleGridTile()
 	TargetIndicatorMesh->SetupAttachment(SceneRoot);
 }
 
-// Called when the game starts or when spawned
 void ABattleGridTile::BeginPlay()
 {
 	Super::BeginPlay();
 	
-}
-
-// Called every frame
-void ABattleGridTile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
 void ABattleGridTile::SetTargetIndicatorVisible(bool bVisible)
@@ -81,10 +71,6 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 
 void ABattleGridTile::SetExchangeIndicator(int32 IndicatorType)
 {
-	//Include하기 귀찮아서 int로 받음
-	//0 - 공격(범위)
-	//1 - 이동
-	//2 - 방어
 	ExchangeIndicatorMesh->SetVisibility(true);
 	
 	if (!AttackableIndicatorMaterial && !MoveIndicatorMaterial && !BlockedIndicatorMaterial){UE_LOG(LogTemp, Error, TEXT("IndicatorMaterior is null (BattleGridTile.cpp)")); return;}
@@ -122,15 +108,11 @@ void ABattleGridTile::OnHoverEnd()
 	
 }
 
-
 void ABattleGridTile::OnGridSelected_Implementation()
 {
 	ISelectGridInterface::OnGridSelected_Implementation();
 	
-	UE_LOG(LogTemp, Log, TEXT("Clicked Grid Coord - X: %d, Y: %d"),
-		GridCoord.X,
-		GridCoord.Y
-	);
+	UE_LOG(LogTemp, Log, TEXT("[ABattleGridTile]Clicked Grid Coord - Q: %d, R: %d"), GridCoord.X, GridCoord.Y);
 }
 
 

@@ -38,7 +38,7 @@ public:
 	bool IsSimulationRunning() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	bool StartSimulation(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
+	bool StartSimulation(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
 	bool SetPlayerAction(const FBattleAction& PlayerAction);
@@ -53,7 +53,7 @@ public:
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
-	ABattleGridManager* GetSimulationGridManager() const { return SimulationGridManager; }
+	ABattleGridManager* GetSimulationGridManager() const { return SourceGridManager; }
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
@@ -102,7 +102,7 @@ protected:
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleGridManager> SimulationGridManager = nullptr;
+	TObjectPtr<ABattleGridManager> SourceGridManager = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSequenceManager> SimulationSequenceManager = nullptr;

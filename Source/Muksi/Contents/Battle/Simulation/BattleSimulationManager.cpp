@@ -27,12 +27,15 @@ bool ABattleSimulationManager::IsSimulationRunning() const
 	return SimulationState != EBattleSimulationState::Idle && SimulationState != EBattleSimulationState::Completed;
 }
 
-bool ABattleSimulationManager::StartSimulation(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+bool ABattleSimulationManager::StartSimulation(
+	ABattleGridManager* InSourceGridManager,
+	const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
 	ResetSimulationRuntime();
 	SetSimulationState(EBattleSimulationState::Starting);
 
-	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(SourceGridManager))
+	if (!CreateSimulationCharacters(SourceCharacters)
+		|| !CreateSimulationExecutionEnvironment(InSourceGridManager))
 	{
 		ResetSimulationRuntime();
 		return false;
@@ -41,7 +44,9 @@ bool ABattleSimulationManager::StartSimulation(ABattleGridManager* SourceGridMan
 	HideSourceCharacters();
 
 	CurrentExchange.Reset(0);
-	SetSimulationState(EBattleSimulationState::WaitingForPlayerTargeting);
+	SetSimulationState(
+		EBattleSimulationState::WaitingForPlayerTargeting);
+
 	return true;
 }
 
@@ -164,51 +169,36 @@ bool ABattleSimulationManager::CreateSimulationCharacters(const TArray<ABattleCh
 	return SimulationCharacterMap.Num() == SourceCharacters.Num();
 }
 
-bool ABattleSimulationManager::CreateSimulationExecutionEnvironment(ABattleGridManager* SourceGridManager)
+bool ABattleSimulationManager::CreateSimulationExecutionEnvironment(ABattleGridManager* InSourceGridManager)
 {
 	UWorld* World = GetWorld();
+	if (!World || !IsValid(InSourceGridManager)) return false;
 
-	if (!World || !IsValid(SourceGridManager))
-	{
-		return false;
-	}
-
-	const FTransform GridTransform = SourceGridManager->GetActorTransform();
-	SimulationGridManager = World->SpawnActorDeferred<ABattleGridManager>(ABattleGridManager::StaticClass(), GridTransform, this);
-
-	if (!SimulationGridManager)
-	{
-		return false;
-	}
-
-	SimulationGridManager->SetRuntimeClone(true);
-	UGameplayStatics::FinishSpawningActor(SimulationGridManager, GridTransform);
-
-	if (!SimulationGridManager->InitializeRuntimeClone(SourceGridManager))
-	{
-		return false;
-	}
+	SourceGridManager = InSourceGridManager;
+	SourceGridManager->BeginSimulationRuntime();
 
 	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
 	{
-		if (!SimulationGridManager->ReplaceOccupyingActor(Pair.Key.Get(), Pair.Value.Get()))
+		if (!SourceGridManager->ReplaceSimulationActor(Pair.Key.Get(), Pair.Value.Get()))
 		{
+			SourceGridManager->EndSimulationRuntime();
+			SourceGridManager = nullptr;
 			return false;
 		}
 	}
 
 	SimulationSequenceManager = World->SpawnActorDeferred<ABattleSequenceManager>(ABattleSequenceManager::StaticClass(), FTransform::Identity, this);
-
 	if (!SimulationSequenceManager)
 	{
+		SourceGridManager->EndSimulationRuntime();
+		SourceGridManager = nullptr;
 		return false;
 	}
 
 	SimulationSequenceManager->SetWorldManagerRegistrationEnabled(false);
 	UGameplayStatics::FinishSpawningActor(SimulationSequenceManager, FTransform::Identity);
-	SimulationSequenceManager->BattleGridManager = SimulationGridManager;
+	SimulationSequenceManager->BattleGridManager = SourceGridManager;
 	SimulationSequenceManager->OnSequenceFinished.AddUObject(this, &ABattleSimulationManager::HandleSimulationSequenceFinished);
-
 	return true;
 }
 
@@ -427,10 +417,10 @@ void ABattleSimulationManager::DestroySimulationRuntime()
 		SimulationSequenceManager = nullptr;
 	}
 
-	if (SimulationGridManager)
+	if (SourceGridManager)
 	{
-		SimulationGridManager->Destroy();
-		SimulationGridManager = nullptr;
+		SourceGridManager->EndSimulationRuntime();
+		SourceGridManager = nullptr;
 	}
 
 	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
