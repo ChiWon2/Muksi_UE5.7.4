@@ -24,7 +24,7 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 
 	AimDirection.Z = 0.0f;
 
-	if (!Context.GridManager->IsValidGridCoord(OriginCoord) || AimDirection.IsNearlyZero())
+	if (!Context.GridManager->IsValidCoord(OriginCoord) || AimDirection.IsNearlyZero())
 	{
 		return;
 	}
@@ -48,7 +48,7 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 				continue;
 			}
 
-			if (!Context.GridManager->IsValidGridCoord(CandidateCoord))
+			if (!Context.GridManager->IsValidCoord(CandidateCoord))
 			{
 				continue;
 			}

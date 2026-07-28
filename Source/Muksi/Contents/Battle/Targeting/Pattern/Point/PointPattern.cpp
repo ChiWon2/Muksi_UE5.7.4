@@ -14,7 +14,7 @@ void UPointPattern::ApplyPattern(const FAreaPatternContext& Context, const FInst
 		return;
 	}
 
-	if (!Context.GridManager->IsValidGridCoord(StepContext->SelectedCoord))
+	if (!Context.GridManager->IsValidCoord(StepContext->SelectedCoord))
 	{
 		return;
 	}

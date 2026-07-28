@@ -289,7 +289,7 @@ bool UBattleTargetingManager::ResolveGridWorldLocation(const FIntPoint& Coord, F
 		return false;
 	}
 
-	if (!GridManager->IsValidGridCoord(Coord))
+	if (!GridManager->IsValidCoord(Coord))
 	{
 		return false;
 	}

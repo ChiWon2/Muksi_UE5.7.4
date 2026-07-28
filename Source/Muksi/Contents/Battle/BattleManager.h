@@ -150,9 +150,6 @@ public:
 	TObjectPtr<UMuksiBattleCardDataAsset> AttackBattleCardDataAsset = nullptr;
 	
 protected:
-	bool CanStartBattle() const;
-	void StartBattleInternal();
-	void StartBattleReady();
 	void CreateCharacter();
 
 	//월드 레벨 오브젝트 관리

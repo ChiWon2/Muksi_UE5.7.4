@@ -32,7 +32,7 @@ TArray<FIntPoint> UMuksiCardRangeDataAsset::GetRangeCoords(const ABattleGridMana
 
 		const FIntPoint CurrentCoord = GridManager->CubeToOddQ(CurrentCube);
 
-		if (!GridManager->IsValidGridCoord(CurrentCoord))
+		if (!GridManager->IsValidCoord(CurrentCoord))
 		{
 			break;
 		}
@@ -70,7 +70,7 @@ TArray<FIntPoint> UMuksiCardRangeDataAsset::GetLineRangeCoords(const ABattleGrid
 
 		const FIntPoint CurrentCoord = GridManager->CubeToOddQ(CurrentCube);
 
-		if (!GridManager->IsValidGridCoord(CurrentCoord))
+		if (!GridManager->IsValidCoord(CurrentCoord))
 		{
 			break;
 		}
@@ -111,7 +111,7 @@ TArray<FIntPoint> UMuksiCardRangeDataAsset::GetAroundRangeCoords(const ABattleGr
 
 			const FIntPoint CurrentCoord = GridManager->CubeToOddQ(CurrentCube);
 
-			if (!GridManager->IsValidGridCoord(CurrentCoord))
+			if (!GridManager->IsValidCoord(CurrentCoord))
 			{
 				continue;
 			}
@@ -164,7 +164,7 @@ TArray<FIntPoint> UMuksiCardRangeDataAsset::GetCustomPatternRangeCoords(const AB
 
 		const FIntPoint FinalCoord = GridManager->CubeToOddQ(FinalCube);
 
-		if (!GridManager->IsValidGridCoord(FinalCoord))
+		if (!GridManager->IsValidCoord(FinalCoord))
 		{
 			continue;
 		}

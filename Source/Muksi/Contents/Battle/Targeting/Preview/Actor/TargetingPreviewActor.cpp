@@ -231,7 +231,7 @@ void ATargetingPreviewActor::AddGridCoords(TSet<FIntPoint>& InOutCoords, const T
 {
 	for (const FIntPoint& Coord : InCoords)
 	{
-		if (IsValid(GridManager) && GridManager->IsValidGridCoord(Coord))
+		if (IsValid(GridManager) && GridManager->IsValidCoord(Coord))
 		{
 			InOutCoords.Add(Coord);
 		}

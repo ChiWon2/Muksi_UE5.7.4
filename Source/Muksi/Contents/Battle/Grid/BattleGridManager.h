@@ -42,7 +42,7 @@ class MUKSI_API ABattleGridManager : public AActor
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
+
 	ABattleGridManager();
 	void SetRuntimeClone(bool bInRuntimeClone) { bRuntimeClone = bInRuntimeClone; }
 	bool InitializeRuntimeClone(const ABattleGridManager* SourceGridManager);
@@ -50,16 +50,11 @@ public:
 protected:
 	UPROPERTY(Transient)
 	bool bRuntimeClone = false;
-	// Called when the game starts or when spawned
+
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	//HexGrid System Test
 public:
 	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
 	FCubeCoord OddQToCube(const FIntPoint& Coord) const;
@@ -77,7 +72,7 @@ public:
 	FCubeCoord RotateCubeLeft60(const FCubeCoord& Cube) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid")
-	bool IsValidGridCoord(const FIntPoint& Coord) const;
+	bool IsValidCoord(const FIntPoint& Coord) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid")
 	ABattleGridTile* GetTileByCoord(const FIntPoint& Coord) const;
@@ -118,16 +113,13 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Character")
-	void MoveCharacter(ABattleCharacterBase* CharacterBase, FIntPoint InPoint);
+	void MoveCharacter(ABattleCharacterBase* CharacterBase, const FIntPoint& InPoint);
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Battle|Grid")
 	void GenerateGrid();
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Battle|Grid")
 	void ClearGrid();
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
-	bool IsValidCoord(const FIntPoint& Coord) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
 	int32 CoordToIndex(const FIntPoint& Coord) const;
@@ -168,10 +160,10 @@ protected:
 
 public:
 	UFUNCTION()
-	FTransform GetTransformToPosition(FIntPoint InPosition);
+	FTransform GetTransformToPosition(const FIntPoint& InPosition);
 
 	UFUNCTION()
-	bool CheckGridInRange(FIntPoint A, FIntPoint B, int32 Range);
+	bool CheckGridInRange(const FIntPoint& A, const FIntPoint& B, int32 Range);
 
 	//카드 효과 관련 public
 public:
@@ -179,15 +171,11 @@ public:
 	UPROPERTY()
 	TArray<FIntPoint> TargetGridArray;
 
-	void SetGridHovered(TArray<FIntPoint> NewGridArray);
+	void SetGridHovered(const TArray<FIntPoint>& NewGridArray);
 	void ClearGridHovered();
 	void AllClearGridHovered();
-	void SetExchangeIndicator(int32 AttackType, TArray<FIntPoint> GridArray);
+	void SetExchangeIndicator(int32 AttackType, const TArray<FIntPoint>& GridArray);
 	void AllClearExchangeIndicator();
-	//
-
-	//카드 효과 실행 관련
-	void RushPosition(ABattleCharacterBase* BattleCharacter, FIntPoint TargetPoint);
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Navigation")

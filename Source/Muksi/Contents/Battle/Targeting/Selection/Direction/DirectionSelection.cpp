@@ -71,7 +71,7 @@ int32 UDirectionSelection::ResolveHexDirection(const FTargetSelectionContext& Co
 	{
 		const FIntPoint NeighborCoord = FHexGridMath::GetNeighborCoord(Context.OriginCoord, DirectionIndex);
 
-		if (!Context.GridManager->IsValidGridCoord(NeighborCoord))
+		if (!Context.GridManager->IsValidCoord(NeighborCoord))
 		{
 			continue;
 		}

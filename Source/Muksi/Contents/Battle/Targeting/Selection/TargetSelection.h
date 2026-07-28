@@ -42,7 +42,7 @@ protected:
 		{ \
 			return; \
 		} \
-		if (!(Context).GridManager->IsValidGridCoord((Context).OriginCoord)) \
+		if (!(Context).GridManager->IsValidCoord((Context).OriginCoord)) \
 		{ \
 			return; \
 		} \
@@ -60,7 +60,7 @@ protected:
 		{ \
 			return; \
 		} \
-		if (!(Context).GridManager->IsValidGridCoord((Context).InputContext.HoveredCoord)) \
+		if (!(Context).GridManager->IsValidCoord((Context).InputContext.HoveredCoord)) \
 		{ \
 			return; \
 		} \
