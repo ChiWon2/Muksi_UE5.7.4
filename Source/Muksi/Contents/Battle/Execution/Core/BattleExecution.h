@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "BattleExecution.generated.h"
 

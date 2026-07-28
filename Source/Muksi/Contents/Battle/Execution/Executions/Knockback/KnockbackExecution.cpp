@@ -11,8 +11,8 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 	CachedOnFinished = MoveTemp(OnFinished);
 	CachedGridManager = Context.BattleGridManager;
 	KnockbackTarget = Context.ExecutionTarget;
-	StartCoord = FIntPoint::ZeroValue;
-	DestinationCoord = FIntPoint::ZeroValue;
+	StartCoord = FHexOffsetCoord();
+	DestinationCoord = FHexOffsetCoord();
 
 	const FKnockbackExecutionData* KnockbackData = Context.GetExecutionData<FKnockbackExecutionData>();
 
@@ -31,7 +31,7 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 		return;
 	}
 
-	FIntPoint AttackerCoord = FIntPoint::ZeroValue;
+	FHexOffsetCoord AttackerCoord = FHexOffsetCoord();
 
 	if (!FindActorGridCoord(CachedGridManager, Context.Attacker, AttackerCoord) || !FindActorGridCoord(CachedGridManager, KnockbackTarget, StartCoord))
 	{
@@ -39,7 +39,7 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 		return;
 	}
 
-	FCubeCoord KnockbackDirection;
+	FHexCubeCoord KnockbackDirection;
 
 	if (!FindKnockbackDirection(CachedGridManager, AttackerCoord, StartCoord, KnockbackDirection))
 	{
@@ -47,12 +47,12 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 		return;
 	}
 
-	TArray<FIntPoint> KnockbackPath;
-	FIntPoint CurrentCoord = StartCoord;
+	TArray<FHexOffsetCoord> KnockbackPath;
+	FHexOffsetCoord CurrentCoord = StartCoord;
 
 	for (int32 Step = 0; Step < KnockbackData->Range; ++Step)
 	{
-		const FIntPoint NextCoord = GetNextCoord(CachedGridManager, CurrentCoord, KnockbackDirection);
+		const FHexOffsetCoord NextCoord = GetNextCoord(CachedGridManager, CurrentCoord, KnockbackDirection);
 
 		if (!CachedGridManager->IsValidCoord(NextCoord))
 		{
@@ -102,7 +102,7 @@ const UScriptStruct* UKnockbackExecution::GetExecutionDataStruct() const
 	return FKnockbackExecutionData::StaticStruct();
 }
 
-bool UKnockbackExecution::FindActorGridCoord(const ABattleGridManager* GridManager, const AActor* Actor, FIntPoint& OutCoord) const
+bool UKnockbackExecution::FindActorGridCoord(const ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord) const
 {
 	if (!GridManager || !Actor)
 	{
@@ -113,7 +113,7 @@ bool UKnockbackExecution::FindActorGridCoord(const ABattleGridManager* GridManag
 	{
 		for (int32 Y = 0; Y < GridManager->GridHeight; ++Y)
 		{
-			const FIntPoint Coord(X, Y);
+			const FHexOffsetCoord Coord(X, Y);
 			const FBattleGridCell* Cell = GridManager->GetCell(Coord);
 
 			if (Cell && Cell->OccupyingActor == Actor)
@@ -127,7 +127,7 @@ bool UKnockbackExecution::FindActorGridCoord(const ABattleGridManager* GridManag
 	return false;
 }
 
-bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridManager, const FIntPoint& AttackerCoord, const FIntPoint& TargetCoord, FCubeCoord& OutDirection) const
+bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridManager, const FHexOffsetCoord& AttackerCoord, const FHexOffsetCoord& TargetCoord, FHexCubeCoord& OutDirection) const
 {
 	if (!GridManager || AttackerCoord == TargetCoord)
 	{
@@ -149,8 +149,8 @@ bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridM
 
 	for (int32 DirectionIndex = 0; DirectionIndex < 6; ++DirectionIndex)
 	{
-		const FCubeCoord CubeDirection = GridManager->GetCubeDirection(DirectionIndex);
-		const FIntPoint NeighborCoord = GetNextCoord(GridManager, TargetCoord, CubeDirection);
+		const FHexCubeCoord CubeDirection = GridManager->GetCubeDirection(DirectionIndex);
+		const FHexOffsetCoord NeighborCoord = GetNextCoord(GridManager, TargetCoord, CubeDirection);
 		FVector NeighborDirection = GridManager->HexGridToWorld(NeighborCoord) - TargetLocation;
 		NeighborDirection.Z = 0.0f;
 
@@ -172,12 +172,12 @@ bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridM
 	return bFoundDirection;
 }
 
-FIntPoint UKnockbackExecution::GetNextCoord(const ABattleGridManager* GridManager, const FIntPoint& CurrentCoord, const FCubeCoord& Direction) const
+FHexOffsetCoord UKnockbackExecution::GetNextCoord(const ABattleGridManager* GridManager, const FHexOffsetCoord& CurrentCoord, const FHexCubeCoord& Direction) const
 {
-	const FCubeCoord CurrentCube = GridManager->OddQToCube(CurrentCoord);
-	const FCubeCoord NextCube(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
+	const FHexCubeCoord CurrentCube = GridManager->OffsetToCube(CurrentCoord);
+	const FHexCubeCoord NextCube(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
 
-	return GridManager->CubeToOddQ(NextCube);
+	return GridManager->CubeToOffset(NextCube);
 }
 
 void UKnockbackExecution::HandleMovementFinished(bool bInterrupted)
@@ -209,8 +209,8 @@ void UKnockbackExecution::CompleteExecution()
 
 	CachedGridManager = nullptr;
 	KnockbackTarget = nullptr;
-	StartCoord = FIntPoint::ZeroValue;
-	DestinationCoord = FIntPoint::ZeroValue;
+	StartCoord = FHexOffsetCoord();
+	DestinationCoord = FHexOffsetCoord();
 
 	FinishExecution(CachedOnFinished);
 }

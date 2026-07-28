@@ -30,7 +30,7 @@ void UBattleGridNavigationComponent::CacheGridManager()
 	}
 }
 
-bool UBattleGridNavigationComponent::IsCellAvailable(const FIntPoint& Coord, const AActor* IgnoredActor) const
+bool UBattleGridNavigationComponent::IsCellAvailable(const FHexOffsetCoord& Coord, const AActor* IgnoredActor) const
 {
 	if (!GridManager)
 	{
@@ -67,7 +67,7 @@ bool UBattleGridNavigationComponent::IsCellAvailable(const FIntPoint& Coord, con
 	return false;
 }
 
-float UBattleGridNavigationComponent::GetCellMovementCost(const FIntPoint& Coord) const
+float UBattleGridNavigationComponent::GetCellMovementCost(const FHexOffsetCoord& Coord) const
 {
 	if (!GridManager)
 	{
@@ -99,21 +99,21 @@ float UBattleGridNavigationComponent::GetCellMovementCost(const FIntPoint& Coord
 	return FMath::Max(MinimumMovementCost, DefaultMovementCost);
 }
 
-float UBattleGridNavigationComponent::CalculateHexDistance(const FIntPoint& A, const FIntPoint& B) const
+float UBattleGridNavigationComponent::CalculateHexDistance(const FHexOffsetCoord& A, const FHexOffsetCoord& B) const
 {
 	if (!GridManager)
 	{
 		return 0.0f;
 	}
 
-	const FCubeCoord CubeA = GridManager->OddQToCube(A);
-	const FCubeCoord CubeB = GridManager->OddQToCube(B);
+	const FHexCubeCoord CubeA = GridManager->OffsetToCube(A);
+	const FHexCubeCoord CubeB = GridManager->OffsetToCube(B);
 	const int32 Distance = FMath::Max3(FMath::Abs(CubeA.X - CubeB.X), FMath::Abs(CubeA.Y - CubeB.Y), FMath::Abs(CubeA.Z - CubeB.Z));
 
 	return static_cast<float>(Distance);
 }
 
-bool UBattleGridNavigationComponent::FindGroundPath(const FIntPoint& StartCoord, const FIntPoint& DestinationCoord, TArray<FIntPoint>& OutPath, const AActor* MovingActor) const
+bool UBattleGridNavigationComponent::FindGroundPath(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, TArray<FHexOffsetCoord>& OutPath, const AActor* MovingActor) const
 {
 	OutPath.Empty();
 
@@ -146,11 +146,11 @@ bool UBattleGridNavigationComponent::FindGroundPath(const FIntPoint& StartCoord,
 		return false;
 	}
 
-	TArray<FIntPoint> OpenSet;
-	TSet<FIntPoint> ClosedSet;
-	TMap<FIntPoint, FIntPoint> CameFrom;
-	TMap<FIntPoint, float> GScore;
-	TMap<FIntPoint, float> FScore;
+	TArray<FHexOffsetCoord> OpenSet;
+	TSet<FHexOffsetCoord> ClosedSet;
+	TMap<FHexOffsetCoord, FHexOffsetCoord> CameFrom;
+	TMap<FHexOffsetCoord, float> GScore;
+	TMap<FHexOffsetCoord, float> FScore;
 
 	OpenSet.Add(StartCoord);
 	GScore.Add(StartCoord, 0.0f);
@@ -161,7 +161,7 @@ bool UBattleGridNavigationComponent::FindGroundPath(const FIntPoint& StartCoord,
 
 	while (!OpenSet.IsEmpty())
 	{
-		FIntPoint CurrentCoord;
+		FHexOffsetCoord CurrentCoord;
 
 		if (!FindLowestScoreCoord(OpenSet, FScore, CurrentCoord))
 		{
@@ -184,9 +184,9 @@ bool UBattleGridNavigationComponent::FindGroundPath(const FIntPoint& StartCoord,
 		ClosedSet.Add(CurrentCoord);
 
 		const float CurrentGScore = GScore.Contains(CurrentCoord) ? GScore[CurrentCoord] : TNumericLimits<float>::Max();
-		const TArray<FIntPoint> Neighbors = GridManager->GetHexNeighbors(CurrentCoord);
+		const TArray<FHexOffsetCoord> Neighbors = GridManager->GetHexNeighbors(CurrentCoord);
 
-		for (const FIntPoint& NeighborCoord : Neighbors)
+		for (const FHexOffsetCoord& NeighborCoord : Neighbors)
 		{
 			if (ClosedSet.Contains(NeighborCoord))
 			{
@@ -232,7 +232,7 @@ bool UBattleGridNavigationComponent::FindGroundPath(const FIntPoint& StartCoord,
 	return false;
 }
 
-bool UBattleGridNavigationComponent::FindLowestScoreCoord(const TArray<FIntPoint>& OpenSet, const TMap<FIntPoint, float>& FScore, FIntPoint& OutCoord) const
+bool UBattleGridNavigationComponent::FindLowestScoreCoord(const TArray<FHexOffsetCoord>& OpenSet, const TMap<FHexOffsetCoord, float>& FScore, FHexOffsetCoord& OutCoord) const
 {
 	if (OpenSet.IsEmpty())
 	{
@@ -242,7 +242,7 @@ bool UBattleGridNavigationComponent::FindLowestScoreCoord(const TArray<FIntPoint
 	bool bFound = false;
 	float LowestScore = TNumericLimits<float>::Max();
 
-	for (const FIntPoint& Coord : OpenSet)
+	for (const FHexOffsetCoord& Coord : OpenSet)
 	{
 		const float Score = FScore.Contains(Coord) ? FScore[Coord] : TNumericLimits<float>::Max();
 
@@ -257,7 +257,7 @@ bool UBattleGridNavigationComponent::FindLowestScoreCoord(const TArray<FIntPoint
 	return bFound;
 }
 
-bool UBattleGridNavigationComponent::ReconstructPath(const FIntPoint& StartCoord, const FIntPoint& DestinationCoord, const TMap<FIntPoint, FIntPoint>& CameFrom, TArray<FIntPoint>& OutPath) const
+bool UBattleGridNavigationComponent::ReconstructPath(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, const TMap<FHexOffsetCoord, FHexOffsetCoord>& CameFrom, TArray<FHexOffsetCoord>& OutPath) const
 {
 	OutPath.Empty();
 
@@ -266,13 +266,13 @@ bool UBattleGridNavigationComponent::ReconstructPath(const FIntPoint& StartCoord
 		return true;
 	}
 
-	FIntPoint CurrentCoord = DestinationCoord;
+	FHexOffsetCoord CurrentCoord = DestinationCoord;
 
 	while (CurrentCoord != StartCoord)
 	{
 		OutPath.Add(CurrentCoord);
 
-		const FIntPoint* PreviousCoord = CameFrom.Find(CurrentCoord);
+		const FHexOffsetCoord* PreviousCoord = CameFrom.Find(CurrentCoord);
 
 		if (!PreviousCoord)
 		{
@@ -289,7 +289,7 @@ bool UBattleGridNavigationComponent::ReconstructPath(const FIntPoint& StartCoord
 	return true;
 }
 
-bool UBattleGridNavigationComponent::ConvertGridPathToWorldPath(const TArray<FIntPoint>& GridPath, TArray<FVector>& OutWorldPath) const
+bool UBattleGridNavigationComponent::ConvertGridPathToWorldPath(const TArray<FHexOffsetCoord>& GridPath, TArray<FVector>& OutWorldPath) const
 {
 	OutWorldPath.Empty();
 
@@ -312,7 +312,7 @@ bool UBattleGridNavigationComponent::ConvertGridPathToWorldPath(const TArray<FIn
 
 	OutWorldPath.Reserve(GridPath.Num());
 
-	for (const FIntPoint& GridCoord : GridPath)
+	for (const FHexOffsetCoord& GridCoord : GridPath)
 	{
 		FVector WorldLocation = FVector::ZeroVector;
 
@@ -329,7 +329,7 @@ bool UBattleGridNavigationComponent::ConvertGridPathToWorldPath(const TArray<FIn
 	return true;
 }
 
-bool UBattleGridNavigationComponent::GetGridWorldLocation(const FIntPoint& Coord, FVector& OutWorldLocation) const
+bool UBattleGridNavigationComponent::GetGridWorldLocation(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const
 {
 	OutWorldLocation = FVector::ZeroVector;
 

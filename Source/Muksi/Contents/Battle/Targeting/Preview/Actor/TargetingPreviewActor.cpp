@@ -67,19 +67,19 @@ void ATargetingPreviewActor::Initialize(ABattleGridManager* InGridManager)
 	ClearAllPreview();
 }
 
-void ATargetingPreviewActor::SetSelectionGridCoords(const TArray<FIntPoint>& InCoords)
+void ATargetingPreviewActor::SetSelectionGridCoords(const TArray<FHexOffsetCoord>& InCoords)
 {
 	SelectionGridCoords = InCoords;
 	RebuildGridPreview();
 }
 
-void ATargetingPreviewActor::SetPathGridCoords(const TArray<FIntPoint>& InCoords)
+void ATargetingPreviewActor::SetPathGridCoords(const TArray<FHexOffsetCoord>& InCoords)
 {
 	PathGridCoords = InCoords;
 	RebuildGridPreview();
 }
 
-void ATargetingPreviewActor::SetAreaGridCoords(const TArray<FIntPoint>& InCoords)
+void ATargetingPreviewActor::SetAreaGridCoords(const TArray<FHexOffsetCoord>& InCoords)
 {
 	AreaGridCoords = InCoords;
 	RebuildGridPreview();
@@ -196,7 +196,7 @@ void ATargetingPreviewActor::RebuildGridPreview()
 		return;
 	}
 
-	TSet<FIntPoint> PreviewCoords;
+	TSet<FHexOffsetCoord> PreviewCoords;
 	AddGridCoords(PreviewCoords, SelectionGridCoords);
 
 	if (GridPreviewMode == ETargetingGridPreviewMode::PathTiles || GridPreviewMode == ETargetingGridPreviewMode::AffectedAndPathTiles)
@@ -209,7 +209,7 @@ void ATargetingPreviewActor::RebuildGridPreview()
 		AddGridCoords(PreviewCoords, AreaGridCoords);
 	}
 
-	for (const FIntPoint& Coord : PreviewCoords)
+	for (const FHexOffsetCoord& Coord : PreviewCoords)
 	{
 		const FBattleGridCell* Cell = GridManager->GetCell(Coord);
 
@@ -227,9 +227,9 @@ void ATargetingPreviewActor::RebuildGridPreview()
 	GridPreviewMesh->SetVisibility(GridPreviewMesh->GetInstanceCount() > 0);
 }
 
-void ATargetingPreviewActor::AddGridCoords(TSet<FIntPoint>& InOutCoords, const TArray<FIntPoint>& InCoords) const
+void ATargetingPreviewActor::AddGridCoords(TSet<FHexOffsetCoord>& InOutCoords, const TArray<FHexOffsetCoord>& InCoords) const
 {
-	for (const FIntPoint& Coord : InCoords)
+	for (const FHexOffsetCoord& Coord : InCoords)
 	{
 		if (IsValid(GridManager) && GridManager->IsValidCoord(Coord))
 		{

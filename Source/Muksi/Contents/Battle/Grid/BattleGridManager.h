@@ -3,38 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "GameFramework/Actor.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridCoord.h"
+#include "Muksi/Contents/Battle/Grid/Core/BattleGridCell.h"
+#include "Muksi/Contents/Battle/Hex/HexCubeCoord.h"
 #include "BattleGridManager.generated.h"
 
 class ABattleGridTile;
 class ABattleCharacterBase;
 class UBattleGridNavigationComponent;
-
-USTRUCT(BlueprintType)
-struct FBattleGridCell
-{
-	GENERATED_BODY()
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
-	FIntPoint GridCoord = FIntPoint::ZeroValue;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
-	FVector WorldLocation = FVector::ZeroVector;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
-	bool bWalkable = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
-	bool bOccupied = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
-	TObjectPtr<AActor> OccupyingActor = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Grid")
-	TObjectPtr<ABattleGridTile> TileActor = nullptr;
-};
 
 UCLASS()
 class MUKSI_API ABattleGridManager : public AActor
@@ -57,25 +34,25 @@ protected:
 
 public:
 	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
-	FCubeCoord OddQToCube(const FIntPoint& Coord) const;
+	FHexCubeCoord OffsetToCube(const FHexOffsetCoord& Coord) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
-	FIntPoint CubeToOddQ(const FCubeCoord& Cube) const;
+	FHexOffsetCoord CubeToOffset(const FHexCubeCoord& Cube) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
-	FCubeCoord GetCubeDirection(int32 Direction) const;
+	FHexCubeCoord GetCubeDirection(int32 Direction) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
-	FCubeCoord RotateCubeRight60(const FCubeCoord& Cube) const;
+	FHexCubeCoord RotateCubeRight60(const FHexCubeCoord& Cube) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid|Hex")
-	FCubeCoord RotateCubeLeft60(const FCubeCoord& Cube) const;
+	FHexCubeCoord RotateCubeLeft60(const FHexCubeCoord& Cube) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid")
-	bool IsValidCoord(const FIntPoint& Coord) const;
+	bool IsValidCoord(const FHexOffsetCoord& Coord) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle Grid")
-	ABattleGridTile* GetTileByCoord(const FIntPoint& Coord) const;
+	ABattleGridTile* GetTileByCoord(const FHexOffsetCoord& Coord) const;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
@@ -113,7 +90,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Character")
-	void MoveCharacter(ABattleCharacterBase* CharacterBase, const FIntPoint& InPoint);
+	void MoveCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint);
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Battle|Grid")
 	void GenerateGrid();
@@ -122,10 +99,10 @@ public:
 	void ClearGrid();
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
-	int32 CoordToIndex(const FIntPoint& Coord) const;
+	int32 CoordToIndex(const FHexOffsetCoord& Coord) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
-	FVector HexGridToWorld(const FIntPoint& Coord) const;
+	FVector HexGridToWorld(const FHexOffsetCoord& Coord) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
 	float GetAdjacentTileCenterDistance() const;
@@ -133,48 +110,48 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
 	float GetWorldRadiusByGridRange(int32 GridRange, bool bIncludeOuterTileRadius = true) const;
 
-	FBattleGridCell* GetCell(const FIntPoint& Coord);
-	const FBattleGridCell* GetCell(const FIntPoint& Coord) const;
+	FBattleGridCell* GetCell(const FHexOffsetCoord& Coord);
+	const FBattleGridCell* GetCell(const FHexOffsetCoord& Coord) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
-	TArray<FIntPoint> GetHexNeighbors(const FIntPoint& Coord) const;
+	TArray<FHexOffsetCoord> GetHexNeighbors(const FHexOffsetCoord& Coord) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
-	TArray<FIntPoint> GetMovableCoords(const FIntPoint& StartCoord, int32 MoveRange) const;
+	TArray<FHexOffsetCoord> GetMovableCoords(const FHexOffsetCoord& StartCoord, int32 MoveRange) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
-	bool SetOccupied(const FIntPoint& Coord, AActor* Actor);
+	bool SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
-	bool ClearOccupied(const FIntPoint& Coord);
+	bool ClearOccupied(const FHexOffsetCoord& Coord);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
-	bool MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoord, const FIntPoint& ToCoord);
+	bool MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Battle|Character")
-	FIntPoint PlayerStartPoint = FIntPoint(0, 0);
+	FHexOffsetCoord PlayerStartPoint = FHexOffsetCoord(0, 0);
 
 	UPROPERTY(EditAnywhere, Category = "Battle|Character")
-	FIntPoint EnemyStartPoint = FIntPoint(4, 4);
+	FHexOffsetCoord EnemyStartPoint = FHexOffsetCoord(4, 4);
 
 public:
 	UFUNCTION()
-	FTransform GetTransformToPosition(const FIntPoint& InPosition);
+	FTransform GetTransformToPosition(const FHexOffsetCoord& InPosition);
 
 	UFUNCTION()
-	bool CheckGridInRange(const FIntPoint& A, const FIntPoint& B, int32 Range);
+	bool CheckGridInRange(const FHexOffsetCoord& A, const FHexOffsetCoord& B, int32 Range);
 
 	//카드 효과 관련 public
 public:
 	//카드 공격 범위 관련
 	UPROPERTY()
-	TArray<FIntPoint> TargetGridArray;
+	TArray<FHexOffsetCoord> TargetGridArray;
 
-	void SetGridHovered(const TArray<FIntPoint>& NewGridArray);
+	void SetGridHovered(const TArray<FHexOffsetCoord>& NewGridArray);
 	void ClearGridHovered();
 	void AllClearGridHovered();
-	void SetExchangeIndicator(int32 AttackType, const TArray<FIntPoint>& GridArray);
+	void SetExchangeIndicator(int32 AttackType, const TArray<FHexOffsetCoord>& GridArray);
 	void AllClearExchangeIndicator();
 
 public:

@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 
 #include "Components/ArrowComponent.h"
 

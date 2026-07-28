@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SelectGridInterface.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "GameFramework/Actor.h"
 #include "BattleGridTile.generated.h"
 
@@ -33,9 +34,9 @@ public:
 	UFUNCTION()
 	void SetGridManager(ABattleGridManager* InGridManager){GridManager = InGridManager;};
 	UFUNCTION()
-	void SetGridCoord(FIntPoint Coord){GridCoord = Coord;};
+	void SetGridCoord(FHexOffsetCoord Coord){GridCoord = Coord;};
 	UFUNCTION()
-	FIntPoint GetGridCoord()const{return GridCoord;};
+	FHexOffsetCoord GetGridCoord()const{return GridCoord;};
 	
 	UFUNCTION()
 	void SetTargetIndicatorVisible(bool bVisible);
@@ -89,7 +90,7 @@ protected:
 	TObjectPtr<UMaterialInterface> MoveIndicatorMaterial;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
-	FIntPoint GridCoord = FIntPoint::ZeroValue;
+	FHexOffsetCoord GridCoord = FHexOffsetCoord();
 	
 	UPROPERTY()
 	ABattleGridManager* GridManager;

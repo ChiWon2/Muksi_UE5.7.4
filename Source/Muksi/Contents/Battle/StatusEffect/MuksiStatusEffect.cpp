@@ -23,7 +23,6 @@ void UMuksiStatusEffect::OnRemoved()
 
 void UMuksiStatusEffect::OnReapplied(int32 AddedStack,int32 AddedDuration)
 {
-    // 기본 정책 Stack : Add , Duration : Highest
     AddStack(AddedStack);
 
     RemainingDuration =FMath::Max(RemainingDuration,AddedDuration);

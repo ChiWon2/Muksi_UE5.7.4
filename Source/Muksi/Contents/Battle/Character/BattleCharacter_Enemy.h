@@ -25,7 +25,7 @@ public:
 	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen) override;
 	
 	UMuksiBattleCardDataAsset* GetSelectEnemyCardDataAsset(ABattleGridManager* GridManager, ABattleManager* BattleManager)const;
-	TArray<FIntPoint> GetSelectEnemyCardCoord()const;
+	TArray<FHexOffsetCoord> GetSelectEnemyCardCoord()const;
 	
 	
 	void InitData();

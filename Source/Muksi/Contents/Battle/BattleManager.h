@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
@@ -202,8 +203,8 @@ public:
 	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount);
 	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount);
 
-	FIntPoint GetPlayerPoint() const;
-	FIntPoint GetEnemyPoint() const;
+	FHexOffsetCoord GetPlayerPoint() const;
+	FHexOffsetCoord GetEnemyPoint() const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
@@ -258,10 +259,10 @@ protected:
 	TObjectPtr<UMuksiCharacterDataAsset> TestEnemyCharacterDataAsset = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
-	FIntPoint StartPlayerPoint = FIntPoint(0, 0);
+	FHexOffsetCoord StartPlayerPoint = FHexOffsetCoord(0, 0);
 
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
-	FIntPoint StartEnemyPoint = FIntPoint(4, 4);
+	FHexOffsetCoord StartEnemyPoint = FHexOffsetCoord(4, 4);
 
 public:
 	bool StartCurrentExchangeSimulation();

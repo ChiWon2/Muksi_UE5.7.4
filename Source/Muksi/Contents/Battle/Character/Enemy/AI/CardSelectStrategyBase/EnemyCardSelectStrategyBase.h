@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "UObject/Object.h"
 #include "EnemyCardSelectStrategyBase.generated.h"
 
@@ -19,10 +20,10 @@ struct FEnemyCardSelectResult
 	TObjectPtr<UMuksiBattleCardDataAsset> SelectedCard = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
-	FIntPoint SelectedCoord = FIntPoint::ZeroValue;
+	FHexOffsetCoord SelectedCoord = FHexOffsetCoord();
 	
 	UPROPERTY(BlueprintReadOnly)
-	TArray<FIntPoint> SelectedCoordArray;
+	TArray<FHexOffsetCoord> SelectedCoordArray;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bValid = false;
@@ -43,30 +44,30 @@ public:
 	FEnemyCardSelectResult SelectCardForExchange(
 		FCharacterData EnemyData,
 		ABattleGridManager* GridManager,
-		const FIntPoint& EnemyCoord,
-		const FIntPoint& PlayerCoord
+		const FHexOffsetCoord& EnemyCoord,
+		const FHexOffsetCoord& PlayerCoord
 	);
 
 	virtual FEnemyCardSelectResult SelectCardForExchange_Implementation(
 		FCharacterData EnemyData,
 		ABattleGridManager* GridManager,
-		const FIntPoint& EnemyCoord,
-		const FIntPoint& PlayerCoord
+		const FHexOffsetCoord& EnemyCoord,
+		const FHexOffsetCoord& PlayerCoord
 	);
 
 protected:
-	virtual TArray<FIntPoint> GetCandidateCoords(
+	virtual TArray<FHexOffsetCoord> GetCandidateCoords(
 		FCharacterData EnemyData,
 		UMuksiBattleCardDataAsset* Card,
 		ABattleGridManager* GridManager,
-		const FIntPoint& EnemyCoord
-		, const FIntPoint& PlayerCoord
+		const FHexOffsetCoord& EnemyCoord
+		, const FHexOffsetCoord& PlayerCoord
 	);
 
 	virtual float EvaluateCardCoord(
 		UMuksiBattleCardDataAsset* Card,
-		const FIntPoint& CandidateCoord,
-		const FIntPoint& PlayerCoord,
+		const FHexOffsetCoord& CandidateCoord,
+		const FHexOffsetCoord& PlayerCoord,
 		ABattleGridManager* GridManager
 	);
 };

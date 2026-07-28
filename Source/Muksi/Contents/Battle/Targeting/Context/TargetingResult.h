@@ -1,31 +1,26 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
 #include "TargetingResult.generated.h"
 
 class ABattleCharacterBase;
-/*
-* 모든 단계와 Pattern 계산이 끝난 뒤 BattleManager 등 외부 시스템에 전달하는 최종 결과.
-*/
+
 USTRUCT(BlueprintType)
 struct FTargetingResult
 {
 	GENERATED_BODY()
 
-	// 순서대로 확정된 모든 Targeting Step 상태.
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	TArray<FTargetingStepContext> StepContexts;
 
-	// 최종 AreaPattern이 계산한 실제 효과 적용 좌표 목록.
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	TArray<FIntPoint> AffectedCoords;
+	TArray<FHexOffsetCoord> AffectedCoords;
 
-	// 이동, 투사체 또는 경로 효과가 사용하는 좌표 목록.
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	TArray<FIntPoint> PathCoords;
+	TArray<FHexOffsetCoord> PathCoords;
 
-	// 카드 전체 타기팅 결과로 확정된 캐릭터 목록.
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	TArray<TObjectPtr<ABattleCharacterBase>> TargetCharacters;
 
@@ -45,10 +40,10 @@ struct FTargetingResult
 		return StepContext && StepContext->HasSelectedCoord();
 	}
 
-	FIntPoint GetOriginCoord() const
+	FHexOffsetCoord GetOriginCoord() const
 	{
 		const FTargetingStepContext* StepContext = GetLastStepContext();
-		return StepContext ? StepContext->OriginCoord : FIntPoint(INDEX_NONE, INDEX_NONE);
+		return StepContext ? StepContext->OriginCoord : FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 	}
 
 	FVector GetOriginWorldLocation() const
@@ -57,10 +52,10 @@ struct FTargetingResult
 		return StepContext ? StepContext->OriginWorldLocation : FVector::ZeroVector;
 	}
 
-	FIntPoint GetSelectedCoord() const
+	FHexOffsetCoord GetSelectedCoord() const
 	{
 		const FTargetingStepContext* StepContext = GetLastStepContext();
-		return StepContext ? StepContext->SelectedCoord : FIntPoint(INDEX_NONE, INDEX_NONE);
+		return StepContext ? StepContext->SelectedCoord : FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 	}
 
 	FVector GetSelectedWorldLocation() const
@@ -86,12 +81,12 @@ struct FTargetingResult
 		return TargetCharacters.IsValidIndex(0) ? TargetCharacters[0] : nullptr;
 	}
 
-	void AddAffectedCoord(const FIntPoint& Coord)
+	void AddAffectedCoord(const FHexOffsetCoord& Coord)
 	{
 		AffectedCoords.AddUnique(Coord);
 	}
 
-	void AddPathCoord(const FIntPoint& Coord)
+	void AddPathCoord(const FHexOffsetCoord& Coord)
 	{
 		PathCoords.AddUnique(Coord);
 	}

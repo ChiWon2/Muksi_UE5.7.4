@@ -16,14 +16,14 @@ void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FI
 		return;
 	}
 
-	const FCubeCoord Direction = Context.GridManager->GetCubeDirection(StepContext->Direction);
-	FCubeCoord CurrentCube = Context.GridManager->OddQToCube(StepContext->OriginCoord);
+	const FHexCubeCoord Direction = Context.GridManager->GetCubeDirection(StepContext->Direction);
+	FHexCubeCoord CurrentCube = Context.GridManager->OffsetToCube(StepContext->OriginCoord);
 
 	for (int32 Distance = 1; Distance <= StraightData->Range; ++Distance)
 	{
-		CurrentCube = FCubeCoord(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
+		CurrentCube = FHexCubeCoord(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
 
-		const FIntPoint CurrentCoord = Context.GridManager->CubeToOddQ(CurrentCube);
+		const FHexOffsetCoord CurrentCoord = Context.GridManager->CubeToOffset(CurrentCube);
 
 		if (!Context.GridManager->IsValidCoord(CurrentCoord))
 		{

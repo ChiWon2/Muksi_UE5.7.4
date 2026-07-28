@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "GameFramework/Actor.h"
 
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingGridPreviewMode.h"
@@ -27,9 +28,9 @@ protected:
 
 public:
 	void Initialize(ABattleGridManager* InGridManager);
-	void SetSelectionGridCoords(const TArray<FIntPoint>& InCoords);
-	void SetPathGridCoords(const TArray<FIntPoint>& InCoords);
-	void SetAreaGridCoords(const TArray<FIntPoint>& InCoords);
+	void SetSelectionGridCoords(const TArray<FHexOffsetCoord>& InCoords);
+	void SetPathGridCoords(const TArray<FHexOffsetCoord>& InCoords);
+	void SetAreaGridCoords(const TArray<FHexOffsetCoord>& InCoords);
 	void SetGridPreviewMode(ETargetingGridPreviewMode InGridPreviewMode);
 	void ClearSelectionPreview();
 	void ClearPathPreview();
@@ -48,7 +49,7 @@ public:
 private:
 	void LoadPreviewAssets();
 	void RebuildGridPreview();
-	void AddGridCoords(TSet<FIntPoint>& InOutCoords, const TArray<FIntPoint>& InCoords) const;
+	void AddGridCoords(TSet<FHexOffsetCoord>& InOutCoords, const TArray<FHexOffsetCoord>& InCoords) const;
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
@@ -75,9 +76,9 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 
-	TArray<FIntPoint> SelectionGridCoords;
-	TArray<FIntPoint> PathGridCoords;
-	TArray<FIntPoint> AreaGridCoords;
+	TArray<FHexOffsetCoord> SelectionGridCoords;
+	TArray<FHexOffsetCoord> PathGridCoords;
+	TArray<FHexOffsetCoord> AreaGridCoords;
 	ETargetingGridPreviewMode GridPreviewMode = ETargetingGridPreviewMode::AffectedTiles;
 	float PreviewHeightOffset = 5.0f;
 };

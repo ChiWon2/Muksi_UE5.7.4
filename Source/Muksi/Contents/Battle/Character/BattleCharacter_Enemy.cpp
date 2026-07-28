@@ -24,7 +24,7 @@ UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::GetSelectEnemyCardDataAsset(A
 	return BattleAIComponent->SelectCardForExchange(CharacterData, GridManager, BattleManager);
 }
 
-TArray<FIntPoint> ABattleCharacter_Enemy::GetSelectEnemyCardCoord()const
+TArray<FHexOffsetCoord> ABattleCharacter_Enemy::GetSelectEnemyCardCoord()const
 {
 	return BattleAIComponent->GetPointForExchange();
 }

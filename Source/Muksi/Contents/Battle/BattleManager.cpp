@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Muksi/Contents/Battle/BattleManager.h"
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
@@ -16,7 +14,7 @@
 #include "Character/BattleCharacter_Enemy.h"
 #include "Engine/TargetPoint.h"
 #include "Grid/BattleGridManager.h"
-#include "Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Passive/CharacterPassiveComponent.h"
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
@@ -101,12 +99,12 @@ UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Enem
 	return Card;
 }
 
-FIntPoint ABattleManager::GetPlayerPoint() const
+FHexOffsetCoord ABattleManager::GetPlayerPoint() const
 {
 	return PlayerBattleCharacter->GetCharacterPosition();
 }
 
-FIntPoint ABattleManager::GetEnemyPoint() const
+FHexOffsetCoord ABattleManager::GetEnemyPoint() const
 {
 	return EnemyBattleCharacter->GetCharacterPosition();
 }
@@ -746,7 +744,7 @@ void ABattleManager::SetExchangeGrid()
 		break;
 	}
 
-	TArray<FIntPoint> PlayerTargetCoords = PlayerBattleAction.TargetingResult.AffectedCoords;
+	TArray<FHexOffsetCoord> PlayerTargetCoords = PlayerBattleAction.TargetingResult.AffectedCoords;
 
 	if (PlayerTargetCoords.IsEmpty() && PlayerBattleAction.TargetingResult.HasSelectedCoord())
 	{
@@ -786,7 +784,7 @@ void ABattleManager::SetExchangeGrid()
 		break;
 	}
 
-	TArray<FIntPoint> EnemyTargetCoords = EnemyBattleAction.TargetingResult.AffectedCoords;
+	TArray<FHexOffsetCoord> EnemyTargetCoords = EnemyBattleAction.TargetingResult.AffectedCoords;
 
 	if (EnemyTargetCoords.IsEmpty() && EnemyBattleAction.TargetingResult.HasSelectedCoord())
 	{

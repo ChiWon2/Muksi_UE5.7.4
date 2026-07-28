@@ -51,8 +51,8 @@ private:
 
 	FMoveExecutionData CachedMoveData;
 
-	FIntPoint StartCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
-	FIntPoint DestinationCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
+	FHexOffsetCoord StartCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+	FHexOffsetCoord DestinationCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 
 	FBattleExecutionFinished CachedOnFinished;
 

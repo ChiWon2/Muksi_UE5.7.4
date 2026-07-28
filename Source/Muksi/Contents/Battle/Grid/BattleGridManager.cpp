@@ -1,11 +1,11 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
-#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h" 
 
 ABattleGridManager::ABattleGridManager()
 {
@@ -50,46 +50,46 @@ void ABattleGridManager::OnConstruction(const FTransform& Transform)
 	}
 }
 
-FCubeCoord ABattleGridManager::OddQToCube(const FIntPoint& Coord) const
+FHexCubeCoord ABattleGridManager::OffsetToCube(const FHexOffsetCoord& Coord) const
 {
-	return FHexGridMath::OddQToCube(Coord);
+	return FHexGridMath::OffsetToCube(Coord);
 }
 
-FIntPoint ABattleGridManager::CubeToOddQ(const FCubeCoord& Cube) const
+FHexOffsetCoord ABattleGridManager::CubeToOffset(const FHexCubeCoord& Cube) const
 {
-	return FHexGridMath::CubeToOddQ(Cube);
+	return FHexGridMath::CubeToOffset(Cube);
 }
 
-FCubeCoord ABattleGridManager::GetCubeDirection(int32 Direction) const
+FHexCubeCoord ABattleGridManager::GetCubeDirection(int32 Direction) const
 {
 	return FHexGridMath::GetCubeDirection(Direction);
 }
 
-FCubeCoord ABattleGridManager::RotateCubeRight60(const FCubeCoord& Cube) const
+FHexCubeCoord ABattleGridManager::RotateCubeRight60(const FHexCubeCoord& Cube) const
 {
 	// 시계 방향 60도
-	return FCubeCoord(-Cube.Z, -Cube.X, -Cube.Y);
+	return FHexCubeCoord(-Cube.Z, -Cube.X, -Cube.Y);
 }
 
-FCubeCoord ABattleGridManager::RotateCubeLeft60(const FCubeCoord& Cube) const
+FHexCubeCoord ABattleGridManager::RotateCubeLeft60(const FHexCubeCoord& Cube) const
 {
 	// 반시계 방향 60도
-	return FCubeCoord(-Cube.Y, -Cube.Z, -Cube.X);
+	return FHexCubeCoord(-Cube.Y, -Cube.Z, -Cube.X);
 }
 
-bool ABattleGridManager::IsValidCoord(const FIntPoint& Coord) const
+bool ABattleGridManager::IsValidCoord(const FHexOffsetCoord& Coord) const
 {
 	return Coord.X >= 0 && Coord.X < GridWidth && Coord.Y >= 0 && Coord.Y < GridHeight;
 }
 
-ABattleGridTile* ABattleGridManager::GetTileByCoord(const FIntPoint& Coord) const
+ABattleGridTile* ABattleGridManager::GetTileByCoord(const FHexOffsetCoord& Coord) const
 {
 	const FBattleGridCell* Cell = GetCell(Coord);
 	return Cell ? Cell->TileActor.Get() : nullptr;
 }
 
 //Test Hex Cell Dir Cal
-void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, const FIntPoint& InPoint)
+void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint)
 {
 	if (!CharacterBase)
 	{
@@ -139,7 +139,7 @@ void ABattleGridManager::GenerateGrid()
 
 		const int32 X = Index % GridWidth;
 		const int32 Y = Index / GridWidth;
-		const FIntPoint Coord(X, Y);
+		const FHexOffsetCoord Coord(X, Y);
 		const FVector WorldLocation = HexGridToWorld(Coord);
 		const FRotator SpawnRotation = GetActorRotation() + TileRotation;
 
@@ -186,12 +186,12 @@ void ABattleGridManager::ClearGrid()
 	TargetGridArray.Empty();
 }
 
-int32 ABattleGridManager::CoordToIndex(const FIntPoint& Coord) const
+int32 ABattleGridManager::CoordToIndex(const FHexOffsetCoord& Coord) const
 {
 	return Coord.Y * GridWidth + Coord.X;
 }
 
-FVector ABattleGridManager::HexGridToWorld(const FIntPoint& Coord) const
+FVector ABattleGridManager::HexGridToWorld(const FHexOffsetCoord& Coord) const
 {
 	// Flat Top Hex + Odd-Q Offset 방식
 	// X가 홀수인 열은 Y 방향으로 반 칸 내려감.
@@ -215,9 +215,9 @@ float ABattleGridManager::GetAdjacentTileCenterDistance() const
 		}
 
 		const FVector CellLocation = Cell.TileActor->GetGridCenterWorldLocation();
-		const TArray<FIntPoint> NeighborCoords = GetHexNeighbors(Cell.GridCoord);
+		const TArray<FHexOffsetCoord> NeighborCoords = GetHexNeighbors(Cell.GridCoord);
 
-		for (const FIntPoint& NeighborCoord : NeighborCoords)
+		for (const FHexOffsetCoord& NeighborCoord : NeighborCoords)
 		{
 			const FBattleGridCell* NeighborCell = GetCell(NeighborCoord);
 
@@ -261,7 +261,7 @@ float ABattleGridManager::GetWorldRadiusByGridRange(int32 GridRange, bool bInclu
 	return WorldRadius;
 }
 
-FBattleGridCell* ABattleGridManager::GetCell(const FIntPoint& Coord)
+FBattleGridCell* ABattleGridManager::GetCell(const FHexOffsetCoord& Coord)
 {
 	if (!IsValidCoord(Coord))
 	{
@@ -278,7 +278,7 @@ FBattleGridCell* ABattleGridManager::GetCell(const FIntPoint& Coord)
 	return &GridCells[Index];
 }
 
-const FBattleGridCell* ABattleGridManager::GetCell(const FIntPoint& Coord) const
+const FBattleGridCell* ABattleGridManager::GetCell(const FHexOffsetCoord& Coord) const
 {
 	if (!IsValidCoord(Coord))
 	{
@@ -295,9 +295,9 @@ const FBattleGridCell* ABattleGridManager::GetCell(const FIntPoint& Coord) const
 	return &GridCells[Index];
 }
 
-TArray<FIntPoint> ABattleGridManager::GetHexNeighbors(const FIntPoint& Coord) const
+TArray<FHexOffsetCoord> ABattleGridManager::GetHexNeighbors(const FHexOffsetCoord& Coord) const
 {
-	TArray<FIntPoint> Neighbors;
+	TArray<FHexOffsetCoord> Neighbors;
 
 	if (!IsValidCoord(Coord))
 	{
@@ -306,31 +306,31 @@ TArray<FIntPoint> ABattleGridManager::GetHexNeighbors(const FIntPoint& Coord) co
 
 	const bool bIsOddColumn = (Coord.X & 1) == 1;
 
-	const TArray<FIntPoint> EvenColumnDirections =
+	const TArray<FHexOffsetCoord> EvenColumnDirections =
 	{
-		FIntPoint(+1, -1),
-		FIntPoint(+1, 0),
-		FIntPoint(0, +1),
-		FIntPoint(-1, 0),
-		FIntPoint(-1, -1),
-		FIntPoint(0, -1)
+		FHexOffsetCoord(+1, -1),
+		FHexOffsetCoord(+1, 0),
+		FHexOffsetCoord(0, +1),
+		FHexOffsetCoord(-1, 0),
+		FHexOffsetCoord(-1, -1),
+		FHexOffsetCoord(0, -1)
 	};
 
-	const TArray<FIntPoint> OddColumnDirections =
+	const TArray<FHexOffsetCoord> OddColumnDirections =
 	{
-		FIntPoint(+1, 0),
-		FIntPoint(+1, +1),
-		FIntPoint(0, +1),
-		FIntPoint(-1, +1),
-		FIntPoint(-1, 0),
-		FIntPoint(0, -1)
+		FHexOffsetCoord(+1, 0),
+		FHexOffsetCoord(+1, +1),
+		FHexOffsetCoord(0, +1),
+		FHexOffsetCoord(-1, +1),
+		FHexOffsetCoord(-1, 0),
+		FHexOffsetCoord(0, -1)
 	};
 
-	const TArray<FIntPoint>& Directions = bIsOddColumn ? OddColumnDirections : EvenColumnDirections;
+	const TArray<FHexOffsetCoord>& Directions = bIsOddColumn ? OddColumnDirections : EvenColumnDirections;
 
-	for (const FIntPoint& Direction : Directions)
+	for (const FHexOffsetCoord& Direction : Directions)
 	{
-		const FIntPoint NextCoord = Coord + Direction;
+		const FHexOffsetCoord NextCoord = Coord + Direction;
 
 		if (IsValidCoord(NextCoord))
 		{
@@ -341,9 +341,9 @@ TArray<FIntPoint> ABattleGridManager::GetHexNeighbors(const FIntPoint& Coord) co
 	return Neighbors;
 }
 
-TArray<FIntPoint> ABattleGridManager::GetMovableCoords(const FIntPoint& StartCoord, int32 MoveRange) const
+TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(const FHexOffsetCoord& StartCoord, int32 MoveRange) const
 {
-	TArray<FIntPoint> Result;
+	TArray<FHexOffsetCoord> Result;
 
 	if (!IsValidCoord(StartCoord))
 	{
@@ -355,19 +355,19 @@ TArray<FIntPoint> ABattleGridManager::GetMovableCoords(const FIntPoint& StartCoo
 		return Result;
 	}
 
-	TQueue<TPair<FIntPoint, int32>> Queue;
-	TSet<FIntPoint> Visited;
+	TQueue<TPair<FHexOffsetCoord, int32>> Queue;
+	TSet<FHexOffsetCoord> Visited;
 
-	Queue.Enqueue(TPair<FIntPoint, int32>(StartCoord, 0));
+	Queue.Enqueue(TPair<FHexOffsetCoord, int32>(StartCoord, 0));
 	Visited.Add(StartCoord);
 
 	while (!Queue.IsEmpty())
 	{
-		TPair<FIntPoint, int32> Current;
+		TPair<FHexOffsetCoord, int32> Current;
 
 		Queue.Dequeue(Current);
 
-		const FIntPoint CurrentCoord = Current.Key;
+		const FHexOffsetCoord CurrentCoord = Current.Key;
 		const int32 CurrentDistance = Current.Value;
 
 		if (CurrentDistance > 0)
@@ -380,9 +380,9 @@ TArray<FIntPoint> ABattleGridManager::GetMovableCoords(const FIntPoint& StartCoo
 			continue;
 		}
 
-		const TArray<FIntPoint> Neighbors = GetHexNeighbors(CurrentCoord);
+		const TArray<FHexOffsetCoord> Neighbors = GetHexNeighbors(CurrentCoord);
 
-		for (const FIntPoint& NextCoord : Neighbors)
+		for (const FHexOffsetCoord& NextCoord : Neighbors)
 		{
 			if (Visited.Contains(NextCoord))
 			{
@@ -407,14 +407,14 @@ TArray<FIntPoint> ABattleGridManager::GetMovableCoords(const FIntPoint& StartCoo
 			}
 
 			Visited.Add(NextCoord);
-			Queue.Enqueue(TPair<FIntPoint, int32>(NextCoord, CurrentDistance + 1));
+			Queue.Enqueue(TPair<FHexOffsetCoord, int32>(NextCoord, CurrentDistance + 1));
 		}
 	}
 
 	return Result;
 }
 
-bool ABattleGridManager::SetOccupied(const FIntPoint& Coord, AActor* Actor)
+bool ABattleGridManager::SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor)
 {
 	if (!Actor)
 	{
@@ -444,7 +444,7 @@ bool ABattleGridManager::SetOccupied(const FIntPoint& Coord, AActor* Actor)
 	return true;
 }
 
-bool ABattleGridManager::ClearOccupied(const FIntPoint& Coord)
+bool ABattleGridManager::ClearOccupied(const FHexOffsetCoord& Coord)
 {
 	FBattleGridCell* Cell = GetCell(Coord);
 
@@ -459,7 +459,7 @@ bool ABattleGridManager::ClearOccupied(const FIntPoint& Coord)
 	return true;
 }
 
-bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoord, const FIntPoint& ToCoord)
+bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord)
 {
 	if (!Actor)
 	{
@@ -496,7 +496,7 @@ bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FIntPoint& FromCoo
 	return true;
 }
 
-FTransform ABattleGridManager::GetTransformToPosition(const FIntPoint& InPosition)
+FTransform ABattleGridManager::GetTransformToPosition(const FHexOffsetCoord& InPosition)
 {
 	const FBattleGridCell* Cell = GetCell(InPosition);
 
@@ -508,25 +508,25 @@ FTransform ABattleGridManager::GetTransformToPosition(const FIntPoint& InPositio
 	return Cell->TileActor->GetCharacterSpawnTransform();
 }
 
-bool ABattleGridManager::CheckGridInRange(const FIntPoint& A, const FIntPoint& B, int32 Range)
+bool ABattleGridManager::CheckGridInRange(const FHexOffsetCoord& A, const FHexOffsetCoord& B, int32 Range)
 {
 	if (!IsValidCoord(A) || !IsValidCoord(B) || Range < 0)
 	{
 		return false;
 	}
 
-	const FCubeCoord CubeA = OddQToCube(A);
-	const FCubeCoord CubeB = OddQToCube(B);
+	const FHexCubeCoord CubeA = OffsetToCube(A);
+	const FHexCubeCoord CubeB = OffsetToCube(B);
 	const int32 Distance = FMath::Max3(FMath::Abs(CubeA.X - CubeB.X), FMath::Abs(CubeA.Y - CubeB.Y), FMath::Abs(CubeA.Z - CubeB.Z));
 
 	return Distance <= Range;
 }
 
-void ABattleGridManager::SetGridHovered(const TArray<FIntPoint>& NewGridArray)
+void ABattleGridManager::SetGridHovered(const TArray<FHexOffsetCoord>& NewGridArray)
 {
 	TargetGridArray.Empty();
 
-	for (const FIntPoint& Coord : NewGridArray)
+	for (const FHexOffsetCoord& Coord : NewGridArray)
 	{
 		ABattleGridTile* TargetGrid = GetTileByCoord(Coord);
 
@@ -542,7 +542,7 @@ void ABattleGridManager::SetGridHovered(const TArray<FIntPoint>& NewGridArray)
 
 void ABattleGridManager::ClearGridHovered()
 {
-	for (const FIntPoint& Coord : TargetGridArray)
+	for (const FHexOffsetCoord& Coord : TargetGridArray)
 	{
 		ABattleGridTile* TargetGrid = GetTileByCoord(Coord);
 
@@ -570,9 +570,9 @@ void ABattleGridManager::AllClearGridHovered()
 	TargetGridArray.Empty();
 }
 
-void ABattleGridManager::SetExchangeIndicator(int32 AttackType, const TArray<FIntPoint>& GridArray)
+void ABattleGridManager::SetExchangeIndicator(int32 AttackType, const TArray<FHexOffsetCoord>& GridArray)
 {
-	for (const FIntPoint& Coord : GridArray)
+	for (const FHexOffsetCoord& Coord : GridArray)
 	{
 		ABattleGridTile* GridTile = GetTileByCoord(Coord);
 

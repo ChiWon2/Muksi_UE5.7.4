@@ -1,8 +1,9 @@
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelection.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelectionData.h"
 
 void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FInstancedStruct& SelectionData, FTargetingStepContext& OutStepContext) const
@@ -24,7 +25,7 @@ void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FIns
 	{
 		for (int32 X = 0; X < Context.GridManager->GridWidth; ++X)
 		{
-			const FIntPoint CandidateCoord(X, Y);
+			const FHexOffsetCoord CandidateCoord(X, Y);
 
 			if (!Context.GridManager->IsValidCoord(CandidateCoord))
 			{

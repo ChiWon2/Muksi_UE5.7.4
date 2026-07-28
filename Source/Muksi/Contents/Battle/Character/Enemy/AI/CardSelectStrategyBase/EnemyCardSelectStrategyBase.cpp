@@ -7,7 +7,7 @@
 
 
 FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Implementation(FCharacterData EnemyData,
-                                                                                          ABattleGridManager* GridManager, const FIntPoint& EnemyCoord, const FIntPoint& PlayerCoord)
+                                                                                          ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord)
 {
 	FEnemyCardSelectResult BestResult;
 
@@ -29,7 +29,7 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 	//일단 첫번째 카드 사용
 	UMuksiBattleCardDataAsset* Card = Deck[0];
 	
-	TArray<FIntPoint> CandidateCoords = GetCandidateCoords(
+	TArray<FHexOffsetCoord> CandidateCoords = GetCandidateCoords(
 			EnemyData,
 			Card,
 			GridManager,
@@ -37,7 +37,7 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 			PlayerCoord
 		);
 	//일단 첫번째 가능 위치 사용
-	FIntPoint SelectedCoord = CandidateCoords[0];
+	FHexOffsetCoord SelectedCoord = CandidateCoords[0];
 	//BestResult.SelectedCoordArray = Card->AttackType.RangeDataAsset->GetRangeCoords(GridManager, SelectedCoord, 0);
 	BestResult.SelectedCard = Card;
 	EnemyData.BattleDeck.Remove(Card);
@@ -45,10 +45,10 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 	return BestResult;
 }
 
-TArray<FIntPoint> UEnemyCardSelectStrategyBase::GetCandidateCoords(FCharacterData EnemyData,
-	UMuksiBattleCardDataAsset* Card, ABattleGridManager* GridManager, const FIntPoint& EnemyCoord, const FIntPoint& PlayerCoord)
+TArray<FHexOffsetCoord> UEnemyCardSelectStrategyBase::GetCandidateCoords(FCharacterData EnemyData,
+	UMuksiBattleCardDataAsset* Card, ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord)
 {
-	TArray<FIntPoint> Result;
+	TArray<FHexOffsetCoord> Result;
 
 	if (!EnemyData.IsValid() || !Card || !GridManager)
 	{
@@ -71,8 +71,8 @@ TArray<FIntPoint> UEnemyCardSelectStrategyBase::GetCandidateCoords(FCharacterDat
 	return Result;
 }
 
-float UEnemyCardSelectStrategyBase::EvaluateCardCoord(UMuksiBattleCardDataAsset* Card, const FIntPoint& CandidateCoord,
-	const FIntPoint& PlayerCoord, ABattleGridManager* GridManager)
+float UEnemyCardSelectStrategyBase::EvaluateCardCoord(UMuksiBattleCardDataAsset* Card, const FHexOffsetCoord& CandidateCoord,
+	const FHexOffsetCoord& PlayerCoord, ABattleGridManager* GridManager)
 {
 	if (!Card || !GridManager)
 	{

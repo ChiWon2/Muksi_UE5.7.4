@@ -23,7 +23,7 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 		return;
 	}
 
-	const FIntPoint DestinationCoord = Context.TargetingResult.PathCoords.Last();
+	const FHexOffsetCoord DestinationCoord = Context.TargetingResult.PathCoords.Last();
 	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCell(DestinationCoord);
 
 	if (!DestinationCell)

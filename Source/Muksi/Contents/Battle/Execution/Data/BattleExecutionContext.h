@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
@@ -61,14 +62,14 @@ struct FBattleExecutionContext
 
 	bool HasValidEnvironment() const;
 
-	FIntPoint GetMainTargetPoint() const
+	FHexOffsetCoord GetMainTargetPoint() const
 	{
 		if (TargetingResult.HasSelectedCoord())
 		{
 			return TargetingResult.GetSelectedCoord();
 		}
 
-		return TargetingResult.AffectedCoords.IsValidIndex(0) ? TargetingResult.AffectedCoords[0] : FIntPoint(INDEX_NONE, INDEX_NONE);
+		return TargetingResult.AffectedCoords.IsValidIndex(0) ? TargetingResult.AffectedCoords[0] : FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 	}
 
 	bool CanRequestRuntimeExecutionChain() const

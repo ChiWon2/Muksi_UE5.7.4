@@ -14,7 +14,7 @@
 #include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "Widgets/Battle/Widget_BattleMainScreen.h"

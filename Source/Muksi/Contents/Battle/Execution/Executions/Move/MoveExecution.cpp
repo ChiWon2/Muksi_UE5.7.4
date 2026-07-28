@@ -120,7 +120,7 @@ void UMoveExecution::StartJumpMovement()
 
 void UMoveExecution::StartGroundPathMovement()
 {
-	TArray<FIntPoint> GridPath;
+	TArray<FHexOffsetCoord> GridPath;
 
 	if (!NavigationComponent->FindGroundPath(StartCoord, DestinationCoord, GridPath, MovingCharacter.Get()))
 	{
@@ -246,8 +246,8 @@ void UMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
 	AnimationComponent = nullptr;
 
 	CachedMoveData = FMoveExecutionData();
-	StartCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
-	DestinationCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
+	StartCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+	DestinationCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 	bHasMoveData = false;
 
 	FinishExecution(CachedOnFinished);

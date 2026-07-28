@@ -1,21 +1,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Components/ActorComponent.h"
 #include "BattleGridNavigationComponent.generated.h"
 
 class ABattleGridManager;
 
 /**
- * Hex Grid °æ·Î Å½»ö°ú ÀÌµ¿ °¡´É ¿©ºÎ °è»êÀ» ´ã´çÇÑ´Ù.
+ * Hex Grid ï¿½ï¿½ï¿½ Å½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
  *
- * ½ÇÁ¦ Actor ÀÌµ¿Àº ´ã´çÇÏÁö ¾Ê´Â´Ù.
+ * ï¿½ï¿½ï¿½ï¿½ Actor ï¿½Ìµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê´Â´ï¿½.
  *
- * ¿ªÇÒ:
- * - Cell ÁøÀÔ °¡´É ¿©ºÎ °Ë»ç
- * - Hex Grid A* °æ·Î Å½»ö
- * - Cell ÀÌµ¿ ºñ¿ë °è»ê
- * - ÀÌÈÄ Rush / Jump / Knockback ¸ñÀûÁö °è»ê
+ * ï¿½ï¿½ï¿½ï¿½:
+ * - Cell ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½
+ * - Hex Grid A* ï¿½ï¿½ï¿½ Å½ï¿½ï¿½
+ * - Cell ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+ * - ï¿½ï¿½ï¿½ï¿½ Rush / Jump / Knockback ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
  */
 UCLASS(ClassGroup = (Battle), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UBattleGridNavigationComponent : public UActorComponent
@@ -30,39 +31,39 @@ protected:
 
 public:
 	/**
-	 * Cell¿¡ ÁøÀÔ °¡´ÉÇÑÁö °Ë»çÇÑ´Ù.
+	 * Cellï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½ï¿½Ñ´ï¿½.
 	 *
-	 * @param Coord °Ë»çÇÒ Grid ÁÂÇ¥
-	 * @param IgnoredActor Á¡À¯ °Ë»ç¿¡¼­ ¹«½ÃÇÒ Actor
+	 * @param Coord ï¿½Ë»ï¿½ï¿½ï¿½ Grid ï¿½ï¿½Ç¥
+	 * @param IgnoredActor ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ç¿¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Actor
 	 */
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	bool IsCellAvailable(const FIntPoint& Coord, const AActor* IgnoredActor = nullptr) const;
+	bool IsCellAvailable(const FHexOffsetCoord& Coord, const AActor* IgnoredActor = nullptr) const;
 
 	/**
-	 * Hex Grid¿¡¼­ Á¡À¯ Cell°ú ÀÌµ¿ ºÒ°¡ CellÀ» ÇÇÇÏ´Â A* °æ·Î¸¦ °è»êÇÑ´Ù.
+	 * Hex Gridï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Cellï¿½ï¿½ ï¿½Ìµï¿½ ï¿½Ò°ï¿½ Cellï¿½ï¿½ ï¿½ï¿½ï¿½Ï´ï¿½ A* ï¿½ï¿½Î¸ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 	 *
-	 * OutPath¿¡´Â StartCoord°¡ Æ÷ÇÔµÇÁö ¾Ê°í,
-	 * DestinationCoord´Â Æ÷ÇÔµÈ´Ù.
+	 * OutPathï¿½ï¿½ï¿½ï¿½ StartCoordï¿½ï¿½ ï¿½ï¿½ï¿½Ôµï¿½ï¿½ï¿½ ï¿½Ê°ï¿½,
+	 * DestinationCoordï¿½ï¿½ ï¿½ï¿½ï¿½ÔµÈ´ï¿½.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid|Navigation")
-	bool FindGroundPath(const FIntPoint& StartCoord, const FIntPoint& DestinationCoord, TArray<FIntPoint>& OutPath, const AActor* MovingActor = nullptr) const;
+	bool FindGroundPath(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, TArray<FHexOffsetCoord>& OutPath, const AActor* MovingActor = nullptr) const;
 
 	/**
-	 * ÇöÀç CellÀÇ ÀÌµ¿ ºñ¿ëÀ» ¹ÝÈ¯ÇÑ´Ù.
+	 * ï¿½ï¿½ï¿½ï¿½ Cellï¿½ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
 	 *
-	 * ÇöÀç´Â ¸ðµç CellÀÌ ±âº» ºñ¿ëÀ» »ç¿ëÇÑ´Ù.
-	 * ÀÌÈÄ ºÒ, ´Ë, ¾óÀ½ µî ÁöÇü È¿°ú¸¦ ¿©±â¿¡ ¿¬°áÇÑ´Ù.
+	 * ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ Cellï¿½ï¿½ ï¿½âº» ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
+	 * ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½, ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È¿ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½â¿¡ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	float GetCellMovementCost(const FIntPoint& Coord) const;
+	float GetCellMovementCost(const FHexOffsetCoord& Coord) const;
 
 	/**
-	 * Hex Grid»óÀÇ µÎ ÁÂÇ¥ »çÀÌ °Å¸®¸¦ ¹ÝÈ¯ÇÑ´Ù.
+	 * Hex Gridï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ç¥ ï¿½ï¿½ï¿½ï¿½ ï¿½Å¸ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
 	 *
-	 * Odd-Q Offset ÁÂÇ¥¸¦ Cube ÁÂÇ¥·Î º¯È¯ÇÏ¿© °è»êÇÑ´Ù.
+	 * Odd-Q Offset ï¿½ï¿½Ç¥ï¿½ï¿½ Cube ï¿½ï¿½Ç¥ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ï¿ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	float CalculateHexDistance(const FIntPoint& A, const FIntPoint& B) const;
+	float CalculateHexDistance(const FHexOffsetCoord& A, const FHexOffsetCoord& B) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
 	ABattleGridManager* GetGridManager() const
@@ -71,55 +72,55 @@ public:
 	}
 
 	/**
-	 * Grid ÁÂÇ¥ °æ·Î¸¦ ½ÇÁ¦ Actor ÀÌµ¿¿¡ »ç¿ëÇÒ
-	 * World Location °æ·Î·Î º¯È¯ÇÑ´Ù.
+	 * Grid ï¿½ï¿½Ç¥ ï¿½ï¿½Î¸ï¿½ ï¿½ï¿½ï¿½ï¿½ Actor ï¿½Ìµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½
+	 * World Location ï¿½ï¿½Î·ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
 	 *
-	 * °¢ GridÀÇ BattleGridTile¿¡ ¼³Á¤µÈ
-	 * CharacterSpawnTransform À§Ä¡¸¦ »ç¿ëÇÑ´Ù.
+	 * ï¿½ï¿½ Gridï¿½ï¿½ BattleGridTileï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	 * CharacterSpawnTransform ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 	 *
-	 * @param GridPath º¯È¯ÇÒ Grid ÁÂÇ¥ °æ·Î
-	 * @param OutWorldPath º¯È¯µÈ ¿ùµå À§Ä¡ °æ·Î
+	 * @param GridPath ï¿½ï¿½È¯ï¿½ï¿½ Grid ï¿½ï¿½Ç¥ ï¿½ï¿½ï¿½
+	 * @param OutWorldPath ï¿½ï¿½È¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½
 	 *
-	 * @return ¸ðµç Grid ÁÂÇ¥¸¦ Á¤»óÀûÀ¸·Î º¯È¯ÇßÀ¸¸é true
+	 * @return ï¿½ï¿½ï¿½ Grid ï¿½ï¿½Ç¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ true
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid|Navigation")
-	bool ConvertGridPathToWorldPath(const TArray<FIntPoint>& GridPath, TArray<FVector>& OutWorldPath) const;
+	bool ConvertGridPathToWorldPath(const TArray<FHexOffsetCoord>& GridPath, TArray<FVector>& OutWorldPath) const;
 
 	/**
-	 * ÇÏ³ªÀÇ Grid ÁÂÇ¥¿¡ ÇØ´çÇÏ´Â
-	 * Character Spawn World LocationÀ» ¹ÝÈ¯ÇÑ´Ù.
+	 * ï¿½Ï³ï¿½ï¿½ï¿½ Grid ï¿½ï¿½Ç¥ï¿½ï¿½ ï¿½Ø´ï¿½ï¿½Ï´ï¿½
+	 * Character Spawn World Locationï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
 	 *
-	 * @return À¯È¿ÇÑ Grid À§Ä¡¸¦ Ã£¾ÒÀ¸¸é true
+	 * @return ï¿½ï¿½È¿ï¿½ï¿½ Grid ï¿½ï¿½Ä¡ï¿½ï¿½ Ã£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ true
 	 */
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	bool GetGridWorldLocation(const FIntPoint& Coord, FVector& OutWorldLocation) const;
+	bool GetGridWorldLocation(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const;
 
 private:
 	void CacheGridManager();
 
-	bool ReconstructPath(const FIntPoint& StartCoord, const FIntPoint& DestinationCoord, const TMap<FIntPoint, FIntPoint>& CameFrom, TArray<FIntPoint>& OutPath) const;
+	bool ReconstructPath(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, const TMap<FHexOffsetCoord, FHexOffsetCoord>& CameFrom, TArray<FHexOffsetCoord>& OutPath) const;
 
 	/**
-	 * OpenSet¿¡¼­ °¡Àå ³·Àº FScore¸¦ °¡Áø ÁÂÇ¥¸¦ Ã£´Â´Ù.
+	 * OpenSetï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ FScoreï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ï¿½ï¿½ Ã£ï¿½Â´ï¿½.
 	 */
-	bool FindLowestScoreCoord(const TArray<FIntPoint>& OpenSet, const TMap<FIntPoint, float>& FScore, FIntPoint& OutCoord) const;
+	bool FindLowestScoreCoord(const TArray<FHexOffsetCoord>& OpenSet, const TMap<FHexOffsetCoord, float>& FScore, FHexOffsetCoord& OutCoord) const;
 
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 
 	/**
-	 * ¾ÆÁ÷ Cell µ¥ÀÌÅÍ¿¡ MovementCost°¡ ¾øÀ¸¹Ç·Î
-	 * ÇöÀç´Â °øÅë ±âº» ºñ¿ëÀ» »ç¿ëÇÑ´Ù.
+	 * ï¿½ï¿½ï¿½ï¿½ Cell ï¿½ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ MovementCostï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½
+	 * ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½âº» ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Battle|Grid|Navigation")
 	float DefaultMovementCost = 1.0f;
 
 	/**
-	 * ÈÞ¸®½ºÆ½ °è»ê¿¡ »ç¿ëÇÏ´Â ÃÖ¼Ò ÀÌµ¿ ºñ¿ë.
+	 * ï¿½Þ¸ï¿½ï¿½ï¿½Æ½ ï¿½ï¿½ê¿¡ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ö¼ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½ï¿½.
 	 *
-	 * ¸ðµç ÀÌµ¿ ºñ¿ëÀÌ ÀÌ °ª ÀÌ»óÀÌ¾î¾ß
-	 * A*°¡ ÃÖÀû °æ·Î¸¦ º¸ÀåÇÑ´Ù.
+	 * ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½Ì»ï¿½ï¿½Ì¾ï¿½ï¿½
+	 * A*ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Î¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Battle|Grid|Navigation")
 	float MinimumMovementCost = 1.0f;

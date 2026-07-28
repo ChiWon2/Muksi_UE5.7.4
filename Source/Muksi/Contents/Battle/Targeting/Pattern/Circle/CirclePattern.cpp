@@ -1,7 +1,7 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePattern.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePatternData.h"
 
 void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
@@ -16,7 +16,7 @@ void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FIns
 		return;
 	}
 
-	const FIntPoint CenterCoord = StepContext->SelectedCoord;
+	const FHexOffsetCoord CenterCoord = StepContext->SelectedCoord;
 
 	if (!Context.GridManager->IsValidCoord(CenterCoord))
 	{
@@ -29,7 +29,7 @@ void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FIns
 	{
 		for (int32 Y = 0; Y < Context.GridManager->GridHeight; ++Y)
 		{
-			const FIntPoint CandidateCoord(X, Y);
+			const FHexOffsetCoord CandidateCoord(X, Y);
 
 			if (!Context.GridManager->IsValidCoord(CandidateCoord))
 			{
