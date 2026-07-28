@@ -2,8 +2,10 @@
 
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimInstance.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationDataAsset.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 UMuksiBattleAnimationComponent::UMuksiBattleAnimationComponent()
 {
@@ -120,6 +122,7 @@ bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
 
 	CurrentMontage = Montage;
 
+
 	const float PlayLength = AnimInstance->Montage_Play(Montage);
 
 	if (PlayLength <= 0.f)
@@ -147,6 +150,17 @@ void UMuksiBattleAnimationComponent::HandleMontageEnded(UAnimMontage* Montage, b
 		if (UAnimInstance* AnimInstance = CachedMeshComponent->GetAnimInstance())
 		{
 			AnimInstance->OnMontageEnded.RemoveDynamic(this, &UMuksiBattleAnimationComponent::HandleMontageEnded);
+		}
+	}
+	
+	//카메라 원래대로 돌리기
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem =
+	UMuksiWorldManagerSubsystem::Get(this))
+	{
+		if (ABattleCameraManager* CameraManager =
+			ManagerSubsystem->GetManager<ABattleCameraManager>())
+		{
+			CameraManager->ReturnToOverview();
 		}
 	}
 

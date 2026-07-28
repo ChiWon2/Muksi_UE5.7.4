@@ -19,11 +19,18 @@ class MUKSI_API UPassiveActivePopup : public UUserWidget
 	
 public:
 	void SetData(UTexture2D* CharacterImage, FText PassiveName);
-	
+	void StartRemoveTimer(float LifeTime = 3.0f);
 protected:
 	UPROPERTY(meta=(BindWidget))
 	UImage* Image_CharacterImage;
 	UPROPERTY(meta=(BindWidget))
 	UTextBlock* TextBlock_PassiveName;
 	
+	
+	
+	UFUNCTION()
+	void RemovePopup();
+	
+private:
+	FTimerHandle RemoveTimerHandle;
 };

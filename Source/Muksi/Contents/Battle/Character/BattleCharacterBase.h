@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
 
+class UCharacterCameraComponent;
 class ABattleManager;
 class UWidget_BattleMainScreen;
 class AExchangeCharacterBase;
@@ -116,6 +118,15 @@ public:
 		return PassiveComponent;
 	}
 	
+public:
+	UFUNCTION(
+		BlueprintPure,
+		Category = "Battle Character|Camera"
+	)
+	FTransform GetCameraFocusTransform() const;
+	
+	
+	
 protected:
 	FCharacterData CharacterData;
 	
@@ -133,6 +144,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
+	
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
+	UCharacterCameraComponent* GetClickCameraFocusComponent() const{ return ClickCameraFocusComponent;}
+	
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
+	UCharacterCameraComponent* GetAttackCameraComponent()const{ return AttackCameraFocusComponent;}
 
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
@@ -165,6 +182,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCharacterCameraComponent> ClickCameraFocusComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCharacterCameraComponent> AttackCameraFocusComponent = nullptr;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<AExchangeCharacterBase> ExchangeCharacterBase = nullptr;

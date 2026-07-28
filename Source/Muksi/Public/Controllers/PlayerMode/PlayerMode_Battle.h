@@ -77,6 +77,7 @@ protected:
 private:
 	void UpdateCardTargeting(const FHitResult& HitResult);
 	void PushCharacterDataWidget();
+	void FocusCameraOnCharacter (ABattleCharacterBase* Character);
 
 	UPROPERTY()
 	TObjectPtr<AActor> SelectedActor;
