@@ -2,8 +2,6 @@
 
 
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
-
-#include "Muksi/Contents/Battle/Grid/CardRange/CardRangeDataAssetBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
@@ -40,7 +38,7 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 		);
 	//일단 첫번째 가능 위치 사용
 	FIntPoint SelectedCoord = CandidateCoords[0];
-	BestResult.SelectedCoordArray = Card->AttackType.RangeDataAsset->GetRangeCoords(GridManager, SelectedCoord, 0);
+	//BestResult.SelectedCoordArray = Card->AttackType.RangeDataAsset->GetRangeCoords(GridManager, SelectedCoord, 0);
 	BestResult.SelectedCard = Card;
 	EnemyData.BattleDeck.Remove(Card);
 
