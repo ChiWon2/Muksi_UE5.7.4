@@ -2,16 +2,18 @@
 
 FHexCubeCoord FHexGridMath::OffsetToCube(const FHexOffsetCoord& OffsetCoord)
 {
-	const int32 CubeX = OffsetCoord.X;
-	const int32 CubeZ = OffsetCoord.Y - (OffsetCoord.X - (OffsetCoord.X & 1)) / 2;
+	// Odd-R horizontal layout: odd-numbered rows are shifted right.
+	const int32 CubeX = OffsetCoord.X - (OffsetCoord.Y - (OffsetCoord.Y & 1)) / 2;
+	const int32 CubeZ = OffsetCoord.Y;
 	const int32 CubeY = -CubeX - CubeZ;
 	return FHexCubeCoord(CubeX, CubeY, CubeZ);
 }
 
 FHexOffsetCoord FHexGridMath::CubeToOffset(const FHexCubeCoord& CubeCoord)
 {
-	const int32 Column = CubeCoord.X;
-	const int32 Row = CubeCoord.Z + (CubeCoord.X - (CubeCoord.X & 1)) / 2;
+	// Odd-R horizontal layout: odd-numbered rows are shifted right.
+	const int32 Column = CubeCoord.X + (CubeCoord.Z - (CubeCoord.Z & 1)) / 2;
+	const int32 Row = CubeCoord.Z;
 	return FHexOffsetCoord(Column, Row);
 }
 
@@ -58,10 +60,37 @@ int32 FHexGridMath::RotateDirectionRight(const int32 DirectionIndex, const int32
 
 int32 FHexGridMath::GetClosestDirectionByWorldVector(const FVector& WorldDirection)
 {
-	FVector FlatDirection = WorldDirection;
-	FlatDirection.Z = 0.0f;
-	if (!FlatDirection.Normalize()) return INDEX_NONE;
-	float Angle = FMath::RadiansToDegrees(FMath::Atan2(FlatDirection.Y, FlatDirection.X));
-	if (Angle < 0.0f) Angle += 360.0f;
-	return NormalizeDirection(FMath::RoundToInt(Angle / 60.0f));
+	FVector2D FlatDirection(WorldDirection.X, WorldDirection.Y);
+	if (!FlatDirection.Normalize())
+	{
+		return INDEX_NONE;
+	}
+
+	// Direction indices follow GetCubeDirection():
+	// 0 East, 1 North-East, 2 North-West, 3 West, 4 South-West, 5 South-East.
+	// Grid rows increase along world +Y, so the north-facing directions use negative Y.
+	static const FVector2D DirectionVectors[DirectionCount] =
+	{
+		FVector2D( 1.0f,  0.0f),
+		FVector2D( 0.5f, -0.8660254f),
+		FVector2D(-0.5f, -0.8660254f),
+		FVector2D(-1.0f,  0.0f),
+		FVector2D(-0.5f,  0.8660254f),
+		FVector2D( 0.5f,  0.8660254f)
+	};
+
+	int32 BestDirection = 0;
+	float BestDot = -1.0f;
+
+	for (int32 DirectionIndex = 0; DirectionIndex < DirectionCount; ++DirectionIndex)
+	{
+		const float Dot = FVector2D::DotProduct(FlatDirection, DirectionVectors[DirectionIndex]);
+		if (Dot > BestDot)
+		{
+			BestDot = Dot;
+			BestDirection = DirectionIndex;
+		}
+	}
+
+	return BestDirection;
 }

@@ -67,11 +67,15 @@ public:
 
 	// 인접한 열 사이의 X축 월드 간격.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout", meta = (ClampMin = "1.0"))
-	float GridSpacingX = 150.0f;
+	float GridSpacingX = 170.0f;
 
 	// 같은 열에 있는 인접한 행 사이의 Y축 월드 간격.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout", meta = (ClampMin = "1.0"))
-	float GridSpacingY = 170.0f;
+	float GridSpacingY = 150.0f;
+
+	// 홀수 행이 X축 방향으로 이동할 GridSpacingX의 비율.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout")
+	float OddRowXOffsetRatio = 0.5f;
 
 	// 홀수 열이 Y축 방향으로 이동할 GridSpacingY의 비율.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout")
@@ -79,7 +83,7 @@ public:
 
 	// 생성되는 각 타일에 추가로 적용할 회전.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Layout")
-	FRotator TileRotation = FRotator(0.0f, 30.0f, 0.0f);
+	FRotator TileRotation = FRotator(0.0f, 0.0f, 0.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	TArray<TSubclassOf<ABattleGridTile>> TileClasses;
@@ -142,9 +146,7 @@ public:
 	UFUNCTION()
 	bool CheckGridInRange(const FHexOffsetCoord& A, const FHexOffsetCoord& B, int32 Range);
 
-	//카드 효과 관련 public
 public:
-	//카드 공격 범위 관련
 	UPROPERTY()
 	TArray<FHexOffsetCoord> TargetGridArray;
 

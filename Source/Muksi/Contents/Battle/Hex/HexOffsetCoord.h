@@ -5,10 +5,11 @@
 
 /**
  *
- * Offset coordinates : Odd-Q Vertical Offset
+ * Offset coordinates : Odd-R Horizontal Offset
  *
- * X = Column
- * Y = Row
+ * X = Column = Q
+ * Y = Row = R
+ * Odd-numbered rows are shifted right.
  */
 USTRUCT(BlueprintType)
 struct MUKSI_API FHexOffsetCoord

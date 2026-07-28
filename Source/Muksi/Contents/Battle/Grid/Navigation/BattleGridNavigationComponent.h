@@ -60,7 +60,7 @@ public:
 	/**
 	 * Hex Grid���� �� ��ǥ ���� �Ÿ��� ��ȯ�Ѵ�.
 	 *
-	 * Odd-Q Offset ��ǥ�� Cube ��ǥ�� ��ȯ�Ͽ� ����Ѵ�.
+	 * Odd-R Offset ��ǥ�� Cube ��ǥ�� ��ȯ�Ͽ� ����Ѵ�.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
 	float CalculateHexDistance(const FHexOffsetCoord& A, const FHexOffsetCoord& B) const;

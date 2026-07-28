@@ -1,4 +1,3 @@
-#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelection.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"

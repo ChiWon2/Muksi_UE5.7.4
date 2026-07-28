@@ -193,11 +193,11 @@ int32 ABattleGridManager::CoordToIndex(const FHexOffsetCoord& Coord) const
 
 FVector ABattleGridManager::HexGridToWorld(const FHexOffsetCoord& Coord) const
 {
-	// Flat Top Hex + Odd-Q Offset 방식
-	// X가 홀수인 열은 Y 방향으로 반 칸 내려감.
+	// Flat-top hex + Odd-R horizontal offset.
+	// Y가 홀수인 행은 X 방향으로 반 칸 이동한다.
 
-	const float LocalX = GridSpacingX * Coord.X;
-	const float LocalY = GridSpacingY * (Coord.Y + OddColumnYOffsetRatio * (Coord.X & 1));
+	const float LocalX = GridSpacingX * (Coord.X + OddRowXOffsetRatio * (Coord.Y & 1));
+	const float LocalY = GridSpacingY * Coord.Y;
 	const FVector LocalLocation(LocalX, LocalY, 0.0f);
 
 	return GetActorTransform().TransformPosition(LocalLocation);
@@ -243,9 +243,9 @@ float ABattleGridManager::GetAdjacentTileCenterDistance() const
 		return MinimumDistance;
 	}
 
-	const float DiagonalDistance = FMath::Sqrt(FMath::Square(GridSpacingX) + FMath::Square(GridSpacingY * OddColumnYOffsetRatio));
+	const float DiagonalDistance = FMath::Sqrt(FMath::Square(GridSpacingX * OddRowXOffsetRatio) + FMath::Square(GridSpacingY));
 
-	return FMath::Min(GridSpacingY, DiagonalDistance);
+	return FMath::Min(GridSpacingX, DiagonalDistance);
 }
 
 float ABattleGridManager::GetWorldRadiusByGridRange(int32 GridRange, bool bIncludeOuterTileRadius) const
@@ -304,37 +304,15 @@ TArray<FHexOffsetCoord> ABattleGridManager::GetHexNeighbors(const FHexOffsetCoor
 		return Neighbors;
 	}
 
-	const bool bIsOddColumn = (Coord.X & 1) == 1;
+	Neighbors.Reserve(FHexGridMath::DirectionCount);
 
-	const TArray<FHexOffsetCoord> EvenColumnDirections =
+	for (int32 DirectionIndex = 0; DirectionIndex < FHexGridMath::DirectionCount; ++DirectionIndex)
 	{
-		FHexOffsetCoord(+1, -1),
-		FHexOffsetCoord(+1, 0),
-		FHexOffsetCoord(0, +1),
-		FHexOffsetCoord(-1, 0),
-		FHexOffsetCoord(-1, -1),
-		FHexOffsetCoord(0, -1)
-	};
+		const FHexOffsetCoord NeighborCoord = FHexGridMath::GetNeighborCoord(Coord, DirectionIndex);
 
-	const TArray<FHexOffsetCoord> OddColumnDirections =
-	{
-		FHexOffsetCoord(+1, 0),
-		FHexOffsetCoord(+1, +1),
-		FHexOffsetCoord(0, +1),
-		FHexOffsetCoord(-1, +1),
-		FHexOffsetCoord(-1, 0),
-		FHexOffsetCoord(0, -1)
-	};
-
-	const TArray<FHexOffsetCoord>& Directions = bIsOddColumn ? OddColumnDirections : EvenColumnDirections;
-
-	for (const FHexOffsetCoord& Direction : Directions)
-	{
-		const FHexOffsetCoord NextCoord = Coord + Direction;
-
-		if (IsValidCoord(NextCoord))
+		if (IsValidCoord(NeighborCoord))
 		{
-			Neighbors.Add(NextCoord);
+			Neighbors.Add(NeighborCoord);
 		}
 	}
 
@@ -611,7 +589,7 @@ bool ABattleGridManager::InitializeRuntimeClone(const ABattleGridManager* Source
 	HexRadius = SourceGridManager->HexRadius;
 	GridSpacingX = SourceGridManager->GridSpacingX;
 	GridSpacingY = SourceGridManager->GridSpacingY;
-	OddColumnYOffsetRatio = SourceGridManager->OddColumnYOffsetRatio;
+	OddRowXOffsetRatio = SourceGridManager->OddRowXOffsetRatio;
 	TileRotation = SourceGridManager->TileRotation;
 	TileClasses = SourceGridManager->TileClasses;
 	GridCells = SourceGridManager->GridCells;
