@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
+#include "Muksi/Contents/Battle/Camera/CharacterCameraComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 #include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
 
@@ -58,6 +59,14 @@ ABattleCharacterBase::ABattleCharacterBase()
 		ECR_Ignore
 	);
 	
+	//카메라 포커스 잡는 컴포넌트는 소켓에 잡기(클릭 확대용)
+	ClickCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("ClickCameraFocusComponent"));
+	ClickCameraFocusComponent->SetupAttachment(SceneRoot);
+	//카메라 포커스 잡는 컴포넌트는 소켓에 잡기(공격 애니메이션 연출용)
+	AttackCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("AttackCameraFocusComponent"));
+	AttackCameraFocusComponent->SetupAttachment(MeshComponent,TEXT("AttackCameraSocket"));
+	AttackCameraFocusComponent->bEditableWhenInherited = true;
+	
 	PassiveComponent = CreateDefaultSubobject<UCharacterPassiveComponent>(TEXT("PassiveComponent"));
 
 	StatusEffectComponent = CreateDefaultSubobject<UMuksiStatusEffectComponent>(TEXT("StatusEffectComponent"));
@@ -68,6 +77,7 @@ ABattleCharacterBase::ABattleCharacterBase()
 	
 	BattleStatComponent = CreateDefaultSubobject<UBattleStatComponent>(TEXT("BattleStatComponent"));
 
+	
 }
 
 int32 ABattleCharacterBase::GetCurrentHP() const
@@ -172,6 +182,18 @@ TArray<TObjectPtr<UCharacterPassive>> ABattleCharacterBase::GetCharacterPassives
 	}
 	return PassiveComponent->GetCharacterPassives();
 }
+
+FTransform ABattleCharacterBase::GetCameraFocusTransform() const
+{
+	if (IsValid(ClickCameraFocusComponent))
+	{
+		return ClickCameraFocusComponent
+			->GetComponentTransform();
+	}
+
+	return GetActorTransform();
+}
+
 
 
 void ABattleCharacterBase::OnSelected()

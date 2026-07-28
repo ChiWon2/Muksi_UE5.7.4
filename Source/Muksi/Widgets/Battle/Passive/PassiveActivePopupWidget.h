@@ -29,6 +29,8 @@ protected:
 	TSubclassOf<UPassiveActivePopup> PassiveActivePopupClass_Player;
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UPassiveActivePopup> PassiveActivePopupClass_Enemy;
+	
+
 public:
 	void SetData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
 	UFUNCTION()

@@ -9,7 +9,9 @@
 #include "MuksiDebugHelper.h"
 #include "MuksiGameplayTags.h"
 #include "Kismet/GameplayStatics.h"
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
@@ -135,6 +137,13 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 	if (HitActor->GetClass()->ImplementsInterface(USelectableCharacterInterface::StaticClass()))
 	{
 		SelectedActor = HitActor;
+		
+		if (ABattleCharacterBase* SelectedCharacter =
+		Cast<ABattleCharacterBase>(HitActor))
+		{
+			FocusCameraOnCharacter(SelectedCharacter);
+		}
+		
 		PushCharacterDataWidget();
 		return;
 	}
@@ -334,4 +343,30 @@ void UPlayerMode_Battle::PushCharacterDataWidget()
 			UE_LOG(LogTemp, Log, TEXT("After Push: %s"), *GetNameSafe(PushedWidget));
 		}
 	);
+}
+
+void UPlayerMode_Battle::FocusCameraOnCharacter(ABattleCharacterBase* Character)
+{
+	if (!IsValid(Character))
+	{
+		return;
+	}
+
+	UMuksiWorldManagerSubsystem* ManagerSubsystem =
+		UMuksiWorldManagerSubsystem::Get(this);
+
+	if (!IsValid(ManagerSubsystem))
+	{
+		return;
+	}
+
+	ABattleCameraManager* CameraManager =
+		ManagerSubsystem->GetManager<ABattleCameraManager>();
+
+	if (!IsValid(CameraManager))
+	{
+		return;
+	}
+
+	CameraManager->FocusCharacter(Character);
 }
