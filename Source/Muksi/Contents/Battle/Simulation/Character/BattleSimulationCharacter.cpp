@@ -2,6 +2,7 @@
 
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 
@@ -25,20 +26,22 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 
 	USkeletalMeshComponent* SourceMeshComponent = InSourceCharacter->GetMeshComponent();
 
-	if (SourceMeshComponent && MeshComponent)
+	if (IsValid(SourceMeshComponent) && IsValid(MeshComponent))
 	{
 		MeshComponent->SetSkeletalMeshAsset(SourceMeshComponent->GetSkeletalMeshAsset());
 		MeshComponent->SetAnimInstanceClass(SourceMeshComponent->GetAnimClass());
 		MeshComponent->SetRelativeTransform(SourceMeshComponent->GetRelativeTransform());
 		MeshComponent->SetVisibility(SourceMeshComponent->IsVisible());
 
-		for (int32 MaterialIndex = 0; MaterialIndex < SourceMeshComponent->GetNumMaterials(); ++MaterialIndex)
+		const int32 MaterialCount = SourceMeshComponent->GetNumMaterials();
+
+		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
 		{
-			MeshComponent->SetMaterial(MaterialIndex, SourceMeshComponent->GetMaterial(MaterialIndex));
+			MeshComponent->SetMaterial(MaterialIndex, SimulationMaterial);
 		}
 	}
 
-	if (InSourceCharacter->BattleAnimationComponent && BattleAnimationComponent)
+	if (IsValid(InSourceCharacter->BattleAnimationComponent) && IsValid(BattleAnimationComponent))
 	{
 		BattleAnimationComponent->AnimationData = InSourceCharacter->BattleAnimationComponent->AnimationData;
 		BattleAnimationComponent->SetWeaponType(InSourceCharacter->BattleAnimationComponent->CurrentWeaponType);

@@ -1,8 +1,8 @@
 #include "Muksi/Contents/Battle/Targeting/Selection/Direction/DirectionSelection.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Direction/DirectionSelectionData.h"
 
 void UDirectionSelection::Evaluate(const FTargetSelectionContext& Context, const FInstancedStruct& SelectionData, FTargetingStepContext& OutStepContext) const
@@ -44,7 +44,7 @@ void UDirectionSelection::Evaluate(const FTargetSelectionContext& Context, const
 		return;
 	}
 
-	const ABattleGridTile* SelectedTile = Context.GridManager->GetTileByCoord(Context.InputContext.HoveredCoord);
+	const ABattleGridTile* SelectedTile = Context.GridManager->GetTileActorByCoord(Context.InputContext.HoveredCoord);
 
 	if (SelectedTile)
 	{
@@ -69,14 +69,14 @@ int32 UDirectionSelection::ResolveHexDirection(const FTargetSelectionContext& Co
 
 	for (int32 DirectionIndex = 0; DirectionIndex < FHexGridMath::DirectionCount; ++DirectionIndex)
 	{
-		const FIntPoint NeighborCoord = FHexGridMath::GetNeighborCoord(Context.OriginCoord, DirectionIndex);
+		const FHexOffsetCoord NeighborCoord = FHexGridMath::GetNeighborCoord(Context.OriginCoord, DirectionIndex);
 
 		if (!Context.GridManager->IsValidCoord(NeighborCoord))
 		{
 			continue;
 		}
 
-		const ABattleGridTile* NeighborTile = Context.GridManager->GetTileByCoord(NeighborCoord);
+		const ABattleGridTile* NeighborTile = Context.GridManager->GetTileActorByCoord(NeighborCoord);
 
 		if (!NeighborTile)
 		{

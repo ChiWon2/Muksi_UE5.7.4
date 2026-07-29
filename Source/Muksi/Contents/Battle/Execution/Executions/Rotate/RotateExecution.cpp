@@ -39,7 +39,7 @@ void URotateExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		return;
 	}
 
-	const FIntPoint SelectedCoord = Context.TargetingResult.GetSelectedCoord();
+	const FHexOffsetCoord SelectedCoord = Context.TargetingResult.GetSelectedCoord();
 	const FVector TargetWorldLocation = Context.BattleGridManager->GetTransformToPosition(SelectedCoord).GetLocation();
 
 	FMuksiBattleMovementFinished OnRotationFinished;

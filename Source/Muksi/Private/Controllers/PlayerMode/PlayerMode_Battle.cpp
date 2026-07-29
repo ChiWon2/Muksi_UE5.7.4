@@ -14,7 +14,7 @@
 #include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
@@ -51,8 +51,6 @@ void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 		UE_LOG(LogTemp, Error, TEXT("UPlayerMode_Battle::EnterMode - BattleManager not found"));
 		return;
 	}
-
-	InitializeBattleTestData();
 }
 
 void UPlayerMode_Battle::ExitMode()
@@ -78,8 +76,6 @@ void UPlayerMode_Battle::TickPlayerMode()
 
 	UpdateHoveredGridTile();
 }
-
-//***************** Test
 
 void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 {
@@ -232,7 +228,8 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 		return;
 	}
 
-	ABattleGridManager* GridManager = BattleManager->GetCurrentTargetingGridManager();
+	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
+	ABattleGridManager* GridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
 
 	if (!GridManager)
 	{
@@ -248,7 +245,7 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 	{
 		InputContext.HoveredCoord = HitTile->GetGridCoord();
 
-		const FBattleGridCell* Cell = GridManager->GetCell(InputContext.HoveredCoord);
+		const FBattleGridCell* Cell = GridManager->GetCellByCoord(InputContext.HoveredCoord);
 
 		if (Cell)
 		{
@@ -269,26 +266,6 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 	}
 
 	BattleManager->UpdateCurrentCardTargeting(InputContext);
-}void UPlayerMode_Battle::InitializeBattleTestData()
-{
-	//if (!BattleCardDataTable || !TestPlayerCharacterDataAsset || !TestEnemyCharacterDataAsset)
-	//{
-	//	UE_LOG(LogTemp, Warning, TEXT("UPlayerMode::InitializeBattleTestData - Required asset is missing"));
-	//	return;
-	//}
-
-	//PlayerCharacterData = NewObject<UCharacterDataBase>(this);
-	//EnemyCharacterData = NewObject<UCharacterDataBase>(this);
-
-	//if (PlayerCharacterData)
-	//{
-	//	PlayerCharacterData->InitializeFromDataAsset(TestPlayerCharacterDataAsset);
-	//}
-
-	//if (EnemyCharacterData)
-	//{
-	//	EnemyCharacterData->InitializeFromDataAsset(TestEnemyCharacterDataAsset);
-	//}
 }
 
 void UPlayerMode_Battle::PushCharacterDataWidget()

@@ -6,6 +6,7 @@
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 // Sets default values for this component's properties
 UEnemyBattleAIComponent::UEnemyBattleAIComponent()
@@ -65,7 +66,7 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 	return Result.SelectedCard;
 }
 
-TArray<FIntPoint> UEnemyBattleAIComponent::GetPointForExchange()const
+TArray<FHexOffsetCoord> UEnemyBattleAIComponent::GetPointForExchange()const
 {
 	return Result.SelectedCoordArray;
 }

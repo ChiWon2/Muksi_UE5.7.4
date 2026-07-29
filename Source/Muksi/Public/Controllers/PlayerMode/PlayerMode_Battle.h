@@ -15,9 +15,6 @@ class ABattleCharacterBase;
 class ABattleGridTile;
 class ABattleManager;
 
-/**
- *
- */
 UCLASS(Blueprintable, BlueprintType)
 class MUKSI_API UPlayerMode_Battle : public UPlayerModeBase
 {
@@ -35,37 +32,10 @@ public:
 	virtual void HandleRPressedKey(const FInputActionValue& Value) override;
 	//~ End UPlayerModeBase Interface
 
-	//TEST
 	void UpdateHoveredGridTile();
 
 	UPROPERTY()
 	TObjectPtr<ABattleGridTile> HoveredGridTile = nullptr;
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Battle Test")
-	void InitializeBattleTestData();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle Test")
-	ABattleCharacterBase* GetPlayerCharacterData() const { return BattleCharacterPlayer; }
-
-	UFUNCTION(BlueprintCallable, Category = "Battle Test")
-	ABattleCharacterBase* GetEnemyCharacterData() const { return BattleCharacterEnemy; }
-
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Test")
-	TObjectPtr<UDataTable> BattleCardDataTable = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Test")
-	TObjectPtr<UMuksiCharacterDataAsset> TestPlayerCharacterDataAsset = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Test")
-	TObjectPtr<UMuksiCharacterDataAsset> TestEnemyCharacterDataAsset = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleCharacterBase> BattleCharacterPlayer = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleCharacterBase> BattleCharacterEnemy = nullptr;
 	
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
@@ -80,7 +50,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AActor> SelectedActor;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Battle UI")
 	TSoftClassPtr<UWidget_ActivatableBase> WidgetCharacterDataClass;
 };

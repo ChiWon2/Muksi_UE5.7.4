@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "UObject/Object.h"
 
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
@@ -40,8 +41,8 @@ public:
 	void ClearPreview();
 
 private:
-	bool ResolveCurrentStepOrigin(FIntPoint& OutOriginCoord, FVector& OutOriginWorldLocation) const;
-	bool ResolveGridWorldLocation(const FIntPoint& Coord, FVector& OutWorldLocation) const;
+	bool ResolveCurrentStepOrigin(FHexOffsetCoord& OutOriginCoord, FVector& OutOriginWorldLocation) const;
+	bool ResolveGridWorldLocation(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const;
 	bool MakeSelectionContext(const FTargetingInputContext& InputContext, FTargetSelectionContext& OutContext) const;
 	bool ApplyFinalPattern();
 	bool BuildPreviewResult(FTargetingResult& OutPreviewResult) const;

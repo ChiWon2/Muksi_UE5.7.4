@@ -21,12 +21,12 @@ bool UAreaPattern::IsPatternDataValid(const FInstancedStruct& PatternData) const
 	return PatternData.GetScriptStruct() == ExpectedStruct;
 }
 
-void UAreaPattern::AddAffectedCoord(FTargetingResult& InOutResult, const FIntPoint& Coord) const
+void UAreaPattern::AddAffectedCoord(FTargetingResult& InOutResult, const FHexOffsetCoord& Coord) const
 {
 	InOutResult.AffectedCoords.AddUnique(Coord);
 }
 
-void UAreaPattern::AddPathCoord(FTargetingResult& InOutResult, const FIntPoint& Coord) const
+void UAreaPattern::AddPathCoord(FTargetingResult& InOutResult, const FHexOffsetCoord& Coord) const
 {
 	InOutResult.PathCoords.AddUnique(Coord);
 }

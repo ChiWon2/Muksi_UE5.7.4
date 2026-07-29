@@ -1,7 +1,7 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePattern.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePatternData.h"
 
 void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
@@ -16,7 +16,7 @@ void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FIns
 		return;
 	}
 
-	const FIntPoint CenterCoord = StepContext->SelectedCoord;
+	const FHexOffsetCoord CenterCoord = StepContext->SelectedCoord;
 
 	if (!Context.GridManager->IsValidCoord(CenterCoord))
 	{
@@ -25,11 +25,11 @@ void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FIns
 
 	const int32 SafeRadius = FMath::Max(0, Data->Radius);
 
-	for (int32 X = 0; X < Context.GridManager->GridWidth; ++X)
+	for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
 	{
-		for (int32 Y = 0; Y < Context.GridManager->GridHeight; ++Y)
+		for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
 		{
-			const FIntPoint CandidateCoord(X, Y);
+			const FHexOffsetCoord CandidateCoord(X, Y);
 
 			if (!Context.GridManager->IsValidCoord(CandidateCoord))
 			{

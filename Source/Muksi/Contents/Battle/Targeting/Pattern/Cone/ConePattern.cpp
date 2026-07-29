@@ -1,8 +1,8 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/Cone/ConePattern.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Cone/ConePatternData.h"
 
 void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
@@ -17,7 +17,7 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 		return;
 	}
 
-	const FIntPoint OriginCoord = StepContext->OriginCoord;
+	const FHexOffsetCoord OriginCoord = StepContext->OriginCoord;
 	const FVector OriginWorldLocation = StepContext->OriginWorldLocation;
 	const FVector AimWorldLocation = StepContext->AimWorldLocation;
 	FVector AimDirection = AimWorldLocation - OriginWorldLocation;
@@ -37,18 +37,18 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 		AddAffectedCoord(InOutResult, OriginCoord);
 	}
 
-	for (int32 X = 0; X < Context.GridManager->GridWidth; ++X)
+	for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
 	{
-		for (int32 Y = 0; Y < Context.GridManager->GridHeight; ++Y)
+		for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
 		{
-			const FIntPoint CandidateCoord(X, Y);
+			const FHexOffsetCoord CandidateCoord(X, Y);
 
 			if (CandidateCoord == OriginCoord)
 			{
 				continue;
 			}
 
-			if (!Context.GridManager->IsValidCoord(CandidateCoord))
+			if (!CandidateCoord.IsValid())
 			{
 				continue;
 			}
@@ -58,7 +58,7 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 				continue;
 			}
 
-			const ABattleGridTile* CandidateTile = Context.GridManager->GetTileByCoord(CandidateCoord);
+			const ABattleGridTile* CandidateTile = Context.GridManager->GetTileActorByCoord(CandidateCoord);
 
 			if (!CandidateTile)
 			{

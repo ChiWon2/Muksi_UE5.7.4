@@ -1,14 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Muksi/Contents/Battle/Grid/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 
 #include "Components/ArrowComponent.h"
 
-// Sets default values
 ABattleGridTile::ABattleGridTile()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
@@ -17,11 +15,8 @@ ABattleGridTile::ABattleGridTile()
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(SceneRoot);
 	
-
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
-	
-	
 	
 	CenterPointComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("CenterPointComponent"));
 	CenterPointComponent->SetupAttachment(SceneRoot);
@@ -29,24 +24,14 @@ ABattleGridTile::ABattleGridTile()
 	ExchangeIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExchangeIndicator"));
 	ExchangeIndicatorMesh->SetupAttachment(SceneRoot);
 	
-	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(
-		TEXT("TargetIndicatorMesh")
-	);
+	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TargetIndicatorMesh"));
 	TargetIndicatorMesh->SetupAttachment(SceneRoot);
 }
 
-// Called when the game starts or when spawned
 void ABattleGridTile::BeginPlay()
 {
 	Super::BeginPlay();
 	
-}
-
-// Called every frame
-void ABattleGridTile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
 void ABattleGridTile::SetTargetIndicatorVisible(bool bVisible)
@@ -79,29 +64,28 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 	return GetActorTransform();
 }
 
-void ABattleGridTile::SetExchangeIndicator(int32 IndicatorType)
+void ABattleGridTile::SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType)
 {
-	//Include하기 귀찮아서 int로 받음
-	//0 - 공격(범위)
-	//1 - 이동
-	//2 - 방어
 	ExchangeIndicatorMesh->SetVisibility(true);
 	
 	if (!AttackableIndicatorMaterial && !MoveIndicatorMaterial && !BlockedIndicatorMaterial){UE_LOG(LogTemp, Error, TEXT("IndicatorMaterior is null (BattleGridTile.cpp)")); return;}
 	
 	switch (IndicatorType)
 	{
-		case 0:
+		case EMuksiBattleCardType::None:
 		ExchangeIndicatorMesh->SetMaterial(0, AttackableIndicatorMaterial);
 		break;
-		case 1:
+		case EMuksiBattleCardType::RangeAttack:
+		case EMuksiBattleCardType::Defense:
+		case EMuksiBattleCardType::Heal:
+		case EMuksiBattleCardType::Move:
 		ExchangeIndicatorMesh->SetMaterial(0, MoveIndicatorMaterial);
 		break;
-		case 2:
+		case EMuksiBattleCardType::Rush:
 		ExchangeIndicatorMesh->SetMaterial(0, BlockedIndicatorMaterial);
 		break;
 		default:
-		UE_LOG(LogTemp, Error, TEXT("SetTargetIndicator Type Error (BattleGridTile.cpp)"));
+		UE_LOG(LogTemp, Error, TEXT("[BattleGridTile] SetTargetIndicator Type Error"));
 		break;
 	}
 }
@@ -122,15 +106,11 @@ void ABattleGridTile::OnHoverEnd()
 	
 }
 
-
 void ABattleGridTile::OnGridSelected_Implementation()
 {
 	ISelectGridInterface::OnGridSelected_Implementation();
 	
-	UE_LOG(LogTemp, Log, TEXT("Clicked Grid Coord - X: %d, Y: %d"),
-		GridCoord.X,
-		GridCoord.Y
-	);
+	UE_LOG(LogTemp, Log, TEXT("[ABattleGridTile]Clicked Grid Coord - Q: %d, R: %d"), GridCoord.X, GridCoord.Y);
 }
 
 

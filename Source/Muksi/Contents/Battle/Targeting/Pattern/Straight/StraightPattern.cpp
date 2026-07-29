@@ -16,14 +16,14 @@ void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FI
 		return;
 	}
 
-	const FCubeCoord Direction = Context.GridManager->GetCubeDirection(StepContext->Direction);
-	FCubeCoord CurrentCube = Context.GridManager->OddQToCube(StepContext->OriginCoord);
+	const FHexCubeCoord Direction = FHexGridMath::GetCubeDirection(StepContext->Direction);
+	FHexCubeCoord CurrentCube = FHexGridMath::OffsetToCube(StepContext->OriginCoord);
 
 	for (int32 Distance = 1; Distance <= StraightData->Range; ++Distance)
 	{
-		CurrentCube = FCubeCoord(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
+		CurrentCube = FHexCubeCoord(CurrentCube.X + Direction.X, CurrentCube.Y + Direction.Y, CurrentCube.Z + Direction.Z);
 
-		const FIntPoint CurrentCoord = Context.GridManager->CubeToOddQ(CurrentCube);
+		const FHexOffsetCoord CurrentCoord = FHexGridMath::CubeToOffset(CurrentCube);
 
 		if (!Context.GridManager->IsValidCoord(CurrentCoord))
 		{
@@ -32,7 +32,7 @@ void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FI
 
 		AddPathCoord(InOutResult, CurrentCoord);
 
-		const FBattleGridCell* Cell = Context.GridManager->GetCell(CurrentCoord);
+		const FBattleGridCell* Cell = Context.GridManager->GetCellByCoord(CurrentCoord);
 
 		if (!Cell || !Cell->OccupyingActor)
 		{

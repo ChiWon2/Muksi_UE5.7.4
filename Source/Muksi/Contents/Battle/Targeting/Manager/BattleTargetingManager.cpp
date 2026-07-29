@@ -209,9 +209,9 @@ void UBattleTargetingManager::ClearPreview()
 	}
 }
 
-bool UBattleTargetingManager::ResolveCurrentStepOrigin(FIntPoint& OutOriginCoord, FVector& OutOriginWorldLocation) const
+bool UBattleTargetingManager::ResolveCurrentStepOrigin(FHexOffsetCoord& OutOriginCoord, FVector& OutOriginWorldLocation) const
 {
-	OutOriginCoord = FIntPoint(INDEX_NONE, INDEX_NONE);
+	OutOriginCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 	OutOriginWorldLocation = FVector::ZeroVector;
 
 	const FTargetingStepCardData* StepData = TargetingData.GetStep(CurrentStepIndex);
@@ -280,7 +280,7 @@ bool UBattleTargetingManager::ResolveCurrentStepOrigin(FIntPoint& OutOriginCoord
 	}
 }
 
-bool UBattleTargetingManager::ResolveGridWorldLocation(const FIntPoint& Coord, FVector& OutWorldLocation) const
+bool UBattleTargetingManager::ResolveGridWorldLocation(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const
 {
 	OutWorldLocation = FVector::ZeroVector;
 
@@ -294,7 +294,7 @@ bool UBattleTargetingManager::ResolveGridWorldLocation(const FIntPoint& Coord, F
 		return false;
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCell(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
 
 	if (!Cell)
 	{
@@ -315,7 +315,7 @@ bool UBattleTargetingManager::MakeSelectionContext(const FTargetingInputContext&
 		return false;
 	}
 
-	FIntPoint OriginCoord;
+	FHexOffsetCoord OriginCoord;
 	FVector OriginWorldLocation;
 
 	if (!ResolveCurrentStepOrigin(OriginCoord, OriginWorldLocation))

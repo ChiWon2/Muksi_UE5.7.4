@@ -11,11 +11,9 @@ struct FAreaPatternContext
 {
 	GENERATED_BODY()
 
-	// 현재 카드를 사용하는 캐릭터.
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
 
-	// 실제 HexGrid 판정에 사용하는 그리드 매니저.
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 

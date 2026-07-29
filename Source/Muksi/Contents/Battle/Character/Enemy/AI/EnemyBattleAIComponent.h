@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Components/ActorComponent.h"
 #include "EnemyBattleAIComponent.generated.h"
@@ -32,7 +33,7 @@ public:
 		ABattleManager* BattleManager
 	);
 	
-	TArray<FIntPoint> GetPointForExchange()const;
+	TArray<FHexOffsetCoord> GetPointForExchange()const;
 	
 protected:
 	TArray<FEnemyCardSelectResult> SelectCardArray;

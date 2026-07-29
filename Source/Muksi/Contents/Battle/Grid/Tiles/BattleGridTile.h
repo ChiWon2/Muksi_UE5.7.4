@@ -3,7 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SelectGridInterface.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
+#include"Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
+
 #include "GameFramework/Actor.h"
 #include "BattleGridTile.generated.h"
 
@@ -17,25 +20,18 @@ class MUKSI_API ABattleGridTile : public AActor, public ISelectGridInterface
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	ABattleGridTile();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	
 	
 public:
 	UFUNCTION()
 	void SetGridManager(ABattleGridManager* InGridManager){GridManager = InGridManager;};
 	UFUNCTION()
-	void SetGridCoord(FIntPoint Coord){GridCoord = Coord;};
+	void SetGridCoord(FHexOffsetCoord Coord){GridCoord = Coord;};
 	UFUNCTION()
-	FIntPoint GetGridCoord()const{return GridCoord;};
+	FHexOffsetCoord GetGridCoord()const{return GridCoord;};
 	
 	UFUNCTION()
 	void SetTargetIndicatorVisible(bool bVisible);
@@ -47,7 +43,7 @@ public:
 	FTransform GetCharacterSpawnTransform() const;
 	
 	UFUNCTION()
-	void SetExchangeIndicator(int32 IndicatorType);
+	void SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType);
 	
 	UFUNCTION()
 	void ClearExchangeIndicator();
@@ -56,8 +52,6 @@ public:
 	void OnHoverBegin();
 	UFUNCTION()
 	void OnHoverEnd();
-
-	
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -65,7 +59,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UArrowComponent> CenterPointComponent;
-	
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
@@ -89,14 +82,10 @@ protected:
 	TObjectPtr<UMaterialInterface> MoveIndicatorMaterial;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
-	FIntPoint GridCoord = FIntPoint::ZeroValue;
+	FHexOffsetCoord GridCoord = FHexOffsetCoord();
 	
 	UPROPERTY()
 	ABattleGridManager* GridManager;
-	
-	
-	
-	
 public:
 	virtual void OnGridSelected_Implementation() override;
 

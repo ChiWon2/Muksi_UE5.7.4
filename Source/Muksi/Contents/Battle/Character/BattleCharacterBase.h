@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
@@ -44,7 +45,7 @@ struct MUKSI_API FCharacterData
 	}
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
-	FIntPoint CurrentPosition = FIntPoint::ZeroValue;
+	FHexOffsetCoord CurrentPosition = FHexOffsetCoord();
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiCharacterDataAsset> CharacterAsset = nullptr;
@@ -92,8 +93,8 @@ public:
 	
 	UMuksiCharacterDataAsset* GetCharacterData()const{return CharacterData.CharacterAsset;};
 	
-	FIntPoint GetCharacterPosition()const{return CharacterData.CurrentPosition;};
-	void SetCharacterPosition(FIntPoint NewPosition){CharacterData.CurrentPosition = NewPosition;};
+	FHexOffsetCoord GetCharacterPosition()const{return CharacterData.CurrentPosition;};
+	void SetCharacterPosition(FHexOffsetCoord NewPosition){CharacterData.CurrentPosition = NewPosition;};
 	
 	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData.BattleDeck;};
 	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData);

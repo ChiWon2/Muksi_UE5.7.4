@@ -816,7 +816,7 @@ void UWidget_BattleMainScreen::SelectCardDataSend(int32 InIndex)const
 {
 	if (UMuksiBattleCardDataAsset* CardDataAsset = HandWidget->GetExchangeDataIndex_Player(InIndex))
 	{
-		CachedBattleManager->ExchangeCardDir(CardDataAsset);
+		CachedBattleManager->ExchangeCardTargeting(CardDataAsset);
 	}
 }
 
@@ -879,8 +879,7 @@ void UWidget_BattleMainScreen::DisplayAttackStartUIFinish()
 	}
 }
 
-void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter,
-                                                ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset)
+void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset)
 {
 	
 }

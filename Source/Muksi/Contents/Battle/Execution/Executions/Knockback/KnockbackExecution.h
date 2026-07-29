@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecution.h"
-#include "Muksi/Contents/Battle/Grid/Hex/HexGridCoord.h"
+#include "Muksi/Contents/Battle/Hex/HexCubeCoord.h"
 #include "KnockbackExecution.generated.h"
 
 class ABattleCharacterBase;
@@ -19,9 +19,9 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
-	bool FindActorGridCoord(const ABattleGridManager* GridManager, const AActor* Actor, FIntPoint& OutCoord) const;
-	bool FindKnockbackDirection(const ABattleGridManager* GridManager, const FIntPoint& AttackerCoord, const FIntPoint& TargetCoord, FCubeCoord& OutDirection) const;
-	FIntPoint GetNextCoord(const ABattleGridManager* GridManager, const FIntPoint& CurrentCoord, const FCubeCoord& Direction) const;
+	bool FindActorGridCoord(ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord);
+	bool FindKnockbackDirection(const ABattleGridManager* GridManager, const FHexOffsetCoord& AttackerCoord, const FHexOffsetCoord& TargetCoord, FHexCubeCoord& OutDirection) const;
+	FHexOffsetCoord GetNextCoord(const ABattleGridManager* GridManager, const FHexOffsetCoord& CurrentCoord, const FHexCubeCoord& Direction) const;
 	void HandleMovementFinished(bool bInterrupted);
 	void CompleteExecution();
 
@@ -32,7 +32,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleCharacterBase> KnockbackTarget = nullptr;
 
-	FIntPoint StartCoord = FIntPoint::ZeroValue;
-	FIntPoint DestinationCoord = FIntPoint::ZeroValue;
+	FHexOffsetCoord StartCoord = FHexOffsetCoord();
+	FHexOffsetCoord DestinationCoord = FHexOffsetCoord();
 	FBattleExecutionFinished CachedOnFinished;
 };

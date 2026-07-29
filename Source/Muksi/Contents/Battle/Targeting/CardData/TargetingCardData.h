@@ -11,7 +11,6 @@ struct FTargetingCardData
 {
 	GENERATED_BODY()
 
-	// 순서대로 진행하는 Targeting Step 목록.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting")
 	TArray<FTargetingStepCardData> Steps;
 
