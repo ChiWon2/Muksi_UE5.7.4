@@ -121,7 +121,7 @@ bool UWidget_BattleMainScreen::CanRequestEndExchange()
 		return false;
 	}
 
-	if (!CachedBattleManager->IsBattleStarted())
+	if (CachedBattleManager->GetCurrentPhase() != EBattlePhase::BattleStart)
 	{
 		return false;
 	}
@@ -232,7 +232,6 @@ void UWidget_BattleMainScreen::ReadyStart()
 	PlayerBattleCharacter = CachedBattleManager->GetPlayerBattleCharacter();
 	EnemyBattleCharacter = CachedBattleManager->GetEnemyBattleCharacter();
 	
-	CachedBattleManager->ReadyEnd();
 }
 
 void UWidget_BattleMainScreen::ReadyEnd()

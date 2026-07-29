@@ -78,9 +78,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	int32 GetCurrentAttack() const { return CurrentAttack; }
 
-	UFUNCTION(BlueprintPure, Category = "Battle")
-	bool IsBattleStarted() const { return bBattleStarted; }
-
 protected:
 	// 나중에 전투 종료 조건을 여기서 판단
 	bool ShouldEndBattle() const;
@@ -93,9 +90,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
 	int32 CurrentAttack = 0;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
-	bool bBattleStarted = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Rule")
 	int32 MaxExchangeCount = 3;
@@ -196,16 +190,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Data")
 	UMuksiCharacterDataAsset* GetEnemyCharacterDataAsset() const { return TestEnemyCharacterDataAsset; }
 
-	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount);
-	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount);
-
-	FHexOffsetCoord GetPlayerPoint() const;
-	FHexOffsetCoord GetEnemyPoint() const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle")
-	EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
+	FHexOffsetCoord GetPlayerPoint() const; // TODO :: Refactoring this Function
+	FHexOffsetCoord GetEnemyPoint() const; //TODO:: Refactoring this Function
 
 	void ChangePhase(EBattlePhase NewPhase);
+	EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
+
+	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount);
+	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount);
 
 	UWidget_BattleMainScreen* GetBattleMainScreen() { return BattleMainScreen; }
 	void SetBattleMainScreen(TObjectPtr<UWidget_BattleMainScreen> BattleWidget) { BattleMainScreen = BattleWidget; }
@@ -224,13 +216,6 @@ public:
 	 * 3. 그 이후 상대 캐릭터 카드 실행
 	 * 4. 3번 반복 이후 국 종료 다음 국 실행
 	 */
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
-	TObjectPtr<ATargetPoint> PlayerSpawnPoint = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
-	TObjectPtr<ATargetPoint> EnemySpawnPoint = nullptr;
 
 protected:
 	UPROPERTY()
@@ -252,6 +237,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
 	FHexOffsetCoord StartEnemyPoint = FHexOffsetCoord(4, 4);
+
 
 //=============================================Ready 단계 관련(저장/소환하는 정보)===============================================================
 //전체 순서
@@ -321,8 +307,6 @@ public:
 	void ExchangeN_EndReady();
 	void ExchangeN_End(int32 InIndex);
 
-
-	//합 도중 쓰는 함수
 public:
 	//합 도중 선택 된 카드 방향 정하기
 	void ExchangeCardTargeting(UMuksiBattleCardDataAsset* ExchangeCard);

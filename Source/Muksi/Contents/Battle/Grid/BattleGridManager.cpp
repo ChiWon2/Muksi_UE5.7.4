@@ -63,24 +63,25 @@ const FBattleGridLayoutSettings& ABattleGridManager::GetLayoutSettings() const
 }
 
 //Test Hex Cell Dir Cal
-void ABattleGridManager::PlaceCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint)
+void ABattleGridManager::PlaceCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& Coord)
 {
 	if (!CharacterBase)
 	{
 		return;
 	}
 
-	const FBattleGridCell* Cell = GetCellByCoord(InPoint);
+	const FBattleGridCell* Cell = GetCellByCoord(Coord);
 
 	if (!Cell || !Cell->TileActor)
 	{
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Move Character Index = %d"), CoordToIndex(InPoint));
+	UE_LOG(LogTemp, Log, TEXT("Move Character Index = %d"), CoordToIndex(Coord));
 
 	CharacterBase->SetActorTransform(Cell->TileActor->GetCharacterSpawnTransform());
-	CharacterBase->SetCharacterPosition(InPoint);
+	CharacterBase->SetCharacterPosition(Coord);
+	SetOccupied(Coord, CharacterBase);
 }
 
 void ABattleGridManager::GenerateGrid()

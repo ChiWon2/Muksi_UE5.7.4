@@ -66,39 +66,6 @@ void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount)
-{
-	if (PlayerSelectAction.Num() - 1 < ExchangeCount)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Exchange Count is bigger then PlayerSelectAction.Num (BattleManager.cpp)"));
-		return nullptr;
-	}
-	UMuksiBattleCardDataAsset* Card = PlayerSelectAction[ExchangeCount].Card;
-	if (!Card)
-	{
-		UE_LOG(LogTemp, Error, TEXT("GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
-		return nullptr;
-	}
-	return Card;
-}
-
-UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount)
-{
-	if (EnemySelectAction.Num() - 1 < ExchangeCount)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Exchange Count is bigger then EnemySelectAction.Num (BattleManager.cpp)"));
-		UE_LOG(LogTemp, Error, TEXT("EnemySelectAction size : %d  Exchange Count %d"), EnemySelectAction.Num(), ExchangeCount);
-		return nullptr;
-	}
-	UMuksiBattleCardDataAsset* Card = EnemySelectAction[ExchangeCount].Card;
-	if (!Card)
-	{
-		UE_LOG(LogTemp, Error, TEXT("GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
-		return nullptr;
-	}
-	return Card;
-}
-
 FHexOffsetCoord ABattleManager::GetPlayerPoint() const
 {
 	return PlayerBattleCharacter->GetCharacterPosition();
@@ -170,16 +137,10 @@ bool ABattleManager::ShouldEndBattle() const
 void ABattleManager::CreateCharacter()
 {
 	//나중에 전투 이벤트 개발 시 해당 Subsystem 등 에서 DataAsset을 받아오는 걸로(혹은 그 이벤트에 적용된 DataAsset)
-	if (!TestPlayerCharacterDataAsset)
+	if (!TestPlayerCharacterDataAsset || !TestEnemyCharacterDataAsset)
 	{
 		return;
 	}
-
-	if (!TestEnemyCharacterDataAsset)
-	{
-		return;
-	}
-
 	//Spawn Function
 	//나중에 변경 예정
 	UWorld* World = GetWorld();
@@ -218,7 +179,7 @@ void ABattleManager::CreateCharacter()
 	}
 
 	//Player BattleCharacter Spawn
-	PlayerBattleCharacter = World->SpawnActor<ABattleCharacter_Player>(PlayerClass, PlayerSpawnPoint->GetActorTransform());
+	PlayerBattleCharacter = World->SpawnActor<ABattleCharacter_Player>(PlayerClass, GetActorTransform());
 
 	if (!PlayerBattleCharacter)
 	{
@@ -227,7 +188,7 @@ void ABattleManager::CreateCharacter()
 	PlayerBattleCharacter->SetCharacterData(TestPlayerCharacterDataAsset, this, BattleMainScreen);
 
 	//Enemy BattleCharacter Spawn
-	EnemyBattleCharacter = World->SpawnActor<ABattleCharacter_Enemy>(EnemyClass, EnemySpawnPoint->GetActorTransform());
+	EnemyBattleCharacter = World->SpawnActor<ABattleCharacter_Enemy>(EnemyClass, GetActorTransform());
 
 	if (!EnemyBattleCharacter)
 	{
@@ -237,12 +198,7 @@ void ABattleManager::CreateCharacter()
 	
 	BattleGridManager->PlaceCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->PlaceCharacter(EnemyBattleCharacter, StartEnemyPoint);
-
-	BattleGridManager->SetOccupied(StartPlayerPoint, PlayerBattleCharacter);
-	BattleGridManager->SetOccupied(StartEnemyPoint, EnemyBattleCharacter);
 }
-
-
 
 
 bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardData)
@@ -321,13 +277,14 @@ bool ABattleManager::IsCardTargeting() const
 
 
 //===========================================준비(Ready)================================================================
+// ======== ReadyStart() -> BattleMainScreen::ReadyStart() -> ReadyEnd() -> BattleMainScreen:: ReadyEnd()================
 //게임 실행 첫 프레임 이내로 끝남
 void ABattleManager::ReadyStart()
 {
 	//현재 Phase 설정 <- 나중에 없어질 수 있음
-	CurrentPhase = EBattlePhase::None;
+	ChangePhase(EBattlePhase::Ready);
 
-	//카드 제시에서 Grid 범위 표시 비활성화
+	//카드 제시에서 Grid 범위 표시 비활성화 // TODO :: Delete This Line
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
 
@@ -338,50 +295,35 @@ void ABattleManager::ReadyStart()
 	}
 
 	BattleMainScreen->ReadyStart();
+	
+	ReadyEnd();
 }
 
 void ABattleManager::ReadyEnd()
 {
-	//BattleMainScreen의 ReadyEnd에서 넘어옴
-	//되었는지 확인하고 Battle 단계로 넘어가기
-
-	//캐릭터 DataAsset -> 나중에는 이벤트 시작 시 받아오는 걸로
-	if (!TestPlayerCharacterDataAsset)
-	{
-		UE_LOG(LogTemp, Error, TEXT("TestPlayerCharacterDataAsset is null (BattleManager)"));
-	}
-
-	if (!TestEnemyCharacterDataAsset)
-	{
-		UE_LOG(LogTemp, Error, TEXT("TestEnemyCharacterDataAsset is null (BattleManager)"));
-	}
-
 	//캐릭터 스폰
 	CreateCharacter();
 
-	//Phase 넘기기
 	BattleMainScreen->ReadyEnd();
+	//Phase 넘기기
 	BattleStart();
 }
 
 
-
 //==========================================전투(Battle)================================================================
+// ======== BattleStart() -> BattleMainScreen::BattleStart() -> ReadyEnd() -> BattleMainScreen:: ReadyEnd()================
+
 void ABattleManager::BattleStart()
 {
-
-	if (bBattleStarted)
+	if (GetCurrentPhase() == EBattlePhase::BattleStart)
 	{
 		return;
 	}
 
-	bBattleStarted = true;
 	CurrentRound = 0;
 	CurrentExchange = 0;
 	CurrentAttackActionIndex = INDEX_NONE;
 
-	//Current Phase 설정
-	//BattleManager 델리게이트 <- 전투 시작 모션/ 기타 등등
 	ChangePhase(EBattlePhase::BattleStart);
 
 	if (BattleMainScreen)
@@ -393,9 +335,6 @@ void ABattleManager::BattleStart()
 
 void ABattleManager::BattleEnd()
 {
-	//Current Phase 설정
-	//BattleManager 델리게이트 <- 전투 종료 모션/ 기타 등등
-	bBattleStarted = false;
 	ChangePhase(EBattlePhase::BattleEnd);
 }
 
@@ -404,7 +343,6 @@ void ABattleManager::BattleEnd()
 void ABattleManager::RoundStart()
 {
 	++CurrentRound;
-
 	ChangePhase(EBattlePhase::RoundStart);
 
 	AttackActions.Empty();
@@ -930,4 +868,36 @@ ABattleCharacterBase* ABattleManager::ResolveCurrentTargetingCharacter(ABattleCh
 	}
 
 	return Character;
+}
+
+UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount)
+{
+	if (PlayerSelectAction.Num() - 1 < ExchangeCount)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Exchange Count is bigger then PlayerSelectAction.Num (BattleManager.cpp)"));
+		return nullptr;
+	}
+	UMuksiBattleCardDataAsset* Card = PlayerSelectAction[ExchangeCount].Card;
+	if (!Card)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
+		return nullptr;
+	}
+	return Card;
+}
+
+UMuksiBattleCardDataAsset* ABattleManager::GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount)
+{
+	if (EnemySelectAction.Num() - 1 < ExchangeCount)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemySelectAction size : %d  Exchange Count %d"), EnemySelectAction.Num(), ExchangeCount);
+		return nullptr;
+	}
+	UMuksiBattleCardDataAsset* Card = EnemySelectAction[ExchangeCount].Card;
+	if (!Card)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager]GetBattleCardDataAssetToExchange_Enemy is Null!!!"));
+		return nullptr;
+	}
+	return Card;
 }
