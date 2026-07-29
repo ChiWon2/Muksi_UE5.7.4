@@ -12,6 +12,9 @@
 #include "Muksi/Widgets/Battle/Passive/Widget_CharacterPassivePanel.h"
 #include "Player/Widget_PlayerProfilePanel.h"
 
+#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
+
 void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 {
 	AMuksiPlayerController* MuksiPC = Cast<AMuksiPlayerController>(GetOwningPlayer());
@@ -28,7 +31,10 @@ void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 		return;
 	}
 
-	ApplyCharacterData(Cast<ABattleCharacter_Player>(PlayerMode->GetPlayerCharacterData()));
+	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
+	ABattleManager* BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
+
+	ApplyCharacterData(Cast<ABattleCharacter_Player>(BattleManager->GetPlayerBattleCharacter()));
 }
 
 void UCharacterDataPanelWidget_Player::ApplyCharacterData(ABattleCharacter_Player* PlayerData)

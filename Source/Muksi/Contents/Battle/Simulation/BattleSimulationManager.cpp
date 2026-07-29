@@ -10,7 +10,6 @@
 ABattleSimulationManager::ABattleSimulationManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	SimulationCharacterClass = ABattleSimulationCharacter::StaticClass();
 	SimulationPostProcessVolumeClass = ABattleSimulationPostProcessVolume::StaticClass();
 }
 
@@ -27,9 +26,7 @@ bool ABattleSimulationManager::IsSimulationRunning() const
 	return SimulationState != EBattleSimulationState::Idle && SimulationState != EBattleSimulationState::Completed;
 }
 
-bool ABattleSimulationManager::StartSimulation(
-	ABattleGridManager* InSourceGridManager,
-	const TArray<ABattleCharacterBase*>& SourceCharacters)
+bool ABattleSimulationManager::StartSimulation( ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
 	ResetSimulationRuntime();
 	SetSimulationState(EBattleSimulationState::Starting);

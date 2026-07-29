@@ -235,8 +235,8 @@ void ABattleManager::CreateCharacter()
 	}
 	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset, this, BattleMainScreen);
 	
-	BattleGridManager->MoveCharacter(PlayerBattleCharacter, StartPlayerPoint);
-	BattleGridManager->MoveCharacter(EnemyBattleCharacter, StartEnemyPoint);
+	BattleGridManager->PlaceCharacter(PlayerBattleCharacter, StartPlayerPoint);
+	BattleGridManager->PlaceCharacter(EnemyBattleCharacter, StartEnemyPoint);
 
 	BattleGridManager->SetOccupied(StartPlayerPoint, PlayerBattleCharacter);
 	BattleGridManager->SetOccupied(StartEnemyPoint, EnemyBattleCharacter);
@@ -253,9 +253,8 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardDa
 	}
 
 	ABattleCharacterBase* TargetingSourceCharacter = GetCurrentTargetingSourceCharacter();
-	ABattleGridManager* TargetingGridManager = GetCurrentTargetingGridManager();
 
-	if (!TargetingSourceCharacter || !TargetingGridManager)
+	if (!TargetingSourceCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to resolve simulation targeting runtime"));
 		return false;
@@ -263,7 +262,7 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardDa
 
 	AttackBattleCardDataAsset = CardData;
 
-	BattleTargetingManager->StartTargeting(TargetingSourceCharacter,TargetingGridManager,CardData->TargetingData);
+	BattleTargetingManager->StartTargeting(TargetingSourceCharacter,BattleGridManager,CardData->TargetingData);
 
 	return BattleTargetingManager->IsTargeting();
 }
@@ -412,7 +411,6 @@ void ABattleManager::RoundStart()
 	PlayerSelectAction.Empty();
 	EnemySelectAction.Empty();
 	
-
 	BattleMainScreen->RoundStart();
 }
 
@@ -644,7 +642,7 @@ void ABattleManager::CompleteExchangePresentation(int32 FinishedExchangeIndex)
 	}
 }
 
-void ABattleManager::ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard)
+void ABattleManager::ExchangeCardTargeting(UMuksiBattleCardDataAsset* ExchangeCard)
 {
 	if (!ExchangeCard)
 	{
@@ -700,7 +698,7 @@ void ABattleManager::SetEnemyBattleAction()
 
 	if (BattleAction.Card == nullptr)
 	{
-		UE_LOG(LogTemp, Error, TEXT("EnemyBattleCharacter->GetSelectEnemyCardDataAsset is null!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager]EnemyBattleCharacter->GetSelectEnemyCardDataAsset is null!"));
 		return;
 	}
 	//좌표 구하는거
@@ -720,28 +718,6 @@ void ABattleManager::SetExchangeGrid()
 
 	UE_LOG(LogTemp, Log, TEXT("Current Exchange num %d"), PlayerSelectAction.Num());
 
-	int32 PlayerAttackType = 0;
-
-	switch (PlayerBattleAction.Card->AttackType.AttackType)
-	{
-	case EMuksiBattleCardAttackType::Rush:
-	case EMuksiBattleCardAttackType::RangeAttack:
-		PlayerAttackType = 0;
-		break;
-
-	case EMuksiBattleCardAttackType::Move:
-		PlayerAttackType = 1;
-		break;
-
-	case EMuksiBattleCardAttackType::Defense:
-		PlayerAttackType = 2;
-		break;
-
-	default:
-		UE_LOG(LogTemp, Error, TEXT("AttackType is Error (BattleManager.cpp)"));
-		break;
-	}
-
 	TArray<FHexOffsetCoord> PlayerTargetCoords = PlayerBattleAction.TargetingResult.AffectedCoords;
 
 	if (PlayerTargetCoords.IsEmpty() && PlayerBattleAction.TargetingResult.HasSelectedCoord())
@@ -749,38 +725,11 @@ void ABattleManager::SetExchangeGrid()
 		PlayerTargetCoords.Add(PlayerBattleAction.TargetingResult.GetSelectedCoord());
 	}
 
-	BattleGridManager->SetExchangeIndicator(PlayerAttackType, PlayerTargetCoords);
-
-	UE_LOG(LogTemp, Log, TEXT("SelectCard %s"), *PlayerBattleAction.Card->CardName.ToString());
-
-	if (!PlayerTargetCoords.IsEmpty())
-	{
-		UE_LOG(LogTemp, Log, TEXT("Player select Point {%d}, {%d}"), PlayerTargetCoords[0].X, PlayerTargetCoords[0].Y);
-	}
+	BattleGridManager->SetExchangeIndicator(PlayerBattleAction.Card->AttackType.AttackType, PlayerTargetCoords);
 
 	const FBattleAction& EnemyBattleAction = EnemySelectAction[CurrentExchange];
 
 	int32 EnemyAttackType = 0;
-
-	switch (EnemyBattleAction.Card->AttackType.AttackType)
-	{
-	case EMuksiBattleCardAttackType::Rush:
-	case EMuksiBattleCardAttackType::RangeAttack:
-		EnemyAttackType = 0;
-		break;
-
-	case EMuksiBattleCardAttackType::Move:
-		EnemyAttackType = 1;
-		break;
-
-	case EMuksiBattleCardAttackType::Defense:
-		EnemyAttackType = 2;
-		break;
-
-	default:
-		UE_LOG(LogTemp, Error, TEXT("AttackType is Error (BattleManager.cpp)"));
-		break;
-	}
 
 	TArray<FHexOffsetCoord> EnemyTargetCoords = EnemyBattleAction.TargetingResult.AffectedCoords;
 
@@ -789,12 +738,7 @@ void ABattleManager::SetExchangeGrid()
 		EnemyTargetCoords.Add(EnemyBattleAction.TargetingResult.GetSelectedCoord());
 	}
 
-	if (!EnemyTargetCoords.IsEmpty())
-	{
-		UE_LOG(LogTemp, Log, TEXT("Enemy select Point {%d}, {%d}"), EnemyTargetCoords[0].X, EnemyTargetCoords[0].Y);
-	}
-
-	BattleGridManager->SetExchangeIndicator(EnemyAttackType, EnemyTargetCoords);
+	BattleGridManager->SetExchangeIndicator(EnemyBattleAction.Card->AttackType.AttackType, EnemyTargetCoords);
 }
 
 
@@ -956,19 +900,6 @@ void ABattleManager::NotifyAttackEndFinished()
 	RoundEnd();
 }
 
-
-ABattleGridManager* ABattleManager::GetCurrentTargetingGridManager() const
-{
-	if (BattleSimulationManager && BattleSimulationManager->IsSimulationRunning())
-	{
-		if (ABattleGridManager* SimulationGridManager = BattleSimulationManager->GetSimulationGridManager())
-		{
-			return SimulationGridManager;
-		}
-	}
-	return BattleGridManager;
-}
-
 ABattleCharacterBase* ABattleManager::GetCurrentTargetingSourceCharacter() const
 {
 	if (BattleSimulationManager && BattleSimulationManager->IsSimulationRunning())
@@ -978,7 +909,6 @@ ABattleCharacterBase* ABattleManager::GetCurrentTargetingSourceCharacter() const
 			return SimulationCharacter;
 		}
 	}
-
 	return PlayerBattleCharacter;
 }
 

@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
+#include"Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
+
 #include "GameFramework/Actor.h"
 #include "BattleGridTile.generated.h"
 
@@ -41,7 +43,7 @@ public:
 	FTransform GetCharacterSpawnTransform() const;
 	
 	UFUNCTION()
-	void SetExchangeIndicator(int32 IndicatorType);
+	void SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType);
 	
 	UFUNCTION()
 	void ClearExchangeIndicator();

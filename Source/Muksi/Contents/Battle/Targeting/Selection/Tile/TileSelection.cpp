@@ -38,7 +38,7 @@ void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FIns
 				continue;
 			}
 
-			if (!Context.GridManager->GetTileByCoord(CandidateCoord))
+			if (!Context.GridManager->GetTileActorByCoord(CandidateCoord))
 			{
 				continue;
 			}
@@ -62,7 +62,7 @@ void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FIns
 		return;
 	}
 
-	const ABattleGridTile* SelectedTile = Context.GridManager->GetTileByCoord(Context.InputContext.HoveredCoord);
+	const ABattleGridTile* SelectedTile = Context.GridManager->GetTileActorByCoord(Context.InputContext.HoveredCoord);
 
 	if (!SelectedTile)
 	{

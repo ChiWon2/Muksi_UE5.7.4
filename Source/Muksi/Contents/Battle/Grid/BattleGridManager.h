@@ -4,22 +4,22 @@
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
-#include "Muksi/Contents/Battle/Hex/HexCubeCoord.h"
 #include "Muksi/Contents/Battle/Grid/Core/BattleGridCell.h"
-#include "Muksi/Contents/Battle/Grid/Generator/BattleGridLayoutSettings.h"
+#include"Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
+
+#include "Muksi/Contents/Battle/Grid/Generator/BattleGridTileGeneratorComponent.h"
+#include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
+#include "Muksi/Contents/Battle/Grid/Presentation/BattleGridIndicatorComponent.h"
 #include "BattleGridManager.generated.h"
 
 class ABattleGridTile;
 class ABattleCharacterBase;
-class UBattleGridNavigationComponent;
-class UBattleGridTileGeneratorComponent;
-class UBattleGridIndicatorComponent;
 
 UCLASS()
 class MUKSI_API ABattleGridManager : public AActor
 {
 	GENERATED_BODY()
-
+	friend class UBattleGridNavigationComponent;
 	friend class UBattleGridTileGeneratorComponent;
 	friend class UBattleGridIndicatorComponent;
 
@@ -32,77 +32,89 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
+	UPROPERTY(Transient)
+	bool bUsingSimulationGrid = false;
+
 	/** 실제 전투(Sequence)에서 사용하는 Grid 상태. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BattleGrid")
 	TArray<FBattleGridCell> GridCells;
 
 	/** Simulation 시작 시 GridCells를 복사해 사용하는 독립 상태. */
 	UPROPERTY(Transient)
 	TArray<FBattleGridCell> SimulationGridCells;
 
-	UPROPERTY(Transient)
-	bool bUsingSimulationGrid = false;
+protected:
+	UPROPERTY(EditAnywhere, Category = "BattleGrid") FHexOffsetCoord PlayerStartPoint = FHexOffsetCoord(0, 0);
+	UPROPERTY(EditAnywhere, Category = "BattleGrid") FHexOffsetCoord EnemyStartPoint = FHexOffsetCoord(4, 4);
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BattleGrid")
+	TObjectPtr<UBattleGridTileGeneratorComponent> BattleGridGeneratorComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BattleGrid")
+	TObjectPtr<UBattleGridIndicatorComponent> BattleGridIndicatorComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BattleGrid")
+	TObjectPtr<UBattleGridNavigationComponent> BattleGridNavigationComponent = nullptr;
 
 public:
-	UFUNCTION(BlueprintPure, Category = "Battle Grid") bool IsValidCoord(const FHexOffsetCoord& Coord) const;
-	UFUNCTION(BlueprintPure, Category = "Battle Grid") ABattleGridTile* GetTileByCoord(const FHexOffsetCoord& Coord) const;
+	UFUNCTION(BlueprintPure, Category = "BattleGrid")
+	UBattleGridTileGeneratorComponent* GetBattleGridGeneratorComponent() const { return BattleGridGeneratorComponent; }
+	UFUNCTION(BlueprintPure, Category = "BattleGrid")
+	UBattleGridIndicatorComponent* GetBattleGridIndicatorComponent() const { return BattleGridIndicatorComponent; }
+	UFUNCTION(BlueprintPure, Category = "BattleGrid")
+	UBattleGridNavigationComponent* GetNavigationComponent() const { return BattleGridNavigationComponent; }
 
+public:
+	bool IsValidCoord(const FHexOffsetCoord& Coord) const;
+	int32 CoordToIndex(const FHexOffsetCoord& Coord) const;
+	ABattleGridTile* GetTileActorByCoord(const FHexOffsetCoord& Coord);
+	FBattleGridCell* GetCellByCoord(const FHexOffsetCoord& Coord);
+
+	FTransform GetTransformToPosition(const FHexOffsetCoord& InPosition);
+	FVector GetWorldLocationByCoord(const FHexOffsetCoord& Coord) const;
+
+
+public:
 	const FBattleGridLayoutSettings& GetLayoutSettings() const;
-
 	int32 GetGridWidth() const { return GetLayoutSettings().GridWidth; }
 	int32 GetGridHeight() const { return GetLayoutSettings().GridHeight; }
 
-
 public:
-	const TArray<FBattleGridCell>& GetActiveGridCells() const;
-	TArray<FBattleGridCell>& GetMutableActiveGridCells();
-
+	TArray<FBattleGridCell>& GetActiveGridCells();
 	void BeginSimulationRuntime();
 	void EndSimulationRuntime();
 	bool ReplaceSimulationActor(AActor* SourceActor, AActor* ReplacementActor);
 	bool IsUsingSimulationGrid() const { return bUsingSimulationGrid; }
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Character") void MoveCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint);
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Battle|Grid") void GenerateGrid();
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Battle|Grid") void ClearGrid();
-	UFUNCTION(BlueprintPure, Category = "Battle|Grid") int32 CoordToIndex(const FHexOffsetCoord& Coord) const;
-	UFUNCTION(BlueprintPure, Category = "Battle|Grid") FVector HexGridToWorld(const FHexOffsetCoord& Coord) const;
-	UFUNCTION(BlueprintPure, Category = "Battle|Grid") float GetAdjacentTileCenterDistance() const;
-	UFUNCTION(BlueprintPure, Category = "Battle|Grid") float GetWorldRadiusByGridRange(int32 GridRange, bool bIncludeOuterTileRadius = true) const;
-
-	FBattleGridCell* GetCell(const FHexOffsetCoord& Coord);
-	const FBattleGridCell* GetCell(const FHexOffsetCoord& Coord) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") TArray<FHexOffsetCoord> GetHexNeighbors(const FHexOffsetCoord& Coord) const;
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") TArray<FHexOffsetCoord> GetMovableCoords(const FHexOffsetCoord& StartCoord, int32 MoveRange) const;
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") bool SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor);
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") bool ClearOccupied(const FHexOffsetCoord& Coord);
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") bool MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord);
-
-protected:
-	UPROPERTY(EditAnywhere, Category = "Battle|Character") FHexOffsetCoord PlayerStartPoint = FHexOffsetCoord(0, 0);
-	UPROPERTY(EditAnywhere, Category = "Battle|Character") FHexOffsetCoord EnemyStartPoint = FHexOffsetCoord(4, 4);
+public:
+	UFUNCTION(BlueprintCallable, Category = "Battle|Character") 
+	void PlaceCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint);
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	bool MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord);
+	void GenerateGrid();
+	void ClearGrid();
 
 public:
-	UFUNCTION() FTransform GetTransformToPosition(const FHexOffsetCoord& InPosition);
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid") float GetAdjacentTileCenterDistance();
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid") float GetWorldRadiusByGridRange(int32 GridRange, bool bIncludeOuterTileRadius = true);
+public:
 	UFUNCTION() bool CheckGridInRange(const FHexOffsetCoord& A, const FHexOffsetCoord& B, int32 Range);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") 
+	TArray<FHexOffsetCoord> GetHexNeighbors(const FHexOffsetCoord& Coord) const;
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") TArray<FHexOffsetCoord> 
+	GetMovableCoords(const FHexOffsetCoord& StartCoord, int32 MoveRange);
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") bool 
+	SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor);
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid") 
+	bool ClearOccupied(const FHexOffsetCoord& Coord);
+
 
 	UPROPERTY() TArray<FHexOffsetCoord> TargetGridArray;
 	void SetGridHovered(const TArray<FHexOffsetCoord>& NewGridArray);
 	void ClearGridHovered();
 	void AllClearGridHovered();
-	void SetExchangeIndicator(int32 AttackType, const TArray<FHexOffsetCoord>& GridArray);
+	void SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray);
 	void AllClearExchangeIndicator();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Generator")
-	TObjectPtr<UBattleGridTileGeneratorComponent> BattleGridGeneratorComponent = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Indicator")
-	TObjectPtr<UBattleGridIndicatorComponent> BattleGridIndicatorComponent = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid|Navigation")
-	TObjectPtr<UBattleGridNavigationComponent> BattleGridNavigationComponent = nullptr;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	UBattleGridNavigationComponent* GetNavigationComponent() const { return BattleGridNavigationComponent; }
 };

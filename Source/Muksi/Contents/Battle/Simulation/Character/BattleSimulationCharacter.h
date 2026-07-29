@@ -4,6 +4,8 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "BattleSimulationCharacter.generated.h"
 
+class UMaterialInterface;
+
 UCLASS()
 class MUKSI_API ABattleSimulationCharacter : public ABattleCharacterBase
 {
@@ -18,6 +20,9 @@ public:
 	ABattleCharacterBase* GetSourceCharacter() const { return SourceCharacter; }
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Simulation")
+	TObjectPtr<UMaterialInterface> SimulationMaterial;
+
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
 };

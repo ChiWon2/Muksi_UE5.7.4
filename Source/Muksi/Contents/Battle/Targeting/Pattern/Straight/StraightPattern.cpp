@@ -32,7 +32,7 @@ void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FI
 
 		AddPathCoord(InOutResult, CurrentCoord);
 
-		const FBattleGridCell* Cell = Context.GridManager->GetCell(CurrentCoord);
+		const FBattleGridCell* Cell = Context.GridManager->GetCellByCoord(CurrentCoord);
 
 		if (!Cell || !Cell->OccupyingActor)
 		{

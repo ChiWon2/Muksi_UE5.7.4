@@ -24,7 +24,7 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 	}
 
 	const FHexOffsetCoord DestinationCoord = Context.TargetingResult.PathCoords.Last();
-	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCell(DestinationCoord);
+	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(DestinationCoord);
 
 	if (!DestinationCell)
 	{

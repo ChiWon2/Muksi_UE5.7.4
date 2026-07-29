@@ -44,7 +44,7 @@ void UDirectionSelection::Evaluate(const FTargetSelectionContext& Context, const
 		return;
 	}
 
-	const ABattleGridTile* SelectedTile = Context.GridManager->GetTileByCoord(Context.InputContext.HoveredCoord);
+	const ABattleGridTile* SelectedTile = Context.GridManager->GetTileActorByCoord(Context.InputContext.HoveredCoord);
 
 	if (SelectedTile)
 	{
@@ -76,7 +76,7 @@ int32 UDirectionSelection::ResolveHexDirection(const FTargetSelectionContext& Co
 			continue;
 		}
 
-		const ABattleGridTile* NeighborTile = Context.GridManager->GetTileByCoord(NeighborCoord);
+		const ABattleGridTile* NeighborTile = Context.GridManager->GetTileActorByCoord(NeighborCoord);
 
 		if (!NeighborTile)
 		{

@@ -44,7 +44,7 @@ void UBattleGridTileGeneratorComponent::ClearTiles()
 
 ABattleGridTile* UBattleGridTileGeneratorComponent::FindTile(const FHexOffsetCoord& Coord) const
 {
-	return IsValid(GridManager) ? GridManager->GetTileByCoord(Coord) : nullptr;
+	return IsValid(GridManager) ? GridManager->GetTileActorByCoord(Coord) : nullptr;
 }
 
 void UBattleGridTileGeneratorComponent::GenerateTilesInternal()
@@ -55,9 +55,7 @@ void UBattleGridTileGeneratorComponent::GenerateTilesInternal()
 
 	if (TileClasses.Num() != ExpectedTileCount)
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("UBattleGridTileGeneratorComponent::GenerateTiles - TileClasses count mismatch. Current: %d, Expected: %d"),
-			TileClasses.Num(), ExpectedTileCount);
+		UE_LOG(LogTemp, Warning, TEXT("UBattleGridTileGeneratorComponent::GenerateTiles - TileClasses count mismatch. Current: %d, Expected: %d"), TileClasses.Num(), ExpectedTileCount);
 		return;
 	}
 
@@ -73,15 +71,14 @@ void UBattleGridTileGeneratorComponent::GenerateTilesInternal()
 
 		if (!TileClass)
 		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("UBattleGridTileGeneratorComponent::GenerateTiles - TileClasses[%d] is null"), Index);
+			UE_LOG(LogTemp, Warning, TEXT("UBattleGridTileGeneratorComponent::GenerateTiles - TileClasses[%d] is null"), Index);
 			continue;
 		}
 
 		const int32 X = Index % LayoutSettings.GridWidth;
 		const int32 Y = Index / LayoutSettings.GridWidth;
 		const FHexOffsetCoord Coord(X, Y);
-		const FVector WorldLocation = GridManager->HexGridToWorld(Coord);
+		const FVector WorldLocation = GridManager->GetWorldLocationByCoord(Coord);
 		const FRotator SpawnRotation = GridManager->GetActorRotation() + LayoutSettings.TileRotation;
 
 		FBattleGridCell NewCell;
@@ -97,7 +94,7 @@ void UBattleGridTileGeneratorComponent::GenerateTilesInternal()
 		ABattleGridTile* SpawnedTile = GridManager->GetWorld()->SpawnActor<ABattleGridTile>(
 			TileClass, WorldLocation, SpawnRotation, SpawnParams);
 
-		if (SpawnedTile)
+		if (SpawnedTile)       
 		{
 			SpawnedTile->SetGridCoord(Coord);
 			SpawnedTile->SetGridManager(GridManager);

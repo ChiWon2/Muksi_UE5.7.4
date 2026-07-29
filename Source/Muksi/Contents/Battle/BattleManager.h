@@ -146,13 +146,6 @@ public:
 	// =========================
 
 public:
-
-	UPROPERTY(BlueprintReadOnly, Category = "Battle|Attack")
-	TObjectPtr<UMuksiBattleCardDataAsset> AttackBattleCardDataAsset = nullptr;
-	
-protected:
-	void CreateCharacter();
-
 	//월드 레벨 오브젝트 관리
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
@@ -164,15 +157,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
 	TObjectPtr<ABattleSimulationManager> BattleSimulationManager = nullptr;
 
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
-	TObjectPtr<ABattleCharacter_Player> PlayerBattleCharacter = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Character")
-	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter = nullptr;
-
 	UPROPERTY(Transient)
 	TObjectPtr<UBattleTargetingManager> BattleTargetingManager = nullptr;
+
+
+
+	UPROPERTY(BlueprintReadOnly, Category = "Battle|Character")
+	TObjectPtr<ABattleCharacter_Player> PlayerBattleCharacter = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Battle|Character")
+	TObjectPtr<ABattleCharacter_Enemy> EnemyBattleCharacter = nullptr;
+
+
 
 	UPROPERTY()
 	int32 CurrentAttackActionIndex = 0;
@@ -229,13 +225,6 @@ public:
 	 * 4. 3번 반복 이후 국 종료 다음 국 실행
 	 */
 
-	 //=============================================Ready 단계 관련(저장/소환하는 정보)===============================================================
-	 //전체 순서
-	 //BattleManager->ReadyStart() >>> Widget_BattleMainScreen->ReadyStart() >>> Widget_BattleMainScreen->ReadyEnd() >>> BattleManager->ReadyEnd()
-public:
-	void ReadyStart();
-	void ReadyEnd();
-
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Spawn")
 	TObjectPtr<ATargetPoint> PlayerSpawnPoint = nullptr;
@@ -264,13 +253,26 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
 	FHexOffsetCoord StartEnemyPoint = FHexOffsetCoord(4, 4);
 
+//=============================================Ready 단계 관련(저장/소환하는 정보)===============================================================
+//전체 순서
+//BattleManager->ReadyStart() >>> Widget_BattleMainScreen->ReadyStart() >>> Widget_BattleMainScreen->ReadyEnd() >>> BattleManager->ReadyEnd()
+
+protected:
+	UPROPERTY(BlueprintReadOnly, Category = "Battle|Attack")
+	TObjectPtr<UMuksiBattleCardDataAsset> AttackBattleCardDataAsset = nullptr;
+
+protected:
+	void CreateCharacter();
+public:
+	void ReadyStart();
+	void ReadyEnd();
+
 public:
 	bool StartCurrentExchangeSimulation();
 	void HandleSimulationExchangeFinished(int32 FinishedExchangeIndex);
 	void HandleBattleSimulationFinished();
 	void CompleteExchangePresentation(int32 FinishedExchangeIndex);
 
-	ABattleGridManager* GetCurrentTargetingGridManager() const;
 	ABattleCharacterBase* GetCurrentTargetingSourceCharacter() const;
 	ABattleCharacterBase* ResolveCurrentTargetingCharacter(ABattleCharacterBase* Character) const;
 
@@ -285,7 +287,6 @@ public:
 public:
 	void RoundStart();
 	void RoundEnd();
-
 
 
 	//===============================================합 관련 ===========================================================
@@ -324,7 +325,7 @@ public:
 	//합 도중 쓰는 함수
 public:
 	//합 도중 선택 된 카드 방향 정하기
-	void ExchangeCardDir(UMuksiBattleCardDataAsset* ExchangeCard);
+	void ExchangeCardTargeting(UMuksiBattleCardDataAsset* ExchangeCard);
 
 	//합 정한 카드 그리드 정하고 공격 구조체 생성함수
 	void SetPlayerBattleAction();

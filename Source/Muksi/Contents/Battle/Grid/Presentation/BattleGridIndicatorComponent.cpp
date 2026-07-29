@@ -32,7 +32,7 @@ void UBattleGridIndicatorComponent::SetHovered(const TArray<FHexOffsetCoord>& Co
 
 	for (const FHexOffsetCoord& Coord : Coords)
 	{
-		ABattleGridTile* Tile = GridManager->GetTileByCoord(Coord);
+		ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
 
 		if (!Tile)
 		{
@@ -53,7 +53,7 @@ void UBattleGridIndicatorComponent::ClearHovered()
 
 	for (const FHexOffsetCoord& Coord : GridManager->TargetGridArray)
 	{
-		ABattleGridTile* Tile = GridManager->GetTileByCoord(Coord);
+		ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
 
 		if (Tile)
 		{
@@ -82,10 +82,7 @@ void UBattleGridIndicatorComponent::ClearAllHovered()
 	GridManager->TargetGridArray.Empty();
 }
 
-void UBattleGridIndicatorComponent::SetExchange(
-	int32 AttackType,
-	const TArray<FHexOffsetCoord>& Coords
-)
+void UBattleGridIndicatorComponent::SetExchange(const EMuksiBattleCardType& AttackType, const TArray<FHexOffsetCoord>& Coords)
 {
 	if (!ResolveGridManager())
 	{
@@ -94,7 +91,7 @@ void UBattleGridIndicatorComponent::SetExchange(
 
 	for (const FHexOffsetCoord& Coord : Coords)
 	{
-		ABattleGridTile* Tile = GridManager->GetTileByCoord(Coord);
+		ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
 
 		if (Tile)
 		{

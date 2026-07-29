@@ -294,7 +294,7 @@ bool UBattleTargetingManager::ResolveGridWorldLocation(const FHexOffsetCoord& Co
 		return false;
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCell(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
 
 	if (!Cell)
 	{

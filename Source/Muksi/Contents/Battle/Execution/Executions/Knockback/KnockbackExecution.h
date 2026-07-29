@@ -19,7 +19,7 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
-	bool FindActorGridCoord(const ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord) const;
+	bool FindActorGridCoord(ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord);
 	bool FindKnockbackDirection(const ABattleGridManager* GridManager, const FHexOffsetCoord& AttackerCoord, const FHexOffsetCoord& TargetCoord, FHexCubeCoord& OutDirection) const;
 	FHexOffsetCoord GetNextCoord(const ABattleGridManager* GridManager, const FHexOffsetCoord& CurrentCoord, const FHexCubeCoord& Direction) const;
 	void HandleMovementFinished(bool bInterrupted);

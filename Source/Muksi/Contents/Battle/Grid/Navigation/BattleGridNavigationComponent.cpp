@@ -42,7 +42,7 @@ bool UBattleGridNavigationComponent::IsCellAvailable(const FHexOffsetCoord& Coor
 		return false;
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCell(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
 
 	if (!Cell)
 	{
@@ -74,7 +74,7 @@ float UBattleGridNavigationComponent::GetCellMovementCost(const FHexOffsetCoord&
 		return TNumericLimits<float>::Max();
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCell(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
 
 	if (!Cell)
 	{
@@ -343,7 +343,7 @@ bool UBattleGridNavigationComponent::GetGridWorldLocation(const FHexOffsetCoord&
 		return false;
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCell(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
 
 	if (!Cell)
 	{

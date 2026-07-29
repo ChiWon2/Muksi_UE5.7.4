@@ -58,7 +58,7 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 				continue;
 			}
 
-			const ABattleGridTile* CandidateTile = Context.GridManager->GetTileByCoord(CandidateCoord);
+			const ABattleGridTile* CandidateTile = Context.GridManager->GetTileActorByCoord(CandidateCoord);
 
 			if (!CandidateTile)
 			{

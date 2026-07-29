@@ -103,7 +103,7 @@ const UScriptStruct* UKnockbackExecution::GetExecutionDataStruct() const
 	return FKnockbackExecutionData::StaticStruct();
 }
 
-bool UKnockbackExecution::FindActorGridCoord(const ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord) const
+bool UKnockbackExecution::FindActorGridCoord(ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord)
 {
 	if (!GridManager || !Actor)
 	{
@@ -115,7 +115,7 @@ bool UKnockbackExecution::FindActorGridCoord(const ABattleGridManager* GridManag
 		for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
 		{
 			const FHexOffsetCoord Coord(X, Y);
-			const FBattleGridCell* Cell = GridManager->GetCell(Coord);
+			FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
 
 			if (Cell && Cell->OccupyingActor == Actor)
 			{
@@ -135,8 +135,8 @@ bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridM
 		return false;
 	}
 
-	const FVector AttackerLocation = GridManager->HexGridToWorld(AttackerCoord);
-	const FVector TargetLocation = GridManager->HexGridToWorld(TargetCoord);
+	const FVector AttackerLocation = GridManager->GetWorldLocationByCoord(AttackerCoord);
+	const FVector TargetLocation = GridManager->GetWorldLocationByCoord(TargetCoord);
 	FVector KnockbackWorldDirection = TargetLocation - AttackerLocation;
 	KnockbackWorldDirection.Z = 0.0f;
 
@@ -152,7 +152,7 @@ bool UKnockbackExecution::FindKnockbackDirection(const ABattleGridManager* GridM
 	{
 		const FHexCubeCoord CubeDirection = FHexGridMath::GetCubeDirection(DirectionIndex);
 		const FHexOffsetCoord NeighborCoord = GetNextCoord(GridManager, TargetCoord, CubeDirection);
-		FVector NeighborDirection = GridManager->HexGridToWorld(NeighborCoord) - TargetLocation;
+		FVector NeighborDirection = GridManager->GetWorldLocationByCoord(NeighborCoord) - TargetLocation;
 		NeighborDirection.Z = 0.0f;
 
 		if (!NeighborDirection.Normalize())

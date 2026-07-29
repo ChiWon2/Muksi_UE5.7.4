@@ -15,11 +15,8 @@ ABattleGridTile::ABattleGridTile()
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(SceneRoot);
 	
-
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
-	
-	
 	
 	CenterPointComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("CenterPointComponent"));
 	CenterPointComponent->SetupAttachment(SceneRoot);
@@ -27,9 +24,7 @@ ABattleGridTile::ABattleGridTile()
 	ExchangeIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExchangeIndicator"));
 	ExchangeIndicatorMesh->SetupAttachment(SceneRoot);
 	
-	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(
-		TEXT("TargetIndicatorMesh")
-	);
+	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TargetIndicatorMesh"));
 	TargetIndicatorMesh->SetupAttachment(SceneRoot);
 }
 
@@ -69,7 +64,7 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 	return GetActorTransform();
 }
 
-void ABattleGridTile::SetExchangeIndicator(int32 IndicatorType)
+void ABattleGridTile::SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType)
 {
 	ExchangeIndicatorMesh->SetVisibility(true);
 	
@@ -77,17 +72,20 @@ void ABattleGridTile::SetExchangeIndicator(int32 IndicatorType)
 	
 	switch (IndicatorType)
 	{
-		case 0:
+		case EMuksiBattleCardType::None:
 		ExchangeIndicatorMesh->SetMaterial(0, AttackableIndicatorMaterial);
 		break;
-		case 1:
+		case EMuksiBattleCardType::RangeAttack:
+		case EMuksiBattleCardType::Defense:
+		case EMuksiBattleCardType::Heal:
+		case EMuksiBattleCardType::Move:
 		ExchangeIndicatorMesh->SetMaterial(0, MoveIndicatorMaterial);
 		break;
-		case 2:
+		case EMuksiBattleCardType::Rush:
 		ExchangeIndicatorMesh->SetMaterial(0, BlockedIndicatorMaterial);
 		break;
 		default:
-		UE_LOG(LogTemp, Error, TEXT("SetTargetIndicator Type Error (BattleGridTile.cpp)"));
+		UE_LOG(LogTemp, Error, TEXT("[BattleGridTile] SetTargetIndicator Type Error"));
 		break;
 	}
 }

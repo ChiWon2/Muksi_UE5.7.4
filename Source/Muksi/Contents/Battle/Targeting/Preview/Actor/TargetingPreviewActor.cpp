@@ -211,7 +211,7 @@ void ATargetingPreviewActor::RebuildGridPreview()
 
 	for (const FHexOffsetCoord& Coord : PreviewCoords)
 	{
-		const FBattleGridCell* Cell = GridManager->GetCell(Coord);
+		const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
 
 		if (!Cell)
 		{

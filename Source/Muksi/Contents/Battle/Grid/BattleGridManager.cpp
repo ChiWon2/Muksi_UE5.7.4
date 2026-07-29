@@ -50,9 +50,9 @@ bool ABattleGridManager::IsValidCoord(const FHexOffsetCoord& Coord) const
 	return Coord.X >= 0 && Coord.X < Layout.GridWidth && Coord.Y >= 0 && Coord.Y < Layout.GridHeight;
 }
 
-ABattleGridTile* ABattleGridManager::GetTileByCoord(const FHexOffsetCoord& Coord) const
+ABattleGridTile* ABattleGridManager::GetTileActorByCoord(const FHexOffsetCoord& Coord)
 {
-	const FBattleGridCell* Cell = GetCell(Coord);
+	FBattleGridCell* Cell = GetCellByCoord(Coord);
 	return Cell ? Cell->TileActor.Get() : nullptr;
 }
 
@@ -63,14 +63,14 @@ const FBattleGridLayoutSettings& ABattleGridManager::GetLayoutSettings() const
 }
 
 //Test Hex Cell Dir Cal
-void ABattleGridManager::MoveCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint)
+void ABattleGridManager::PlaceCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint)
 {
 	if (!CharacterBase)
 	{
 		return;
 	}
 
-	const FBattleGridCell* Cell = GetCell(InPoint);
+	const FBattleGridCell* Cell = GetCellByCoord(InPoint);
 
 	if (!Cell || !Cell->TileActor)
 	{
@@ -101,7 +101,7 @@ int32 ABattleGridManager::CoordToIndex(const FHexOffsetCoord& Coord) const
 	return Coord.Y * GetLayoutSettings().GridWidth + Coord.X;
 }
 
-FVector ABattleGridManager::HexGridToWorld(const FHexOffsetCoord& Coord) const
+FVector ABattleGridManager::GetWorldLocationByCoord(const FHexOffsetCoord& Coord) const
 {
 	// Flat-top hex + Odd-R horizontal offset.
 	// Y가 홀수인 행은 X 방향으로 반 칸 이동한다.
@@ -114,7 +114,7 @@ FVector ABattleGridManager::HexGridToWorld(const FHexOffsetCoord& Coord) const
 	return GetActorTransform().TransformPosition(LocalLocation);
 }
 
-float ABattleGridManager::GetAdjacentTileCenterDistance() const
+float ABattleGridManager::GetAdjacentTileCenterDistance()
 {
 	float MinimumDistance = TNumericLimits<float>::Max();
 
@@ -130,7 +130,7 @@ float ABattleGridManager::GetAdjacentTileCenterDistance() const
 
 		for (const FHexOffsetCoord& NeighborCoord : NeighborCoords)
 		{
-			const FBattleGridCell* NeighborCell = GetCell(NeighborCoord);
+			FBattleGridCell* NeighborCell = GetCellByCoord(NeighborCoord);
 
 			if (!NeighborCell || !NeighborCell->TileActor)
 			{
@@ -162,7 +162,7 @@ float ABattleGridManager::GetAdjacentTileCenterDistance() const
 	return FMath::Min(Layout.GridSpacingX, DiagonalDistance);
 }
 
-float ABattleGridManager::GetWorldRadiusByGridRange(int32 GridRange, bool bIncludeOuterTileRadius) const
+float ABattleGridManager::GetWorldRadiusByGridRange(int32 GridRange, bool bIncludeOuterTileRadius)
 {
 	const int32 SafeGridRange = FMath::Max(0, GridRange);
 	float WorldRadius = GetAdjacentTileCenterDistance() * SafeGridRange;
@@ -175,26 +175,14 @@ float ABattleGridManager::GetWorldRadiusByGridRange(int32 GridRange, bool bInclu
 	return WorldRadius;
 }
 
-FBattleGridCell* ABattleGridManager::GetCell(const FHexOffsetCoord& Coord)
+FBattleGridCell* ABattleGridManager::GetCellByCoord(const FHexOffsetCoord& Coord)
 {
 	if (!IsValidCoord(Coord))
 	{
 		return nullptr;
 	}
 
-	TArray<FBattleGridCell>& ActiveCells = GetMutableActiveGridCells();
-	const int32 Index = CoordToIndex(Coord);
-	return ActiveCells.IsValidIndex(Index) ? &ActiveCells[Index] : nullptr;
-}
-
-const FBattleGridCell* ABattleGridManager::GetCell(const FHexOffsetCoord& Coord) const
-{
-	if (!IsValidCoord(Coord))
-	{
-		return nullptr;
-	}
-
-	const TArray<FBattleGridCell>& ActiveCells = GetActiveGridCells();
+	TArray<FBattleGridCell>& ActiveCells = GetActiveGridCells();
 	const int32 Index = CoordToIndex(Coord);
 	return ActiveCells.IsValidIndex(Index) ? &ActiveCells[Index] : nullptr;
 }
@@ -223,7 +211,7 @@ TArray<FHexOffsetCoord> ABattleGridManager::GetHexNeighbors(const FHexOffsetCoor
 	return Neighbors;
 }
 
-TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(const FHexOffsetCoord& StartCoord, int32 MoveRange) const
+TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(const FHexOffsetCoord& StartCoord, int32 MoveRange)
 {
 	TArray<FHexOffsetCoord> Result;
 
@@ -271,7 +259,7 @@ TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(const FHexOffsetCoo
 				continue;
 			}
 
-			const FBattleGridCell* NextCell = GetCell(NextCoord);
+			FBattleGridCell* NextCell = GetCellByCoord(NextCoord);
 
 			if (!NextCell)
 			{
@@ -303,14 +291,14 @@ bool ABattleGridManager::SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor
 		return false;
 	}
 
-	FBattleGridCell* DestinationCell = GetCell(Coord);
+	FBattleGridCell* DestinationCell = GetCellByCoord(Coord);
 	if (!DestinationCell || !DestinationCell->bWalkable || DestinationCell->bOccupied)
 	{
 		return false;
 	}
 
 	// 같은 Actor가 이미 다른 셀에 있다면 기존 점유를 해제한다.
-	for (FBattleGridCell& Cell : GetMutableActiveGridCells())
+	for (FBattleGridCell& Cell : GetActiveGridCells())
 	{
 		if (Cell.OccupyingActor == Actor)
 		{
@@ -327,7 +315,7 @@ bool ABattleGridManager::SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor
 
 bool ABattleGridManager::ClearOccupied(const FHexOffsetCoord& Coord)
 {
-	FBattleGridCell* Cell = GetCell(Coord);
+	FBattleGridCell* Cell = GetCellByCoord(Coord);
 	if (!Cell)
 	{
 		return false;
@@ -338,27 +326,22 @@ bool ABattleGridManager::ClearOccupied(const FHexOffsetCoord& Coord)
 	return true;
 }
 
-bool ABattleGridManager::MoveActorOnGrid(
-	AActor* Actor,
-	const FHexOffsetCoord& FromCoord,
-	const FHexOffsetCoord& ToCoord)
+bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord)
 {
 	if (!IsValid(Actor) || FromCoord == ToCoord)
 	{
 		return false;
 	}
 
-	FBattleGridCell* FromCell = GetCell(FromCoord);
-	FBattleGridCell* ToCell = GetCell(ToCoord);
+	FBattleGridCell* FromCell = GetCellByCoord(FromCoord);
+	FBattleGridCell* ToCell = GetCellByCoord(ToCoord);
 
 	if (!FromCell || !ToCell)
 	{
 		return false;
 	}
 
-	if (FromCell->OccupyingActor != Actor
-		|| !ToCell->bWalkable
-		|| ToCell->bOccupied)
+	if (FromCell->OccupyingActor != Actor || !ToCell->bWalkable || ToCell->bOccupied)
 	{
 		return false;
 	}
@@ -374,7 +357,7 @@ bool ABattleGridManager::MoveActorOnGrid(
 
 FTransform ABattleGridManager::GetTransformToPosition(const FHexOffsetCoord& InPosition)
 {
-	const FBattleGridCell* Cell = GetCell(InPosition);
+	const FBattleGridCell* Cell = GetCellByCoord(InPosition);
 
 	if (!Cell || !Cell->TileActor)
 	{
@@ -413,9 +396,9 @@ void ABattleGridManager::AllClearGridHovered()
 	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->ClearAllHovered();
 }
 
-void ABattleGridManager::SetExchangeIndicator(int32 AttackType, const TArray<FHexOffsetCoord>& GridArray)
+void ABattleGridManager::SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray)
 {
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetExchange(AttackType, GridArray);
+	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetExchange(BattleCardType, GridArray);
 }
 
 void ABattleGridManager::AllClearExchangeIndicator()
@@ -424,12 +407,7 @@ void ABattleGridManager::AllClearExchangeIndicator()
 }
 
 
-const TArray<FBattleGridCell>& ABattleGridManager::GetActiveGridCells() const
-{
-	return bUsingSimulationGrid ? SimulationGridCells : GridCells;
-}
-
-TArray<FBattleGridCell>& ABattleGridManager::GetMutableActiveGridCells()
+TArray<FBattleGridCell>& ABattleGridManager::GetActiveGridCells()
 {
 	return bUsingSimulationGrid ? SimulationGridCells : GridCells;
 }
@@ -446,13 +424,9 @@ void ABattleGridManager::EndSimulationRuntime()
 	SimulationGridCells.Reset();
 }
 
-bool ABattleGridManager::ReplaceSimulationActor(
-	AActor* SourceActor,
-	AActor* ReplacementActor)
+bool ABattleGridManager::ReplaceSimulationActor( AActor* SourceActor, AActor* ReplacementActor)
 {
-	if (!bUsingSimulationGrid
-		|| !IsValid(SourceActor)
-		|| !IsValid(ReplacementActor))
+	if (!bUsingSimulationGrid || !IsValid(SourceActor) || !IsValid(ReplacementActor))
 	{
 		return false;
 	}
@@ -466,6 +440,5 @@ bool ABattleGridManager::ReplaceSimulationActor(
 			return true;
 		}
 	}
-
 	return false;
 }

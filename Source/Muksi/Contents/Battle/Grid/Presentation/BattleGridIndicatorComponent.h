@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include"Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
 #include "BattleGridIndicatorComponent.generated.h"
 class ABattleGridManager;
 UCLASS(ClassGroup=(Battle), meta=(BlueprintSpawnableComponent))
@@ -14,7 +15,7 @@ public:
 	void SetHovered(const TArray<FHexOffsetCoord>& Coords);
 	void ClearHovered();
 	void ClearAllHovered();
-	void SetExchange(int32 AttackType, const TArray<FHexOffsetCoord>& Coords);
+	void SetExchange(const EMuksiBattleCardType& AttackType, const TArray<FHexOffsetCoord>& Coords);
 	void ClearExchange();
 private:
 	ABattleGridManager* ResolveGridManager();
