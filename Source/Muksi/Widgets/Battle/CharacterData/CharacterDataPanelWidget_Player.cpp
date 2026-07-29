@@ -117,6 +117,5 @@ void UCharacterDataPanelWidget_Player::SwitchPlayerPanel(int32 PanelIndex)
 	}
 
 	WidgetSwitcher->SetActiveWidgetIndex(PanelIndex);
-
-	UE_LOG(LogTemp, Log, TEXT("SwitchPlayerPanel: %d"), PanelIndex);
+	
 }
