@@ -85,8 +85,10 @@ void UWidget_CharacterData::SetWidgetVisible()
 	}else if (EnemyData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Enemy Data Print"));
-		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
 		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
+		EnemyDataPanelWidget->InitializeFromPlayerMode();
+		EnemyDataPanelWidget->ApplyCharacterData(EnemyData);
+		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
 }
 
