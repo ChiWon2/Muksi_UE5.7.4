@@ -14,11 +14,23 @@ UTest_CharacterPassive1::UTest_CharacterPassive1()
 	Passive2();
 }
 
-void UTest_CharacterPassive1::BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
+void UTest_CharacterPassive1::OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
-	Super::BindingEvent(BattleManager, BattleMainScreen);
-	BattleManager->OnRoundEnded.AddDynamic(this, &UTest_CharacterPassive1::Passive1_);
-	BattleManager->OnRoundStarted.AddDynamic(this, &UTest_CharacterPassive1::Passive2_);
+	Super::OnBattlePhaseChanged(OldPhase, NewPhase);
+
+	switch (NewPhase)
+	{
+	case EBattlePhase::RoundStart:
+		Passive2_();
+		break;
+
+	case EBattlePhase::RoundEnd:
+		Passive1_();
+		break;
+
+	default:
+		break;
+	}
 }
 
 

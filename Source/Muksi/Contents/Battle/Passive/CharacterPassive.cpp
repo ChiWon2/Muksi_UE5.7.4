@@ -3,6 +3,19 @@
 
 #include "Muksi/Contents/Battle/Passive/CharacterPassive.h"
 
+#include "Muksi/Contents/Battle/BattleManager.h"
+
+void UCharacterPassive::BeginDestroy()
+{
+	if (CachedBattleManager)
+	{
+		CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UCharacterPassive::HandleBattlePhaseChanged);
+		CachedBattleManager = nullptr;
+	}
+
+	Super::BeginDestroy();
+}
+
 void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner)
 {
 	OwnerCharacter = InOwner;
@@ -11,5 +24,29 @@ void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner)
 
 void UCharacterPassive::BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
 {
-	//그냥 직접 바인딩 하는 방식으로 가자
+	if (CachedBattleManager)
+	{
+		CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UCharacterPassive::HandleBattlePhaseChanged);
+	}
+
+	CachedBattleManager = BattleManager;
+
+	if (CachedBattleManager)
+	{
+		CachedBattleManager->OnBattlePhaseChanged.AddUniqueDynamic(this, &UCharacterPassive::HandleBattlePhaseChanged);
+	}
+}
+
+void UCharacterPassive::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+	if (!bEnabled)
+	{
+		return;
+	}
+
+	OnBattlePhaseChanged(OldPhase, NewPhase);
+}
+
+void UCharacterPassive::OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
 }

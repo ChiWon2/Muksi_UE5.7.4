@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "UObject/Object.h"
 #include "CharacterPassive.generated.h"
 
@@ -56,6 +57,8 @@ class MUKSI_API UCharacterPassive : public UObject
 	GENERATED_BODY()
 
 public:
+	virtual void BeginDestroy() override;
+
 	virtual void InitializePassive(
 		ABattleCharacterBase* InOwner
 	);
@@ -87,8 +90,13 @@ public:
 	
 	
 protected:
+	virtual void OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
+
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Passive")
 	TObjectPtr<ABattleCharacterBase> OwnerCharacter = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleManager> CachedBattleManager = nullptr;
 
 	UPROPERTY(
 		EditDefaultsOnly,
@@ -127,4 +135,8 @@ protected:
 		Category = "Passive"
 	)
 	bool bEnabled = true;
+
+private:
+	UFUNCTION()
+	void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 };

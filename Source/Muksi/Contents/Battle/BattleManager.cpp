@@ -83,46 +83,9 @@ void ABattleManager::ChangePhase(EBattlePhase NewPhase)
 		return;
 	}
 
+	const EBattlePhase OldPhase = CurrentPhase;
 	CurrentPhase = NewPhase;
-	OnBattlePhaseChanged.Broadcast(CurrentPhase);
-
-	switch (CurrentPhase)
-	{
-	case EBattlePhase::BattleStart:
-		OnBattleStarted.Broadcast();
-		break;
-
-	case EBattlePhase::RoundStart:
-		OnRoundStarted.Broadcast();
-		break;
-
-	case EBattlePhase::RoundEnd:
-		OnRoundEnded.Broadcast();
-		break;
-
-	case EBattlePhase::ExchangeStart:
-		OnExchangeStarted.Broadcast();
-		break;
-
-	case EBattlePhase::ExchangeEnd:
-		OnExchangeEnded.Broadcast();
-		break;
-
-	case EBattlePhase::AttackStart:
-		OnAttackStarted.Broadcast();
-		break;
-
-	case EBattlePhase::AttackEnd:
-		OnAttackEnded.Broadcast();
-		break;
-
-	case EBattlePhase::BattleEnd:
-		OnBattleEnded.Broadcast();
-		break;
-
-	default:
-		break;
-	}
+	OnBattlePhaseChanged.Broadcast(OldPhase, CurrentPhase);
 }
 
 bool ABattleManager::ShouldEndBattle() const

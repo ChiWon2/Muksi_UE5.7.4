@@ -2,9 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "MuksiStatusEffectTypes.h"
 #include "MuksiStatusEffectComponent.generated.h"
 
+class ABattleManager;
 class UMuksiStatusEffect;
 
 DECLARE_MULTICAST_DELEGATE(FOnStatusEffectsChanged);
@@ -17,13 +19,12 @@ class MUKSI_API UMuksiStatusEffectComponent : public UActorComponent
 public:
     UMuksiStatusEffectComponent();
 
-private:
-    UPROPERTY(VisibleAnywhere)
-    TArray<TObjectPtr<UMuksiStatusEffect>> ActiveEffects;
 public:
     FOnStatusEffectsChanged OnStatusEffectsChanged;
 
 public:
+    void Initialize(ABattleManager* InBattleManager);
+
     UFUNCTION(BlueprintCallable)
     UMuksiStatusEffect* AddStatusEffect(FName EffectID, int32 StackCount = 1, int32 Duration = 1);
 
@@ -37,18 +38,29 @@ public:
     UMuksiStatusEffect* FindEffectByID(FName EffectID) const;
     const TArray<TObjectPtr<UMuksiStatusEffect>>& GetActiveEffects() const;
 
+protected:
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 private:
+    UPROPERTY(VisibleAnywhere)
+    TArray<TObjectPtr<UMuksiStatusEffect>> ActiveEffects;
+
+    UPROPERTY(Transient)
+    TObjectPtr<ABattleManager> BattleManager = nullptr;
+
     void RemoveExpiredEffects();
     void RemoveStatusEffect(UMuksiStatusEffect* Effect);
 
-public:
-    void OnRoundStart();
-    void OnExchangeStart();
+    UFUNCTION()
+    void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
-    void OnAttackStart();
-    void OnAttackEnd();
+    void HandleRoundStart();
+    void HandleExchangeStart();
 
-    void OnExchangeEnd();
-    void OnRoundEnd();
+    void HandleAttackStart();
+    void HandleAttackEnd();
+
+    void HandleExchangeEnd();
+    void HandleRoundEnd();
 
 };

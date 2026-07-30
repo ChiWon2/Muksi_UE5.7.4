@@ -28,28 +28,10 @@ class ABattleSimulationManager;
 class UWidget_BattleMainScreen;
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattlePhaseChanged, EBattlePhase, NewPhase);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleReady);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleStarted);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundStarted);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundEnded);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnExchangeStarted);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnExchangeEnded);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackStarted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseChanged, EBattlePhase, OldPhase, EBattlePhase, NewPhase);
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttack,int32,AttackNumber);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleEnded);
 
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
@@ -106,34 +88,7 @@ public:
 	FOnBattlePhaseChanged OnBattlePhaseChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnBattleReady OnBattleReady;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnBattleStarted OnBattleStarted;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnRoundStarted OnRoundStarted;
-	
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnRoundEnded OnRoundEnded;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnExchangeStarted OnExchangeStarted;
-	
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnExchangeEnded OnExchangeEnded;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnAttack OnAttack;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnAttackStarted OnAttackStarted;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnAttackEnded OnAttackEnded;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnBattleEnded OnBattleEnded;
 
 	// =========================
 	// Card

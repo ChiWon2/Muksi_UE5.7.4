@@ -118,6 +118,7 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 		return;
 	}
 	UE_LOG(LogTemp, Error, TEXT("CharacterData CharacterPassives %d"), CharacterData.CharacterPassives.Num());
+	StatusEffectComponent->Initialize(BattleManager);
 	PassiveComponent->InitializePassives(CharacterData.CharacterPassives, BattleManager, BattleMainScreen);
 	
 	InitializeBattleStats();
