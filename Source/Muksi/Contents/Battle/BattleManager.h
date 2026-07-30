@@ -31,6 +31,16 @@ class UWidget_BattleMainScreen;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseChanged, EBattlePhase, OldPhase, EBattlePhase, NewPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttack,int32,AttackNumber);
 
+UENUM(BlueprintType)
+enum class EBattleExchangeFlowState : uint8
+{
+	Idle,
+	CardSelecting,
+	Targeting,
+	CardRevealing,
+	Simulating
+};
+
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
 {
@@ -61,6 +71,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	int32 GetMaxExchangeCount() const { return MaxExchangeCount; }
 
+	UFUNCTION(BlueprintPure, Category = "Battle")
+	EBattleExchangeFlowState GetCurrentExchangeFlowState() const { return CurrentExchangeFlowState; }
+
 protected:
 	// 나중에 전투 종료 조건을 여기서 판단
 	bool ShouldEndBattle() const;
@@ -76,6 +89,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Rule")
 	int32 MaxAttackCount = 3;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
+	EBattleExchangeFlowState CurrentExchangeFlowState = EBattleExchangeFlowState::Idle;
 
 public:
 	// =========================
@@ -205,7 +221,9 @@ public:
 	void ReadyEnd();
 
 public:
+	bool PrepareCurrentExchangeSimulation();
 	bool StartCurrentExchangeSimulation();
+	void NotifyEnemyCardRevealFinished(int32 ExchangeIndex);
 	void HandleSimulationExchangeFinished(int32 FinishedExchangeIndex);
 	void HandleBattleSimulationFinished();
 	void FinishCurrentExchangePresentation(int32 FinishedExchangeIndex);
@@ -235,7 +253,7 @@ public:
 	void StartCurrentExchange();
 	void NotifyPlayerCardSelectionFinished();
 	void NotifyEnemyCardSelectionFinished();
-	void TryStartCurrentExchangeSimulation();
+	void TryBeginCurrentExchangeCardReveal();
 	void AdvanceExchange();
 	void ExchangeEnd();
 
@@ -269,9 +287,10 @@ public:
 
 
 protected:
+	void SetCurrentExchangeFlowState(EBattleExchangeFlowState NewState);
+
 	bool bPlayerCardSelectionFinished = false;
 	bool bEnemyCardSelectionFinished = false;
-	bool bCurrentExchangeSimulationStarted = false;
 
 	UPROPERTY()
 	TArray<FBattleAction> AttackActions;

@@ -23,6 +23,7 @@ class UWidget_BattleMainScreen;
 class UCharacterStatusWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndTurnRequested);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnemyCardRevealFinished, int32);
 
 USTRUCT(BlueprintType)
 struct FWidgetCard
@@ -128,8 +129,9 @@ public:
 
 
 
-	UFUNCTION()
-	void EnemySelectedBattleCardFlip(int32 InIndex, bool bFront);
+	bool EnemySelectedBattleCardFlip(int32 InIndex, bool bFront);
+
+	FOnEnemyCardRevealFinished OnEnemyCardRevealFinished;
 
 	UPROPERTY()
 	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
@@ -142,6 +144,8 @@ public:
 	void ClearPlayerSelectCard();
 
 protected:
+	void HandleEnemySelectedCardFlipFinished(UWidget_BattleCardBase* CardWidget);
+
 	//****** Bind Widget ******
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> HandCanvas;
@@ -185,6 +189,8 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCardBase>> EnemySelectedBattleCards;
+
+	int32 PendingEnemyCardRevealIndex = INDEX_NONE;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Player;

@@ -4,18 +4,13 @@
 
 #include "TimerManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
-#include "Muksi/Contents/Battle/Passive/CharacterPassive.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 
-#include "MuksiDebugHelper.h"
 #include "Character/BattleCharacter_Enemy.h"
-#include "Engine/TargetPoint.h"
 #include "Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
-#include "Passive/CharacterPassiveComponent.h"
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Targeting/Manager/BattleTargetingManager.h"
@@ -39,13 +34,6 @@ void ABattleManager::BeginPlay()
 	}
 
 	BattleTargetingManager = NewObject<UBattleTargetingManager>(this);
-
-	if (!BattleMainScreen)
-	{
-		return;
-	}
-
-	ReadyStart();
 }
 
 void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -86,6 +74,24 @@ void ABattleManager::ChangePhase(EBattlePhase NewPhase)
 	const EBattlePhase OldPhase = CurrentPhase;
 	CurrentPhase = NewPhase;
 	OnBattlePhaseChanged.Broadcast(OldPhase, CurrentPhase);
+}
+
+void ABattleManager::SetCurrentExchangeFlowState(EBattleExchangeFlowState NewState)
+{
+	if (CurrentExchangeFlowState == NewState)
+	{
+		return;
+	}
+
+	CurrentExchangeFlowState = NewState;
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[BattleManager] Exchange %d flow state changed: %d"),
+		CurrentExchange,
+		static_cast<int32>(CurrentExchangeFlowState)
+	);
 }
 
 bool ABattleManager::ShouldEndBattle() const
@@ -181,19 +187,14 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardDa
 
 	AttackBattleCardDataAsset = CardData;
 
-	BattleTargetingManager->StartTargeting(TargetingSourceCharacter,BattleGridManager,CardData->TargetingData);
+	BattleTargetingManager->StartTargeting(TargetingSourceCharacter, BattleGridManager, CardData->TargetingData);
 
 	return BattleTargetingManager->IsTargeting();
 }
 
 bool ABattleManager::UpdateCurrentCardTargeting(const FTargetingInputContext& InputContext)
 {
-	if (!BattleTargetingManager)
-	{
-		return false;
-	}
-
-	if (!BattleTargetingManager->IsTargeting())
+	if (!BattleTargetingManager || !BattleTargetingManager->IsTargeting())
 	{
 		return false;
 	}
@@ -237,6 +238,13 @@ void ABattleManager::CancelCurrentCardTargeting()
 	if (BattleTargetingManager)
 	{
 		BattleTargetingManager->CancelTargeting();
+	}
+
+	if (CurrentPhase == EBattlePhase::ExchangeStart &&
+		CurrentExchangeFlowState == EBattleExchangeFlowState::Targeting &&
+		!bPlayerCardSelectionFinished)
+	{
+		SetCurrentExchangeFlowState(EBattleExchangeFlowState::CardSelecting);
 	}
 }
 
@@ -288,7 +296,6 @@ void ABattleManager::BattleStart()
 	}
 
 	CurrentRound = 0;
-	CurrentExchange = 0;
 	CurrentAttackActionIndex = INDEX_NONE;
 
 	ChangePhase(EBattlePhase::BattleStart);
@@ -327,10 +334,7 @@ void ABattleManager::RoundEnd()
 void ABattleManager::ExchangeStart()
 {
 	CurrentExchange = 0;
-	bPlayerCardSelectionFinished = false;
-	bEnemyCardSelectionFinished = false;
-	bCurrentExchangeSimulationStarted = false;
-	AttackActions.Empty();
+	SetCurrentExchangeFlowState(EBattleExchangeFlowState::Idle);
 
 	if (!BattleSimulationManager)
 	{
@@ -366,7 +370,7 @@ void ABattleManager::StartCurrentExchange()
 
 	bPlayerCardSelectionFinished = false;
 	bEnemyCardSelectionFinished = false;
-	bCurrentExchangeSimulationStarted = false;
+	SetCurrentExchangeFlowState(EBattleExchangeFlowState::CardSelecting);
 
 	BattleMainScreen->StartExchange(CurrentExchange);
 }
@@ -374,28 +378,39 @@ void ABattleManager::StartCurrentExchange()
 void ABattleManager::NotifyPlayerCardSelectionFinished()
 {
 	bPlayerCardSelectionFinished = true;
-	TryStartCurrentExchangeSimulation();
+	TryBeginCurrentExchangeCardReveal();
 }
 
 void ABattleManager::NotifyEnemyCardSelectionFinished()
 {
 	bEnemyCardSelectionFinished = true;
-	TryStartCurrentExchangeSimulation();
+	TryBeginCurrentExchangeCardReveal();
 }
 
-void ABattleManager::TryStartCurrentExchangeSimulation()
+void ABattleManager::TryBeginCurrentExchangeCardReveal()
 {
-	if (!bPlayerCardSelectionFinished || !bEnemyCardSelectionFinished || bCurrentExchangeSimulationStarted)
+	if (!bPlayerCardSelectionFinished || !bEnemyCardSelectionFinished)
 	{
 		return;
 	}
 
-	bCurrentExchangeSimulationStarted = true;
-
-	if (!StartCurrentExchangeSimulation())
+	if (CurrentExchangeFlowState != EBattleExchangeFlowState::Targeting)
 	{
-		bCurrentExchangeSimulationStarted = false;
-		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to start exchange simulation: %d"), CurrentExchange);
+		return;
+	}
+
+	if (!PrepareCurrentExchangeSimulation())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to prepare exchange simulation: %d"), CurrentExchange);
+		return;
+	}
+
+	SetCurrentExchangeFlowState(EBattleExchangeFlowState::CardRevealing);
+
+	if (!BattleMainScreen->RevealEnemySelectedCard(CurrentExchange))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Failed to reveal enemy card. Exchange: %d"), CurrentExchange);
+		NotifyEnemyCardRevealFinished(CurrentExchange);
 	}
 }
 
@@ -413,13 +428,14 @@ void ABattleManager::AdvanceExchange()
 
 void ABattleManager::ExchangeEnd()
 {
+	SetCurrentExchangeFlowState(EBattleExchangeFlowState::Idle);
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
 
 	ChangePhase(EBattlePhase::ExchangeEnd);
 }
 
-bool ABattleManager::StartCurrentExchangeSimulation()
+bool ABattleManager::PrepareCurrentExchangeSimulation()
 {
 	if (!BattleSimulationManager)
 	{
@@ -457,6 +473,43 @@ bool ABattleManager::StartCurrentExchangeSimulation()
 	return true;
 }
 
+bool ABattleManager::StartCurrentExchangeSimulation()
+{
+	if (!BattleSimulationManager)
+	{
+		return false;
+	}
+
+	if (CurrentExchangeFlowState != EBattleExchangeFlowState::CardRevealing)
+	{
+		return false;
+	}
+
+	SetCurrentExchangeFlowState(EBattleExchangeFlowState::Simulating);
+
+	if (!BattleSimulationManager->ExecuteCurrentExchange())
+	{
+		SetCurrentExchangeFlowState(EBattleExchangeFlowState::CardRevealing);
+		return false;
+	}
+
+	return true;
+}
+
+void ABattleManager::NotifyEnemyCardRevealFinished(int32 ExchangeIndex)
+{
+	if (ExchangeIndex != CurrentExchange)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Reveal exchange mismatch. Current: %d, Finished: %d"), CurrentExchange, ExchangeIndex);
+		return;
+	}
+
+	if (!StartCurrentExchangeSimulation())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to execute exchange simulation: %d"), CurrentExchange);
+	}
+}
+
 void ABattleManager::HandleSimulationExchangeFinished(int32 FinishedExchangeIndex)
 {
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager] Simulation exchange finished: %d"), FinishedExchangeIndex);
@@ -483,30 +536,22 @@ void ABattleManager::FinishCurrentExchangePresentation(int32 FinishedExchangeInd
 		return;
 	}
 
-	if (!bCurrentExchangeSimulationStarted || FinishedExchangeIndex != CurrentExchange)
+	if (CurrentExchangeFlowState != EBattleExchangeFlowState::Simulating || FinishedExchangeIndex != CurrentExchange)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Finished exchange mismatch. Current: %d, Finished: %d"), CurrentExchange, FinishedExchangeIndex);
 		return;
 	}
 
-	bCurrentExchangeSimulationStarted = false;
+	SetCurrentExchangeFlowState(EBattleExchangeFlowState::Idle);
 	BattleMainScreen->FinishExchange(FinishedExchangeIndex);
 }
 
 void ABattleManager::ExchangeCardTargeting(UMuksiBattleCardDataAsset* ExchangeCard)
 {
-	if (!ExchangeCard)
+	if (StartCurrentCardTargeting(ExchangeCard))
 	{
-		return;
+		SetCurrentExchangeFlowState(EBattleExchangeFlowState::Targeting);
 	}
-
-	if (!PlayerBattleCharacter)
-	{
-		return;
-	}
-
-	AttackBattleCardDataAsset = ExchangeCard;
-	StartCurrentCardTargeting(ExchangeCard);
 }
 
 void ABattleManager::SetPlayerBattleAction()
@@ -587,8 +632,6 @@ void ABattleManager::SetExchangeGrid()
 
 	const FBattleAction& EnemyBattleAction = EnemySelectAction[CurrentExchange];
 
-	int32 EnemyAttackType = 0;
-
 	TArray<FHexOffsetCoord> EnemyTargetCoords = EnemyBattleAction.TargetingResult.AffectedCoords;
 
 	if (EnemyTargetCoords.IsEmpty() && EnemyBattleAction.TargetingResult.HasSelectedCoord())
@@ -628,8 +671,6 @@ void ABattleManager::SortAttackActions()
 
 void ABattleManager::AttackStart()
 {
-	CurrentAttackActionIndex = 0;
-
 	if (AttackActions.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AttackStart: 실행할 공격 행동이 없습니다."));
@@ -665,13 +706,6 @@ void ABattleManager::StartCurrentAttackAction()
 
 void ABattleManager::PlayAttackAction(const FBattleAction& Action)
 {
-	const FBattleAction& CurrentAction = Action;
-
-	if (!IsValid(BattleMainScreen))
-	{
-		NotifyAttackActionFinished();
-		return;
-	}
 	if (!IsValid(BattleSequenceManager))
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleManager] BattleSequenceManager is null"));
@@ -682,7 +716,7 @@ void ABattleManager::PlayAttackAction(const FBattleAction& Action)
 	BattleSequenceManager->OnSequenceFinished.RemoveAll(this);
 	BattleSequenceManager->OnSequenceFinished.AddUObject(this, &ABattleManager::NotifyAttackActionFinished);
 
-	if (!BattleSequenceManager->StartSequence(CurrentAction))
+	if (!BattleSequenceManager->StartSequence(Action))
 	{
 		BattleSequenceManager->OnSequenceFinished.RemoveAll(this);
 		NotifyAttackActionFinished();

@@ -44,10 +44,17 @@ void UHandWidget::NativeConstruct()
 
 void UHandWidget::NativeDestruct()
 {
-
-
 	UnbindSelectButton();
 
+	for (UWidget_BattleCardBase* CardWidget : EnemySelectedBattleCards)
+	{
+		if (CardWidget)
+		{
+			CardWidget->OnCardFlipFinished.RemoveAll(this);
+		}
+	}
+
+	PendingEnemyCardRevealIndex = INDEX_NONE;
 
 	ClearHandCards();
 	Super::NativeDestruct();
@@ -407,16 +414,51 @@ UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBa
 	return nullptr;
 }
 
-void UHandWidget::EnemySelectedBattleCardFlip(int32 InIndex, bool bFront)
+bool UHandWidget::EnemySelectedBattleCardFlip(int32 InIndex, bool bFront)
 {
 	if (!EnemySelectedBattleCards.IsValidIndex(InIndex) || !EnemySelectedBattleCards[InIndex])
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EnemySelectedBattleCardFlip failed: invalid exchange index %d"), InIndex);
+		return false;
+	}
+
+	UWidget_BattleCardBase* CardWidget = EnemySelectedBattleCards[InIndex];
+
+	if (!bFront)
+	{
+		CardWidget->PlayCardFlipToBack();
+		return true;
+	}
+
+	PendingEnemyCardRevealIndex = InIndex;
+	CardWidget->OnCardFlipFinished.RemoveAll(this);
+	CardWidget->OnCardFlipFinished.AddUObject(this, &UHandWidget::HandleEnemySelectedCardFlipFinished);
+	CardWidget->PlayCardFlipToFront();
+	return true;
+}
+
+void UHandWidget::HandleEnemySelectedCardFlipFinished(UWidget_BattleCardBase* CardWidget)
+{
+	if (PendingEnemyCardRevealIndex == INDEX_NONE)
+	{
 		return;
 	}
 
-	if (bFront){EnemySelectedBattleCards[InIndex]->PlayCardFlipToFront();}
-	else {EnemySelectedBattleCards[InIndex]->PlayCardFlipToBack();}
+	if (!EnemySelectedBattleCards.IsValidIndex(PendingEnemyCardRevealIndex))
+	{
+		PendingEnemyCardRevealIndex = INDEX_NONE;
+		return;
+	}
+
+	if (EnemySelectedBattleCards[PendingEnemyCardRevealIndex] != CardWidget)
+	{
+		return;
+	}
+
+	const int32 FinishedExchangeIndex = PendingEnemyCardRevealIndex;
+	PendingEnemyCardRevealIndex = INDEX_NONE;
+	CardWidget->OnCardFlipFinished.RemoveAll(this);
+	OnEnemyCardRevealFinished.Broadcast(FinishedExchangeIndex);
 }
 
 void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount)

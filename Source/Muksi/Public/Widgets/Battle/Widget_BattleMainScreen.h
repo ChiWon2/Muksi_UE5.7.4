@@ -181,6 +181,7 @@ public:
 
 protected:
 	void HandleExchangeSlot(int32 Index, bool bActive);
+	void HandleEnemyCardRevealFinished(int32 ExchangeIndex);
 	void SetBattleCardToHand();
 	void ClearBattleCard()const;
 public:
@@ -217,7 +218,7 @@ public:
 	void SelectCardDataSend()const;
 
 
-	void RevealEnemySelectedCard(int32 ExchangeIndex);
+	bool RevealEnemySelectedCard(int32 ExchangeIndex);
 	//------------------------------------------------------------------------------------------------------------------
 
 	//=================================Attack<공격>=====================================================================

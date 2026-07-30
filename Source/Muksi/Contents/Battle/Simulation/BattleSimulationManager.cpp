@@ -54,13 +54,13 @@ bool ABattleSimulationManager::SetPlayerAction(const FBattleAction& PlayerAction
 
 	CurrentExchange.SetPlayerAction(PlayerAction);
 
-	if (!CurrentExchange.bHasEnemyAction)
-	{
-		SetSimulationState(EBattleSimulationState::RevealingEnemyCard);
-		return true;
-	}
+	SetSimulationState(
+		CurrentExchange.CanResolveActionOrder()
+			? EBattleSimulationState::RevealingEnemyCard
+			: EBattleSimulationState::WaitingForPlayerTargeting
+	);
 
-	return TryExecuteCurrentExchange();
+	return true;
 }
 
 bool ABattleSimulationManager::SetEnemyAction(const FBattleAction& EnemyAction)
@@ -72,10 +72,25 @@ bool ABattleSimulationManager::SetEnemyAction(const FBattleAction& EnemyAction)
 
 	CurrentExchange.SetEnemyAction(EnemyAction);
 
-	if (!CurrentExchange.bHasPlayerAction)
+	SetSimulationState(
+		CurrentExchange.CanResolveActionOrder()
+			? EBattleSimulationState::RevealingEnemyCard
+			: EBattleSimulationState::WaitingForPlayerTargeting
+	);
+
+	return true;
+}
+
+bool ABattleSimulationManager::ExecuteCurrentExchange()
+{
+	if (!IsSimulationRunning())
 	{
-		SetSimulationState(EBattleSimulationState::WaitingForPlayerTargeting);
-		return true;
+		return false;
+	}
+
+	if (SimulationState != EBattleSimulationState::RevealingEnemyCard)
+	{
+		return false;
 	}
 
 	return TryExecuteCurrentExchange();

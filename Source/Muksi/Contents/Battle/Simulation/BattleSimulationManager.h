@@ -47,6 +47,9 @@ public:
 	bool SetEnemyAction(const FBattleAction& EnemyAction);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
+	bool ExecuteCurrentExchange();
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
 	void StopSimulation();
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")

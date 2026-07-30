@@ -13,6 +13,10 @@ class UMuksiBattleCardDataAsset;
 class UCommonTextBlock;
 class UImage;
 class UBorder;
+class UWidget_BattleCardBase;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCardFlipFinished, UWidget_BattleCardBase*);
+
 /**
  * 
  */
@@ -26,6 +30,7 @@ public:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void NativeDestruct() override;
+	virtual void OnAnimationFinished_Implementation(const UWidgetAnimation* Animation) override;
 	//~ End UUserWidget Interface
 	
 	//~ Begin SObjectWidget Interface
@@ -118,6 +123,8 @@ protected:
 	
 	
 public:
+	FOnCardFlipFinished OnCardFlipFinished;
+
 	UFUNCTION(BlueprintCallable)
 	void PlayCardFlipToBack();
 	UFUNCTION(BlueprintCallable)

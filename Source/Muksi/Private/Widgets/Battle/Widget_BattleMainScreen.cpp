@@ -95,6 +95,12 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 		this,
 		&UWidget_BattleMainScreen::HandleCardSelect
 	);
+
+	HandWidget->OnEnemyCardRevealFinished.RemoveAll(this);
+	HandWidget->OnEnemyCardRevealFinished.AddUObject(
+		this,
+		&UWidget_BattleMainScreen::HandleEnemyCardRevealFinished
+	);
 }
 
 void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
@@ -108,6 +114,8 @@ void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
 		this,
 		&UWidget_BattleMainScreen::HandleCardSelect
 	);
+
+	HandWidget->OnEnemyCardRevealFinished.RemoveAll(this);
 }
 
 void UWidget_BattleMainScreen::BindBattleManagerEvents()
@@ -519,7 +527,6 @@ void UWidget_BattleMainScreen::FinishExchange(int32 ExchangeIndex)
 
 	HandleExchangeCount = 0;
 	HandleExchangeSlot(ExchangeIndex + 1, false);
-	RevealEnemySelectedCard(ExchangeIndex);
 	CachedBattleManager->AdvanceExchange();
 }
 void UWidget_BattleMainScreen::ExchangeEnd()
@@ -567,6 +574,16 @@ void UWidget_BattleMainScreen::HandleExchangeEndFinish()
 void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 {
 	HandWidget->EnableExchangeSlot(Index, bActive);
+}
+
+void UWidget_BattleMainScreen::HandleEnemyCardRevealFinished(int32 ExchangeIndex)
+{
+	if (!CachedBattleManager)
+	{
+		return;
+	}
+
+	CachedBattleManager->NotifyEnemyCardRevealFinished(ExchangeIndex);
 }
 
 void UWidget_BattleMainScreen::SetBattleCardToHand()
@@ -666,10 +683,12 @@ void UWidget_BattleMainScreen::EnemyPlaceCard()
 
 void UWidget_BattleMainScreen::HandleCardSelect()
 {
-	if (CachedBattleManager)
+	if (!CanRequestSelectCard())
 	{
-		SelectCardDataSend();
+		return;
 	}
+
+	SelectCardDataSend();
 }
 
 bool UWidget_BattleMainScreen::CanRequestSelectCard()
@@ -685,8 +704,9 @@ bool UWidget_BattleMainScreen::CanRequestSelectCard()
 	}
 
 	return CachedBattleManager->GetCurrentPhase() == EBattlePhase::ExchangeStart
-		&& CachedBattleManager->GetCurrentExchange() >= 0
-		&& CachedBattleManager->GetCurrentExchange() < CachedBattleManager->GetMaxExchangeCount();
+			&& CachedBattleManager->GetCurrentExchangeFlowState() == EBattleExchangeFlowState::CardSelecting
+			&& CachedBattleManager->GetCurrentExchange() >= 0
+			&& CachedBattleManager->GetCurrentExchange() < CachedBattleManager->GetMaxExchangeCount();
 }
 
 void UWidget_BattleMainScreen::SelectCardDataSend()const
@@ -699,9 +719,14 @@ void UWidget_BattleMainScreen::SelectCardDataSend()const
 	}
 }
 
-void UWidget_BattleMainScreen::RevealEnemySelectedCard(int32 ExchangeIndex)
+bool UWidget_BattleMainScreen::RevealEnemySelectedCard(int32 ExchangeIndex)
 {
-	HandWidget->EnemySelectedBattleCardFlip(ExchangeIndex, true);
+	if (!HandWidget)
+	{
+		return false;
+	}
+
+	return HandWidget->EnemySelectedBattleCardFlip(ExchangeIndex, true);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
