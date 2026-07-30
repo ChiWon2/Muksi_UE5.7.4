@@ -14,6 +14,7 @@
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Targeting/Manager/BattleTargetingManager.h"
+#include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
@@ -187,7 +188,7 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardDa
 
 	AttackBattleCardDataAsset = CardData;
 
-	BattleTargetingManager->StartTargeting(TargetingSourceCharacter, BattleGridManager, CardData->TargetingData);
+	BattleTargetingManager->StartTargeting(TargetingSourceCharacter,BattleGridManager,CardData->TargetingData);
 
 	return BattleTargetingManager->IsTargeting();
 }
@@ -577,6 +578,18 @@ void ABattleManager::SetPlayerBattleAction()
 	BattleAction.bPlayerAction = true;
 	BattleAction.TargetingResult = TargetingResult;
 
+	ABattleCharacterBase* PlayerTargetingSource = GetCurrentTargetingSourceCharacter();
+
+	if (!PlayerTargetingSource)
+	{
+		return;
+	}
+
+	BattleAction.TargetingIntent = FBattleTargetResolver::CaptureIntent(
+		BattleAction.TargetingResult,
+		PlayerTargetingSource->GetCharacterPosition()
+	);
+
 	PlayerSelectAction.SetNum(CurrentExchange + 1);
 	PlayerSelectAction[CurrentExchange] = BattleAction;
 
@@ -585,7 +598,7 @@ void ABattleManager::SetPlayerBattleAction()
 
 bool ABattleManager::SetEnemyBattleAction()
 {
-	if (!EnemyBattleCharacter)
+	if (!EnemyBattleCharacter || !BattleGridManager)
 	{
 		return false;
 	}
@@ -605,6 +618,38 @@ bool ABattleManager::SetEnemyBattleAction()
 	//좌표 구하는거
 	BattleAction.Speed = EnemyBattleCharacter->GetCharacterSpeed() + BattleAction.Card->CardSpeed;
 	BattleAction.TargetingResult.AffectedCoords = EnemyBattleCharacter->GetSelectEnemyCardCoord();
+
+	for (const FHexOffsetCoord& TargetCoord : BattleAction.TargetingResult.AffectedCoords)
+	{
+		const FBattleGridCell* TargetCell = BattleGridManager->GetCellByCoord(TargetCoord);
+
+		if (!TargetCell)
+		{
+			continue;
+		}
+
+		if (ABattleCharacterBase* TargetCharacter = Cast<ABattleCharacterBase>(TargetCell->OccupyingActor.Get()))
+		{
+			BattleAction.TargetingResult.TargetCharacters.AddUnique(TargetCharacter);
+		}
+	}
+
+	if (BattleSimulationManager && BattleSimulationManager->IsSimulationRunning())
+	{
+		BattleSimulationManager->ConvertToSourceTargetingResult(BattleAction.TargetingResult);
+	}
+
+	ABattleCharacterBase* EnemyTargetingSource = ResolveCurrentTargetingCharacter(EnemyBattleCharacter);
+
+	if (!EnemyTargetingSource)
+	{
+		return false;
+	}
+
+	BattleAction.TargetingIntent = FBattleTargetResolver::CaptureIntent(
+		BattleAction.TargetingResult,
+		EnemyTargetingSource->GetCharacterPosition()
+	);
 
 	EnemySelectAction.SetNum(CurrentExchange + 1);
 	EnemySelectAction[CurrentExchange] = BattleAction;

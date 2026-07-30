@@ -6,6 +6,7 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
+#include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 ABattleSequenceManager::ABattleSequenceManager()
@@ -48,7 +49,14 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 		return false;
 	}
 
-	CurrentAction = InAction;
+	FBattleAction ResolvedAction = InAction;
+
+	if (!FBattleTargetResolver::ResolveAction(ResolvedAction, BattleGridManager))
+	{
+		return false;
+	}
+
+	CurrentAction = MoveTemp(ResolvedAction);
 	bSequenceRunning = true;
 	ActiveExecutionRunners.Empty();
 

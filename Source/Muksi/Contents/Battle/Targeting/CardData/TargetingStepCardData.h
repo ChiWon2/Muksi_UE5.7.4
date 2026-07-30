@@ -4,6 +4,7 @@
 
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingGridPreviewMode.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingOriginSource.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 
 #include "TargetingStepCardData.generated.h"
 
@@ -27,12 +28,6 @@ struct FTargetingStepCardData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Selection")
 	TSubclassOf<USelectionPreviewVisualizer> SelectionPreviewClass = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Path")
-	TSubclassOf<UPathPreviewVisualizer> PathPreviewClass = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Path", meta = (BaseStruct = "/Script/Muksi.PathPreviewData"))
-	FInstancedStruct PathPreviewData;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Pattern")
 	TSubclassOf<UAreaPattern> PatternClass = nullptr;
 
@@ -42,6 +37,12 @@ struct FTargetingStepCardData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Pattern")
 	TSubclassOf<UAreaPreviewVisualizer> AreaPreviewClass = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Path")
+	TSubclassOf<UPathPreviewVisualizer> PathPreviewClass = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Path", meta = (BaseStruct = "/Script/Muksi.PathPreviewData"))
+	FInstancedStruct PathPreviewData;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Pattern")
 	ETargetingGridPreviewMode GridPreviewMode = ETargetingGridPreviewMode::AffectedTiles;
 
@@ -50,6 +51,21 @@ struct FTargetingStepCardData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Origin", meta = (EditCondition = "OriginSource == ETargetingOriginSource::SpecificStep", EditConditionHides, ClampMin = "0"))
 	int32 OriginStepIndex = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Resolve")
+	bool bShowAdvancedSettings = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Resolve", meta = (EditCondition = "bShowAdvancedSettings", EditConditionHides))
+	ETargetingIntentBinding IntentBinding = ETargetingIntentBinding::SourceRelative;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Resolve", meta = (EditCondition = "bShowAdvancedSettings", EditConditionHides))
+	EInvalidTargetResolvePolicy InvalidResolvePolicy = EInvalidTargetResolvePolicy::FindNearestValid;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Resolve", meta = (EditCondition = "bShowAdvancedSettings", EditConditionHides))
+	bool bRequireAvailableDestination = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step|Resolve", meta = (EditCondition = "bShowAdvancedSettings && bRequireAvailableDestination", EditConditionHides))
+	bool bRequireReachablePath = false;
 
 #if WITH_EDITOR
 	void SyncDataTypes();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "BattleAction.generated.h"
 
@@ -35,4 +36,7 @@ struct FBattleAction
 	// 카드 선택 과정에서 확정된 전체 Targeting 결과
 	UPROPERTY(BlueprintReadOnly)
 	FTargetingResult TargetingResult;
+
+	UPROPERTY(BlueprintReadOnly)
+	FTargetingIntent TargetingIntent;
 };
