@@ -28,7 +28,7 @@ USTRUCT(BlueprintType)
 struct FWidgetCard
 {
 	GENERATED_BODY()
-	
+
 public:
 	FWidgetCard();
 	UPROPERTY()
@@ -37,7 +37,7 @@ public:
 	UCanvasPanelSlot* CanvasSlot = nullptr;
 	UPROPERTY()
 	int32 ZIndex = 0;
-	
+
 };
 
 USTRUCT(BlueprintType)
@@ -56,7 +56,7 @@ struct FCardEquipSlotData
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
-	
+
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bConfirmed = false;
@@ -68,19 +68,19 @@ struct FCardEquipSlotData
 };
 
 /**
- * 
+ *
  */
 UCLASS()
 class MUKSI_API UHandWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 	//~ Begin UUserWidget Interface
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	//~ End UUserWidget Interface
-	
+
 	UFUNCTION(BlueprintCallable)
 	void SpawnDefaultHandCards();
 
@@ -89,74 +89,74 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void OrganizeCards(float OffsetX);
-	
+
 	UFUNCTION(BlueprintCallable)
 	void CreateCardMore();
 
 	UFUNCTION(BlueprintCallable)
 	void ClearHandCards();
-	
+
 	UFUNCTION(BlueprintCallable)
 	void InvisibleHandCards();
-	
+
 	UFUNCTION(BlueprintCallable)
 	void VisibleHandCards();
-	
+
 	UFUNCTION(BlueprintCallable)
 	void HitActiveHandCards(bool bHitActive);
-	
-	
+
+
 	void SetHoveredCard(UWidget_BattleCardBase* InHoveredCard);
 	void ClearHoveredCard(UWidget_BattleCardBase* InCard);
-	
+
 	float GetDefaultCardSpacing() const { return DefaultCardSpacing; }
-	
+
 	const FGeometry& GetHandCanvasGeometry() const;
 	UCanvasPanel* GetHandCanvas() const { return HandCanvas; }
-	
+
 	UWidget_CardEquipSlot* GetEquipSlot() const;
-	
+
 	void RemoveBattleCards(UWidget_BattleCardBase* InCard);
-	
+
 	UFUNCTION()
 	void OnClickedTurnEndButton();
-	
 
-	
+
+
 	UFUNCTION(BlueprintCallable)
 	UWidget_CardEquipSlot* FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const;
 
-	
-	
+
+
 	UFUNCTION()
 	void EnemySelectedBattleCardFlip(int32 InIndex, bool bFront);
-	
+
 	UPROPERTY()
 	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
-	
+
 	UFUNCTION()
 	void PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount);
 	UFUNCTION()
 	void ClearEnemySelectCard();
 	UFUNCTION()
 	void ClearPlayerSelectCard();
-	
+
 protected:
 	//****** Bind Widget ******
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> HandCanvas;
-	
+
 	/*UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CardEquipSlot> EquipSlotTest;*/
-	
-	
+
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCommonButtonBase> Button_Select;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UInkLineWidget> InkLineWidget;
-	
-	
+
+
 	//CardEquipSlot Box
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CardEquipSlot> CardEquipSlot_1;
@@ -166,11 +166,11 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CardEquipSlot> CardEquipSlot_3;
-	
+
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_CardEquipSlot>> ExchangeSlots;
-	
-	
+
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CardEquipSlot> EnemyCardEquipSlot_1;
 
@@ -179,119 +179,97 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_CardEquipSlot> EnemyCardEquipSlot_3;
-	
+
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_CardEquipSlot>> EnemyExchangeSlots;
-	
+
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCardBase>> EnemySelectedBattleCards;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Player;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Enemy;
-	
+
 
 	//****** Bind Widget ******
-	
-	
+
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
 	TSubclassOf<UWidget_BattleCardBase> BattleCardClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
-	float LiteralFloatX = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
-	float LiteralFloatY = 0.f;
-	
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
-	float HoverOffsetY = -20.f;*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
 	float DefaultCardSpacing = 40.f;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCardBase>> BattleCards;
-	
+
 
 
 	UPROPERTY()
 	TArray<FWidgetCard> CardsStructArray;
-	
+
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget_BattleCardBase> HoveredCard = nullptr;
-	
-	
-	FTimerHandle TimerHandle;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Card Slot")
-	TSubclassOf<UWidget_CardEquipSlot> CardEquipSlotClass;
 
-	UPROPERTY()
-	TArray<TObjectPtr<UWidget_CardEquipSlot>> PlayerEquipSlots;
 
-	UPROPERTY()
-	TArray<TObjectPtr<UWidget_CardEquipSlot>> EnemyEquipSlots;
-	
-	
-	
 	//***** Turn Changed UI Function *****
 public:
-	
-		
+
+
 	UPROPERTY(BlueprintAssignable, Category = "Hand|Event")
 	FOnEndTurnRequested OnEndTurnRequested;
-	
-	
+
+
 	void ShowTurnEndButton(bool bShow);
-	
+
 	UFUNCTION(BlueprintCallable)
 	FCardEquipSlotData GetSlotDataByExchangeNumber_Player(int32 InIndex);
 	UFUNCTION(BlueprintCallable)
 	FCardEquipSlotData GetSlotDataByExchangeNumber_Enemy(int32 InIndex);
-	
+
 	UFUNCTION(BlueprintCallable)
 	UMuksiBattleCardDataAsset* GetExchangeDataIndex_Player(int32 InIndex);
 	UFUNCTION(BlueprintCallable)
 	UMuksiBattleCardDataAsset* GetExchangeDataIndex_Enemy(int32 InIndex);
-	
+
 	UFUNCTION(BlueprintCallable)
 	void ConfirmExchangeInput(int32 InIndex);
-	
+
 	UFUNCTION(BlueprintCallable)
 	void StartExchangeInput(int32 ExchangeNumber);
-	
+
 	UFUNCTION(BlueprintCallable)
 	void InitializeExchangeSlots();
-	
-	
+
+
 	UFUNCTION(BlueprintCallable)
-	void EnableExchangeSlots(int32 InIndex);	
-	
+	void EnableExchangeSlots(int32 InIndex);
+
 	void EnableExchangeSlot(int32 InIndex, bool bActive);
-	
+
 	void ActiveHandCards(bool bActive);
-	
+
 protected:
 	void BindSelectButton();
 	void UnbindSelectButton();
 
 	UFUNCTION()
-	void HandleEndTurnButtonClicked();	
-	
+	void HandleEndTurnButtonClicked();
+
 	UWidget_CardEquipSlot* GetSlotByExchangeNumber(int32 ExchangeNumber) const;
 	//***** Turn Changed UI Function *****
-	
+
 	//Ink Line 관련 Pipeline 관련 UI 호출
 public:
 	void DisplayInkLine(FString InText, float Time);
 	void DisplayInkLinebActive();
-	
+
 	void DisplayInkLineEnabled(FString InText, float Time);
 	void DisplayInkLineDisabled();
-	
-	
+
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
 	void BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets);
@@ -300,43 +278,43 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
 	UWidget_BattleCardBase* AddCardToHand(UMuksiBattleCardDataAsset* CardData);
-	
+
 	void PlaceCardInHand(UWidget_BattleCardBase* CardWidget);
 
-	
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> CardDrawSpawnPoint;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> CardDownPoint;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> CardUpPoint;
-	
+
 	UPROPERTY()
 	TObjectPtr<UWidget> HandCardPoint = nullptr;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> CardRemovePoint_Player;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> CardRemovePoint_Enemy;
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCardBase>> RemoveCardArray;
-	
+
 	UWidget_BattleCardBase* CreateCardAtDrawSpawnPoint(
 	UMuksiBattleCardDataAsset* CardData);
-	
-	
+
+
 public:
 	FVector2D GetCardDrawStartLocalPosition() const;
-	
+
 public:
-	
+
 	void RemoveSelectedCardsData();
-	
+
 public:
 	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
-	
+
 };

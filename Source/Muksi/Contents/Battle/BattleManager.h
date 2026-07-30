@@ -29,8 +29,6 @@ class UWidget_BattleMainScreen;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseChanged, EBattlePhase, OldPhase, EBattlePhase, NewPhase);
-
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttack,int32,AttackNumber);
 
 UCLASS()
@@ -58,7 +56,10 @@ public:
 	int32 GetCurrentExchange() const { return CurrentExchange; }
 
 	UFUNCTION(BlueprintPure, Category = "Battle")
-	int32 GetCurrentAttack() const { return CurrentAttack; }
+	int32 GetCurrentAttack() const { return CurrentAttackActionIndex; }
+
+	UFUNCTION(BlueprintPure, Category = "Battle")
+	int32 GetMaxExchangeCount() const { return MaxExchangeCount; }
 
 protected:
 	// 나중에 전투 종료 조건을 여기서 판단
@@ -69,9 +70,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
 	int32 CurrentExchange = 0;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
-	int32 CurrentAttack = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Rule")
 	int32 MaxExchangeCount = 3;
@@ -108,8 +106,6 @@ public:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UBattleTargetingManager> BattleTargetingManager = nullptr;
-
-
 
 	UPROPERTY(BlueprintReadOnly, Category = "Battle|Character")
 	TObjectPtr<ABattleCharacter_Player> PlayerBattleCharacter = nullptr;
@@ -212,7 +208,7 @@ public:
 	bool StartCurrentExchangeSimulation();
 	void HandleSimulationExchangeFinished(int32 FinishedExchangeIndex);
 	void HandleBattleSimulationFinished();
-	void CompleteExchangePresentation(int32 FinishedExchangeIndex);
+	void FinishCurrentExchangePresentation(int32 FinishedExchangeIndex);
 
 	ABattleCharacterBase* GetCurrentTargetingSourceCharacter() const;
 	ABattleCharacterBase* ResolveCurrentTargetingCharacter(ABattleCharacterBase* Character) const;
@@ -234,33 +230,14 @@ public:
 	//---------------------------------Battle 관련 턴 흐름 관리 함수 <합>--------------------------------------------------
 	//합 시작	Exchange 시작
 
-	//1합 시작
-	//1합 종료
-
-	//2합 시작
-	//2합 종료
-
-	//3합 시작
-	//3합 종료
-
-	//합 종료
-
 public:
 	void ExchangeStart();
-
-	void Exchange1Start();
-	void Exchange1End();
-
-	void Exchange2Start();
-	void Exchange2End();
-
-	void Exchange3Start();
-	void Exchange3End();
-
+	void StartCurrentExchange();
+	void NotifyPlayerCardSelectionFinished();
+	void NotifyEnemyCardSelectionFinished();
+	void TryStartCurrentExchangeSimulation();
+	void AdvanceExchange();
 	void ExchangeEnd();
-
-	void ExchangeN_EndReady();
-	void ExchangeN_End(int32 InIndex);
 
 public:
 	//합 도중 선택 된 카드 방향 정하기
@@ -270,7 +247,7 @@ public:
 	void SetPlayerBattleAction();
 
 	//Enemy가 정한 카드 그리드 정하고 공격 구조체 생성함수
-	void SetEnemyBattleAction();
+	bool SetEnemyBattleAction();
 
 	//Player/Enemy가 정한 카드 Grid 표시
 	void SetExchangeGrid();
@@ -292,11 +269,9 @@ public:
 
 
 protected:
-	UPROPERTY()
-	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> PlayerSelectedCards;
-
-	UPROPERTY()
-	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> EnemySelectedCards;
+	bool bPlayerCardSelectionFinished = false;
+	bool bEnemyCardSelectionFinished = false;
+	bool bCurrentExchangeSimulationStarted = false;
 
 	UPROPERTY()
 	TArray<FBattleAction> AttackActions;

@@ -23,32 +23,32 @@
 
 FWidgetCard::FWidgetCard()
 {
-	
+
 }
 
 void UHandWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
-	
-	
-	
+
+
+
+
 	Debug::Print(TEXT("Battle Manager Settings"));
-	
+
 	BindSelectButton();
 
 	//SpawnDefaultHandCards();
-	
+
 	InitializeExchangeSlots();
 }
 
 void UHandWidget::NativeDestruct()
 {
-	
+
 
 	UnbindSelectButton();
-	
-	
+
+
 	ClearHandCards();
 	Super::NativeDestruct();
 }
@@ -81,7 +81,7 @@ void UHandWidget::CreateTestHandCards(int32 InCount)
 
 		if (UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(Widget_BattleCard))
 		{
-			
+
 			CanvasSlot->SetAutoSize(true);
 
 			// 화면 기준 아래 중앙
@@ -106,7 +106,7 @@ void UHandWidget::CreateTestHandCards(int32 InCount)
 void UHandWidget::OrganizeCards(float OffsetX)
 {
 	//부채꼴 손배치
-	
+
 	if (BattleCards.IsEmpty())
 	{
 		return;
@@ -254,7 +254,7 @@ void UHandWidget::OrganizeCards(float OffsetX)
 		}
 	}
 
-	
+
 	//평행 손 배치
 	/*if (BattleCards.Num() == 0)
 	{
@@ -343,7 +343,7 @@ void UHandWidget::HitActiveHandCards(bool bHitActive)
 			CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 	}
-	
+
 }
 
 
@@ -384,15 +384,15 @@ void UHandWidget::OnClickedTurnEndButton()
 
 UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const
 {
-	
+
 	if (!Card)
 	{
 		return nullptr;
 	}
-	
+
 	for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
 	{
-		
+
 		if (!EquipSlot)
 		{
 			continue;
@@ -409,13 +409,24 @@ UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBa
 
 void UHandWidget::EnemySelectedBattleCardFlip(int32 InIndex, bool bFront)
 {
+	if (!EnemySelectedBattleCards.IsValidIndex(InIndex) || !EnemySelectedBattleCards[InIndex])
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnemySelectedBattleCardFlip failed: invalid exchange index %d"), InIndex);
+		return;
+	}
+
 	if (bFront){EnemySelectedBattleCards[InIndex]->PlayCardFlipToFront();}
 	else {EnemySelectedBattleCards[InIndex]->PlayCardFlipToBack();}
-	
 }
 
 void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount)
 {
+	if (!SelectCard || !EnemyExchangeSlots.IsValidIndex(ExchangeCount) || !EnemyExchangeSlots[ExchangeCount])
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PlaceEnemySelectCard failed: invalid exchange index %d"), ExchangeCount);
+		return;
+	}
+
 	UWidget_BattleCardBase* CardWidget =
 		CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
 
@@ -425,39 +436,36 @@ void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, in
 		return;
 	}
 	CardWidget->SetCardData_(SelectCard, false);
-	
+
 	CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	EnemyExchangeSlots[ExchangeCount]->SetVisibility(ESlateVisibility::Visible);
 	EnemyExchangeSlots[ExchangeCount]->EquipCard_Enemy(CardWidget);
-	
+
 	//TODO CardWidget 뒤집는 애니메이션
 	//EnemySelectCardVerticalBox->AddChildToVerticalBox(CardWidget);
-	EnemySelectedBattleCards.Add(CardWidget);
+	EnemySelectedBattleCards.SetNum(EnemyExchangeSlots.Num());
+	EnemySelectedBattleCards[ExchangeCount] = CardWidget;
 }
 
 void UHandWidget::ClearEnemySelectCard()
 {
 	//임시로 Vertical Box 사용
 	//EnemySelectCardVerticalBox->ClearChildren();
-	
-	
+
+
 	/*for (UWidget_CardEquipSlot* EquipSlot : EnemyExchangeSlots)
 	{
 		EquipSlot->ClearSlot();
 	}
 	EnemySelectedBattleCards.Empty();*/
-	
+
 	for (UWidget_CardEquipSlot* EquipSlot : EnemyExchangeSlots)
 	{
 		UWidget_BattleCardBase* CardWidget = EquipSlot->GetEquipSlot();
 		if (!CardWidget)
 		{
-			UE_LOG(
-				LogTemp,
-				Warning,
-				TEXT("DetachCardFromEquipSlot failed: CardWidget is null")
-			);
-			return;
+			EquipSlot->ClearSlot();
+			continue;
 		}
 		ForceLayoutPrepass();
 		const FGeometry& CardGeometry =
@@ -471,7 +479,7 @@ void UHandWidget::ClearEnemySelectCard()
 				)
 			);
 
-		
+
 		EquipSlot->ClearSlot();
 		CardWidget->RemoveFromParent();
 
@@ -526,7 +534,7 @@ void UHandWidget::ClearEnemySelectCard()
 		CardWidget->SetOwningHandWidget(this);
 		CardWidget->SetCardRenderAngle(0.0f);
 
-		
+
 		if (!CardRemovePoint_Enemy)
 		{
 			UE_LOG(
@@ -565,6 +573,8 @@ void UHandWidget::ClearEnemySelectCard()
 		);
 		RemoveCardArray.Add(CardWidget);
 	}
+
+	EnemySelectedBattleCards.Empty();
 }
 
 void UHandWidget::ClearPlayerSelectCard()
@@ -593,7 +603,7 @@ void UHandWidget::ClearPlayerSelectCard()
 				)
 			);
 
-		
+
 		EquipSlot->ClearSlot();
 		CardWidget->RemoveFromParent();
 
@@ -648,7 +658,7 @@ void UHandWidget::ClearPlayerSelectCard()
 		CardWidget->SetOwningHandWidget(this);
 		CardWidget->SetCardRenderAngle(0.0f);
 
-		
+
 		if (!CardRemovePoint_Player)
 		{
 			UE_LOG(
@@ -693,17 +703,17 @@ void UHandWidget::ClearPlayerSelectCard()
 void UHandWidget::ShowTurnEndButton(bool bShow)
 {
 	//기존
-	
-	
+
+
 	//바뀐 버튼
 	if (!Button_Select){return;}
-	
+
 	Button_Select->SetVisibility(
 	bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 	);
-	
+
 	Button_Select->SetIsEnabled(bShow);
-	
+
 }
 
 FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber_Player(int32 InIndex)
@@ -763,7 +773,6 @@ void UHandWidget::ConfirmExchangeInput(int32 InIndex)
 			EquipSlot->SetSlotEnabled(false);
 			EquipSlot->SetSlotHighlighted(false);
 			EquipSlot->SetSlotConfirmed(false);
-			BattleMainScreen->EquipBattleCardArray[InIndex - 1] = EquipSlot->GetSlotData().CardData;
 		}
 	}else
 	{
@@ -777,12 +786,11 @@ void UHandWidget::ConfirmExchangeInput(int32 InIndex)
 		EquipSlot->SetSlotEnabled(false);
 		EquipSlot->SetSlotHighlighted(false);
 		EquipSlot->SetSlotConfirmed(true);
-		BattleMainScreen->EquipBattleCardArray[InIndex - 1] = EquipSlot->GetSlotData().CardData;
-		
-		
+
+
 		UWidget_CardEquipSlot* EquipSlot_ = GetSlotByExchangeNumber(InIndex + 1);
 
-		if (!EquipSlot)
+		if (!EquipSlot_)
 		{
 			return;
 		}
@@ -792,7 +800,7 @@ void UHandWidget::ConfirmExchangeInput(int32 InIndex)
 		EquipSlot_->SetSlotHighlighted(true);
 		EquipSlot_->SetSlotConfirmed(false);
 	}
-	
+
 	/*EquipSlot->ConfirmSlot();
 	EquipSlot->SetSlotEnabled(false);
 	EquipSlot->SetSlotHighlighted(false);
@@ -822,8 +830,8 @@ void UHandWidget::StartExchangeInput(int32 ExchangeNumber)
 
 void UHandWidget::InitializeExchangeSlots()
 {
-	
-	
+
+
 	ExchangeSlots.Empty();
 
 	ExchangeSlots.Add(CardEquipSlot_1);
@@ -844,7 +852,7 @@ void UHandWidget::InitializeExchangeSlots()
 		const int32 ExchangeNumber = i + 1;
 
 		EquipSlot->bPlayerSlot = true;
-		
+
 		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
 		EquipSlot->ClearSlot();
 		EquipSlot->SetSlotEnabled(false);
@@ -852,14 +860,14 @@ void UHandWidget::InitializeExchangeSlots()
 		EquipSlot->SetSlotConfirmed(false);
 		EquipSlot->OwningHandWidget = this;
 	}
-	
+
 	EnemyExchangeSlots.Empty();
 	EnemySelectedBattleCards.Empty();
-	
+
 	EnemyExchangeSlots.Add(EnemyCardEquipSlot_1);
 	EnemyExchangeSlots.Add(EnemyCardEquipSlot_2);
 	EnemyExchangeSlots.Add(EnemyCardEquipSlot_3);
-	
+
 	for (int32 i = 0; i < EnemyExchangeSlots.Num(); i++)
 	{
 		UWidget_CardEquipSlot* EquipSlot = EnemyExchangeSlots[i];
@@ -874,7 +882,7 @@ void UHandWidget::InitializeExchangeSlots()
 		const int32 ExchangeNumber = i + 1;
 
 		EquipSlot->bPlayerSlot = false;
-		
+
 		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
 		EquipSlot->ClearSlot();
 		EquipSlot->SetSlotEnabled(false);
@@ -923,20 +931,20 @@ void UHandWidget::EnableExchangeSlot(int32 InIndex, bool bActive)
 {
 	const int32 ActiveSlotIndex = InIndex - 1;
 	UE_LOG(LogTemp, Error, TEXT("EnabledExchange Slot Test (HandWidget.cpp)"));
-	
+
 	if (!ExchangeSlots.IsValidIndex(ActiveSlotIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput failed: invalid ExchangeNumber %d"), InIndex);
 		return;
 	}
-	
+
 	UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[ActiveSlotIndex];
 	if (!EquipSlot)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput skipped: ExchangeSlots[%d] is null"), ActiveSlotIndex);
 		return;
 	}
-	
+
 	EquipSlot->SetSlotEnabled(bActive);
 	EquipSlot->SetSlotHighlighted(bActive);
 }
@@ -945,29 +953,29 @@ void UHandWidget::ActiveHandCards(bool bActive)
 {
 	if (bActive)
 	{
-		
+
 	}else
 	{
-		
+
 	}
 }
 
 void UHandWidget::BindSelectButton()
 {
 
-	
+
 	if (!Button_Select)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SelectButton is null (HandWidget.cpp)"));
 		return;
 	}
-	
+
 	// 중복 바인딩 방지
 	Button_Select->OnClicked().RemoveAll(this);
 	//Button_TurnEnd->OnClicked().RemoveAll(this);
-	
+
 	Button_Select->OnClicked().AddUObject(this, &UHandWidget::HandleEndTurnButtonClicked);
-	
+
 }
 
 void UHandWidget::UnbindSelectButton()
@@ -998,7 +1006,7 @@ UWidget_CardEquipSlot* UHandWidget::GetSlotByExchangeNumber(int32 ExchangeNumber
 void UHandWidget::DisplayInkLine(FString InText, float Time)
 {
 	if (!InkLineWidget){UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)")); return;}
-	
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
@@ -1011,7 +1019,7 @@ void UHandWidget::DisplayInkLine(FString InText, float Time)
 			false
 		);
 	}
-	
+
 	InkLineWidget->SetVisibility(ESlateVisibility::Visible);
 	InkLineWidget->SetInkText( FText::FromString(InText));
 	InkLineWidget->PlayInkLine();
@@ -1029,7 +1037,7 @@ void UHandWidget::DisplayInkLinebActive()
 void UHandWidget::DisplayInkLineEnabled(FString InText, float Time)
 {
 	if (!InkLineWidget){UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)")); return;}
-	
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
@@ -1082,8 +1090,8 @@ void UHandWidget::BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> Batt
 		*GetNameSafe(CharacterData),
 		BattleCards.Num()
 	);	*/
-	
-	
+
+
 }
 
 void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
@@ -1119,7 +1127,7 @@ void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
 	ClearHandCards();
 	// SpawnPoint의 CachedGeometry를 사용하기 위해 레이아웃 갱신
 	ForceLayoutPrepass();
-	
+
 	for (UMuksiBattleCardDataAsset* CardData : BattleCharacter->GetAllBattleDeck())
 	{
 		if (!CardData)
@@ -1165,7 +1173,7 @@ UWidget_BattleCardBase* UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* Ca
 	}
 	CardWidget->SetCardData(CardData);
 	PlaceCardInHand(CardWidget);
-	
+
 	UE_LOG(
 			LogTemp,
 			Log,
@@ -1187,16 +1195,16 @@ void UHandWidget::PlaceCardInHand(UWidget_BattleCardBase* InCardWidget)
 	{
 		return;
 	}
-	
+
 	if (BattleCards.Contains(InCardWidget))
 	{
 		return;
 	}
 
 	InCardWidget->RemoveFromParent();
-	
+
 	InCardWidget->SetOwningHandWidget(this);
-	
+
 
 	if (UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(InCardWidget))
 	{
@@ -1296,7 +1304,7 @@ UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCard
 		HandGeometry.AbsoluteToLocal(
 			SpawnAbsolutePosition
 		);
-	
+
 	const FVector2D HandBottomCenter(
 	HandGeometry.GetLocalSize().X * 0.5f,
 	HandGeometry.GetLocalSize().Y
@@ -1305,9 +1313,9 @@ UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCard
 	const FVector2D SpawnAnchorOffset =
 		SpawnLocalPosition - HandBottomCenter;
 
-	
+
 	////////////////////
-	
+
 	CanvasSlot->SetPosition(SpawnAnchorOffset);
 	//CanvasSlot->SetPosition(SpawnLocalPosition);
 	CanvasSlot->SetZOrder(BattleCards.Num());
@@ -1342,7 +1350,7 @@ UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCard
 	SpawnAnchorOffset.X,
 	SpawnAnchorOffset.Y
 );
-	
+
 	return CardWidget;
 }
 

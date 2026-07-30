@@ -31,8 +31,7 @@ bool ABattleSimulationManager::StartSimulation( ABattleGridManager* InSourceGrid
 	ResetSimulationRuntime();
 	SetSimulationState(EBattleSimulationState::Starting);
 
-	if (!CreateSimulationCharacters(SourceCharacters)
-		|| !CreateSimulationExecutionEnvironment(InSourceGridManager))
+	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(InSourceGridManager))
 	{
 		ResetSimulationRuntime();
 		return false;
@@ -41,8 +40,7 @@ bool ABattleSimulationManager::StartSimulation( ABattleGridManager* InSourceGrid
 	HideSourceCharacters();
 
 	CurrentExchange.Reset(0);
-	SetSimulationState(
-		EBattleSimulationState::WaitingForPlayerTargeting);
+	SetSimulationState(EBattleSimulationState::WaitingForPlayerTargeting);
 
 	return true;
 }

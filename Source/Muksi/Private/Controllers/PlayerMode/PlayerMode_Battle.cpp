@@ -105,14 +105,6 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 			BattleMainScreen = BattleManager->GetBattleMainScreen();
 		}
 
-		if (!BattleMainScreen)
-		{
-			return;
-		}
-
-		BattleMainScreen->PlayerSelectCardFinish = true;
-		BattleManager->ExchangeN_EndReady();
-
 		return;
 	}
 
