@@ -103,7 +103,7 @@ bool FBattleTargetResolver::ResolveAction(FBattleAction& InOutAction, ABattleGri
 
 	if (InOutAction.TargetingIntent.IsEmpty())
 	{
-		InOutAction.TargetingIntent = CaptureIntent(InOutAction.TargetingResult, InOutAction.Attacker->GetCharacterPosition());
+		InOutAction.TargetingIntent = CaptureIntent(InOutAction.TargetingResult, InOutAction.Attacker->GetCharacterCoord());
 	}
 
 	if (InOutAction.TargetingIntent.IsEmpty())
@@ -246,7 +246,7 @@ bool FBattleTargetResolver::ResolveStepOrigin(
 			return false;
 		}
 
-		OutOriginCoord = Action.Attacker->GetCharacterPosition();
+		OutOriginCoord = Action.Attacker->GetCharacterCoord();
 		return OutOriginCoord.IsValid();
 	}
 }
@@ -278,7 +278,7 @@ bool FBattleTargetResolver::ResolveStepSelectedCoord(
 			return false;
 		}
 
-		OutSelectedCoord = TargetCharacter->GetCharacterPosition();
+		OutSelectedCoord = TargetCharacter->GetCharacterCoord();
 
 		if (!GridManager->IsValidCoord(OutSelectedCoord))
 		{

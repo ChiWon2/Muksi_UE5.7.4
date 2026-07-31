@@ -24,11 +24,8 @@ FReply UWidget_CardEquipSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 			UnequipCard(OwningHandWidget);
 
 			return FReply::Handled();
-		}
-		
-		
+		}	
 	}
-	
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
@@ -227,25 +224,21 @@ void UWidget_CardEquipSlot::EquipCardData(UMuksiBattleCardDataAsset* InCardData,
 {
 	if (SlotData.bConfirmed)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: slot already confirmed"));
 		return;
 	}
 
 	if (!bSlotEnabled)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: slot is not enabled"));
 		return;
 	}
 
 	if (!InCardData)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: CardData is null"));
 		return;
 	}
 
 	if (!InSourceCharacter)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: SourceCharacter is null"));
 		return;
 	}
 

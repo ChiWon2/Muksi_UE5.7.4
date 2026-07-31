@@ -252,8 +252,6 @@ void UWidget_BattleCardBase::StopDragging()
 {
 	bIsDragging = false;
 	
-	bIsDragging = false;
-
 	if (OwningHandWidget)
 	{
 		UWidget_CardEquipSlot* OverlappedSlot =
@@ -261,9 +259,7 @@ void UWidget_BattleCardBase::StopDragging()
 		if (OverlappedSlot && OverlappedSlot->EquipCard(this))
 		{
 			OwningHandWidget->RemoveBattleCards(this);
-			OwningHandWidget->OrganizeCards(
-				OwningHandWidget->GetDefaultCardSpacing()
-			);
+			OwningHandWidget->OrganizeCards( OwningHandWidget->GetDefaultCardSpacing());
 			return;
 		}
 	}
@@ -272,9 +268,7 @@ void UWidget_BattleCardBase::StopDragging()
 
 	if (OwningHandWidget)
 	{
-		OwningHandWidget->OrganizeCards(
-			OwningHandWidget->GetDefaultCardSpacing()
-		);
+		OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
 	}
 }
 

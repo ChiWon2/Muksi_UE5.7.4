@@ -39,22 +39,15 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Battle")
 	void BP_OnSelectableCharacterClicked();
 
-
-
 protected:
 	//~Begin UCommonActivatableWidget Interface
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
-
-	virtual FReply NativeOnMouseButtonDown(
-		const FGeometry& InGeometry,
-		const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 	virtual void NativeOnActivated() override;
 	//~End UCommonActivatableWidget Interface
-
-
 
 	//***** Bound Widgets ****
 	UPROPERTY(meta = (BindWidget))
@@ -64,11 +57,9 @@ protected:
 	UPassiveActivePopupWidget* ActivePassiveWidget;
 
 	//***** Bound Widgets ****
-
 private:
 	UPROPERTY()
-	TObjectPtr<ABattleManager> CachedBattleManager;
-
+	TObjectPtr<ABattleManager> BattleManager;
 
 public:
 	UFUNCTION()
@@ -93,19 +84,10 @@ protected:
 	void BindBattleManagerEvents();
 	void UnbindBattleManagerEvents();
 
-	UFUNCTION()
-	void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
-
 	//====================================Ready<준비>===================================================================
 public:
 	void ReadyStart();
 	void ReadyEnd();
-
-	/*UFUNCTION(BlueprintCallable)
-	void HandleBattleReady();
-
-	UFUNCTION(BlueprintCallable)
-	void HandleBattleStarted();*/
 
 	//====================================Battle<전투>==================================================================
 public:
@@ -172,7 +154,7 @@ public:
 	void DisplayExchangeEndUI();
 	void DisplayExchangeEndUIFinish();
 
-	void StartExchange(int32 ExchangeIndex);
+	void StartExchangeSelectCard(int32 ExchangeIndex);
 	void FinishExchange(int32 ExchangeIndex);
 
 	void ExchangeEnd();

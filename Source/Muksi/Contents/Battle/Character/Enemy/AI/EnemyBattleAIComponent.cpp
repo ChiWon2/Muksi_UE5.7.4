@@ -60,8 +60,8 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 	Result = CardSelectStrategy->SelectCardForExchange(
 		EnemyData,
 		GridManager,
-		BattleManager->GetEnemyPoint(),
-		BattleManager->GetPlayerPoint()
+		BattleManager->GetEnemyCoord(),
+		BattleManager->GetPlayerCoord()
 	);
 	return Result.SelectedCard;
 }

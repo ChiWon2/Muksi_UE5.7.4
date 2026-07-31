@@ -11,11 +11,11 @@ struct FTargetingInputContext
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
-	FHexOffsetCoord HoveredCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
-
-	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
+	UPROPERTY(BlueprintReadWrite)
 	FVector AimWorldLocation = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadWrite)
+	FHexOffsetCoord HoveredCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 
 	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
 	TArray<TObjectPtr<ABattleCharacterBase>> CandidateCharacters;

@@ -11,6 +11,7 @@ class UDataTable;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
 class ABattleCharacterBase;
+class UBattleTargetingManager;
 
 class ABattleGridTile;
 class ABattleManager;
@@ -32,8 +33,6 @@ public:
 	virtual void HandleRPressedKey(const FInputActionValue& Value) override;
 	//~ End UPlayerModeBase Interface
 
-	void UpdateHoveredGridTile();
-
 	UPROPERTY()
 	TObjectPtr<ABattleGridTile> HoveredGridTile = nullptr;
 	
@@ -44,7 +43,13 @@ public:
 	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
 
 private:
-	void UpdateCardTargeting(const FHitResult& HitResult);
+	UPROPERTY()
+	TObjectPtr<UBattleTargetingManager> BattleTargetingManager = nullptr;
+
+
+private:
+	void UpdateHoveredGridTile(const FHitResult& HitResult, bool bHasHitResult);
+	void UpdateCardTargeting(const FHitResult& HitResult, bool bHasHitResult);
 	void PushCharacterDataWidget();
 	void FocusCameraOnCharacter (ABattleCharacterBase* Character);
 

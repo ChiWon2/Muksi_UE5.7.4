@@ -142,6 +142,13 @@ ETargetingConfirmResult UBattleTargetingManager::ConfirmCurrentStep()
 
 void UBattleTargetingManager::CancelTargeting()
 {
+	if(ActiveSelectionPreviewVisualizer)
+		ActiveSelectionPreviewVisualizer->ClearPreview();
+	if (ActivePathPreviewVisualizer)
+		ActivePathPreviewVisualizer->ClearPreview();
+	if (ActiveAreaPreviewVisualizer)
+		ActiveAreaPreviewVisualizer->ClearPreview();
+	
 	ResetRuntimeState();
 }
 
@@ -230,7 +237,7 @@ bool UBattleTargetingManager::ResolveCurrentStepOrigin(FHexOffsetCoord& OutOrigi
 			return false;
 		}
 
-		OutOriginCoord = SourceCharacter->GetCharacterPosition();
+		OutOriginCoord = SourceCharacter->GetCharacterCoord();
 
 		return ResolveGridWorldLocation(OutOriginCoord, OutOriginWorldLocation);
 	}

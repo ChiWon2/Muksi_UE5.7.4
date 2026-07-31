@@ -35,7 +35,7 @@ void UMoveExecution::Execute(const FBattleExecutionContext& Context, FBattleExec
 		return;
 	}
 
-	StartCoord = MovingCharacter->GetCharacterPosition();
+	StartCoord = MovingCharacter->GetCharacterCoord();
 	DestinationCoord = Context.GetMainTargetPoint();
 
 	if (!ValidateDestination())

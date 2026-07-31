@@ -93,7 +93,7 @@ public:
 	
 	UMuksiCharacterDataAsset* GetCharacterData()const{return CharacterData.CharacterAsset;};
 	
-	FHexOffsetCoord GetCharacterPosition()const{return CharacterData.CurrentPosition;};
+	FHexOffsetCoord GetCharacterCoord()const{return CharacterData.CurrentPosition;};
 	void SetCharacterPosition(FHexOffsetCoord NewPosition){CharacterData.CurrentPosition = NewPosition;};
 	
 	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData.BattleDeck;};

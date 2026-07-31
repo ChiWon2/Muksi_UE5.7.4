@@ -31,25 +31,18 @@ void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 	PC->bEnableClickEvents = true;
 	PC->bEnableMouseOverEvents = true;
 
-	/*FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-	PC->SetInputMode(InputMode);*/
-
-	UE_LOG(LogTemp, Warning, TEXT("PlayerMode_Battle"));
-
-	BattleManager = Cast<ABattleManager>(
-		UGameplayStatics::GetActorOfClass(
-			this,
-			ABattleManager::StaticClass()
-		)
-	);
+	BattleManager = Cast<ABattleManager>(UGameplayStatics::GetActorOfClass( this, ABattleManager::StaticClass()));
 
 	if (!BattleManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UPlayerMode_Battle::EnterMode - BattleManager not found"));
+		UE_LOG(LogTemp, Error, TEXT("[PlayerMode_Battle]EnterMode - BattleManager not found"));
 		return;
+	}
+
+	BattleMainScreen = BattleManager->GetBattleMainScreen();
+	if (!BattleMainScreen)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[PlayerMode_Battle]EnterMode - BattleMainScreen not found"));
 	}
 }
 
@@ -74,7 +67,11 @@ void UPlayerMode_Battle::TickPlayerMode()
 {
 	Super::TickPlayerMode();
 
-	UpdateHoveredGridTile();
+	FHitResult HitResult;
+	const bool bHasHitResult = PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+
+	UpdateHoveredGridTile(HitResult, bHasHitResult);
+	UpdateCardTargeting(HitResult, bHasHitResult);
 }
 
 void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
@@ -99,12 +96,6 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 		{
 			return;
 		}
-
-		if (!BattleMainScreen)
-		{
-			BattleMainScreen = BattleManager->GetBattleMainScreen();
-		}
-
 		return;
 	}
 
@@ -126,8 +117,7 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 	{
 		SelectedActor = HitActor;
 		
-		if (ABattleCharacterBase* SelectedCharacter =
-		Cast<ABattleCharacterBase>(HitActor))
+		if (ABattleCharacterBase* SelectedCharacter = Cast<ABattleCharacterBase>(HitActor))
 		{
 			FocusCameraOnCharacter(SelectedCharacter);
 		}
@@ -164,64 +154,43 @@ void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
 	Super::HandleRPressedKey(Value);
 }
 
-void UPlayerMode_Battle::UpdateHoveredGridTile()
+void UPlayerMode_Battle::UpdateHoveredGridTile(const FHitResult& HitResult, bool bHasHitResult)
 {
-	if (!PC || !BattleManager)
+	ABattleGridTile* NewHoveredGridTile = bHasHitResult ? Cast<ABattleGridTile>(HitResult.GetActor()) : nullptr;
+
+	if (HoveredGridTile == NewHoveredGridTile)
 	{
 		return;
 	}
 
-	FHitResult HitResult;
-
-	if (!PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
+	if (HoveredGridTile)
 	{
-		if (HoveredGridTile)
-		{
-			HoveredGridTile->OnHoverEnd();
-		}
-
-		HoveredGridTile = nullptr;
-
-		if (BattleManager->IsCardTargeting())
-		{
-			BattleManager->UpdateCurrentCardTargeting(FTargetingInputContext());
-		}
-
-		return;
+		HoveredGridTile->OnHoverEnd();
 	}
 
-	ABattleGridTile* NewHoveredGridTile = Cast<ABattleGridTile>(HitResult.GetActor());
+	HoveredGridTile = NewHoveredGridTile;
 
-	if (HoveredGridTile != NewHoveredGridTile)
+	if (HoveredGridTile)
 	{
-		if (HoveredGridTile)
-		{
-			HoveredGridTile->OnHoverEnd();
-		}
-
-		HoveredGridTile = NewHoveredGridTile;
-
-		if (HoveredGridTile)
-		{
-			HoveredGridTile->OnHoverBegin();
-		}
-	}
-
-	if (BattleManager->IsCardTargeting())
-	{
-		UpdateCardTargeting(HitResult);
+		HoveredGridTile->OnHoverBegin();
 	}
 }
 
-void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
+void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult, bool bHasHitResult)
 {
 	if (!BattleManager || !BattleManager->IsCardTargeting())
 	{
 		return;
 	}
 
+	if (!bHasHitResult)
+	{
+		BattleManager->UpdateCurrentCardTargeting(FTargetingInputContext());
+		return;
+	}
+
 	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-	ABattleGridManager* GridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
+	ABattleGridManager* GridManager = ManagerSubsystem ? ManagerSubsystem->GetManager<ABattleGridManager>() : nullptr;
 
 	if (!GridManager)
 	{
@@ -249,7 +218,7 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 	}
 	else if (ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
 	{
-		InputContext.HoveredCoord = HitCharacter->GetCharacterPosition();
+		InputContext.HoveredCoord = HitCharacter->GetCharacterCoord();
 
 		if (ABattleCharacterBase* TargetingCharacter = BattleManager->ResolveCurrentTargetingCharacter(HitCharacter))
 		{
@@ -259,7 +228,6 @@ void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
 
 	BattleManager->UpdateCurrentCardTargeting(InputContext);
 }
-
 void UPlayerMode_Battle::PushCharacterDataWidget()
 {
 	UE_LOG(LogTemp, Log, TEXT("pushCharacterDataWidget Test"));

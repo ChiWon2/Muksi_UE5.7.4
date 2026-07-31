@@ -469,8 +469,7 @@ void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, in
 		return;
 	}
 
-	UWidget_BattleCardBase* CardWidget =
-		CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
+	UWidget_BattleCardBase* CardWidget = CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
 
 	if (!CardWidget)
 	{
@@ -1004,8 +1003,6 @@ void UHandWidget::ActiveHandCards(bool bActive)
 
 void UHandWidget::BindSelectButton()
 {
-
-
 	if (!Button_Select)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SelectButton is null (HandWidget.cpp)"));
@@ -1205,8 +1202,7 @@ UWidget_BattleCardBase* UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* Ca
 		return nullptr;
 	}
 
-	UWidget_BattleCardBase* CardWidget =
-		CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
+	UWidget_BattleCardBase* CardWidget = CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
 
 	if (!CardWidget)
 	{
@@ -1215,13 +1211,6 @@ UWidget_BattleCardBase* UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* Ca
 	}
 	CardWidget->SetCardData(CardData);
 	PlaceCardInHand(CardWidget);
-
-	UE_LOG(
-			LogTemp,
-			Log,
-			TEXT("AddCardToHand: %s"),
-			*GetNameSafe(CardData)
-		);
 
 	return CardWidget;
 }
