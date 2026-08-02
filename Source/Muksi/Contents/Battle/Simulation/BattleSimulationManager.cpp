@@ -2,11 +2,17 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 
+// ============================================================================
+// 생명주기 / 상태 조회
+// ============================================================================
 ABattleSimulationManager::ABattleSimulationManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -26,12 +32,16 @@ bool ABattleSimulationManager::IsSimulationRunning() const
 	return SimulationState != EBattleSimulationState::Idle && SimulationState != EBattleSimulationState::Completed;
 }
 
-bool ABattleSimulationManager::StartSimulation( ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+// ============================================================================
+// Simulation 시작 및 Exchange 입력
+// BattleManager::PrepareCurrentExchangeSimulation -> StartSimulation -> SetPlayer/EnemyAction
+// ============================================================================
+bool ABattleSimulationManager::StartSimulation(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
 	ResetSimulationRuntime();
 	SetSimulationState(EBattleSimulationState::Starting);
 
-	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(InSourceGridManager))
+	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(InSourceGridManager) || !CreateSimulationPostProcess())
 	{
 		ResetSimulationRuntime();
 		return false;
@@ -45,14 +55,14 @@ bool ABattleSimulationManager::StartSimulation( ABattleGridManager* InSourceGrid
 	return true;
 }
 
-bool ABattleSimulationManager::SetPlayerAction(const FBattleAction& PlayerAction)
+bool ABattleSimulationManager::SetPlayerAction(const FBattleAction& PlayerAction, UMuksiBattleCardDataAsset* SimulationCardOverride)
 {
-	if (!IsSimulationRunning() || CurrentExchange.bHasPlayerAction)
+	if (!IsSimulationRunning() || CurrentExchange.bHasPlayerAction || !IsValid(PlayerAction.Attacker) || !IsValid(PlayerAction.Card) || (SimulationCardOverride && !IsValid(SimulationCardOverride)))
 	{
 		return false;
 	}
 
-	CurrentExchange.SetPlayerAction(PlayerAction);
+	CurrentExchange.SetPlayerAction(PlayerAction, SimulationCardOverride);
 
 	SetSimulationState(
 		CurrentExchange.CanResolveActionOrder()
@@ -63,14 +73,14 @@ bool ABattleSimulationManager::SetPlayerAction(const FBattleAction& PlayerAction
 	return true;
 }
 
-bool ABattleSimulationManager::SetEnemyAction(const FBattleAction& EnemyAction)
+bool ABattleSimulationManager::SetEnemyAction(const FBattleAction& EnemyAction, UMuksiBattleCardDataAsset* SimulationCardOverride)
 {
-	if (!IsSimulationRunning() || CurrentExchange.bHasEnemyAction)
+	if (!IsSimulationRunning() || CurrentExchange.bHasEnemyAction || !IsValid(EnemyAction.Attacker) || !IsValid(EnemyAction.Card) || (SimulationCardOverride && !IsValid(SimulationCardOverride)))
 	{
 		return false;
 	}
 
-	CurrentExchange.SetEnemyAction(EnemyAction);
+	CurrentExchange.SetEnemyAction(EnemyAction, SimulationCardOverride);
 
 	SetSimulationState(
 		CurrentExchange.CanResolveActionOrder()
@@ -116,39 +126,15 @@ ABattleSimulationCharacter* ABattleSimulationManager::GetSimulationCharacter(con
 	return FoundCharacter ? FoundCharacter->Get() : nullptr;
 }
 
-void ABattleSimulationManager::ConvertToSourceTargetingResult(FTargetingResult& TargetingResult) const
-{
-	for (TObjectPtr<ABattleCharacterBase>& TargetCharacter : TargetingResult.TargetCharacters)
-	{
-		if (ABattleSimulationCharacter* SimulationCharacter = Cast<ABattleSimulationCharacter>(TargetCharacter))
-		{
-			if (ABattleCharacterBase* SourceCharacter = GetSourceCharacter(SimulationCharacter))
-			{
-				TargetCharacter = SourceCharacter;
-			}
-		}
-	}
-
-	for (FTargetingStepContext& StepContext : TargetingResult.StepContexts)
-	{
-		for (TObjectPtr<ABattleCharacterBase>& TargetCharacter : StepContext.TargetCharacters)
-		{
-			if (ABattleSimulationCharacter* SimulationCharacter = Cast<ABattleSimulationCharacter>(TargetCharacter))
-			{
-				if (ABattleCharacterBase* SourceCharacter = GetSourceCharacter(SimulationCharacter))
-				{
-					TargetCharacter = SourceCharacter;
-				}
-			}
-		}
-	}
-}
-
 ABattleCharacterBase* ABattleSimulationManager::GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const
 {
 	return IsValid(SimulationCharacter) ? SimulationCharacter->GetSourceCharacter() : nullptr;
 }
 
+// ============================================================================
+// Simulation Runtime 생성
+// 복제 캐릭터 -> 전용 Grid/Sequence 환경 -> 선택적 PostProcess
+// ============================================================================
 bool ABattleSimulationManager::CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
 	UWorld* World = GetWorld();
@@ -172,7 +158,10 @@ bool ABattleSimulationManager::CreateSimulationCharacters(const TArray<ABattleCh
 			return false;
 		}
 
-		SimulationCharacter->InitializeFromCharacter(SourceCharacter);
+		UMaterialInterface* TeamMaterial = SourceCharacter->IsA<ABattleCharacter_Player>()
+			? PlayerSimulationMaterial.Get()
+			: EnemySimulationMaterial.Get();
+		SimulationCharacter->InitializeFromCharacter(SourceCharacter, TeamMaterial);
 		SimulationCharacterMap.Add(SourceCharacter, SimulationCharacter);
 	}
 
@@ -209,11 +198,18 @@ bool ABattleSimulationManager::CreateSimulationExecutionEnvironment(ABattleGridM
 	UGameplayStatics::FinishSpawningActor(SimulationSequenceManager, FTransform::Identity);
 	SimulationSequenceManager->BattleGridManager = SourceGridManager;
 	SimulationSequenceManager->OnSequenceFinished.AddUObject(this, &ABattleSimulationManager::HandleSimulationSequenceFinished);
+	SimulationSequenceManager->OnExecutionEntryStarted.AddUObject(this, &ABattleSimulationManager::HandleSimulationExecutionStarted);
 	return true;
 }
 
 bool ABattleSimulationManager::CreateSimulationPostProcess()
 {
+	if (!bEnableSimulationPostProcess)
+	{
+		DestroySimulationPostProcess();
+		return true;
+	}
+
 	if (IsValid(SimulationPostProcessVolume))
 	{
 		SimulationPostProcessVolume->ActivateSimulationPostProcess();
@@ -297,6 +293,11 @@ void ABattleSimulationManager::RestoreSourceCharacters()
 	SourceCharacterHiddenStates.Empty();
 }
 
+// ============================================================================
+// Exchange 실행 파이프라인
+// ExecuteCurrentExchange -> TryExecuteCurrentExchange -> ExecuteSimulationAction
+// -> BattleSequenceManager -> FinishCurrentExchange
+// ============================================================================
 bool ABattleSimulationManager::TryExecuteCurrentExchange()
 {
 	if (!CurrentExchange.CanResolveActionOrder())
@@ -311,70 +312,67 @@ bool ABattleSimulationManager::TryExecuteCurrentExchange()
 		return false;
 	}
 
-	SequenceActionQueue.Add(CurrentExchange.GetFirstAction());
-	SequenceActionQueue.Add(CurrentExchange.GetSecondAction());
+	SequenceActionQueue.Add(CurrentExchange.GetFirstAction().SequenceAction);
+	SequenceActionQueue.Add(CurrentExchange.GetSecondAction().SequenceAction);
 	SetSimulationState(EBattleSimulationState::ExecutingFirstAction);
 
 	return ExecuteSimulationAction(CurrentExchange.GetFirstAction());
 }
 
-bool ABattleSimulationManager::ExecuteSimulationAction(const FBattleAction& SourceAction)
+bool ABattleSimulationManager::ExecuteSimulationAction(const FBattleSimulationActionPlan& ActionPlan)
 {
 	if (!SimulationSequenceManager)
 	{
 		return false;
 	}
 
-	FBattleAction SimulationAction;
+	FBattleSequenceRequest Request;
 
-	if (!ConvertToSimulationAction(SourceAction, SimulationAction))
+	if (!BuildSimulationSequenceRequest(ActionPlan, Request))
 	{
 		return false;
 	}
 
-	return SimulationSequenceManager->StartSequence(SimulationAction);
-}
-
-bool ABattleSimulationManager::ConvertToSimulationAction(const FBattleAction& SourceAction, FBattleAction& OutSimulationAction) const
-{
-	ABattleSimulationCharacter* SimulationAttacker = GetSimulationCharacter(SourceAction.Attacker);
-
-	if (!SimulationAttacker || !SourceAction.Card)
+	OnSimulationActionStarted.Broadcast(ActionPlan.SequenceAction);
+	if (!SimulationSequenceManager->StartSequenceWithRequest(Request))
 	{
+		OnSimulationActionFinished.Broadcast();
 		return false;
 	}
-
-	OutSimulationAction = SourceAction;
-	OutSimulationAction.Attacker = SimulationAttacker;
-	ConvertTargetCharacters(OutSimulationAction.TargetingResult);
 
 	return true;
 }
 
-void ABattleSimulationManager::ConvertTargetCharacters(FTargetingResult& TargetingResult) const
+bool ABattleSimulationManager::BuildSimulationSequenceRequest(const FBattleSimulationActionPlan& ActionPlan, FBattleSequenceRequest& OutRequest) const
 {
-	for (TObjectPtr<ABattleCharacterBase>& TargetCharacter : TargetingResult.TargetCharacters)
+	ABattleSimulationCharacter* SimulationAttacker = GetSimulationCharacter(ActionPlan.SequenceAction.Attacker);
+	UMuksiBattleCardDataAsset* SimulationCard = ActionPlan.GetSimulationCard();
+
+	if (!IsValid(SimulationAttacker) || !IsValid(SimulationCard))
 	{
-		if (ABattleSimulationCharacter* SimulationCharacter = GetSimulationCharacter(TargetCharacter))
-		{
-			TargetCharacter = SimulationCharacter;
-		}
+		return false;
 	}
 
-	for (FTargetingStepContext& StepContext : TargetingResult.StepContexts)
-	{
-		for (TObjectPtr<ABattleCharacterBase>& TargetCharacter : StepContext.TargetCharacters)
-		{
-			if (ABattleSimulationCharacter* SimulationCharacter = GetSimulationCharacter(TargetCharacter))
-			{
-				TargetCharacter = SimulationCharacter;
-			}
-		}
-	}
+	OutRequest.Action = ActionPlan.SequenceAction;
+	OutRequest.Action.Attacker = SimulationAttacker;
+	OutRequest.ExecutionMode = EBattleExecutionMode::Simulation;
+	OutRequest.ExecutionCardOverride = SimulationCard;
+	return true;
+}
+
+void ABattleSimulationManager::HandleSimulationExecutionStarted(
+	const FBattleAction& Action,
+	const FBattleExecutionEntry& Entry,
+	int32 EntryIndex,
+	const FResolvedTargeting& ResolvedTargeting)
+{
+	OnSimulationExecutionStarted.Broadcast(Action, Entry, EntryIndex, ResolvedTargeting);
 }
 
 void ABattleSimulationManager::HandleSimulationSequenceFinished()
 {
+	OnSimulationActionFinished.Broadcast();
+
 	if (SimulationState == EBattleSimulationState::ExecutingFirstAction)
 	{
 		SetSimulationState(EBattleSimulationState::ExecutingSecondAction);
@@ -418,6 +416,9 @@ void ABattleSimulationManager::FinishCurrentExchange()
 	OnSimulationExchangeFinished.Broadcast(FinishedExchangeIndex);
 }
 
+// ============================================================================
+// Runtime 정리 / 상태 전환
+// ============================================================================
 void ABattleSimulationManager::DestroySimulationRuntime()
 {
 	if (SimulationSequenceManager)

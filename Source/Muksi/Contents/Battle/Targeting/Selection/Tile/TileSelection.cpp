@@ -5,11 +5,16 @@
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelectionData.h"
 
-void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FInstancedStruct& SelectionData, FTargetingStepContext& OutStepContext) const
+void UTileSelection::EvaluateCandidate(
+	ABattleGridManager* GridManager,
+	const FHexOffsetCoord& OriginCoord,
+	const FHexOffsetCoord& CandidateCoord,
+	const FInstancedStruct& SelectionData,
+	FTargetingStepResult& OutStepResult) const
 {
-	InitializeStepContext(Context, OutStepContext);
+	InitializeStepResult(OriginCoord, OutStepResult);
 
-	TARGET_SELECTION_VALIDATE_COMMON_OR_RETURN(Context, SelectionData);
+	TARGET_SELECTION_VALIDATE_COMMON_OR_RETURN(GridManager, OriginCoord, SelectionData);
 
 	const FTileSelectionData* Data = SelectionData.GetPtr<FTileSelectionData>();
 
@@ -20,59 +25,22 @@ void UTileSelection::Evaluate(const FTargetSelectionContext& Context, const FIns
 
 	const int32 SafeSelectionRange = FMath::Max(0, Data->SelectionRange);
 
-	for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
-	{
-		for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
-		{
-			const FHexOffsetCoord CandidateCoord(X, Y);
+	TARGET_SELECTION_VALIDATE_CANDIDATE_OR_RETURN(GridManager, CandidateCoord);
 
-			if (!Context.GridManager->IsValidCoord(CandidateCoord))
-			{
-				continue;
-			}
-
-			const int32 HexDistance = FHexGridMath::GetHexDistance(Context.OriginCoord, CandidateCoord);
-
-			if (HexDistance > SafeSelectionRange)
-			{
-				continue;
-			}
-
-			if (!Context.GridManager->GetTileActorByCoord(CandidateCoord))
-			{
-				continue;
-			}
-
-			OutStepContext.SelectableCoords.Add(CandidateCoord);
-		}
-	}
-
-	if (!Context.InputContext.HasHoveredCoord())
+	if (FHexGridMath::GetHexDistance(OriginCoord, CandidateCoord) > SafeSelectionRange)
 	{
 		return;
 	}
 
-	if (!Context.GridManager->IsValidCoord(Context.InputContext.HoveredCoord))
-	{
-		return;
-	}
-
-	if (!OutStepContext.IsSelectableCoord(Context.InputContext.HoveredCoord))
-	{
-		return;
-	}
-
-	const ABattleGridTile* SelectedTile = Context.GridManager->GetTileActorByCoord(Context.InputContext.HoveredCoord);
+	const ABattleGridTile* SelectedTile = GridManager->GetTileActorByCoord(CandidateCoord);
 
 	if (!SelectedTile)
 	{
 		return;
 	}
 
-	OutStepContext.bCanConfirm = true;
-	OutStepContext.SelectedCoord = Context.InputContext.HoveredCoord;
-	OutStepContext.SelectedWorldLocation = SelectedTile->GetGridCenterWorldLocation();
-	OutStepContext.TargetCharacters = Context.InputContext.CandidateCharacters;
+	OutStepResult.bValid = true;
+	OutStepResult.SelectedCoord = CandidateCoord;
 }
 
 const UScriptStruct* UTileSelection::GetSelectionDataStruct() const

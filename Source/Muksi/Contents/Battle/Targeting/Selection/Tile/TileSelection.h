@@ -12,7 +12,13 @@ class MUKSI_API UTileSelection : public UTargetSelection
 	GENERATED_BODY()
 
 public:
-	virtual void Evaluate(const FTargetSelectionContext& Context, const FInstancedStruct& SelectionData, FTargetingStepContext& OutStepContext) const override;
+	virtual void EvaluateCandidate(
+		ABattleGridManager* GridManager,
+		const FHexOffsetCoord& OriginCoord,
+		const FHexOffsetCoord& CandidateCoord,
+		const FInstancedStruct& SelectionData,
+		FTargetingStepResult& OutStepResult
+	) const override;
 
 	virtual const UScriptStruct* GetSelectionDataStruct() const override;
 };

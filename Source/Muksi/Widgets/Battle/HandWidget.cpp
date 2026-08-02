@@ -42,8 +42,25 @@ void UHandWidget::NativeConstruct()
 	InitializeExchangeSlots();
 }
 
+void UHandWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// Keep trying while the Slate hierarchy is being reused between rounds.
+	// CachedGeometry can stay invalid until a real paint pass, so a fixed retry count is not sufficient.
+	if (bOrganizeCardsPending)
+	{
+		TryOrganizeCards(PendingCardSpacing > 0.0f ? PendingCardSpacing : DefaultCardSpacing);
+	}
+}
+
 void UHandWidget::NativeDestruct()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
+	}
+
 	UnbindSelectButton();
 
 	for (UWidget_BattleCardBase* CardWidget : EnemySelectedBattleCards)
@@ -64,7 +81,7 @@ void UHandWidget::SpawnDefaultHandCards()
 {
 	//ClearHandCards();
 	CreateTestHandCards(5);
-	OrganizeCards(DefaultCardSpacing);
+	RequestOrganizeCards(DefaultCardSpacing);
 }
 
 void UHandWidget::CreateTestHandCards(int32 InCount)
@@ -108,6 +125,105 @@ void UHandWidget::CreateTestHandCards(int32 InCount)
 		CardsStructArray.Add(WidgetCard);
 		BattleCards.Add(Widget_BattleCard);
 	}
+}
+
+void UHandWidget::RequestOrganizeCards(float OffsetX)
+{
+	PendingCardSpacing = OffsetX > 0.0f ? OffsetX : DefaultCardSpacing;
+	bOrganizeCardsPending = true;
+	OrganizeRetryCount = 0;
+	OrganizeNotBeforeFrame = GFrameCounter + 2;
+
+	InvalidateLayoutAndVolatility();
+	if (HandCanvas)
+	{
+		HandCanvas->InvalidateLayoutAndVolatility();
+	}
+	if (HandCardPoint)
+	{
+		HandCardPoint->InvalidateLayoutAndVolatility();
+	}
+
+	ScheduleOrganizeCards();
+}
+
+void UHandWidget::ScheduleOrganizeCards()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
+		OrganizeCardsTimerHandle = World->GetTimerManager().SetTimerForNextTick(
+			FTimerDelegate::CreateUObject(this, &UHandWidget::HandleOrganizeCardsTimer));
+	}
+}
+
+void UHandWidget::HandleOrganizeCardsTimer()
+{
+	if (!bOrganizeCardsPending)
+	{
+		return;
+	}
+
+	if (TryOrganizeCards(PendingCardSpacing > 0.0f ? PendingCardSpacing : DefaultCardSpacing))
+	{
+		return;
+	}
+
+	++OrganizeRetryCount;
+	ScheduleOrganizeCards();
+}
+
+bool UHandWidget::TryOrganizeCards(float OffsetX)
+{
+	if (GFrameCounter < OrganizeNotBeforeFrame)
+	{
+		return false;
+	}
+
+	if (BattleCards.IsEmpty())
+	{
+		bOrganizeCardsPending = false;
+		return true;
+	}
+
+	if (!HandCanvas || !HandCardPoint)
+	{
+		return false;
+	}
+
+	ForceLayoutPrepass();
+	const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
+	const FGeometry& PointGeometry = HandCardPoint->GetCachedGeometry();
+	if (HandGeometry.GetLocalSize().X <= 1.0f || HandGeometry.GetLocalSize().Y <= 1.0f ||
+		PointGeometry.GetLocalSize().X <= 1.0f || PointGeometry.GetLocalSize().Y <= 1.0f)
+	{
+		return false;
+	}
+
+	if (bPlaceCardsAtDrawSpawnPending && CardDrawSpawnPoint)
+	{
+		const FGeometry& SpawnGeometry = CardDrawSpawnPoint->GetCachedGeometry();
+		if (SpawnGeometry.GetLocalSize().X <= 1.0f || SpawnGeometry.GetLocalSize().Y <= 1.0f)
+		{
+			return false;
+		}
+		const FVector2D SpawnAbsolute = SpawnGeometry.LocalToAbsolute(SpawnGeometry.GetLocalSize() * 0.5f);
+		const FVector2D SpawnLocal = HandGeometry.AbsoluteToLocal(SpawnAbsolute);
+		const FVector2D HandBottomCenter(HandGeometry.GetLocalSize().X * 0.5f, HandGeometry.GetLocalSize().Y);
+		const FVector2D SpawnOffset = SpawnLocal - HandBottomCenter;
+		for (UWidget_BattleCardBase* Card : BattleCards)
+		{
+			if (UCanvasPanelSlot* CardCanvasSlot = Card ? Cast<UCanvasPanelSlot>(Card->Slot) : nullptr)
+			{
+				CardCanvasSlot->SetPosition(SpawnOffset);
+			}
+		}
+		bPlaceCardsAtDrawSpawnPending = false;
+	}
+
+	bOrganizeCardsPending = false;
+	OrganizeCards(OffsetX);
+	return true;
 }
 
 void UHandWidget::OrganizeCards(float OffsetX)
@@ -296,7 +412,7 @@ void UHandWidget::OrganizeCards(float OffsetX)
 void UHandWidget::CreateCardMore()
 {
 	CreateTestHandCards(5);
-	OrganizeCards(DefaultCardSpacing);
+	RequestOrganizeCards(DefaultCardSpacing);
 }
 
 void UHandWidget::ClearHandCards()
@@ -315,24 +431,31 @@ void UHandWidget::ClearHandCards()
 	HoveredCard = nullptr;
 	BattleCards.Empty();
 	CardsStructArray.Empty();
+	bOrganizeCardsPending = false;
+	OrganizeRetryCount = 0;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
+	}
 }
 
 void UHandWidget::InvisibleHandCards()
 {
 	if (BattleCards.Num() == 0)
 	{
-		ClearHandCards();
-	}else
+		return;
+	}
+	else
 	{
 		HandCardPoint = CardDownPoint;
-		OrganizeCards(DefaultCardSpacing);
+		RequestOrganizeCards(DefaultCardSpacing);
 	}
 }
 
 void UHandWidget::VisibleHandCards()
 {
 	HandCardPoint = CardUpPoint;
-	OrganizeCards(DefaultCardSpacing);
+	RequestOrganizeCards(DefaultCardSpacing);
 }
 
 void UHandWidget::HitActiveHandCards(bool bHitActive)
@@ -357,7 +480,7 @@ void UHandWidget::HitActiveHandCards(bool bHitActive)
 void UHandWidget::SetHoveredCard(UWidget_BattleCardBase* InHoveredCard)
 {
 	HoveredCard = InHoveredCard;
-	OrganizeCards(DefaultCardSpacing);
+	RequestOrganizeCards(DefaultCardSpacing);
 }
 
 void UHandWidget::ClearHoveredCard(UWidget_BattleCardBase* InCard)
@@ -365,7 +488,7 @@ void UHandWidget::ClearHoveredCard(UWidget_BattleCardBase* InCard)
 	if (HoveredCard == InCard)
 	{
 		HoveredCard = nullptr;
-		OrganizeCards(DefaultCardSpacing);
+		RequestOrganizeCards(DefaultCardSpacing);
 	}
 }
 
@@ -496,7 +619,7 @@ void UHandWidget::ClearEnemySelectCard()
 
 	/*for (UWidget_CardEquipSlot* EquipSlot : EnemyExchangeSlots)
 	{
-		EquipSlot->ClearSlot();
+		EquipSlot->ForceClearSlot();
 	}
 	EnemySelectedBattleCards.Empty();*/
 
@@ -505,7 +628,7 @@ void UHandWidget::ClearEnemySelectCard()
 		UWidget_BattleCardBase* CardWidget = EquipSlot->GetEquipSlot();
 		if (!CardWidget)
 		{
-			EquipSlot->ClearSlot();
+			EquipSlot->ForceClearSlot();
 			continue;
 		}
 		ForceLayoutPrepass();
@@ -521,7 +644,7 @@ void UHandWidget::ClearEnemySelectCard()
 			);
 
 
-		EquipSlot->ClearSlot();
+		EquipSlot->ForceClearSlot();
 		CardWidget->RemoveFromParent();
 
 		/*
@@ -625,12 +748,8 @@ void UHandWidget::ClearPlayerSelectCard()
 		UWidget_BattleCardBase* CardWidget = EquipSlot->GetEquipSlot();
 		if (!CardWidget)
 		{
-			UE_LOG(
-				LogTemp,
-				Warning,
-				TEXT("DetachCardFromEquipSlot failed: CardWidget is null")
-			);
-			return;
+			EquipSlot->ForceClearSlot();
+			continue;
 		}
 		ForceLayoutPrepass();
 		const FGeometry& CardGeometry =
@@ -645,7 +764,7 @@ void UHandWidget::ClearPlayerSelectCard()
 			);
 
 
-		EquipSlot->ClearSlot();
+		EquipSlot->ForceClearSlot();
 		CardWidget->RemoveFromParent();
 
 		/*
@@ -1120,7 +1239,7 @@ void UHandWidget::BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> Batt
 		AddCardToHand(CardData);
 	}
 
-	OrganizeCards(DefaultCardSpacing);
+	RequestOrganizeCards(DefaultCardSpacing);
 
 	/*UE_LOG(
 		LogTemp,
@@ -1162,12 +1281,12 @@ void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
 		);
 		return;
 	}
-	BattleCharacter->InitBattleDeck();
+	BattleCharacter->RefillBattleDeckIfEmpty();
 	ClearHandCards();
 	// SpawnPoint의 CachedGeometry를 사용하기 위해 레이아웃 갱신
 	ForceLayoutPrepass();
 
-	for (UMuksiBattleCardDataAsset* CardData : BattleCharacter->GetAllBattleDeck())
+	for (UMuksiBattleCardDataAsset* CardData : BattleCharacter->GetCurrentBattleDeck())
 	{
 		if (!CardData)
 		{
@@ -1178,8 +1297,9 @@ void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
 	}
 	//화면에 보이게 부채꼴 핸드 위치 설정
 	HandCardPoint = CardUpPoint;
-	// 오른쪽 생성 지점에서 부채꼴 핸드 위치로 이동
-	OrganizeCards(DefaultCardSpacing);
+	// Place the cards from the current draw point only after all geometries are valid.
+	bPlaceCardsAtDrawSpawnPending = true;
+	RequestOrganizeCards(DefaultCardSpacing);
 }
 
 UWidget_BattleCardBase* UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* CardData)
@@ -1259,37 +1379,13 @@ void UHandWidget::PlaceCardInHand(UWidget_BattleCardBase* InCardWidget)
 
 UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCardDataAsset* CardData)
 {
-	if (!CardData)
+	if (!CardData || !BattleCardClass || !HandCanvas || !CardDrawSpawnPoint)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("CreateCardAtDrawSpawnPoint failed: invalid input or widget reference"));
 		return nullptr;
 	}
 
-	if (!BattleCardClass)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("CreateCardAtDrawSpawnPoint failed: BattleCardClass is null")
-		);
-		return nullptr;
-	}
-
-	if (!HandCanvas || !CardDrawSpawnPoint)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("CreateCardAtDrawSpawnPoint failed: required widget is null")
-		);
-		return nullptr;
-	}
-
-	UWidget_BattleCardBase* CardWidget =
-		CreateWidget<UWidget_BattleCardBase>(
-			GetOwningPlayer(),
-			BattleCardClass
-		);
-
+	UWidget_BattleCardBase* CardWidget = CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
 	if (!CardWidget)
 	{
 		return nullptr;
@@ -1298,9 +1394,7 @@ UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCard
 	CardWidget->SetCardData(CardData);
 	CardWidget->SetOwningHandWidget(this);
 
-	UCanvasPanelSlot* CanvasSlot =
-		HandCanvas->AddChildToCanvas(CardWidget);
-
+	UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(CardWidget);
 	if (!CanvasSlot)
 	{
 		CardWidget->RemoveFromParent();
@@ -1308,80 +1402,17 @@ UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCard
 	}
 
 	CanvasSlot->SetAutoSize(true);
-
-	// HandCanvas 아래 중앙 을 좌표 기준으로 사용
-	CanvasSlot->SetAnchors(
-	FAnchors(0.5f, 1.0f, 0.5f, 1.0f)
-);
-
-	CanvasSlot->SetAlignment(
-		FVector2D(0.5f, 1.0f)
-	);
-
-	const FGeometry& SpawnGeometry =
-		CardDrawSpawnPoint->GetCachedGeometry();
-
-	const FGeometry& HandGeometry =
-		HandCanvas->GetCachedGeometry();
-
-	// SpawnPoint 중앙의 절대 좌표
-	const FVector2D SpawnAbsolutePosition =
-		SpawnGeometry.LocalToAbsolute(
-			SpawnGeometry.GetLocalSize() * 0.5f
-		);
-
-	// 절대 좌표를 HandCanvas 로컬 좌표로 변환
-	const FVector2D SpawnLocalPosition =
-		HandGeometry.AbsoluteToLocal(
-			SpawnAbsolutePosition
-		);
-
-	const FVector2D HandBottomCenter(
-	HandGeometry.GetLocalSize().X * 0.5f,
-	HandGeometry.GetLocalSize().Y
-);
-
-	const FVector2D SpawnAnchorOffset =
-		SpawnLocalPosition - HandBottomCenter;
-
-
-	////////////////////
-
-	CanvasSlot->SetPosition(SpawnAnchorOffset);
-	//CanvasSlot->SetPosition(SpawnLocalPosition);
+	CanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
+	CanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
+	// The real spawn offset is assigned after Slate has produced valid geometry.
+	CanvasSlot->SetPosition(FVector2D::ZeroVector);
 	CanvasSlot->SetZOrder(BattleCards.Num());
 
 	FWidgetCard WidgetCard;
 	WidgetCard.Cards = CardWidget;
 	WidgetCard.ZIndex = BattleCards.Num();
-
 	CardsStructArray.Add(WidgetCard);
 	BattleCards.Add(CardWidget);
-
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("Card created at SpawnPoint | Card: %s | Position: X=%f Y=%f"),
-		*GetNameSafe(CardData),
-		SpawnLocalPosition.X,
-		SpawnLocalPosition.Y
-	);
-
-	UE_LOG(
-	LogTemp,
-	Log,
-	TEXT(
-		"Card created at SpawnPoint | Card: %s | "
-		"SpawnLocal: X=%f Y=%f | "
-		"AnchorOffset: X=%f Y=%f"
-	),
-	*GetNameSafe(CardData),
-	SpawnLocalPosition.X,
-	SpawnLocalPosition.Y,
-	SpawnAnchorOffset.X,
-	SpawnAnchorOffset.Y
-);
-
 	return CardWidget;
 }
 

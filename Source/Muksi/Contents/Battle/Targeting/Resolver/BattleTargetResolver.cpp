@@ -1,13 +1,17 @@
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
+#include "Muksi/Contents/Battle/Targeting/Condition/TargetingConditionService.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Identity/TargetingIdentityProvider.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
-#include "Muksi/Contents/Battle/Targeting/Pattern/AreaPatternContext.h"
+#include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingOriginSource.h"
 
 namespace
@@ -17,7 +21,6 @@ namespace
 		int32 RoundedX = FMath::RoundToInt(X);
 		int32 RoundedY = FMath::RoundToInt(Y);
 		int32 RoundedZ = FMath::RoundToInt(Z);
-
 		const float XDifference = FMath::Abs(static_cast<float>(RoundedX) - X);
 		const float YDifference = FMath::Abs(static_cast<float>(RoundedY) - Y);
 		const float ZDifference = FMath::Abs(static_cast<float>(RoundedZ) - Z);
@@ -39,182 +42,144 @@ namespace
 	}
 }
 
-FTargetingIntent FBattleTargetResolver::CaptureIntent(const FTargetingResult& TargetingResult, const FHexOffsetCoord& SourceCoord)
+bool FBattleTargetResolver::ResolveAction(const FBattleAction& Action, ABattleGridManager* GridManager, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride)
 {
-	FTargetingIntent Intent;
+	OutResolvedTargeting.Reset();
 
-	for (const FTargetingStepContext& StepContext : TargetingResult.StepContexts)
-	{
-		FTargetingStepIntent StepIntent;
-		const FHexOffsetCoord OriginCoord = StepContext.HasOriginCoord() ? StepContext.OriginCoord : SourceCoord;
-
-		StepIntent.bHasSelectedCoord = StepContext.HasSelectedCoord();
-		StepIntent.Direction = StepContext.Direction;
-
-		if (StepIntent.bHasSelectedCoord)
-		{
-			StepIntent.WorldSelectedCoord = StepContext.SelectedCoord;
-			StepIntent.RelativeSelectedCube =
-				FHexGridMath::OffsetToCube(StepContext.SelectedCoord) -
-				FHexGridMath::OffsetToCube(OriginCoord);
-		}
-
-		Intent.Steps.Add(StepIntent);
-	}
-
-	if (!Intent.IsEmpty())
-	{
-		return Intent;
-	}
-
-	FHexOffsetCoord SelectedCoord = FHexOffsetCoord::Invalid();
-
-	if (TargetingResult.HasSelectedCoord())
-	{
-		SelectedCoord = TargetingResult.GetSelectedCoord();
-	}
-	else if (!TargetingResult.AffectedCoords.IsEmpty())
-	{
-		SelectedCoord = TargetingResult.AffectedCoords[0];
-	}
-
-	if (!SelectedCoord.IsValid())
-	{
-		return Intent;
-	}
-
-	FTargetingStepIntent StepIntent;
-	StepIntent.bHasSelectedCoord = true;
-	StepIntent.WorldSelectedCoord = SelectedCoord;
-	StepIntent.RelativeSelectedCube =
-		FHexGridMath::OffsetToCube(SelectedCoord) -
-		FHexGridMath::OffsetToCube(SourceCoord);
-	Intent.Steps.Add(StepIntent);
-
-	return Intent;
-}
-
-bool FBattleTargetResolver::ResolveAction(FBattleAction& InOutAction, ABattleGridManager* GridManager)
-{
-	if (!IsValid(InOutAction.Attacker) || !IsValid(InOutAction.Card) || !IsValid(GridManager))
+	if (!IsValid(Action.Attacker) || !IsValid(Action.Card) || !IsValid(GridManager))
 	{
 		return false;
 	}
 
-	if (InOutAction.TargetingIntent.IsEmpty())
+	const FTargetingCardData& TargetingData = TargetingDataOverride ? *TargetingDataOverride : Action.Card->TargetingData;
+	return ResolveIntent(Action.Attacker, GridManager, TargetingData, Action.TargetingIntent, OutResolvedTargeting);
+}
+
+
+bool FBattleTargetResolver::ResolveActionThroughStep(
+	const FBattleAction& Action,
+	ABattleGridManager* GridManager,
+	int32 LastStepIndex,
+	FResolvedTargeting& OutResolvedTargeting,
+	const FTargetingCardData* TargetingDataOverride)
+{
+	OutResolvedTargeting.Reset();
+
+	if (!IsValid(Action.Attacker) || !IsValid(Action.Card) || !IsValid(GridManager))
 	{
-		InOutAction.TargetingIntent = CaptureIntent(InOutAction.TargetingResult, InOutAction.Attacker->GetCharacterCoord());
+		return false;
 	}
 
-	if (InOutAction.TargetingIntent.IsEmpty())
+	const FTargetingCardData& SourceTargetingData = TargetingDataOverride ? *TargetingDataOverride : Action.Card->TargetingData;
+	if (!SourceTargetingData.Steps.IsValidIndex(LastStepIndex) || !Action.TargetingIntent.Steps.IsValidIndex(LastStepIndex))
 	{
-		return true;
+		return false;
 	}
 
-	const FTargetingResult SourceResult = InOutAction.TargetingResult;
-	FTargetingResult ResolvedResult;
+	FTargetingCardData PartialTargetingData;
+	PartialTargetingData.Steps.Append(SourceTargetingData.Steps.GetData(), LastStepIndex + 1);
 
-	for (int32 StepIndex = 0; StepIndex < InOutAction.TargetingIntent.Steps.Num(); ++StepIndex)
+	FTargetingIntent PartialIntent;
+	PartialIntent.Steps.Append(Action.TargetingIntent.Steps.GetData(), LastStepIndex + 1);
+
+	return ResolveIntent(Action.Attacker, GridManager, PartialTargetingData, PartialIntent, OutResolvedTargeting);
+}
+
+bool FBattleTargetResolver::ResolveIntent(
+	ABattleCharacterBase* Attacker,
+	ABattleGridManager* GridManager,
+	const FTargetingCardData& TargetingData,
+	const FTargetingIntent& TargetingIntent,
+	FResolvedTargeting& OutResolvedTargeting)
+{
+	OutResolvedTargeting.Reset();
+
+	if (!IsValid(Attacker) || !IsValid(GridManager))
 	{
-		const FTargetingStepIntent& StepIntent = InOutAction.TargetingIntent.Steps[StepIndex];
-		const FTargetingStepCardData* StepData = InOutAction.Card->TargetingData.GetStep(StepIndex);
+		return false;
+	}
 
+	if (!TargetingData.HasSteps())
+	{
+		return TargetingIntent.IsEmpty();
+	}
+
+	if (TargetingIntent.Steps.Num() != TargetingData.Steps.Num())
+	{
+		return false;
+	}
+
+	for (int32 StepIndex = 0; StepIndex < TargetingData.Steps.Num(); ++StepIndex)
+	{
+		const FTargetingStepCardData& StepData = TargetingData.Steps[StepIndex];
+		const FTargetingStepIntent& StepIntent = TargetingIntent.Steps[StepIndex];
 		FHexOffsetCoord OriginCoord;
 
-		if (!ResolveStepOrigin(InOutAction, ResolvedResult, StepData, OriginCoord))
+		if (!ResolveStepOrigin(Attacker, OutResolvedTargeting, StepData, OriginCoord))
 		{
 			return false;
 		}
 
-		FTargetingStepContext ResolvedStepContext;
-		ResolvedStepContext.Reset();
-		ResolvedStepContext.OriginCoord = OriginCoord;
-		ResolvedStepContext.OriginWorldLocation = GridManager->GetWorldLocationByCoord(OriginCoord);
-		ResolvedStepContext.Direction = StepIntent.Direction;
+		FHexOffsetCoord DesiredCoord;
 
-		FHexOffsetCoord SelectedCoord;
-		TArray<TObjectPtr<ABattleCharacterBase>> TargetCharacters;
-		const ETargetingIntentBinding IntentBinding = StepData
-			? StepData->IntentBinding
-			: ETargetingIntentBinding::SourceRelative;
-		const bool bShouldResolveSelectedCoord =
-			StepIntent.bHasSelectedCoord ||
-			IntentBinding == ETargetingIntentBinding::TargetCharacter;
-
-		if (bShouldResolveSelectedCoord)
+		if (!ResolveDesiredCoord(StepIntent, StepData, OriginCoord, GridManager, DesiredCoord))
 		{
-			if (!ResolveStepSelectedCoord(
-				InOutAction,
-				SourceResult,
-				StepIntent,
-				StepData,
-				StepIndex,
-				OriginCoord,
-				GridManager,
-				SelectedCoord,
-				TargetCharacters
-			))
-			{
-				return false;
-			}
-
-			ResolvedStepContext.SelectedCoord = SelectedCoord;
-			ResolvedStepContext.SelectedWorldLocation = GridManager->GetWorldLocationByCoord(SelectedCoord);
+			return false;
 		}
 
-		if (IntentBinding != ETargetingIntentBinding::SourceRelative)
+		FHexOffsetCoord ResolvedCoord;
+		// IntentBinding은 좌표 재해석 방식만 결정한다. Targeting 시점에 확정된
+		// 방향은 TargetCharacter / WorldFixed에서도 폐기하지 않고 그대로 사용한다.
+		const int32 ResolveDirection = StepIntent.Direction;
+
+		if (!ResolveInvalidCoord(OriginCoord, DesiredCoord, ResolveDirection, StepData, Attacker, GridManager, ResolvedCoord))
 		{
-			ResolvedStepContext.Direction = INDEX_NONE;
+			return false;
 		}
 
-		if (ResolvedStepContext.Direction != INDEX_NONE)
-		{
-			const FHexOffsetCoord AimCoord = FHexGridMath::GetNeighborCoord(OriginCoord, ResolvedStepContext.Direction);
+		FTargetingStepResult ResolvedStep;
 
-			if (GridManager->IsValidCoord(AimCoord))
+		if (!EvaluateStepAtCoord(OriginCoord, ResolvedCoord, ResolveDirection, StepData, Attacker, GridManager, ResolvedStep))
+		{
+			return false;
+		}
+
+		// 현재 단계가 PreviousStep를 원점으로 사용하고 Origin == Selected라면
+		// 좌표만으로는 방향을 만들 수 없다. Intent에도 방향이 없는 구형 데이터나
+		// 직접 생성된 AI Intent를 위해 직전 Resolve 결과의 방향을 fallback으로 쓴다.
+		if (!ResolvedStep.HasDirection() &&
+			StepData.Selection.OriginSource == ETargetingOriginSource::PreviousStep)
+		{
+			const FTargetingStepResult* PreviousStep = OutResolvedTargeting.GetLastStep();
+
+			if (PreviousStep && PreviousStep->HasDirection())
 			{
-				ResolvedStepContext.AimWorldLocation = GridManager->GetWorldLocationByCoord(AimCoord);
+				ResolvedStep.Direction = PreviousStep->Direction;
 			}
 		}
-		else if (ResolvedStepContext.HasSelectedCoord())
-		{
-			const FVector AimDirection = ResolvedStepContext.SelectedWorldLocation - ResolvedStepContext.OriginWorldLocation;
-			ResolvedStepContext.Direction = FHexGridMath::GetClosestDirectionByWorldVector(AimDirection);
-			ResolvedStepContext.AimWorldLocation = ResolvedStepContext.SelectedWorldLocation;
-		}
 
-		ResolvedStepContext.TargetCharacters = TargetCharacters;
-		ResolvedStepContext.bCanConfirm = true;
-		ResolvedResult.StepContexts.Add(ResolvedStepContext);
-
-		for (ABattleCharacterBase* TargetCharacter : TargetCharacters)
-		{
-			if (IsValid(TargetCharacter))
-			{
-				ResolvedResult.TargetCharacters.AddUnique(TargetCharacter);
-			}
-		}
+		OutResolvedTargeting.Steps.Add(ResolvedStep);
 	}
 
-	InOutAction.TargetingResult = MoveTemp(ResolvedResult);
-	return ApplyFinalPattern(InOutAction, GridManager);
+	if (!ApplyFinalPattern(GridManager, TargetingData, OutResolvedTargeting))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool FBattleTargetResolver::ResolveStepOrigin(
-	const FBattleAction& Action,
-	const FTargetingResult& ResolvedResult,
-	const FTargetingStepCardData* StepData,
+	ABattleCharacterBase* Attacker,
+	const FResolvedTargeting& ResolvedTargeting,
+	const FTargetingStepCardData& StepData,
 	FHexOffsetCoord& OutOriginCoord)
 {
-	const ETargetingOriginSource OriginSource = StepData
-		? StepData->OriginSource
-		: ETargetingOriginSource::SourceCharacter;
-
-	switch (OriginSource)
+	switch (StepData.Selection.OriginSource)
 	{
 	case ETargetingOriginSource::PreviousStep:
 	{
-		const FTargetingStepContext* PreviousStep = ResolvedResult.GetLastStepContext();
+		const FTargetingStepResult* PreviousStep = ResolvedTargeting.GetLastStep();
 
 		if (!PreviousStep || !PreviousStep->HasSelectedCoord())
 		{
@@ -227,8 +192,7 @@ bool FBattleTargetResolver::ResolveStepOrigin(
 
 	case ETargetingOriginSource::SpecificStep:
 	{
-		const int32 OriginStepIndex = StepData ? StepData->OriginStepIndex : 0;
-		const FTargetingStepContext* SpecificStep = ResolvedResult.GetStepContext(OriginStepIndex);
+		const FTargetingStepResult* SpecificStep = ResolvedTargeting.GetStep(StepData.Selection.OriginStepIndex);
 
 		if (!SpecificStep || !SpecificStep->HasSelectedCoord())
 		{
@@ -241,107 +205,91 @@ bool FBattleTargetResolver::ResolveStepOrigin(
 
 	case ETargetingOriginSource::SourceCharacter:
 	default:
-		if (!IsValid(Action.Attacker))
+		if (!IsValid(Attacker))
 		{
 			return false;
 		}
-
-		OutOriginCoord = Action.Attacker->GetCharacterCoord();
+		OutOriginCoord = Attacker->GetCharacterCoord();
 		return OutOriginCoord.IsValid();
 	}
 }
 
-bool FBattleTargetResolver::ResolveStepSelectedCoord(
-	const FBattleAction& Action,
-	const FTargetingResult& SourceResult,
+bool FBattleTargetResolver::ResolveDesiredCoord(
 	const FTargetingStepIntent& StepIntent,
-	const FTargetingStepCardData* StepData,
-	int32 StepIndex,
+	const FTargetingStepCardData& StepData,
 	const FHexOffsetCoord& OriginCoord,
 	ABattleGridManager* GridManager,
-	FHexOffsetCoord& OutSelectedCoord,
-	TArray<TObjectPtr<ABattleCharacterBase>>& OutTargetCharacters)
+	FHexOffsetCoord& OutDesiredCoord)
 {
-	const ETargetingIntentBinding IntentBinding = StepData
-		? StepData->IntentBinding
-		: ETargetingIntentBinding::SourceRelative;
+	OutDesiredCoord = FHexOffsetCoord::Invalid();
 
-	if (IntentBinding == ETargetingIntentBinding::TargetCharacter)
+	switch (StepData.AdvancedSettings.IntentBinding)
 	{
-		const FTargetingStepContext* SourceStepContext = SourceResult.GetStepContext(StepIndex);
-		ABattleCharacterBase* TargetCharacter = SourceStepContext
-			? SourceStepContext->GetPrimaryTargetCharacter()
-			: SourceResult.GetPrimaryTargetCharacter();
+	case ETargetingIntentBinding::TargetCharacter:
+		if (ABattleCharacterBase* BoundTargetCharacter = FTargetingCharacterIdentity::FindCharacterByKey(GridManager, StepIntent.TargetCharacterKey))
+		{
+			OutDesiredCoord = BoundTargetCharacter->GetCharacterCoord();
+			break;
+		}
 
-		if (!IsValid(TargetCharacter))
+		if (!StepIntent.HasSelectedCoord())
 		{
 			return false;
 		}
 
-		OutSelectedCoord = TargetCharacter->GetCharacterCoord();
+		OutDesiredCoord = StepIntent.SelectedCoord;
+		break;
 
-		if (!GridManager->IsValidCoord(OutSelectedCoord))
+	case ETargetingIntentBinding::WorldFixed:
+		if (!StepIntent.HasSelectedCoord())
 		{
 			return false;
 		}
+		OutDesiredCoord = StepIntent.SelectedCoord;
+		break;
 
-		OutTargetCharacters.Add(TargetCharacter);
-		return true;
+	case ETargetingIntentBinding::SourceRelative:
+	default:
+		if (StepIntent.HasSelectedCoord())
+		{
+			OutDesiredCoord = FHexGridMath::CubeToOffset(FHexGridMath::OffsetToCube(OriginCoord) + StepIntent.RelativeOffset);
+		}
+		else if (StepIntent.Direction != INDEX_NONE)
+		{
+			OutDesiredCoord = FHexGridMath::GetNeighborCoord(OriginCoord, StepIntent.Direction);
+		}
+		else
+		{
+			return false;
+		}
+		break;
 	}
 
-	FHexOffsetCoord DesiredCoord = StepIntent.WorldSelectedCoord;
-
-	if (IntentBinding == ETargetingIntentBinding::SourceRelative)
-	{
-		const FHexCubeCoord DesiredCube =
-			FHexGridMath::OffsetToCube(OriginCoord) +
-			StepIntent.RelativeSelectedCube;
-		DesiredCoord = FHexGridMath::CubeToOffset(DesiredCube);
-	}
-
-	return ResolveInvalidCoord(
-		OriginCoord,
-		DesiredCoord,
-		StepData,
-		Action.Attacker,
-		GridManager,
-		OutSelectedCoord
-	);
+	return OutDesiredCoord.IsValid();
 }
 
 bool FBattleTargetResolver::ResolveInvalidCoord(
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord& DesiredCoord,
-	const FTargetingStepCardData* StepData,
+	int32 Direction,
+	const FTargetingStepCardData& StepData,
 	ABattleCharacterBase* Attacker,
 	ABattleGridManager* GridManager,
 	FHexOffsetCoord& OutResolvedCoord)
 {
-	if (IsCoordUsable(DesiredCoord, StepData, Attacker, GridManager))
+	if (IsCoordUsable(OriginCoord, DesiredCoord, Direction, StepData, Attacker, GridManager))
 	{
 		OutResolvedCoord = DesiredCoord;
 		return true;
 	}
 
-	const EInvalidTargetResolvePolicy ResolvePolicy = StepData
-		? StepData->InvalidResolvePolicy
-		: EInvalidTargetResolvePolicy::FindNearestValid;
-
-	switch (ResolvePolicy)
+	switch (StepData.AdvancedSettings.InvalidResolvePolicy)
 	{
 	case EInvalidTargetResolvePolicy::StopAtLastValid:
-		return FindLastValidCoord(OriginCoord, DesiredCoord, StepData, Attacker, GridManager, OutResolvedCoord);
+		return FindLastValidCoord(OriginCoord, DesiredCoord, Direction, StepData, Attacker, GridManager, OutResolvedCoord);
 
 	case EInvalidTargetResolvePolicy::FindNearestValid:
-		return FindNearestValidCoord(OriginCoord, DesiredCoord, StepData, Attacker, GridManager, OutResolvedCoord);
-
-	case EInvalidTargetResolvePolicy::KeepResolvedCoord:
-		if (GridManager->IsValidCoord(DesiredCoord))
-		{
-			OutResolvedCoord = DesiredCoord;
-			return true;
-		}
-		return false;
+		return FindNearestValidCoord(OriginCoord, DesiredCoord, Direction, StepData, Attacker, GridManager, OutResolvedCoord);
 
 	case EInvalidTargetResolvePolicy::Cancel:
 	default:
@@ -349,50 +297,116 @@ bool FBattleTargetResolver::ResolveInvalidCoord(
 	}
 }
 
-bool FBattleTargetResolver::IsCoordUsable(
-	const FHexOffsetCoord& Coord,
-	const FTargetingStepCardData* StepData,
+bool FBattleTargetResolver::EvaluateStepAtCoord(
+	const FHexOffsetCoord& OriginCoord,
+	const FHexOffsetCoord& CandidateCoord,
+	int32 Direction,
+	const FTargetingStepCardData& StepData,
 	ABattleCharacterBase* Attacker,
-	ABattleGridManager* GridManager)
+	ABattleGridManager* GridManager,
+	FTargetingStepResult& OutStepResult)
 {
-	if (!GridManager || !GridManager->IsValidCoord(Coord))
+	OutStepResult.Reset();
+
+	if (!IsValid(Attacker) || !IsValid(GridManager) || !StepData.Selection.SelectionClass || !GridManager->IsValidCoord(OriginCoord) || !GridManager->IsValidCoord(CandidateCoord))
 	{
 		return false;
 	}
 
-	if (!StepData || !StepData->bRequireAvailableDestination)
+	const UTargetSelection* Selection = StepData.Selection.SelectionClass->GetDefaultObject<UTargetSelection>();
+
+	if (!Selection)
 	{
-		return true;
+		return false;
 	}
 
-	UBattleGridNavigationComponent* Navigation = GridManager->GetNavigationComponent();
-	return Navigation && Navigation->IsCellAvailable(Coord, Attacker);
+	Selection->EvaluateCandidate(GridManager, OriginCoord, CandidateCoord, StepData.Selection.SelectionData, OutStepResult);
+
+	if (!OutStepResult.bValid)
+	{
+		return false;
+	}
+
+	if (Direction != INDEX_NONE)
+	{
+		OutStepResult.Direction = Direction;
+	}
+	else if (!OutStepResult.HasDirection() && OutStepResult.HasSelectedCoord())
+	{
+		FVector AimDirection = GridManager->GetWorldLocationByCoord(OutStepResult.SelectedCoord) - GridManager->GetWorldLocationByCoord(OutStepResult.OriginCoord);
+		AimDirection.Z = 0.0f;
+
+		if (!AimDirection.IsNearlyZero())
+		{
+			OutStepResult.Direction = FHexGridMath::GetClosestDirectionByWorldVector(AimDirection);
+		}
+	}
+
+	return true;
+}
+
+bool FBattleTargetResolver::IsCoordUsable(
+	const FHexOffsetCoord& OriginCoord,
+	const FHexOffsetCoord& Coord,
+	int32 Direction,
+	const FTargetingStepCardData& StepData,
+	ABattleCharacterBase* Attacker,
+	ABattleGridManager* GridManager)
+{
+	FTargetingStepResult EvaluatedStep;
+
+	if (!EvaluateStepAtCoord(OriginCoord, Coord, Direction, StepData, Attacker, GridManager, EvaluatedStep))
+	{
+		return false;
+	}
+
+	const UTargetSelection* Selection = StepData.Selection.SelectionClass
+		? StepData.Selection.SelectionClass->GetDefaultObject<UTargetSelection>()
+		: nullptr;
+
+	FTargetingConditionRequest Request;
+	Request.SourceCharacter = Attacker;
+	Request.GridManager = GridManager;
+	Request.OriginCoord = OriginCoord;
+	Request.CandidateCoord = Coord;
+	Request.ResolvedCoord = Coord;
+	Request.Phase = ETargetingConditionPhase::Resolve;
+
+	if (!UTargetingConditionService::Evaluate(StepData.Conditions.Resolve, Request))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool FBattleTargetResolver::FindLastValidCoord(
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord& DesiredCoord,
-	const FTargetingStepCardData* StepData,
+	int32 Direction,
+	const FTargetingStepCardData& StepData,
 	ABattleCharacterBase* Attacker,
 	ABattleGridManager* GridManager,
 	FHexOffsetCoord& OutResolvedCoord)
 {
 	const int32 StepCount = FHexGridMath::GetHexDistance(OriginCoord, DesiredCoord);
 	FHexOffsetCoord LastValidCoord = OriginCoord;
+	bool bFoundValidCoord = false;
 
-	for (int32 StepIndex = 1; StepIndex <= StepCount; ++StepIndex)
+	for (int32 LineStepIndex = 1; LineStepIndex <= StepCount; ++LineStepIndex)
 	{
-		const FHexOffsetCoord CandidateCoord = ResolveCubeLineCoord(OriginCoord, DesiredCoord, StepIndex, StepCount);
+		const FHexOffsetCoord CandidateCoord = ResolveCubeLineCoord(OriginCoord, DesiredCoord, LineStepIndex, StepCount);
 
-		if (!IsCoordUsable(CandidateCoord, StepData, Attacker, GridManager))
+		if (!IsCoordUsable(OriginCoord, CandidateCoord, Direction, StepData, Attacker, GridManager))
 		{
 			break;
 		}
 
 		LastValidCoord = CandidateCoord;
+		bFoundValidCoord = true;
 	}
 
-	if (!IsCoordUsable(LastValidCoord, StepData, Attacker, GridManager))
+	if (!bFoundValidCoord)
 	{
 		return false;
 	}
@@ -404,20 +418,19 @@ bool FBattleTargetResolver::FindLastValidCoord(
 bool FBattleTargetResolver::FindNearestValidCoord(
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord& DesiredCoord,
-	const FTargetingStepCardData* StepData,
+	int32 Direction,
+	const FTargetingStepCardData& StepData,
 	ABattleCharacterBase* Attacker,
 	ABattleGridManager* GridManager,
 	FHexOffsetCoord& OutResolvedCoord)
 {
-	if (!GridManager)
+	if (!IsValid(GridManager))
 	{
 		return false;
 	}
 
-	const int32 MaximumDistance = FHexGridMath::GetHexDistance(OriginCoord, DesiredCoord);
 	int32 BestDesiredDistance = MAX_int32;
 	int32 BestOriginDistance = MAX_int32;
-	UBattleGridNavigationComponent* Navigation = GridManager->GetNavigationComponent();
 
 	for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
 	{
@@ -425,37 +438,15 @@ bool FBattleTargetResolver::FindNearestValidCoord(
 		{
 			const FHexOffsetCoord CandidateCoord(X, Y);
 
-			if (!IsCoordUsable(CandidateCoord, StepData, Attacker, GridManager))
+			if (!IsCoordUsable(OriginCoord, CandidateCoord, Direction, StepData, Attacker, GridManager))
 			{
 				continue;
-			}
-
-			const int32 OriginDistance = FHexGridMath::GetHexDistance(OriginCoord, CandidateCoord);
-
-			if (OriginDistance > MaximumDistance)
-			{
-				continue;
-			}
-
-			if (StepData && StepData->bRequireReachablePath)
-			{
-				TArray<FHexOffsetCoord> Path;
-
-				if (CandidateCoord != OriginCoord &&
-					(!Navigation || !Navigation->FindGroundPath(OriginCoord, CandidateCoord, Path, Attacker)))
-				{
-					continue;
-				}
 			}
 
 			const int32 DesiredDistance = FHexGridMath::GetHexDistance(DesiredCoord, CandidateCoord);
+			const int32 OriginDistance = FHexGridMath::GetHexDistance(OriginCoord, CandidateCoord);
 
-			if (DesiredDistance > BestDesiredDistance)
-			{
-				continue;
-			}
-
-			if (DesiredDistance == BestDesiredDistance && OriginDistance >= BestOriginDistance)
+			if (DesiredDistance > BestDesiredDistance || (DesiredDistance == BestDesiredDistance && OriginDistance >= BestOriginDistance))
 			{
 				continue;
 			}
@@ -472,18 +463,17 @@ bool FBattleTargetResolver::FindNearestValidCoord(
 FHexOffsetCoord FBattleTargetResolver::ResolveCubeLineCoord(
 	const FHexOffsetCoord& StartCoord,
 	const FHexOffsetCoord& EndCoord,
-	int32 StepIndex,
-	int32 StepCount)
+	int32 LinePointIndex,
+	int32 LinePointCount)
 {
-	if (StepCount <= 0)
+	if (LinePointCount <= 0)
 	{
 		return StartCoord;
 	}
 
 	const FHexCubeCoord StartCube = FHexGridMath::OffsetToCube(StartCoord);
 	const FHexCubeCoord EndCube = FHexGridMath::OffsetToCube(EndCoord);
-	const float Alpha = static_cast<float>(StepIndex) / static_cast<float>(StepCount);
-
+	const float Alpha = static_cast<float>(LinePointIndex) / static_cast<float>(LinePointCount);
 	return FHexGridMath::CubeToOffset(
 		RoundCube(
 			FMath::Lerp(static_cast<float>(StartCube.X), static_cast<float>(EndCube.X), Alpha),
@@ -493,34 +483,39 @@ FHexOffsetCoord FBattleTargetResolver::ResolveCubeLineCoord(
 	);
 }
 
-bool FBattleTargetResolver::ApplyFinalPattern(FBattleAction& InOutAction, ABattleGridManager* GridManager)
+bool FBattleTargetResolver::ApplyFinalPattern(
+	ABattleGridManager* GridManager,
+	const FTargetingCardData& TargetingData,
+	FResolvedTargeting& InOutResolvedTargeting)
 {
-	InOutAction.TargetingResult.AffectedCoords.Empty();
-	InOutAction.TargetingResult.PathCoords.Empty();
+	InOutResolvedTargeting.AffectedCoords.Empty();
+	InOutResolvedTargeting.PathCoords.Empty();
 
-	const int32 LastStepIndex = InOutAction.TargetingResult.StepContexts.Num() - 1;
-	const FTargetingStepCardData* StepData = InOutAction.Card->TargetingData.GetStep(LastStepIndex);
+	const int32 LastStepIndex = InOutResolvedTargeting.Steps.Num() - 1;
+	const FTargetingStepCardData* StepData = TargetingData.GetStep(LastStepIndex);
 
-	if (!StepData || !StepData->PatternClass)
+	if (!StepData)
 	{
-		if (InOutAction.TargetingResult.HasSelectedCoord())
+		return false;
+	}
+
+	if (!StepData->Pattern.PatternClass)
+	{
+		if (InOutResolvedTargeting.HasSelectedCoord())
 		{
-			InOutAction.TargetingResult.AddAffectedCoord(InOutAction.TargetingResult.GetSelectedCoord());
+			InOutResolvedTargeting.AddAffectedCoord(InOutResolvedTargeting.GetSelectedCoord());
 		}
 
 		return true;
 	}
 
-	const UAreaPattern* Pattern = StepData->PatternClass->GetDefaultObject<UAreaPattern>();
+	const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
 
 	if (!Pattern)
 	{
 		return false;
 	}
 
-	FAreaPatternContext PatternContext;
-	PatternContext.SourceCharacter = InOutAction.Attacker;
-	PatternContext.GridManager = GridManager;
-	Pattern->ApplyPattern(PatternContext, StepData->PatternData, InOutAction.TargetingResult);
+	Pattern->ApplyPattern(GridManager, StepData->Pattern.PatternData, InOutResolvedTargeting);
 	return true;
 }

@@ -5,6 +5,7 @@
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "BattleSequenceManager.generated.h"
 
 class ABattleGridManager;
@@ -13,6 +14,7 @@ class UMuksiBattleAnimationComponent;
 class UBattleSequenceExecutionEnvironment;
 
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleExecutionEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FResolvedTargeting&);
 
 UCLASS()
 class MUKSI_API ABattleSequenceManager : public AActor
@@ -24,12 +26,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	
+
 	bool bWorldManagerRegistrationEnabled = true;
 public:
 	void SetWorldManagerRegistrationEnabled(bool bEnabled) { bWorldManagerRegistrationEnabled = bEnabled; }
 
 	FOnBattleSequenceFinished OnSequenceFinished;
+	FOnBattleExecutionEntryStarted OnExecutionEntryStarted;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
 	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
@@ -37,12 +40,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
 	bool StartSequence(const FBattleAction& InAction);
 
+	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
+	bool StartSequenceWithRequest(const FBattleSequenceRequest& Request);
+
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
 	bool IsSequenceRunning() const { return bSequenceRunning; }
 
 private:
 	UPROPERTY(Transient)
 	FBattleAction CurrentAction;
+
+	UPROPERTY(Transient)
+	FResolvedTargeting CurrentResolvedTargeting;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;
@@ -54,9 +63,10 @@ private:
 	TObjectPtr<UBattleSequenceExecutionEnvironment> ExecutionEnvironment = nullptr;
 
 	bool bSequenceRunning = false;
+	EBattleExecutionMode CurrentExecutionMode = EBattleExecutionMode::Sequence;
 
 private:
-	bool ValidateAction(const FBattleAction& InAction) const;
+	bool ValidateRequest(const FBattleSequenceRequest& Request) const;
 	bool InitializeExecutionEnvironment();
 	bool BindAttackerNotify();
 	void UnbindAttackerNotify();
@@ -71,6 +81,7 @@ private:
 
 	FBattleExecutionContext MakeExecutionContext(FName NotifyKey);
 
+	void HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext);
 	void HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
 	void TryFinishSequence();
 	void FinishSequence();

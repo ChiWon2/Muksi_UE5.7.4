@@ -3,9 +3,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Cone/ConePatternData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
@@ -37,31 +38,57 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepData || !Context.PreviewResult)
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.ResolvedTargeting)
 	{
 		return;
 	}
 
-	if (!IsPatternDataValid(Context.StepData->PatternData))
+	if (!IsPatternDataValid(Context.StepData->Pattern.PatternData))
 	{
 		return;
 	}
 
-	const FConePatternData* Data = Context.StepData->PatternData.GetPtr<FConePatternData>();
-	const FTargetingStepContext* StepContext = Context.PreviewResult->GetLastStepContext();
+	const FConePatternData* Data = Context.StepData->Pattern.PatternData.GetPtr<FConePatternData>();
+	// Use the step explicitly bound to this preview session.
+	// Runtime presentation can display multiple steps, so the overall resolved
+	// result's last step is not necessarily the step this visualizer represents.
+	const FTargetingStepResult* StepResult = Context.StepResult;
 
-	if (!Data || !StepContext || !StepContext->HasOriginCoord())
+	if (!Data || !StepResult || !StepResult->HasOriginCoord() || !StepResult->HasDirection())
 	{
 		return;
 	}
 
-	FVector AimDirection = StepContext->AimWorldLocation - StepContext->OriginWorldLocation;
-	AimDirection.Z = 0.0f;
+	const FVector OriginLocation = Context.GridManager->GetWorldLocationByCoord(StepResult->OriginCoord);
 
-	if (!AimDirection.Normalize())
+	// Area previews must visualize the exact resolved pattern result.
+	// AimWorldLocation is presentation input for path/selection previews only; using it
+	// here can point the cone away from StepResult.Direction during enemy/reveal/runtime phases.
+	const FHexOffsetCoord ResolvedAimCoord = FHexGridMath::GetNeighborCoord(
+		StepResult->OriginCoord,
+		StepResult->Direction);
+
+	if (!Context.GridManager->IsValidCoord(ResolvedAimCoord))
 	{
 		return;
 	}
+
+	FVector ResolvedDirection =
+		Context.GridManager->GetWorldLocationByCoord(ResolvedAimCoord) - OriginLocation;
+	ResolvedDirection.Z = 0.0f;
+
+	if (!ResolvedDirection.Normalize())
+	{
+		return;
+	}
+
+	const float TargetYaw = ResolvedDirection.Rotation().Yaw;
+
+	// Do not interpolate from an unrelated previous phase/session direction.
+	// The pattern and indicator are discrete hex-direction results, so the area mesh
+	// must snap to the same direction on every update.
+	CurrentPreviewYaw = TargetYaw;
+	bHasPreviewYaw = true;
 
 	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
 	UStaticMeshComponent* PreviewMeshComponent = PreviewActorInstance->GetAreaPreviewMesh();
@@ -71,7 +98,7 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 		return;
 	}
 
-	PreviewActorInstance->SetAreaGridCoords(Context.PreviewResult->AffectedCoords);
+	PreviewActorInstance->SetAreaGridCoords(Context.ResolvedTargeting->AffectedCoords);
 	PreviewMeshComponent->SetVisibility(false);
 
 	if (!ConePreviewMesh)
@@ -79,7 +106,6 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 		return;
 	}
 
-	const FVector OriginLocation = StepContext->OriginWorldLocation;
 	const float WorldRadius = CalculateWorldRadius(Context, Data->Range);
 
 	if (WorldRadius <= KINDA_SMALL_NUMBER)
@@ -89,7 +115,7 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 
 	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
 	const FVector PreviewLocation = OriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
-	const FRotator PreviewRotation(0.0f, AimDirection.Rotation().Yaw, 0.0f);
+	const FRotator PreviewRotation(0.0f, CurrentPreviewYaw, 0.0f);
 
 	PreviewMeshComponent->SetStaticMesh(ConePreviewMesh);
 

@@ -327,8 +327,57 @@ bool ABattleGridManager::ClearOccupied(const FHexOffsetCoord& Coord)
 	return true;
 }
 
+FBattleGridMoveResult ABattleGridManager::ExecuteGridMove(const FBattleGridMoveRequest& Request)
+{
+	FBattleGridMoveResult Result;
+	Result.FinalCoord = Request.FromCoord;
+
+	ABattleCharacterBase* Character = Request.Character.Get();
+	if (!IsValid(Character) || Request.FromCoord == Request.ToCoord)
+	{
+		return Result;
+	}
+
+	FBattleGridCell* FromCell = GetCellByCoord(Request.FromCoord);
+	FBattleGridCell* ToCell = GetCellByCoord(Request.ToCoord);
+	if (!FromCell || !ToCell || FromCell->OccupyingActor != Character || !ToCell->bWalkable || ToCell->bOccupied)
+	{
+		return Result;
+	}
+
+	FromCell->OccupyingActor = nullptr;
+	FromCell->bOccupied = false;
+	ToCell->OccupyingActor = Character;
+	ToCell->bOccupied = true;
+	Character->SetCharacterPosition(Request.ToCoord);
+
+	if (Request.bSnapActorToGrid)
+	{
+		Character->SetActorTransform(GetTransformToPosition(Request.ToCoord));
+	}
+
+	Result.bSucceeded = true;
+	Result.FinalCoord = Request.ToCoord;
+	return Result;
+}
+
+bool ABattleGridManager::MoveCharacterOnGrid(ABattleCharacterBase* Character, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord, bool bSnapActorToGrid)
+{
+	FBattleGridMoveRequest Request;
+	Request.Character = Character;
+	Request.FromCoord = FromCoord;
+	Request.ToCoord = ToCoord;
+	Request.bSnapActorToGrid = bSnapActorToGrid;
+	return ExecuteGridMove(Request).bSucceeded;
+}
+
 bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord)
 {
+	if (ABattleCharacterBase* Character = Cast<ABattleCharacterBase>(Actor))
+	{
+		return MoveCharacterOnGrid(Character, FromCoord, ToCoord, true);
+	}
+
 	if (!IsValid(Actor) || FromCoord == ToCoord)
 	{
 		return false;
@@ -351,7 +400,6 @@ bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& F
 	FromCell->bOccupied = false;
 	ToCell->OccupyingActor = Actor;
 	ToCell->bOccupied = true;
-
 	Actor->SetActorLocation(GetTransformToPosition(ToCoord).GetLocation());
 	return true;
 }
@@ -397,9 +445,9 @@ void ABattleGridManager::AllClearGridHovered()
 	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->ClearAllHovered();
 }
 
-void ABattleGridManager::SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray)
+void ABattleGridManager::SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy)
 {
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetExchange(BattleCardType, GridArray);
+	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetExchange(BattleCardType, GridArray, bEnemy);
 }
 
 void ABattleGridManager::AllClearExchangeIndicator()

@@ -6,6 +6,7 @@
 #include"Cond_Quest_Register.h"
 #include"Cond_Stat_Register.h"
 #include"Cond_TravelTime_Register.h"
+#include "Muksi/Contents/Battle/Targeting/Condition/Register/TargetingConditionRegister.h"
 
 namespace ConditionRegister
 {
@@ -18,5 +19,6 @@ namespace ConditionRegister
 		Register_Cond_Quest();
 		Register_Cond_Stat();
 		Register_Cond_TravelTime();
+		RegisterTargetingConditions();
 	}
 }

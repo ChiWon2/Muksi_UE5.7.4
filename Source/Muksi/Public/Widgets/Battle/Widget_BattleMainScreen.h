@@ -73,6 +73,9 @@ public:
 
 	bool CanRequestEndExchange();
 
+	// 카드 슬롯에서 장착 해제될 때 진행 중인 타겟팅/대기 카드 상태를 함께 정리한다.
+	void NotifyPlayerCardUnequipped();
+
 	FTimerHandle InkLineTimerHandle;
 
 	//---------------------------중앙 텍스트 블록 관련 함수---------------------------------------------------------------

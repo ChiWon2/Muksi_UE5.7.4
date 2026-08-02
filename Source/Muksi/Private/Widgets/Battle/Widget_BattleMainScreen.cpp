@@ -134,6 +134,15 @@ void UWidget_BattleMainScreen::UnbindBattleManagerEvents()
 	}
 }
 
+
+void UWidget_BattleMainScreen::NotifyPlayerCardUnequipped()
+{
+	if (BattleManager)
+	{
+		BattleManager->CancelPlayerCardTargeting();
+	}
+}
+
 bool UWidget_BattleMainScreen::CanRequestEndExchange()
 {
 	if (!BattleManager)
@@ -515,19 +524,24 @@ void UWidget_BattleMainScreen::SetBattleCardToHand()
 	{
 		return;
 	}
-	//핸드에 남는 카드가 없으면 오른쪽에서 뽑기
-	if (PlayerBattleCharacter->GetCurrentBattleCardCount() == 0)
+	// Deck data and hand widget instances have different lifetimes.
+	// On the first round the deck is already populated, but the hand widget has no card instances yet.
+	const bool bNeedsNewHand =
+		!HandWidget->HasHandCards() ||
+		PlayerBattleCharacter->GetCurrentBattleCardCount() == 0;
+
+	if (bNeedsNewHand)
 	{
+		PlayerBattleCharacter->RefillBattleDeckIfEmpty();
 		HandWidget->DrawCards(PlayerBattleCharacter);
-		HandWidget->HitActiveHandCards(true);
 	}
 	else
 	{
-	//핸드에 남는 카드가 있으면 아래에서 올리기
+		// Existing hand cards return from the lower resting position.
 		HandWidget->VisibleHandCards();
-		HandWidget->HitActiveHandCards(true);
-		//HandWidget->BuildHandFromCharacter(PlayerBattleCharacter->GetCurrentBattleDeck());
 	}
+
+	HandWidget->HitActiveHandCards(true);
 }
 
 void UWidget_BattleMainScreen::ClearBattleCard()const
@@ -575,7 +589,7 @@ void UWidget_BattleMainScreen::EnemyPlaceCard()
 
 	const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
 
-	if (!BattleManager->SetEnemyBattleAction())
+	if (!BattleManager->BuildEnemyActionForCurrentExchange())
 	{
 		return;
 	}
@@ -588,7 +602,15 @@ void UWidget_BattleMainScreen::EnemyPlaceCard()
 	}
 
 	HandWidget->PlaceEnemySelectCard(EnemyCard, ExchangeIndex);
-	BattleManager->NotifyEnemyCardSelectionFinished();
+
+	// Enemy targeting preview가 최소 한 프레임 렌더된 뒤 다음 단계로 진행한다.
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		if (BattleManager)
+		{
+			BattleManager->NotifyEnemyCardSelectionFinished();
+		}
+	}));
 }
 
 void UWidget_BattleMainScreen::HandleCardSelect()
@@ -625,7 +647,7 @@ void UWidget_BattleMainScreen::SelectCardDataSend()const
 
 	if (UMuksiBattleCardDataAsset* CardDataAsset = HandWidget->GetExchangeDataIndex_Player(ExchangeNumber))
 	{
-		BattleManager->StartTargeting(CardDataAsset);
+		BattleManager->StartPlayerCardTargeting(CardDataAsset);
 	}
 }
 

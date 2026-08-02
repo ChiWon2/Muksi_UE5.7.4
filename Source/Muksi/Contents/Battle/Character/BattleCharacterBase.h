@@ -36,6 +36,7 @@ struct MUKSI_API FCharacterData
 		DefenseValue = InCharacterData->DefenseValue;
 		
 		AllBattleDeck = InCharacterData->CharacterDeck;
+		BattleDeck = AllBattleDeck;
 		CharacterPassives = InCharacterData->CharacterPassiveClass;
 	}
 	
@@ -102,7 +103,17 @@ public:
 	int32 GetCurrentBattleCardCount()const;
 	
 	TArray<UMuksiBattleCardDataAsset*> GetAllBattleDeck()const{return CharacterData.AllBattleDeck;};
-	void InitBattleDeck(){CharacterData.BattleDeck = CharacterData.AllBattleDeck;};
+	void InitBattleDeck(){ CharacterData.BattleDeck = CharacterData.AllBattleDeck; }
+	bool RefillBattleDeckIfEmpty()
+	{
+		if (!CharacterData.BattleDeck.IsEmpty())
+		{
+			return false;
+		}
+
+		CharacterData.BattleDeck = CharacterData.AllBattleDeck;
+		return !CharacterData.BattleDeck.IsEmpty();
+	}
 	
 	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives();
 

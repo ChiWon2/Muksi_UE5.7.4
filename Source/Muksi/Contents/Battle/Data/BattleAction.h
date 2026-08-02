@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "BattleAction.generated.h"
 
 class ABattleCharacterBase;
@@ -33,10 +32,7 @@ struct FBattleAction
 	UPROPERTY(BlueprintReadOnly)
 	bool bPlayerAction = false;
 
-	// 카드 선택 과정에서 확정된 전체 Targeting 결과
-	UPROPERTY(BlueprintReadOnly)
-	FTargetingResult TargetingResult;
-
+	// 카드 선택 과정에서 확정된 Targeting 의도
 	UPROPERTY(BlueprintReadOnly)
 	FTargetingIntent TargetingIntent;
 };

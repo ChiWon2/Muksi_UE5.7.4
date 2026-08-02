@@ -64,9 +64,15 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 	return GetActorTransform();
 }
 
-void ABattleGridTile::SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType)
+void ABattleGridTile::SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType, bool bEnemy)
 {
 	ExchangeIndicatorMesh->SetVisibility(true);
+
+	if (bEnemy && EnemyIndicatorMaterial)
+	{
+		ExchangeIndicatorMesh->SetMaterial(0, EnemyIndicatorMaterial);
+		return;
+	}
 	
 	if (!AttackableIndicatorMaterial && !MoveIndicatorMaterial && !BlockedIndicatorMaterial){UE_LOG(LogTemp, Error, TEXT("IndicatorMaterior is null (BattleGridTile.cpp)")); return;}
 	

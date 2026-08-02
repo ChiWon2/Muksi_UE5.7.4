@@ -16,10 +16,10 @@ enum class ETargetingIntentBinding : uint8
 UENUM(BlueprintType)
 enum class EInvalidTargetResolvePolicy : uint8
 {
-	Cancel,
-	KeepResolvedCoord,
-	StopAtLastValid,
-	FindNearestValid
+	Cancel = 0,
+	// 1은 제거된 KeepResolvedCoord의 직렬화 값을 재사용하지 않기 위해 비워 둔다.
+	StopAtLastValid = 2,
+	FindNearestValid = 3
 };
 
 USTRUCT(BlueprintType)
@@ -28,16 +28,34 @@ struct FTargetingStepIntent
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	bool bHasSelectedCoord = false;
+	FHexCubeCoord RelativeOffset;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	FHexCubeCoord RelativeSelectedCube;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	FHexOffsetCoord WorldSelectedCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+	FHexOffsetCoord SelectedCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	int32 Direction = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
+	FName TargetCharacterKey = NAME_None;
+
+	bool HasTargetCharacterKey() const
+	{
+		return !TargetCharacterKey.IsNone();
+	}
+
+	bool HasSelectedCoord() const
+	{
+		return SelectedCoord.IsValid();
+	}
+
+	void Reset()
+	{
+		RelativeOffset = FHexCubeCoord();
+		SelectedCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+		Direction = INDEX_NONE;
+		TargetCharacterKey = NAME_None;
+	}
 };
 
 USTRUCT(BlueprintType)

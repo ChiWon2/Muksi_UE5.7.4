@@ -2,36 +2,23 @@
 
 #include "CoreMinimal.h"
 
-class ABattleCharacterBase;
 class ABattleGridManager;
-struct FTargetingCardData;
-struct FTargetingResult;
+struct FResolvedTargeting;
 struct FTargetingStepCardData;
-struct FTargetingStepContext;
+struct FTargetingStepResult;
 
 struct FTargetingPreviewContext
 {
-	ABattleCharacterBase* SourceCharacter = nullptr;
 	ABattleGridManager* GridManager = nullptr;
-	const FTargetingCardData* TargetingData = nullptr;
 	const FTargetingStepCardData* StepData = nullptr;
-	const FTargetingStepContext* StepContext = nullptr;
-	const FTargetingResult* PreviewResult = nullptr;
-	int32 StepIndex = INDEX_NONE;
+	const FTargetingStepResult* StepResult = nullptr;
+	const FResolvedTargeting* ResolvedTargeting = nullptr;
+	FVector AimWorldLocation = FVector::ZeroVector;
+	bool bHasAimWorldLocation = false;
+
 
 	bool IsValid() const
 	{
-		return GridManager && TargetingData && StepData && StepContext;
-	}
-
-	void Reset()
-	{
-		SourceCharacter = nullptr;
-		GridManager = nullptr;
-		TargetingData = nullptr;
-		StepData = nullptr;
-		StepContext = nullptr;
-		PreviewResult = nullptr;
-		StepIndex = INDEX_NONE;
+		return GridManager && StepData && StepResult;
 	}
 };

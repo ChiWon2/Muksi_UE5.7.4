@@ -36,4 +36,9 @@ private:
 
 	float PreviewHeightOffset = 5.0f;
 	float PreviewMeshBaseSize = 100.0f;
+
+	// Cached only for diagnostics/state continuity. The rendered cone always snaps to
+	// the resolved hex direction so it cannot diverge from Pattern/Indicator results.
+	float CurrentPreviewYaw = 0.0f;
+	bool bHasPreviewYaw = false;
 };

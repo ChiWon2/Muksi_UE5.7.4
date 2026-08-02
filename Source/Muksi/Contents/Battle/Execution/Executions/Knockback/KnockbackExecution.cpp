@@ -77,17 +77,13 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 
 	DestinationCoord = KnockbackPath.Last();
 
-	if (!CachedGridManager->SetOccupied(DestinationCoord, KnockbackTarget))
-	{
-		CompleteExecution();
-		return;
-	}
-
+	// 목적지는 이동 시작 시점에 선점하지 않는다.
+	// Execution은 순차 실행되므로 이동이 끝나는 순간 MoveCharacterOnGrid로
+	// Grid 점유와 논리 좌표를 함께 확정하는 편이 일관되고 복구도 안전하다.
 	TArray<FVector> WorldPath;
 
 	if (!NavigationComponent->ConvertGridPathToWorldPath(KnockbackPath, WorldPath))
 	{
-		CachedGridManager->ClearOccupied(DestinationCoord);
 		CompleteExecution();
 		return;
 	}
@@ -191,13 +187,24 @@ void UKnockbackExecution::HandleMovementFinished(bool bInterrupted)
 
 	if (bInterrupted)
 	{
-		CachedGridManager->ClearOccupied(DestinationCoord);
+		// Grid 상태는 아직 StartCoord 그대로이므로 월드 위치만 원위치로 복구한다.
+		KnockbackTarget->SetActorTransform(CachedGridManager->GetTransformToPosition(StartCoord));
 		CompleteExecution();
 		return;
 	}
 
-	CachedGridManager->ClearOccupied(StartCoord);
-	CachedGridManager->SetOccupied(DestinationCoord, KnockbackTarget);
+	// 이동 완료 시점에 점유/논리 좌표/월드 Transform을 한 번에 확정한다.
+	if (!CachedGridManager->MoveCharacterOnGrid(
+		KnockbackTarget,
+		StartCoord,
+		DestinationCoord,
+		true))
+	{
+		// 예상치 못한 점유 충돌이 발생하면 논리 상태는 StartCoord에 남아 있으므로
+		// 시각 위치도 시작 지점으로 복구한다.
+		KnockbackTarget->SetActorTransform(CachedGridManager->GetTransformToPosition(StartCoord));
+	}
+
 	CompleteExecution();
 }
 

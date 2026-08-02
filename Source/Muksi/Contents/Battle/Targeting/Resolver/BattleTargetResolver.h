@@ -5,46 +5,65 @@
 
 class ABattleCharacterBase;
 class ABattleGridManager;
+struct FTargetingCardData;
+struct FResolvedTargeting;
 struct FTargetingStepCardData;
+struct FTargetingStepResult;
 
 class MUKSI_API FBattleTargetResolver
 {
 public:
-	static FTargetingIntent CaptureIntent(const FTargetingResult& TargetingResult, const FHexOffsetCoord& SourceCoord);
-	static bool ResolveAction(FBattleAction& InOutAction, ABattleGridManager* GridManager);
+	static bool ResolveAction(const FBattleAction& Action, ABattleGridManager* GridManager, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
+	static bool ResolveActionThroughStep(const FBattleAction& Action, ABattleGridManager* GridManager, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
+	static bool ResolveIntent(
+		ABattleCharacterBase* Attacker,
+		ABattleGridManager* GridManager,
+		const FTargetingCardData& TargetingData,
+		const FTargetingIntent& TargetingIntent,
+		FResolvedTargeting& OutResolvedTargeting
+	);
 
 private:
 	static bool ResolveStepOrigin(
-		const FBattleAction& Action,
-		const FTargetingResult& ResolvedResult,
-		const FTargetingStepCardData* StepData,
+		ABattleCharacterBase* Attacker,
+		const FResolvedTargeting& ResolvedTargeting,
+		const FTargetingStepCardData& StepData,
 		FHexOffsetCoord& OutOriginCoord
 	);
 
-	static bool ResolveStepSelectedCoord(
-		const FBattleAction& Action,
-		const FTargetingResult& SourceResult,
+	static bool ResolveDesiredCoord(
 		const FTargetingStepIntent& StepIntent,
-		const FTargetingStepCardData* StepData,
-		int32 StepIndex,
+		const FTargetingStepCardData& StepData,
 		const FHexOffsetCoord& OriginCoord,
 		ABattleGridManager* GridManager,
-		FHexOffsetCoord& OutSelectedCoord,
-		TArray<TObjectPtr<ABattleCharacterBase>>& OutTargetCharacters
+		FHexOffsetCoord& OutDesiredCoord
 	);
 
 	static bool ResolveInvalidCoord(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& DesiredCoord,
-		const FTargetingStepCardData* StepData,
+		int32 Direction,
+		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		FHexOffsetCoord& OutResolvedCoord
 	);
 
+	static bool EvaluateStepAtCoord(
+		const FHexOffsetCoord& OriginCoord,
+		const FHexOffsetCoord& CandidateCoord,
+		int32 Direction,
+		const FTargetingStepCardData& StepData,
+		ABattleCharacterBase* Attacker,
+		ABattleGridManager* GridManager,
+		FTargetingStepResult& OutStepResult
+	);
+
 	static bool IsCoordUsable(
+		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& Coord,
-		const FTargetingStepCardData* StepData,
+		int32 Direction,
+		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager
 	);
@@ -52,7 +71,8 @@ private:
 	static bool FindLastValidCoord(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& DesiredCoord,
-		const FTargetingStepCardData* StepData,
+		int32 Direction,
+		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		FHexOffsetCoord& OutResolvedCoord
@@ -61,12 +81,17 @@ private:
 	static bool FindNearestValidCoord(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& DesiredCoord,
-		const FTargetingStepCardData* StepData,
+		int32 Direction,
+		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		FHexOffsetCoord& OutResolvedCoord
 	);
 
-	static FHexOffsetCoord ResolveCubeLineCoord(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& EndCoord, int32 StepIndex, int32 StepCount);
-	static bool ApplyFinalPattern(FBattleAction& InOutAction, ABattleGridManager* GridManager);
+	static FHexOffsetCoord ResolveCubeLineCoord(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& EndCoord, int32 LinePointIndex, int32 LinePointCount);
+	static bool ApplyFinalPattern(
+		ABattleGridManager* GridManager,
+		const FTargetingCardData& TargetingData,
+		FResolvedTargeting& InOutResolvedTargeting
+	);
 };

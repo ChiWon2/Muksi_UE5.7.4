@@ -11,7 +11,6 @@ class UDataTable;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
 class ABattleCharacterBase;
-class UBattleTargetingManager;
 
 class ABattleGridTile;
 class ABattleManager;
@@ -35,17 +34,12 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<ABattleGridTile> HoveredGridTile = nullptr;
-	
+
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
 
 	UPROPERTY()
 	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
-
-private:
-	UPROPERTY()
-	TObjectPtr<UBattleTargetingManager> BattleTargetingManager = nullptr;
-
 
 private:
 	void UpdateHoveredGridTile(const FHitResult& HitResult, bool bHasHitResult);

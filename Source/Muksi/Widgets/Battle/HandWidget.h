@@ -80,6 +80,7 @@ public:
 	//~ Begin UUserWidget Interface
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	//~ End UUserWidget Interface
 
 	UFUNCTION(BlueprintCallable)
@@ -258,6 +259,22 @@ public:
 	void ActiveHandCards(bool bActive);
 
 protected:
+	void RequestOrganizeCards(float OffsetX = -1.0f);
+	bool TryOrganizeCards(float OffsetX);
+
+	bool bOrganizeCardsPending = false;
+	bool bPlaceCardsAtDrawSpawnPending = false;
+	float PendingCardSpacing = 0.0f;
+	int32 OrganizeRetryCount = 0;
+
+	// Wait for a fresh Slate layout instead of accepting stale-but-valid CachedGeometry.
+	uint64 OrganizeNotBeforeFrame = 0;
+
+	FTimerHandle OrganizeCardsTimerHandle;
+
+	void ScheduleOrganizeCards();
+	void HandleOrganizeCardsTimer();
+
 	void BindSelectButton();
 	void UnbindSelectButton();
 
@@ -281,6 +298,7 @@ public:
 	void BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets);
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
 	void DrawCards(ABattleCharacterBase* BattleCharacter);
+	bool HasHandCards() const { return !BattleCards.IsEmpty(); }
 
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
 	UWidget_BattleCardBase* AddCardToHand(UMuksiBattleCardDataAsset* CardData);
