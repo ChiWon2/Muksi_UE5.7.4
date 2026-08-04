@@ -2,6 +2,7 @@
 #include "Muksi/Contents/Travel/Public/Data/Stats/CharacterStatDataAsset.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Travel/Public/Components/Player/EquipmentComponent.h"
+#include "Muksi/Save/MuksiSaveSubsystem.h"
 
 UStatComponent::UStatComponent()
 {
@@ -54,6 +55,18 @@ void UStatComponent::InitializeStat()
 		CombatStat.DefensePower);
 }
 
+void UStatComponent::BindSaveGame()
+{
+	UMuksiSaveSubsystem* SaveSubsystem = UMuksiSaveSubsystem::Get(this);
+	SaveSubsystem->OnSaveRequested.AddUObject(this, &UStatComponent::SaveStat);
+	SaveSubsystem->OnLoadRequested.AddUObject(this, &UStatComponent::LoadStat);
+}
+
+void UStatComponent::UnbindSaveGame()
+{
+	
+}
+
 
 void UStatComponent::RecalculateStats()
 {
@@ -104,6 +117,16 @@ void UStatComponent::RefreshStats()
 {
 	RecalculateStats();
 	BroadcastStatChanged();
+}
+
+void UStatComponent::SaveStat(UMuksiSaveGame* SaveGame)
+{
+	
+}
+
+void UStatComponent::LoadStat(const UMuksiSaveGame* SaveGame)
+{
+	
 }
 
 void UStatComponent::ClampResources()

@@ -9,9 +9,9 @@ struct FEvent_AcceptQuest;
 namespace GameEventUtils
 {
     //StartBattle
-    FInstancedStruct MakeStartBattle(int32 BattleID);
+    FInstancedStruct MakeStartBattle(FName BattleName);
 
-    void ExecuteStartBattle(UObject* WorldContext,int32 BattleID);
+    void ExecuteStartBattle(UObject* WorldContext,FName BattleName);
 
     //AcceptQuest
     FInstancedStruct MakeAcceptQuest(FName QuestID);

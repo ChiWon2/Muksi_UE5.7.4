@@ -6,6 +6,7 @@
 #include "CommonActivatableWidget.h"
 #include "Widget_ActivatableBase.generated.h"
 
+class AMuksiPlayerController;
 /**
  * 
  */

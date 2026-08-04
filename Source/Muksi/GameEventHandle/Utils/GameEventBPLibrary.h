@@ -12,7 +12,7 @@ class MUKSI_API UGameEventBPLibrary: public UBlueprintFunctionLibrary
 public:
 
     UFUNCTION(BlueprintCallable,Category = "Game Event",meta = (WorldContext = "WorldContextObject"))
-    static void ExecuteStartBattleEvent(UObject* WorldContextObject, int32 BattleID);
+    static void ExecuteStartBattleEvent(UObject* WorldContextObject, FName BattleID);
 
     UFUNCTION(BlueprintCallable, Category = "Game Event", meta = (WorldContext = "WorldContextObject"))
     static void ExecuteAcceptQuestEvent(UObject* WorldContextObject, FName QuestID);

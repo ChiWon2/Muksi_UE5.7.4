@@ -198,6 +198,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
 	FHexOffsetCoord StartEnemyCoord = FHexOffsetCoord(3, 2);
 
+public:
+	bool StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardData);
+
+
 
 // ============================================================================
 // Battle Pipeline API
@@ -208,15 +212,22 @@ public:
 // [1] Ready / Battle 진입
 // BattleManager::ReadyStart -> BattleMainScreen::ReadyStart/ReadyEnd
 // -> BattleManager::ReadyEnd -> BattleStart
+protected:
+	void GetEnemyData();
+	void CreateCharacter();
+
 public:
 	void ReadyStart();
 	void ReadyEnd();
 	void BattleStart();
 	void BattleEnd();
-
 protected:
-	void CreateCharacter();
-
+	UFUNCTION()
+	void BindingBattleEndEvent();
+	void CharacterDeadPoint(ABattleCharacterBase* Character);
+	void EndBattleLevel();
+	UPROPERTY()
+	bool bIsCharacterDead = false;
 public:
 	// [2] Round
 	// BattleStart -> RoundStart -> ExchangeStart

@@ -8,6 +8,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStatChanged);
 
 class UCharacterStatDataAsset;
+class UMuksiSaveGame;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UStatComponent : public UActorComponent
@@ -47,12 +48,23 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void InitializeStat();
+	
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void BindSaveGame();
+	
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void UnbindSaveGame();
 
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void RecalculateStats();
 
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void RefreshStats();
+	
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void SaveStat(UMuksiSaveGame* SaveGame);
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void LoadStat(const UMuksiSaveGame* SaveGame);
 
 	UFUNCTION(BlueprintCallable, Category = "Stat|Resource")
 	void Heal(float Amount);

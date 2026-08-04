@@ -16,6 +16,7 @@ namespace MuksiGameplayTag
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_MainMenu_MainMenuScreen, "Muksi.Widget.MainMenu.MainMenuScreen");
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_MainMenu_ConfirmScreen, "Muksi.Widget.MainMenu.ConfirmScreen");
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_MainMenu_OptionsScreen, "Muksi.Widget.MainMenu.OptionsScreen");
+	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_MainMenu_StorySelectScreen, "Muksi.Widget.MainMenu.StorySelectScreen");
 	
 	//Muksi Battle Widgets
 	UE_DEFINE_GAMEPLAY_TAG(Muksi_Widget_BattleMainScreen, "Muksi.Widget.Battle.MainScreen");
