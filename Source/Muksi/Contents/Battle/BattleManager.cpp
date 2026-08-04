@@ -10,6 +10,8 @@
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 
 #include "Character/BattleCharacter_Enemy.h"
+#include "Character/BattleStatComponent.h"
+#include "Engine/TargetPoint.h"
 #include "Grid/BattleGridManager.h"
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
@@ -20,11 +22,13 @@
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Save/BattleEncounterSubsystem.h"
 
 // ============================================================================
 // 생명주기 및 전투 진입
 // 호출 흐름: BeginPlay -> ReadyStart -> UI ReadyEnd -> BattleStart
 // ============================================================================
+
 
 ABattleManager::ABattleManager()
 {
@@ -74,6 +78,9 @@ void ABattleManager::ReadyStart()
 		return;
 	}
 	ChangePhase(EBattlePhase::Ready);
+
+	//적 캐릭터 정보 얻어오기
+	GetEnemyData();
 
 	BattleMainScreen->ReadyStart();
 
@@ -128,6 +135,7 @@ void ABattleManager::CreateCharacter()
 	//Player BattleCharacter Spawn
 	PlayerBattleCharacter = World->SpawnActor<ABattleCharacter_Player>(PlayerClass, GetActorTransform());
 
+	checkf(IsValid(PlayerBattleCharacter), TEXT("PlayerBattleCharacter Spawn Error BattleManager"));
 	if (!PlayerBattleCharacter)
 	{
 		return;
@@ -142,9 +150,67 @@ void ABattleManager::CreateCharacter()
 		return;
 	}
 	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset, this, BattleMainScreen);
+	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset, this, BattleMainScreen);
 
 	BattleGridManager->PlaceCharacter(PlayerBattleCharacter, StartPlayerCoord);
 	BattleGridManager->PlaceCharacter(EnemyBattleCharacter, StartEnemyCoord);
+}
+
+
+bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardData)
+{
+	CurrentRound = 0;
+	GetWorldTimerManager().ClearTimer(NextAttackActionTimerHandle);
+	GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
+	bAttackActionCompletionPending = false;
+	CurrentAttackActionIndex = INDEX_NONE;
+
+	ChangePhase(EBattlePhase::BattleStart);
+
+	BattleMainScreen->BattleStart();
+
+	BattleEnd();
+	return true;
+}
+
+// ============================================================================
+// Round 파이프라인
+// 호출 흐름: BattleStart -> RoundStart -> ExchangeStart / RoundEnd -> 다음 Round 또는 BattleEnd
+// ============================================================================
+
+void ABattleManager::GetEnemyData()
+{
+	UBattleEncounterSubsystem* BattleEncounterSubsystem =UBattleEncounterSubsystem::Get(this);
+
+	if (!IsValid(BattleEncounterSubsystem))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("BattleOccurSubsystem is invalid")
+		);
+
+		return;
+	}
+
+	UMuksiCharacterDataAsset* EnemyCharacterData =
+		BattleEncounterSubsystem->GetCurrentEnemyData();
+
+	if (!IsValid(EnemyCharacterData))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("CurrentEnemyData is invalid")
+		);
+
+		return;
+	}
+	else
+	{
+		TestEnemyCharacterDataAsset = EnemyCharacterData;
+		return;
+	}
 }
 
 
@@ -152,7 +218,7 @@ void ABattleManager::ReadyEnd()
 {
 	//캐릭터 스폰
 	CreateCharacter();
-
+	BindingBattleEndEvent();
 	ChangePhase(EBattlePhase::ReadyEnd);
 
 	BattleMainScreen->ReadyEnd();
@@ -160,6 +226,11 @@ void ABattleManager::ReadyEnd()
 	BattleStart();
 }
 
+void ABattleManager::BindingBattleEndEvent()
+{
+	PlayerBattleCharacter->GetBattleStatComponent()->OnDead.AddUniqueDynamic(this, &ABattleManager::CharacterDeadPoint);
+	EnemyBattleCharacter->GetBattleStatComponent()->OnDead.AddUniqueDynamic(this, &ABattleManager::CharacterDeadPoint);
+}
 
 void ABattleManager::BattleStart()
 {
@@ -205,6 +276,33 @@ void ABattleManager::RoundStart()
 	BattleMainScreen->RoundStart();
 }
 
+void ABattleManager::CharacterDeadPoint(ABattleCharacterBase* Character)
+{
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst1"));
+	//각 캐릭터별 전용 엔딩이 있으면 그걸로
+	if (bIsCharacterDead) { return; }
+	bIsCharacterDead = true;
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst2"));
+	//일단은 그냥 넘겨
+	BattleEnd();
+}
+
+void ABattleManager::EndBattleLevel()
+{
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst4"));
+	UBattleEncounterSubsystem* EncounterSubsystem = UBattleEncounterSubsystem::Get(this);
+	if (!IsValid(EncounterSubsystem))
+	{
+		return;
+	}
+
+	FBattleResult BattleResult;
+	//TODO 전투 종료 후 체력, 경험치(?)등등 영수증 작성하기
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst5"));
+	EncounterSubsystem->FinishBattleEncounter(
+		BattleResult
+	);
+}
 
 void ABattleManager::RoundEnd()
 {
@@ -1295,8 +1393,7 @@ bool ABattleManager::ResolveActionTargetingForCurrentGrid(const FBattleAction& A
 }
 
 
-bool ABattleManager::ResolveActionTargetingThroughStepForCurrentGrid(
-	const FBattleAction& Action,
+bool ABattleManager::ResolveActionTargetingThroughStepForCurrentGrid(const FBattleAction& Action,
 	int32 LastStepIndex,
 	FResolvedTargeting& OutResolvedTargeting) const
 {

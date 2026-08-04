@@ -33,8 +33,6 @@ void UTest_CharacterPassive1::OnBattlePhaseChanged(EBattlePhase OldPhase, EBattl
 	}
 }
 
-
-
 void UTest_CharacterPassive1::Passive1()
 {
 	FText PassiveDescription1 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">국 종료 시</> 체력을 2 회복합니다."));

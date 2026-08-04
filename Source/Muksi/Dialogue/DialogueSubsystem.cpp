@@ -21,7 +21,7 @@ UDialogueSubsystem* UDialogueSubsystem::Get(const UObject* WorldContextObject)
 
 void UDialogueSubsystem::InitializeSubsystem()
 {
-    //TOOD :: For Test Initialization
+    //TODO :: For Test Initialization
     const UDialogueDeveloperSettings* Settings = GetDefault<UDialogueDeveloperSettings>();
     if (!Settings) return;
 

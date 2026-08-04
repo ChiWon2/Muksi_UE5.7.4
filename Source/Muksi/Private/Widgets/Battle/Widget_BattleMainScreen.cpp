@@ -73,6 +73,9 @@ void UWidget_BattleMainScreen::NativeOnActivated()
 
 void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
 {
+	checkf(IsValid(Player), TEXT("PlayerCharacter is null"));
+	checkf(IsValid(Enemy), TEXT("EnemyCharacter is null"));
+	
 	HandWidget->SetCharacterData(Player, Enemy);
 	ActivePassiveWidget->SetData(Player, Enemy);
 

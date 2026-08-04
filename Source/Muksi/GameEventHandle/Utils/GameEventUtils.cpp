@@ -6,19 +6,19 @@
 #include "../Events/Event_ObjectiveComplete.h"
 
 
-FInstancedStruct GameEventUtils::MakeStartBattle(int32 BattleID)
+FInstancedStruct GameEventUtils::MakeStartBattle(FName BattleID)
 {
     FEvent_StartBattle Event;
 
-    Event.BattleID = BattleID;
+    Event.BattleName = BattleID;
 
     return FInstancedStruct::Make(Event);
 }
 
-void GameEventUtils::ExecuteStartBattle(UObject* WorldContext,int32 BattleID)
+void GameEventUtils::ExecuteStartBattle(UObject* WorldContext,FName BattleName)
 {
     UGameEventHandleSubsystem* Subsystem = UGameEventHandleSubsystem::Get(WorldContext);
-    Subsystem->ExecuteEvent(WorldContext,MakeStartBattle(BattleID));
+    Subsystem->ExecuteEvent(WorldContext,MakeStartBattle(BattleName));
 }
 
 

@@ -1,7 +1,7 @@
 #include "GameEventBPLibrary.h"
 #include "GameEventUtils.h"
 
-void UGameEventBPLibrary::ExecuteStartBattleEvent(UObject* WorldContextObject,int32 BattleID)
+void UGameEventBPLibrary::ExecuteStartBattleEvent(UObject* WorldContextObject,FName BattleID)
 {
     GameEventUtils::ExecuteStartBattle(WorldContextObject,BattleID);
 }

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "CommonActivatableWidget.h"
 #include "Muksi/Contents/Travel/Public/Data/Shops/ShopDataAsset.h"
+#include "Muksi/Contents/Travel/Public/MuksiTypes/MuksiItemTypes.h"
 #include "Widgets/Widget_ActivatableBase.h"
 
 #include "Widget_Shop.generated.h"
