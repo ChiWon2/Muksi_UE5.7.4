@@ -20,6 +20,7 @@ public class Muksi : ModuleRules
             "CommonInput",
             "CommonUI",
             "AIModule",
+            "AssetRegistry",
             "PropertyPath",
             "NavigationSystem",
             "StructUtils",

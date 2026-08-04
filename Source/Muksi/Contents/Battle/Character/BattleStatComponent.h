@@ -39,7 +39,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 
 
 //죽은 거 감지하기 위한 델리게이트
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleCharacterDead);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattleCharacterDead, ABattleCharacterBase*, DeadCharacter);
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )

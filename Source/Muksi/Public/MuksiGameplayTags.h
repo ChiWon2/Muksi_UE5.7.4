@@ -16,6 +16,7 @@ namespace MuksiGameplayTag
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_MainMenu_MainMenuScreen);
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_MainMenu_ConfirmScreen);
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_MainMenu_OptionsScreen);
+	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_MainMenu_StorySelectScreen);
 	
 	//Muksi Battle Widgets
 	MUKSI_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Muksi_Widget_Battle_MainScreen);

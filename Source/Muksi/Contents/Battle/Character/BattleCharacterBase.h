@@ -137,6 +137,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
 	
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Stat")
+	UBattleStatComponent* GetBattleStatComponent() const { return BattleStatComponent; }
+	
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
 	UCharacterCameraComponent* GetClickCameraFocusComponent() const{ return ClickCameraFocusComponent;}
 	

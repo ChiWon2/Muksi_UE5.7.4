@@ -191,10 +191,10 @@ public:
 	TObjectPtr<ABattleCharacter_Enemy> GetEnemyBattleCharacter() { return EnemyBattleCharacter; }
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Data")
-	UMuksiCharacterDataAsset* GetPlayerCharacterDataAsset() const { return TestPlayerCharacterDataAsset; }
+	UMuksiCharacterDataAsset* GetPlayerCharacterDataAsset() const { return PlayerCharacterDataAsset; }
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Data")
-	UMuksiCharacterDataAsset* GetEnemyCharacterDataAsset() const { return TestEnemyCharacterDataAsset; }
+	UMuksiCharacterDataAsset* GetEnemyCharacterDataAsset() const { return EnemyCharacterDataAsset; }
 
 	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Player(int32 ExchangeCount);
 	UMuksiBattleCardDataAsset* GetBattleCardDataAssetToExchange_Enemy(int32 ExchangeCount);
@@ -241,11 +241,11 @@ protected:
 
 	//Player Character Data Asset <- 테스트 용도 (원래 계획은 원래 월드의 플레이어 정보를 토대로 생성하는 데이터)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Test Data")
-	TObjectPtr<UMuksiCharacterDataAsset> TestPlayerCharacterDataAsset = nullptr;
+	TObjectPtr<UMuksiCharacterDataAsset> PlayerCharacterDataAsset = nullptr;
 
 	// Enemy Character Data Asset <- 원래 용도는 다른 이벤트에서 받아오는 데이터 에셋
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Test Data")
-	TObjectPtr<UMuksiCharacterDataAsset> TestEnemyCharacterDataAsset = nullptr;
+	TObjectPtr<UMuksiCharacterDataAsset> EnemyCharacterDataAsset = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Grid|Character")
 	FHexOffsetCoord StartPlayerPoint = FHexOffsetCoord(0, 0);
@@ -263,6 +263,7 @@ protected:
 
 protected:
 	void CreateCharacter();
+	void GetEnemyData();
 public:
 	void ReadyStart();
 	void ReadyEnd();
@@ -280,7 +281,15 @@ public:
 public:
 	void BattleStart();
 	void BattleEnd();
-
+	
+protected:
+	UFUNCTION()
+	void CharacterDeadPoint(ABattleCharacterBase* Character);
+	void BindingBattleEndEvent();
+	void EndBattleLevel();
+	UPROPERTY()
+	bool bIsCharacterDead = false;
+	
 	//===============================================국 관련 ===========================================================
 	//--------------------------------Battle 관련 턴 흐름 관리 함수 <국>--------------------------------------------------
 	//국 시작	Round 시작

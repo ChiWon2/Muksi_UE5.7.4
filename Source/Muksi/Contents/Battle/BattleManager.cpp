@@ -12,6 +12,7 @@
 
 #include "MuksiDebugHelper.h"
 #include "Character/BattleCharacter_Enemy.h"
+#include "Character/BattleStatComponent.h"
 #include "Engine/TargetPoint.h"
 #include "Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
@@ -22,6 +23,8 @@
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Save/BattleEncounterSubsystem.h"
+
 
 
 ABattleManager::ABattleManager()
@@ -170,12 +173,12 @@ bool ABattleManager::ShouldEndBattle() const
 void ABattleManager::CreateCharacter()
 {
 	//나중에 전투 이벤트 개발 시 해당 Subsystem 등 에서 DataAsset을 받아오는 걸로(혹은 그 이벤트에 적용된 DataAsset)
-	if (!TestPlayerCharacterDataAsset)
+	if (!PlayerCharacterDataAsset)
 	{
 		return;
 	}
 
-	if (!TestEnemyCharacterDataAsset)
+	if (!EnemyCharacterDataAsset)
 	{
 		return;
 	}
@@ -189,7 +192,7 @@ void ABattleManager::CreateCharacter()
 		return;
 	}
 
-	TSubclassOf<ABattleCharacterBase> PlayerClass = TestPlayerCharacterDataAsset->BattleCharacterClass;
+	TSubclassOf<ABattleCharacterBase> PlayerClass = PlayerCharacterDataAsset->BattleCharacterClass;
 
 	if (!PlayerClass)
 	{
@@ -197,7 +200,7 @@ void ABattleManager::CreateCharacter()
 	}
 
 	//Spawn Enemy
-	TSubclassOf<ABattleCharacterBase> EnemyClass = TestEnemyCharacterDataAsset->BattleCharacterClass;
+	TSubclassOf<ABattleCharacterBase> EnemyClass = EnemyCharacterDataAsset->BattleCharacterClass;
 
 	if (!EnemyClass)
 	{
@@ -220,11 +223,12 @@ void ABattleManager::CreateCharacter()
 	//Player BattleCharacter Spawn
 	PlayerBattleCharacter = World->SpawnActor<ABattleCharacter_Player>(PlayerClass, PlayerSpawnPoint->GetActorTransform());
 
+	checkf(IsValid(PlayerBattleCharacter), TEXT("PlayerBattleCharacter Spawn Error BattleManager"));
 	if (!PlayerBattleCharacter)
 	{
 		return;
 	}
-	PlayerBattleCharacter->SetCharacterData(TestPlayerCharacterDataAsset, this, BattleMainScreen);
+	PlayerBattleCharacter->SetCharacterData(PlayerCharacterDataAsset, this, BattleMainScreen);
 
 	//Enemy BattleCharacter Spawn
 	EnemyBattleCharacter = World->SpawnActor<ABattleCharacter_Enemy>(EnemyClass, EnemySpawnPoint->GetActorTransform());
@@ -233,7 +237,7 @@ void ABattleManager::CreateCharacter()
 	{
 		return;
 	}
-	EnemyBattleCharacter->SetCharacterData(TestEnemyCharacterDataAsset, this, BattleMainScreen);
+	EnemyBattleCharacter->SetCharacterData(EnemyCharacterDataAsset, this, BattleMainScreen);
 	
 	BattleGridManager->PlaceCharacter(PlayerBattleCharacter, StartPlayerPoint);
 	BattleGridManager->PlaceCharacter(EnemyBattleCharacter, StartEnemyPoint);
@@ -242,7 +246,41 @@ void ABattleManager::CreateCharacter()
 	BattleGridManager->SetOccupied(StartEnemyPoint, EnemyBattleCharacter);
 }
 
+void ABattleManager::GetEnemyData()
+{
+	UBattleEncounterSubsystem* BattleEncounterSubsystem =
+		UBattleEncounterSubsystem::Get(this);
 
+	if (!IsValid(BattleEncounterSubsystem))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("BattleOccurSubsystem is invalid")
+		);
+
+		return;
+	}
+
+	UMuksiCharacterDataAsset* EnemyCharacterData =
+		BattleEncounterSubsystem->GetCurrentEnemyData();
+
+	if (!IsValid(EnemyCharacterData))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("CurrentEnemyData is invalid")
+		);
+
+		return;
+	}
+	else
+	{
+		EnemyCharacterDataAsset = EnemyCharacterData;
+		return;
+	}
+}
 
 
 bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardData)
@@ -326,7 +364,10 @@ void ABattleManager::ReadyStart()
 {
 	//현재 Phase 설정 <- 나중에 없어질 수 있음
 	CurrentPhase = EBattlePhase::None;
-
+	
+	//적 캐릭터 정보 얻어오기
+	GetEnemyData();
+	
 	//카드 제시에서 Grid 범위 표시 비활성화
 	BattleGridManager->AllClearGridHovered();
 	BattleGridManager->AllClearExchangeIndicator();
@@ -346,18 +387,19 @@ void ABattleManager::ReadyEnd()
 	//되었는지 확인하고 Battle 단계로 넘어가기
 
 	//캐릭터 DataAsset -> 나중에는 이벤트 시작 시 받아오는 걸로
-	if (!TestPlayerCharacterDataAsset)
+	if (!PlayerCharacterDataAsset)
 	{
 		UE_LOG(LogTemp, Error, TEXT("TestPlayerCharacterDataAsset is null (BattleManager)"));
 	}
 
-	if (!TestEnemyCharacterDataAsset)
+	if (!EnemyCharacterDataAsset)
 	{
 		UE_LOG(LogTemp, Error, TEXT("TestEnemyCharacterDataAsset is null (BattleManager)"));
 	}
 
 	//캐릭터 스폰
 	CreateCharacter();
+	BindingBattleEndEvent();
 
 	//Phase 넘기기
 	BattleMainScreen->ReadyEnd();
@@ -393,10 +435,49 @@ void ABattleManager::BattleStart()
 
 void ABattleManager::BattleEnd()
 {
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst3"));
 	//Current Phase 설정
-	//BattleManager 델리게이트 <- 전투 종료 모션/ 기타 등등
+	//BattleManager 델리게이트 <- 전투 종료 모션/ 기타 등등 해제
 	bBattleStarted = false;
 	ChangePhase(EBattlePhase::BattleEnd);
+	
+	BattleMainScreen->BattleEnd();
+	//일단 바로 넘기고 나중에 UI, 카메라 연출 같은거 있으면 그때 다시 조절하기
+	//EndBattleLevel();
+}
+
+void ABattleManager::CharacterDeadPoint(ABattleCharacterBase* Character)
+{
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst1"));
+	//각 캐릭터별 전용 엔딩이 있으면 그걸로
+	if (bIsCharacterDead){return;}
+	bIsCharacterDead = true;
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst2"));
+	//일단은 그냥 넘겨
+	BattleEnd();
+}
+
+void ABattleManager::BindingBattleEndEvent()
+{
+	PlayerBattleCharacter->GetBattleStatComponent()->OnDead.AddUniqueDynamic(this, &ABattleManager::CharacterDeadPoint);
+	EnemyBattleCharacter->GetBattleStatComponent()->OnDead.AddUniqueDynamic(this, &ABattleManager::CharacterDeadPoint);
+}
+
+void ABattleManager::EndBattleLevel()
+{
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst4"));
+	UBattleEncounterSubsystem* EncounterSubsystem = UBattleEncounterSubsystem::Get(this);
+	if (!IsValid(EncounterSubsystem))
+	{
+		return;
+	}
+	
+	FBattleResult BattleResult;
+	//TODO 전투 종료 후 체력, 경험치(?)등등 영수증 작성하기
+	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst5"));
+	EncounterSubsystem->FinishBattleEncounter(
+	BattleResult
+	);
 }
 
 //===============================================국(Round)==============================================================

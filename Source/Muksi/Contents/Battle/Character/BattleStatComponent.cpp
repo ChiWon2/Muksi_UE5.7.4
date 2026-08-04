@@ -3,6 +3,8 @@
 
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 
+#include "BattleCharacterBase.h"
+
 // Sets default values for this component's properties
 UBattleStatComponent::UBattleStatComponent()
 {
@@ -101,8 +103,8 @@ void UBattleStatComponent::SetCurrentHP(float NewHP)
 		0.0f,
 		CurrentStats.HP
 	);
-
-	//OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
+	
+	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
 
 	if (CurrentHP <= 0.0f)
 	{
@@ -137,8 +139,11 @@ void UBattleStatComponent::HandleDeath()
 
 	bIsDead = true;
 	CurrentHP = 0.0f;
+	
+	ABattleCharacterBase* OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
+	checkf(IsValid(OwnerCharacter), TEXT("OwnerCharacter is null BattleStatComponent.cpp"));
 
-	OnDead.Broadcast();
+	OnDead.Broadcast(OwnerCharacter);
 }
 
 
