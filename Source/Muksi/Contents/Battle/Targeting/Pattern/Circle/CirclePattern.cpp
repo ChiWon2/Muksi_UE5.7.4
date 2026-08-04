@@ -4,34 +4,34 @@
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePatternData.h"
 
-void UCirclePattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
+void UCirclePattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
-	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(Context, PatternData);
+	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(GridManager, PatternData);
 
 	const FCirclePatternData* Data = PatternData.GetPtr<FCirclePatternData>();
-	const FTargetingStepContext* StepContext = InOutResult.GetLastStepContext();
+	const FTargetingStepResult* StepResult = InOutResult.GetLastStep();
 
-	if (!Data || !StepContext || !StepContext->HasSelectedCoord())
+	if (!Data || !StepResult || !StepResult->HasSelectedCoord())
 	{
 		return;
 	}
 
-	const FHexOffsetCoord CenterCoord = StepContext->SelectedCoord;
+	const FHexOffsetCoord CenterCoord = StepResult->SelectedCoord;
 
-	if (!Context.GridManager->IsValidCoord(CenterCoord))
+	if (!GridManager->IsValidCoord(CenterCoord))
 	{
 		return;
 	}
 
 	const int32 SafeRadius = FMath::Max(0, Data->Radius);
 
-	for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
+	for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
 	{
-		for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
+		for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
 		{
 			const FHexOffsetCoord CandidateCoord(X, Y);
 
-			if (!Context.GridManager->IsValidCoord(CandidateCoord))
+			if (!GridManager->IsValidCoord(CandidateCoord))
 			{
 				continue;
 			}

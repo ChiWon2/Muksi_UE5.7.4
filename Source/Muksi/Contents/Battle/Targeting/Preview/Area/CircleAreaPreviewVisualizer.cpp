@@ -3,8 +3,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePatternData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
@@ -31,20 +31,23 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepData || !Context.PreviewResult)
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.ResolvedTargeting)
 	{
 		return;
 	}
 
-	if (!IsPatternDataValid(Context.StepData->PatternData))
+	if (!IsPatternDataValid(Context.StepData->Pattern.PatternData))
 	{
 		return;
 	}
 
-	const FCirclePatternData* Data = Context.StepData->PatternData.GetPtr<FCirclePatternData>();
-	const FTargetingStepContext* StepContext = Context.PreviewResult->GetLastStepContext();
+	const FCirclePatternData* Data = Context.StepData->Pattern.PatternData.GetPtr<FCirclePatternData>();
+	// Use the step explicitly bound to this preview session.
+	// Runtime presentation can display multiple steps, so the overall resolved
+	// result's last step is not necessarily the step this visualizer represents.
+	const FTargetingStepResult* StepResult = Context.StepResult;
 
-	if (!Data || !StepContext || !StepContext->HasSelectedCoord())
+	if (!Data || !StepResult || !StepResult->HasSelectedCoord())
 	{
 		return;
 	}
@@ -57,7 +60,7 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 		return;
 	}
 
-	PreviewActorInstance->SetAreaGridCoords(Context.PreviewResult->AffectedCoords);
+	PreviewActorInstance->SetAreaGridCoords(Context.ResolvedTargeting->AffectedCoords);
 	PreviewMeshComponent->SetVisibility(false);
 
 	if (!CirclePreviewMesh)
@@ -65,7 +68,11 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 		return;
 	}
 
-	const FVector CenterLocation = StepContext->SelectedWorldLocation;
+	// CirclePattern is resolved from SelectedCoord. Raw AimWorldLocation may be an
+	// arbitrary point inside the tile, so using it here makes the mesh disagree with
+	// the indicator and with reveal/runtime previews.
+	const FVector CenterLocation =
+		Context.GridManager->GetWorldLocationByCoord(StepResult->SelectedCoord);
 	const float WorldRadius = CalculateWorldRadius(Context, Data->Radius);
 
 	if (WorldRadius <= KINDA_SMALL_NUMBER)

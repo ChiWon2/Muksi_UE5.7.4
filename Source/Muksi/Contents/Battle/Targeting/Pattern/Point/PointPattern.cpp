@@ -3,23 +3,23 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Point/PointPatternData.h"
 
-void UPointPattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
+void UPointPattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
-	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(Context, PatternData);
+	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(GridManager, PatternData);
 
-	const FTargetingStepContext* StepContext = InOutResult.GetLastStepContext();
+	const FTargetingStepResult* StepResult = InOutResult.GetLastStep();
 
-	if (!StepContext || !StepContext->HasSelectedCoord())
+	if (!StepResult || !StepResult->HasSelectedCoord())
 	{
 		return;
 	}
 
-	if (!Context.GridManager->IsValidCoord(StepContext->SelectedCoord))
+	if (!GridManager->IsValidCoord(StepResult->SelectedCoord))
 	{
 		return;
 	}
 
-	AddAffectedCoord(InOutResult, StepContext->SelectedCoord);
+	AddAffectedCoord(InOutResult, StepResult->SelectedCoord);
 }
 
 const UScriptStruct* UPointPattern::GetPatternDataStruct() const

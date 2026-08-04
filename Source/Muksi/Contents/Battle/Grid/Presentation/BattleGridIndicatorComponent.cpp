@@ -82,7 +82,7 @@ void UBattleGridIndicatorComponent::ClearAllHovered()
 	GridManager->TargetGridArray.Empty();
 }
 
-void UBattleGridIndicatorComponent::SetExchange(const EMuksiBattleCardType& AttackType, const TArray<FHexOffsetCoord>& Coords)
+void UBattleGridIndicatorComponent::SetExchange(const EMuksiBattleCardType& AttackType, const TArray<FHexOffsetCoord>& Coords, bool bEnemy)
 {
 	if (!ResolveGridManager())
 	{
@@ -95,7 +95,7 @@ void UBattleGridIndicatorComponent::SetExchange(const EMuksiBattleCardType& Atta
 
 		if (Tile)
 		{
-			Tile->SetExchangeIndicator(AttackType);
+			Tile->SetExchangeIndicator(AttackType, bEnemy);
 		}
 	}
 }

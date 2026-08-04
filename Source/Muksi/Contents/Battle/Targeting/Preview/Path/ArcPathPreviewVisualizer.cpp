@@ -2,9 +2,10 @@
 
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
@@ -32,25 +33,30 @@ void UArcPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Co
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepData || !Context.StepContext)
+	if (!HasPreviewActor() || !Context.IsValid())
 	{
 		return;
 	}
 
-	if (!IsPathPreviewDataValid(Context.StepData->PathPreviewData))
+	if (!IsPathPreviewDataValid(Context.StepData->Preview.PathPreviewData))
 	{
 		return;
 	}
 
-	const FArcPathPreviewData* Data = Context.StepData->PathPreviewData.GetPtr<FArcPathPreviewData>();
+	const FArcPathPreviewData* Data = Context.StepData->Preview.PathPreviewData.GetPtr<FArcPathPreviewData>();
 
 	if (!Data || !StraightPreviewMesh)
 	{
 		return;
 	}
 
-	FVector StartLocation = Context.StepContext->OriginWorldLocation;
-	FVector EndLocation = Context.StepContext->HasSelectedCoord() ? Context.StepContext->SelectedWorldLocation : Context.StepContext->AimWorldLocation;
+	if (!Context.StepResult->HasOriginCoord() || !Context.StepResult->HasSelectedCoord())
+	{
+		return;
+	}
+
+	FVector StartLocation = Context.GridManager->GetWorldLocationByCoord(Context.StepResult->OriginCoord);
+	FVector EndLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : Context.GridManager->GetWorldLocationByCoord(Context.StepResult->SelectedCoord);
 
 	StartLocation.Z += PreviewHeightOffset;
 	EndLocation.Z += PreviewHeightOffset;
@@ -113,9 +119,9 @@ void UArcPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Co
 		PathMeshComponent->UpdateMesh();
 	}
 
-	if (Context.PreviewResult)
+	if (Context.ResolvedTargeting)
 	{
-		PreviewActorInstance->SetPathGridCoords(Context.PreviewResult->PathCoords);
+		PreviewActorInstance->SetPathGridCoords(Context.ResolvedTargeting->PathCoords);
 	}
 }
 

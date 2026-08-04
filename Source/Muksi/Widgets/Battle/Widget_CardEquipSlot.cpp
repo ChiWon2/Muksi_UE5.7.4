@@ -10,6 +10,7 @@
 #include "Components/OverlaySlot.h"
 #include "WorldPartition/ContentBundle/ContentBundleLog.h"
 #include "Muksi/Widgets/Battle/HandWidget.h"
+#include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 
 FReply UWidget_CardEquipSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -24,11 +25,8 @@ FReply UWidget_CardEquipSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 			UnequipCard(OwningHandWidget);
 
 			return FReply::Handled();
-		}
-		
-		
+		}	
 	}
-	
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
@@ -227,25 +225,21 @@ void UWidget_CardEquipSlot::EquipCardData(UMuksiBattleCardDataAsset* InCardData,
 {
 	if (SlotData.bConfirmed)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: slot already confirmed"));
 		return;
 	}
 
 	if (!bSlotEnabled)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: slot is not enabled"));
 		return;
 	}
 
 	if (!InCardData)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: CardData is null"));
 		return;
 	}
 
 	if (!InSourceCharacter)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("EquipCardData failed: SourceCharacter is null"));
 		return;
 	}
 
@@ -370,21 +364,30 @@ void UWidget_CardEquipSlot::RefreshSlotVisual()
 
 bool UWidget_CardEquipSlot::UnequipCard(UHandWidget* HandWidget)
 {
-	if (!EquippedCard || !HandWidget){return false;}
-	
+	if (!EquippedCard || !HandWidget)
+	{
+		return false;
+	}
+
 	UWidget_BattleCardBase* CardToReturn = EquippedCard;
-	
+
 	EquippedCard = nullptr;
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
-	
+	SlotData.bConfirmed = false;
+	bHighlighted = false;
+
 	CardToReturn->SetCardRenderAngle(0.0f);
-	
 	CardToReturn->SetVisibility(ESlateVisibility::Visible);
 	HandWidget->PlaceCardInHand(CardToReturn);
 	HandWidget->OrganizeCards(HandWidget->GetDefaultCardSpacing());
-	
+
+	// 슬롯 데이터뿐 아니라 BattleManager가 들고 있는 PendingCard/TargetingSession도 정리한다.
+	if (HandWidget->BattleMainScreen)
+	{
+		HandWidget->BattleMainScreen->NotifyPlayerCardUnequipped();
+	}
+
 	RefreshSlotVisual();
-	
 	return true;
 }

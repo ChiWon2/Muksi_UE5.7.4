@@ -12,7 +12,7 @@ ABattleSimulationCharacter::ABattleSimulationCharacter()
 	BattleMovementComponent->MovementYawOffset = -90.0f;
 }
 
-void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterBase* InSourceCharacter)
+void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterBase* InSourceCharacter, UMaterialInterface* MaterialOverride)
 {
 	if (!IsValid(InSourceCharacter))
 	{
@@ -34,10 +34,18 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 		MeshComponent->SetVisibility(SourceMeshComponent->IsVisible());
 
 		const int32 MaterialCount = SourceMeshComponent->GetNumMaterials();
+		UMaterialInterface* MaterialToUse = MaterialOverride ? MaterialOverride : SimulationMaterial.Get();
 
 		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
 		{
-			MeshComponent->SetMaterial(MaterialIndex, SimulationMaterial);
+			if (MaterialToUse)
+			{
+				MeshComponent->SetMaterial(MaterialIndex, MaterialToUse);
+			}
+			else
+			{
+				MeshComponent->SetMaterial(MaterialIndex, SourceMeshComponent->GetMaterial(MaterialIndex));
+			}
 		}
 	}
 
@@ -46,4 +54,9 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 		BattleAnimationComponent->AnimationData = InSourceCharacter->BattleAnimationComponent->AnimationData;
 		BattleAnimationComponent->SetWeaponType(InSourceCharacter->BattleAnimationComponent->CurrentWeaponType);
 	}
+}
+
+FName ABattleSimulationCharacter::GetTargetingCharacterKey_Implementation() const
+{
+	return FTargetingCharacterIdentity::GetCharacterKey(SourceCharacter.Get());
 }

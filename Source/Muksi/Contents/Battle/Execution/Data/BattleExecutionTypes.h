@@ -38,6 +38,7 @@ struct FBattleExecutionEntry
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Execution")
 	EBattleExecutionScope ExecutionScope = EBattleExecutionScope::Both;
 
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Execution", meta = (BaseStruct = "/Script/Muksi.BattleExecutionData"))
 	FInstancedStruct ExecutionData;
 

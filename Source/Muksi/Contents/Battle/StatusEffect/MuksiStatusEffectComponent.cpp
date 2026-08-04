@@ -1,11 +1,38 @@
 #include "MuksiStatusEffectComponent.h"
 
+#include "Muksi/Contents/Battle/BattleManager.h"
 #include "MuksiStatusEffect.h"
 #include "MuksiStatusEffectSubsystem.h"
 
 UMuksiStatusEffectComponent::UMuksiStatusEffectComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
+{
+    if (BattleManager)
+    {
+        BattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+    }
+
+    BattleManager = InBattleManager;
+
+    if (BattleManager)
+    {
+        BattleManager->OnBattlePhaseChanged.AddUniqueDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+    }
+}
+
+void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    if (BattleManager)
+    {
+        BattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager = nullptr;
+    }
+
+    Super::EndPlay(EndPlayReason);
 }
 
 UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,int32 StackCount,int32 Duration)
@@ -164,36 +191,68 @@ for (UMuksiStatusEffect* Effect : ActiveEffects) \
 RemoveExpiredEffects();
 
 
-void UMuksiStatusEffectComponent::OnRoundStart()
+void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+    switch (NewPhase)
+    {
+    case EBattlePhase::RoundStart:
+        HandleRoundStart();
+        break;
+
+    case EBattlePhase::ExchangeStart:
+        HandleExchangeStart();
+        break;
+
+    case EBattlePhase::AttackStart:
+        HandleAttackStart();
+        break;
+
+    case EBattlePhase::AttackEnd:
+        HandleAttackEnd();
+        break;
+
+    case EBattlePhase::ExchangeEnd:
+        HandleExchangeEnd();
+        break;
+
+    case EBattlePhase::RoundEnd:
+        HandleRoundEnd();
+        break;
+
+    default:
+        break;
+    }
+}
+
+void UMuksiStatusEffectComponent::HandleRoundStart()
 {
     PROCESS_STATUS_EFFECT_EVENT(OnRoundStart)
 }
 
-void UMuksiStatusEffectComponent::OnExchangeStart()
+void UMuksiStatusEffectComponent::HandleExchangeStart()
 {
     PROCESS_STATUS_EFFECT_EVENT(OnExchangeStart)
 }
 
-void UMuksiStatusEffectComponent::OnAttackStart()
+void UMuksiStatusEffectComponent::HandleAttackStart()
 {
     PROCESS_STATUS_EFFECT_EVENT(OnAttackStart)
 }
 
-void UMuksiStatusEffectComponent::OnAttackEnd()
+void UMuksiStatusEffectComponent::HandleAttackEnd()
 {
     PROCESS_STATUS_EFFECT_EVENT(OnAttackEnd)
 }
 
-void UMuksiStatusEffectComponent::OnExchangeEnd()
+void UMuksiStatusEffectComponent::HandleExchangeEnd()
 {
     PROCESS_STATUS_EFFECT_EVENT(OnExchangeEnd)
 }
 
-void UMuksiStatusEffectComponent::OnRoundEnd()
+void UMuksiStatusEffectComponent::HandleRoundEnd()
 {
     PROCESS_STATUS_EFFECT_EVENT(OnRoundEnd)
 }
 #undef PROCESS_STATUS_EFFECT_EVENT
-
 
 

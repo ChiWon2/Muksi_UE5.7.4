@@ -5,26 +5,33 @@
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Cone/ConePatternData.h"
 
-void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
+void UConePattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
-	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(Context, PatternData);
+	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(GridManager, PatternData);
 
 	const FConePatternData* Data = PatternData.GetPtr<FConePatternData>();
-	const FTargetingStepContext* StepContext = InOutResult.GetLastStepContext();
+	const FTargetingStepResult* StepResult = InOutResult.GetLastStep();
 
-	if (!Data || !StepContext || !StepContext->HasOriginCoord())
+	if (!Data || !StepResult || !StepResult->HasOriginCoord() || !StepResult->HasDirection())
 	{
 		return;
 	}
 
-	const FHexOffsetCoord OriginCoord = StepContext->OriginCoord;
-	const FVector OriginWorldLocation = StepContext->OriginWorldLocation;
-	const FVector AimWorldLocation = StepContext->AimWorldLocation;
+	const FHexOffsetCoord OriginCoord = StepResult->OriginCoord;
+	const FHexOffsetCoord AimCoord = FHexGridMath::GetNeighborCoord(OriginCoord, StepResult->Direction);
+
+	if (!GridManager->IsValidCoord(OriginCoord) || !GridManager->IsValidCoord(AimCoord))
+	{
+		return;
+	}
+
+	const FVector OriginWorldLocation = GridManager->GetWorldLocationByCoord(OriginCoord);
+	const FVector AimWorldLocation = GridManager->GetWorldLocationByCoord(AimCoord);
 	FVector AimDirection = AimWorldLocation - OriginWorldLocation;
 
 	AimDirection.Z = 0.0f;
 
-	if (!Context.GridManager->IsValidCoord(OriginCoord) || AimDirection.IsNearlyZero())
+	if (AimDirection.IsNearlyZero())
 	{
 		return;
 	}
@@ -37,9 +44,9 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 		AddAffectedCoord(InOutResult, OriginCoord);
 	}
 
-	for (int32 X = 0; X < Context.GridManager->GetGridWidth(); ++X)
+	for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
 	{
-		for (int32 Y = 0; Y < Context.GridManager->GetGridHeight(); ++Y)
+		for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
 		{
 			const FHexOffsetCoord CandidateCoord(X, Y);
 
@@ -58,7 +65,7 @@ void UConePattern::ApplyPattern(const FAreaPatternContext& Context, const FInsta
 				continue;
 			}
 
-			const ABattleGridTile* CandidateTile = Context.GridManager->GetTileActorByCoord(CandidateCoord);
+			const ABattleGridTile* CandidateTile = GridManager->GetTileActorByCoord(CandidateCoord);
 
 			if (!CandidateTile)
 			{

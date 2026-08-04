@@ -1,9 +1,10 @@
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 
-void UBattleExecutionRunner::Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionRunnerFinished OnFinished)
+void UBattleExecutionRunner::Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionRunnerFinished OnFinished)
 {
 	ExecutionEntries = InExecutionEntries;
 	CachedContext = Context;
+	CachedOnEntryStarted = OnEntryStarted;
 	CachedOnFinished = OnFinished;
 	CurrentExecution = nullptr;
 	CurrentExecutionIndex = INDEX_NONE;
@@ -50,6 +51,7 @@ void UBattleExecutionRunner::ExecuteNextExecution()
 	OnExecutionFinished.BindUObject(this, &UBattleExecutionRunner::HandleCurrentExecutionFinished);
 
 	bWaitingForCurrentExecution = true;
+	CachedOnEntryStarted.ExecuteIfBound(Entry, CurrentExecutionIndex, ExecutionContext);
 	CurrentExecution->Execute(ExecutionContext, OnExecutionFinished);
 }
 
@@ -81,6 +83,7 @@ void UBattleExecutionRunner::FinishRunner()
 	CurrentExecutionIndex = INDEX_NONE;
 
 	FBattleExecutionRunnerFinished OnRunnerFinished = CachedOnFinished;
+	CachedOnEntryStarted.Unbind();
 	CachedOnFinished.Unbind();
 	OnRunnerFinished.ExecuteIfBound(this);
 }

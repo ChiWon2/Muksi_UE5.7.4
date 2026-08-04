@@ -1,6 +1,6 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 
-void UAreaPattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
+void UAreaPattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
 }
 
@@ -21,12 +21,12 @@ bool UAreaPattern::IsPatternDataValid(const FInstancedStruct& PatternData) const
 	return PatternData.GetScriptStruct() == ExpectedStruct;
 }
 
-void UAreaPattern::AddAffectedCoord(FTargetingResult& InOutResult, const FHexOffsetCoord& Coord) const
+void UAreaPattern::AddAffectedCoord(FResolvedTargeting& InOutResult, const FHexOffsetCoord& Coord) const
 {
 	InOutResult.AffectedCoords.AddUnique(Coord);
 }
 
-void UAreaPattern::AddPathCoord(FTargetingResult& InOutResult, const FHexOffsetCoord& Coord) const
+void UAreaPattern::AddPathCoord(FResolvedTargeting& InOutResult, const FHexOffsetCoord& Coord) const
 {
 	InOutResult.PathCoords.AddUnique(Coord);
 }

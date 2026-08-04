@@ -4,7 +4,7 @@
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
 #include "BattleExecutionContext.generated.h"
 
 class ABattleCharacterBase;
@@ -35,7 +35,7 @@ struct FBattleExecutionContext
 
 
 	UPROPERTY(BlueprintReadOnly)
-	FTargetingResult TargetingResult;
+	FResolvedTargeting ResolvedTargeting;
 
 	UPROPERTY(BlueprintReadOnly)
 	FInstancedStruct ExecutionData;
@@ -62,14 +62,14 @@ struct FBattleExecutionContext
 
 	bool HasValidEnvironment() const;
 
-	FHexOffsetCoord GetMainTargetPoint() const
+	FHexOffsetCoord GetPrimaryTargetCoord() const
 	{
-		if (TargetingResult.HasSelectedCoord())
+		if (ResolvedTargeting.HasSelectedCoord())
 		{
-			return TargetingResult.GetSelectedCoord();
+			return ResolvedTargeting.GetSelectedCoord();
 		}
 
-		return TargetingResult.AffectedCoords.IsValidIndex(0) ? TargetingResult.AffectedCoords[0] : FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+		return ResolvedTargeting.AffectedCoords.IsValidIndex(0) ? ResolvedTargeting.AffectedCoords[0] : FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 	}
 
 	bool CanRequestRuntimeExecutionChain() const

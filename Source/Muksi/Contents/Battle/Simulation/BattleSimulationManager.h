@@ -10,9 +10,17 @@ class ABattleGridManager;
 class ABattleSequenceManager;
 class ABattleSimulationCharacter;
 class ABattleSimulationPostProcessVolume;
+class UMuksiBattleCardDataAsset;
+class UMaterialInterface;
+struct FBattleSequenceRequest;
+struct FBattleExecutionEntry;
+struct FResolvedTargeting;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSimulationExchangeFinished, int32);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSimulationFinished);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSimulationActionStarted, const FBattleAction&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnSimulationExecutionStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FResolvedTargeting&);
+DECLARE_MULTICAST_DELEGATE(FOnSimulationActionFinished);
 
 UCLASS()
 class MUKSI_API ABattleSimulationManager : public AActor
@@ -23,6 +31,9 @@ public:
 	ABattleSimulationManager();
 	FOnSimulationExchangeFinished OnSimulationExchangeFinished;
 	FOnBattleSimulationFinished OnBattleSimulationFinished;
+	FOnSimulationActionStarted OnSimulationActionStarted;
+	FOnSimulationExecutionStarted OnSimulationExecutionStarted;
+	FOnSimulationActionFinished OnSimulationActionFinished;
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -41,10 +52,13 @@ public:
 	bool StartSimulation(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	bool SetPlayerAction(const FBattleAction& PlayerAction);
+	bool SetPlayerAction(const FBattleAction& PlayerAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	bool SetEnemyAction(const FBattleAction& EnemyAction);
+	bool SetEnemyAction(const FBattleAction& EnemyAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
+	bool ExecuteCurrentExchange();
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
 	void StopSimulation();
@@ -69,10 +83,9 @@ public:
 	void HideSourceCharacters();
 	void RestoreSourceCharacters();
 	bool TryExecuteCurrentExchange();
-	bool ExecuteSimulationAction(const FBattleAction& SourceAction);
-	bool ConvertToSimulationAction(const FBattleAction& SourceAction, FBattleAction& OutSimulationAction) const;
-	void ConvertTargetCharacters(FTargetingResult& TargetingResult) const;
-	void ConvertToSourceTargetingResult(FTargetingResult& TargetingResult) const;
+	bool ExecuteSimulationAction(const FBattleSimulationActionPlan& ActionPlan);
+	bool BuildSimulationSequenceRequest(const FBattleSimulationActionPlan& ActionPlan, FBattleSequenceRequest& OutRequest) const;
+	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
 	void HandleSimulationSequenceFinished();
 	void FinishCurrentExchange();
 	void DestroySimulationRuntime();
@@ -95,6 +108,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
 	TSubclassOf<ABattleSimulationCharacter> SimulationCharacterClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
+	TObjectPtr<UMaterialInterface> PlayerSimulationMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
+	TObjectPtr<UMaterialInterface> EnemySimulationMaterial = nullptr;
+
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> SimulationCharacterMap;
 
@@ -107,7 +126,11 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSequenceManager> SimulationSequenceManager = nullptr;
 
+	// Disabled by default for clearer simulation testing.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
+	bool bEnableSimulationPostProcess = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
 	TSubclassOf<ABattleSimulationPostProcessVolume> SimulationPostProcessVolumeClass;
 
 	UPROPERTY(Transient)

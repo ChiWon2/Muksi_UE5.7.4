@@ -20,25 +20,19 @@ struct FEnemyCardSelectResult
 	TObjectPtr<UMuksiBattleCardDataAsset> SelectedCard = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
-	FHexOffsetCoord SelectedCoord = FHexOffsetCoord();
-	
-	UPROPERTY(BlueprintReadOnly)
-	TArray<FHexOffsetCoord> SelectedCoordArray;
-
-	UPROPERTY(BlueprintReadOnly)
-	bool bValid = false;
+	TArray<FHexOffsetCoord> TargetingStepCoords;
 };
 
 
 /**
- * 
+ *
  */
 UCLASS(Blueprintable)
 class MUKSI_API UEnemyCardSelectStrategyBase : public UObject
 {
 	GENERATED_BODY()
-	
-	
+
+
 public:
 	UFUNCTION(BlueprintNativeEvent)
 	FEnemyCardSelectResult SelectCardForExchange(

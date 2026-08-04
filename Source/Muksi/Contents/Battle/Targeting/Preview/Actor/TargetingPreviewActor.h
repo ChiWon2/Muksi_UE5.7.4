@@ -36,6 +36,7 @@ public:
 	void ClearPathPreview();
 	void ClearAreaPreview();
 	void ClearAllPreview();
+	void SetEnemyStyle(bool bInEnemyStyle);
 
 	UStaticMeshComponent* GetSelectionPreviewMesh() const { return SelectionPreviewMesh; }
 	UStaticMeshComponent* GetAreaPreviewMesh() const { return AreaPreviewMesh; }
@@ -81,4 +82,6 @@ private:
 	TArray<FHexOffsetCoord> AreaGridCoords;
 	ETargetingGridPreviewMode GridPreviewMode = ETargetingGridPreviewMode::AffectedTiles;
 	float PreviewHeightOffset = 5.0f;
+	bool bEnemyStyle = false;
+	void ApplyPreviewStyle();
 };

@@ -15,7 +15,7 @@ public:
 	void SetHovered(const TArray<FHexOffsetCoord>& Coords);
 	void ClearHovered();
 	void ClearAllHovered();
-	void SetExchange(const EMuksiBattleCardType& AttackType, const TArray<FHexOffsetCoord>& Coords);
+	void SetExchange(const EMuksiBattleCardType& AttackType, const TArray<FHexOffsetCoord>& Coords, bool bEnemy = false);
 	void ClearExchange();
 private:
 	ABattleGridManager* ResolveGridManager();

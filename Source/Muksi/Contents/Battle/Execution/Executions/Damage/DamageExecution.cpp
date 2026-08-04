@@ -16,7 +16,7 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		return;
 	}
 
-	for (const FHexOffsetCoord& AffectedCoord : Context.TargetingResult.AffectedCoords)
+	for (const FHexOffsetCoord& AffectedCoord : Context.ResolvedTargeting.AffectedCoords)
 	{
 		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(AffectedCoord);
 

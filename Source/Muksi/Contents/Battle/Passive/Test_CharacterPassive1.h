@@ -15,12 +15,11 @@ class MUKSI_API UTest_CharacterPassive1 : public UCharacterPassive
 	GENERATED_BODY()
 public:
 	UTest_CharacterPassive1();
-	
-	virtual void BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen) override;
-	
 
 	
 protected:
+	virtual void OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase) override;
+
 	UFUNCTION()
 	void Passive1();
 	UFUNCTION()

@@ -18,7 +18,74 @@
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingInputContext.h"
+
+namespace
+{
+	bool ResolveGridCoordFromCursorHit(
+		ABattleManager* BattleManager,
+		const FHitResult& HitResult,
+		FHexOffsetCoord& OutCoord,
+		ABattleGridTile*& OutTile)
+	{
+		OutCoord = FHexOffsetCoord::Invalid();
+		OutTile = nullptr;
+
+		if (!BattleManager)
+		{
+			return false;
+		}
+
+		ABattleGridManager* GridManager = BattleManager->GetBattleGridManager();
+		if (!GridManager)
+		{
+			return false;
+		}
+
+		AActor* HitActor = HitResult.GetActor();
+
+		if (ABattleGridTile* HitTile = Cast<ABattleGridTile>(HitActor))
+		{
+			OutCoord = HitTile->GetGridCoord();
+			OutTile = HitTile;
+			return true;
+		}
+
+		if (const ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
+		{
+			OutCoord = HitCharacter->GetCharacterCoord();
+			OutTile = GridManager->GetTileActorByCoord(OutCoord);
+			return OutCoord.IsValid() && OutTile;
+		}
+
+		// 무기, ChildActor, 별도 Collision Component가 캐릭터/타일보다 먼저
+		// Visibility Trace를 맞는 경우에도 ImpactPoint에 가장 가까운 Grid Tile을
+		// 선택한다. Selection 종류와 점유 여부는 이 좌표 획득 단계에서 검사하지 않는다.
+		float BestDistanceSquared = TNumericLimits<float>::Max();
+		for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
+		{
+			for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
+			{
+				const FHexOffsetCoord Coord(X, Y);
+				ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
+				if (!Tile)
+				{
+					continue;
+				}
+
+				const FVector Delta = GridManager->GetWorldLocationByCoord(Coord) - HitResult.ImpactPoint;
+				const float DistanceSquared = FVector2D(Delta.X, Delta.Y).SizeSquared();
+				if (DistanceSquared < BestDistanceSquared)
+				{
+					BestDistanceSquared = DistanceSquared;
+					OutCoord = Coord;
+					OutTile = Tile;
+				}
+			}
+		}
+
+		return OutCoord.IsValid() && OutTile;
+	}
+}
 
 void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 {
@@ -31,25 +98,18 @@ void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 	PC->bEnableClickEvents = true;
 	PC->bEnableMouseOverEvents = true;
 
-	/*FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-	PC->SetInputMode(InputMode);*/
-
-	UE_LOG(LogTemp, Warning, TEXT("PlayerMode_Battle"));
-
-	BattleManager = Cast<ABattleManager>(
-		UGameplayStatics::GetActorOfClass(
-			this,
-			ABattleManager::StaticClass()
-		)
-	);
+	BattleManager = Cast<ABattleManager>(UGameplayStatics::GetActorOfClass( this, ABattleManager::StaticClass()));
 
 	if (!BattleManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UPlayerMode_Battle::EnterMode - BattleManager not found"));
+		UE_LOG(LogTemp, Error, TEXT("[PlayerMode_Battle]EnterMode - BattleManager not found"));
 		return;
+	}
+
+	BattleMainScreen = BattleManager->GetBattleMainScreen();
+	if (!BattleMainScreen)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[PlayerMode_Battle]EnterMode - BattleMainScreen not found"));
 	}
 }
 
@@ -57,7 +117,7 @@ void UPlayerMode_Battle::ExitMode()
 {
 	if (BattleManager)
 	{
-		BattleManager->CancelCurrentCardTargeting();
+		BattleManager->CancelPlayerCardTargeting();
 	}
 
 	Super::ExitMode();
@@ -74,7 +134,11 @@ void UPlayerMode_Battle::TickPlayerMode()
 {
 	Super::TickPlayerMode();
 
-	UpdateHoveredGridTile();
+	FHitResult HitResult;
+	const bool bHasHitResult = PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+
+	UpdateHoveredGridTile(HitResult, bHasHitResult);
+	UpdateCardTargeting(HitResult, bHasHitResult);
 }
 
 void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
@@ -93,26 +157,9 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 		return;
 	}
 
-	if (BattleManager->IsCardTargeting())
+	if (BattleManager->IsPlayerCardTargeting())
 	{
-		if (!BattleManager->ConfirmCurrentCardTargeting())
-		{
-			return;
-		}
-
-		if (!BattleMainScreen)
-		{
-			BattleMainScreen = BattleManager->GetBattleMainScreen();
-		}
-
-		if (!BattleMainScreen)
-		{
-			return;
-		}
-
-		BattleMainScreen->PlayerSelectCardFinish = true;
-		BattleManager->ExchangeN_EndReady();
-
+		BattleManager->ConfirmPlayerCardTargetingStep();
 		return;
 	}
 
@@ -133,13 +180,12 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 	if (HitActor->GetClass()->ImplementsInterface(USelectableCharacterInterface::StaticClass()))
 	{
 		SelectedActor = HitActor;
-		
-		if (ABattleCharacterBase* SelectedCharacter =
-		Cast<ABattleCharacterBase>(HitActor))
+
+		if (ABattleCharacterBase* SelectedCharacter = Cast<ABattleCharacterBase>(HitActor))
 		{
 			FocusCameraOnCharacter(SelectedCharacter);
 		}
-		
+
 		PushCharacterDataWidget();
 		return;
 	}
@@ -159,12 +205,18 @@ void UPlayerMode_Battle::HandleRightClick(const FInputActionValue& Value)
 		return;
 	}
 
-	if (!BattleManager->IsCardTargeting())
+	// Do not gate undo through IsPlayerCardTargeting(). The session itself owns
+	// whether one confirmed step can be restored, including Completed state.
+	if (BattleManager->UndoPlayerCardTargetingStep())
 	{
 		return;
 	}
 
-	BattleManager->CancelCurrentCardTargeting();
+	// No confirmed step remains: a right click cancels the whole card targeting.
+	if (BattleManager->HasActivePlayerTargetingSession())
+	{
+		BattleManager->CancelPlayerCardTargeting();
+	}
 }
 
 void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
@@ -172,100 +224,57 @@ void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
 	Super::HandleRPressedKey(Value);
 }
 
-void UPlayerMode_Battle::UpdateHoveredGridTile()
+void UPlayerMode_Battle::UpdateHoveredGridTile(const FHitResult& HitResult, bool bHasHitResult)
 {
-	if (!PC || !BattleManager)
+	ABattleGridTile* NewHoveredGridTile = nullptr;
+	FHexOffsetCoord HoveredCoord = FHexOffsetCoord::Invalid();
+
+	if (bHasHitResult)
+	{
+		ResolveGridCoordFromCursorHit(BattleManager, HitResult, HoveredCoord, NewHoveredGridTile);
+	}
+
+	if (HoveredGridTile == NewHoveredGridTile)
 	{
 		return;
 	}
 
-	FHitResult HitResult;
-
-	if (!PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
+	if (HoveredGridTile)
 	{
-		if (HoveredGridTile)
-		{
-			HoveredGridTile->OnHoverEnd();
-		}
-
-		HoveredGridTile = nullptr;
-
-		if (BattleManager->IsCardTargeting())
-		{
-			BattleManager->UpdateCurrentCardTargeting(FTargetingInputContext());
-		}
-
-		return;
+		HoveredGridTile->OnHoverEnd();
 	}
 
-	ABattleGridTile* NewHoveredGridTile = Cast<ABattleGridTile>(HitResult.GetActor());
+	HoveredGridTile = NewHoveredGridTile;
 
-	if (HoveredGridTile != NewHoveredGridTile)
+	if (HoveredGridTile)
 	{
-		if (HoveredGridTile)
-		{
-			HoveredGridTile->OnHoverEnd();
-		}
-
-		HoveredGridTile = NewHoveredGridTile;
-
-		if (HoveredGridTile)
-		{
-			HoveredGridTile->OnHoverBegin();
-		}
-	}
-
-	if (BattleManager->IsCardTargeting())
-	{
-		UpdateCardTargeting(HitResult);
+		HoveredGridTile->OnHoverBegin();
 	}
 }
 
-void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult)
+void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult, bool bHasHitResult)
 {
-	if (!BattleManager || !BattleManager->IsCardTargeting())
+	if (!BattleManager || !BattleManager->IsPlayerCardTargeting())
 	{
 		return;
 	}
 
-	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-	ABattleGridManager* GridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
-
-	if (!GridManager)
+	if (!bHasHitResult)
 	{
+		BattleManager->UpdatePlayerTargetingAim(FVector::ZeroVector, false);
+		BattleManager->UpdatePlayerTargetingCandidate(FHexOffsetCoord::Invalid());
 		return;
 	}
 
-	FTargetingInputContext InputContext;
-	InputContext.AimWorldLocation = HitResult.ImpactPoint;
+	BattleManager->UpdatePlayerTargetingAim(HitResult.ImpactPoint, true);
 
-	AActor* HitActor = HitResult.GetActor();
+	FHexOffsetCoord CandidateCoord = FHexOffsetCoord::Invalid();
+	ABattleGridTile* CandidateTile = nullptr;
+	ResolveGridCoordFromCursorHit(BattleManager, HitResult, CandidateCoord, CandidateTile);
 
-	if (ABattleGridTile* HitTile = Cast<ABattleGridTile>(HitActor))
-	{
-		InputContext.HoveredCoord = HitTile->GetGridCoord();
-
-		const FBattleGridCell* Cell = GridManager->GetCellByCoord(InputContext.HoveredCoord);
-
-		if (Cell)
-		{
-			if (ABattleCharacterBase* CandidateCharacter = Cast<ABattleCharacterBase>(Cell->OccupyingActor))
-			{
-				InputContext.CandidateCharacters.AddUnique(CandidateCharacter);
-			}
-		}
-	}
-	else if (ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
-	{
-		InputContext.HoveredCoord = HitCharacter->GetCharacterPosition();
-
-		if (ABattleCharacterBase* TargetingCharacter = BattleManager->ResolveCurrentTargetingCharacter(HitCharacter))
-		{
-			InputContext.CandidateCharacters.AddUnique(TargetingCharacter);
-		}
-	}
-
-	BattleManager->UpdateCurrentCardTargeting(InputContext);
+	// 좌표 획득은 Point/Direction/Target/AreaCenter/Destination 모두 공통이다.
+	// 점유/경로 제한은 TargetingStepCardData의 Purpose 검증 단계에서만 적용한다.
+	BattleManager->UpdatePlayerTargetingCandidate(CandidateCoord);
 }
 
 void UPlayerMode_Battle::PushCharacterDataWidget()

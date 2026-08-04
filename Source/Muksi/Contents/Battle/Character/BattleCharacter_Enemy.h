@@ -11,7 +11,7 @@ class UMuksiCharacterDataAsset;
 class ABattleManager;
 class ABattleGridManager;
 /**
- * 
+ *
  */
 UCLASS()
 class MUKSI_API ABattleCharacter_Enemy : public ABattleCharacterBase
@@ -19,14 +19,14 @@ class MUKSI_API ABattleCharacter_Enemy : public ABattleCharacterBase
 	GENERATED_BODY()
 public:
 	ABattleCharacter_Enemy();
-	
+
 public:
 	UEnemyBattleAIComponent* BattleAIComponent;
 	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen) override;
-	
-	UMuksiBattleCardDataAsset* GetSelectEnemyCardDataAsset(ABattleGridManager* GridManager, ABattleManager* BattleManager)const;
-	TArray<FHexOffsetCoord> GetSelectEnemyCardCoord()const;
-	
-	
+
+	UMuksiBattleCardDataAsset* SelectCardForExchange(ABattleGridManager* GridManager, ABattleManager* BattleManager) const;
+	TArray<FHexOffsetCoord> GetSelectedTargetingStepCoords() const;
+
+
 	void InitData();
 };

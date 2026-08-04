@@ -28,7 +28,7 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 	}
 	//일단 첫번째 카드 사용
 	UMuksiBattleCardDataAsset* Card = Deck[0];
-	
+
 	TArray<FHexOffsetCoord> CandidateCoords = GetCandidateCoords(
 			EnemyData,
 			Card,
@@ -36,11 +36,16 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 			EnemyCoord,
 			PlayerCoord
 		);
+
+	if (CandidateCoords.IsEmpty())
+	{
+		return BestResult;
+	}
+
 	//일단 첫번째 가능 위치 사용
 	FHexOffsetCoord SelectedCoord = CandidateCoords[0];
-	//BestResult.SelectedCoordArray = Card->AttackType.RangeDataAsset->GetRangeCoords(GridManager, SelectedCoord, 0);
 	BestResult.SelectedCard = Card;
-	EnemyData.BattleDeck.Remove(Card);
+	BestResult.TargetingStepCoords.Add(SelectedCoord);
 
 	return BestResult;
 }

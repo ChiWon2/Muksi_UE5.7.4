@@ -10,6 +10,7 @@
 #include "Muksi/Contents/Battle/Grid/Generator/BattleGridTileGeneratorComponent.h"
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 #include "Muksi/Contents/Battle/Grid/Presentation/BattleGridIndicatorComponent.h"
+#include "Muksi/Contents/Battle/Grid/Movement/BattleGridMoveTypes.h"
 #include "BattleGridManager.generated.h"
 
 class ABattleGridTile;
@@ -90,6 +91,18 @@ public:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Character") 
 	void PlaceCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& InPoint);
+	/**
+	 * 캐릭터의 Grid 점유, 논리 좌표(CurrentPosition), 월드 위치를 한 번에 갱신한다.
+	 * 이동/넉백/텔레포트처럼 캐릭터 좌표가 변하는 로직은 이 함수를 사용한다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	FBattleGridMoveResult ExecuteGridMove(const FBattleGridMoveRequest& Request);
+
+	/** Legacy-compatible wrapper. New movement code should prefer ExecuteGridMove. */
+	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
+	bool MoveCharacterOnGrid(ABattleCharacterBase* Character, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord, bool bSnapActorToGrid = true);
+
+	/** 일반 Actor용 이동. ABattleCharacterBase이면 MoveCharacterOnGrid로 위임한다. */
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	bool MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord);
 	void GenerateGrid();
@@ -115,6 +128,6 @@ public:
 	void SetGridHovered(const TArray<FHexOffsetCoord>& NewGridArray);
 	void ClearGridHovered();
 	void AllClearGridHovered();
-	void SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray);
+	void SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy = false);
 	void AllClearExchangeIndicator();
 };

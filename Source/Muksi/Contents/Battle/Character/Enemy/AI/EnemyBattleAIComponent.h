@@ -22,9 +22,9 @@ class MUKSI_API UEnemyBattleAIComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	UEnemyBattleAIComponent();
-	
+
 	void InitializeAI(UMuksiCharacterDataAsset* CharacterDataAsset);
 
 	UMuksiBattleCardDataAsset* SelectCardForExchange(
@@ -32,21 +32,19 @@ public:
 		ABattleGridManager* GridManager,
 		ABattleManager* BattleManager
 	);
-	
-	TArray<FHexOffsetCoord> GetPointForExchange()const;
-	
+
+	TArray<FHexOffsetCoord> GetSelectedTargetingStepCoords() const;
+
 protected:
-	TArray<FEnemyCardSelectResult> SelectCardArray;
-	
 	FEnemyCardSelectResult Result;
-	
+
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	UPROPERTY()
 	TObjectPtr<UEnemyCardSelectStrategyBase> CardSelectStrategy;
 
-		
+
 
 };

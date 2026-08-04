@@ -3,9 +3,10 @@
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
@@ -35,25 +36,30 @@ void UArrowPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& 
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepData || !Context.StepContext)
+	if (!HasPreviewActor() || !Context.IsValid())
 	{
 		return;
 	}
 
-	if (!IsPathPreviewDataValid(Context.StepData->PathPreviewData))
+	if (!IsPathPreviewDataValid(Context.StepData->Preview.PathPreviewData))
 	{
 		return;
 	}
 
-	const FArrowPathPreviewData* Data = Context.StepData->PathPreviewData.GetPtr<FArrowPathPreviewData>();
+	const FArrowPathPreviewData* Data = Context.StepData->Preview.PathPreviewData.GetPtr<FArrowPathPreviewData>();
 
 	if (!Data || !ArrowPreviewMesh)
 	{
 		return;
 	}
 
-	FVector StartLocation = Context.StepContext->OriginWorldLocation;
-	FVector AimLocation = Context.StepContext->AimWorldLocation;
+	if (!Context.StepResult->HasOriginCoord() || !Context.StepResult->HasSelectedCoord())
+	{
+		return;
+	}
+
+	FVector StartLocation = Context.GridManager->GetWorldLocationByCoord(Context.StepResult->OriginCoord);
+	FVector AimLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : Context.GridManager->GetWorldLocationByCoord(Context.StepResult->SelectedCoord);
 	FVector AimDirection = AimLocation - StartLocation;
 
 	AimDirection.Z = 0.0f;
@@ -136,9 +142,9 @@ void UArrowPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& 
 	ArrowMeshComponent->SetWorldScale3D(FVector(ArrowLengthScale, ArrowWidthScale, 1.0f));
 	ArrowMeshComponent->SetVisibility(true);
 
-	if (Context.PreviewResult)
+	if (Context.ResolvedTargeting)
 	{
-		PreviewActorInstance->SetPathGridCoords(Context.PreviewResult->PathCoords);
+		PreviewActorInstance->SetPathGridCoords(Context.ResolvedTargeting->PathCoords);
 	}
 }
 

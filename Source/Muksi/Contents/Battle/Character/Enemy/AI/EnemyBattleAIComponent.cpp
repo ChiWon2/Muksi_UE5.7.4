@@ -50,7 +50,7 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 		UE_LOG(LogTemp, Warning, TEXT("CardSelectStrategy is null"));
 		return nullptr;
 	}
-	
+
 	//카드가 없으면 다시 뽑기
 	if (EnemyData.BattleDeck.Num() == 0)
 	{
@@ -60,15 +60,15 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 	Result = CardSelectStrategy->SelectCardForExchange(
 		EnemyData,
 		GridManager,
-		BattleManager->GetEnemyPoint(),
-		BattleManager->GetPlayerPoint()
+		BattleManager->GetEnemyTargetingCoord(),
+		BattleManager->GetPlayerTargetingCoord()
 	);
 	return Result.SelectedCard;
 }
 
-TArray<FHexOffsetCoord> UEnemyBattleAIComponent::GetPointForExchange()const
+TArray<FHexOffsetCoord> UEnemyBattleAIComponent::GetSelectedTargetingStepCoords() const
 {
-	return Result.SelectedCoordArray;
+	return Result.TargetingStepCoords;
 }
 
 
@@ -79,7 +79,7 @@ void UEnemyBattleAIComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+
 }
 
 

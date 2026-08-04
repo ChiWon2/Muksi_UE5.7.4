@@ -30,78 +30,18 @@ void UWidget_BattleCardBase::NativeConstruct()
 	}
 }
 
+void UWidget_BattleCardBase::OnAnimationFinished_Implementation(const UWidgetAnimation* Animation)
+{
+	Super::OnAnimationFinished_Implementation(Animation);
+
+	if (Animation == Anim_CardFlipToFront)
+	{
+		OnCardFlipFinished.Broadcast(this);
+	}
+}
+
 void UWidget_BattleCardBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
-	/*Super::NativeTick(MyGeometry, InDeltaTime);
-	MoveTimeline.TickTimeline(InDeltaTime);
-	
-	if (bIsDragging && OwningHandWidget)
-	{
-		const FVector2D MouseScreenPos = FSlateApplication::Get().GetCursorPos();
-
-		const FGeometry& HandGeometry = OwningHandWidget->GetHandCanvasGeometry();
-		const FVector2D LocalMousePos = HandGeometry.AbsoluteToLocal(MouseScreenPos);
-
-		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
-		{
-			CanvasSlot->SetPosition(LocalMousePos - DragOffset);
-		}
-	}
-	
-	if (!bPlayingDrawAnimation)
-	{
-		return;
-	}
-
-	DrawAnimationElapsed += InDeltaTime;
-
-	// 카드별 등장 지연시간
-	if (DrawAnimationElapsed < DrawAnimationDelay)
-	{
-		return;
-	}
-
-	const float AnimationElapsed =
-		DrawAnimationElapsed - DrawAnimationDelay;
-
-	const float Alpha = FMath::Clamp(
-		AnimationElapsed / DrawAnimationDuration,
-		0.0f,
-		1.0f
-	);
-
-	// 처음에는 빠르게 움직이고 마지막에는 감속
-	const float EasedAlpha =
-		FMath::InterpEaseOut(
-			0.0f,
-			1.0f,
-			Alpha,
-			3.0f
-		);
-
-	const FVector2D CurrentTranslation =
-		FMath::Lerp(
-			DrawStartTranslation,
-			FVector2D::ZeroVector,
-			EasedAlpha
-		);
-
-	SetRenderTranslation(CurrentTranslation);
-
-	// 처음 등장할 때만 빠르게 불투명해짐
-	const float OpacityAlpha =
-		FMath::Clamp(Alpha * 4.0f, 0.0f, 1.0f);
-
-	SetRenderOpacity(OpacityAlpha);
-
-	if (Alpha >= 1.0f)
-	{
-		SetRenderTranslation(FVector2D::ZeroVector);
-		SetRenderOpacity(1.0f);
-		SetIsEnabled(true);
-
-		bPlayingDrawAnimation = false;
-	}*/
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
 	MoveTimeline.TickTimeline(InDeltaTime);
@@ -111,21 +51,15 @@ void UWidget_BattleCardBase::NativeTick(const FGeometry& MyGeometry, float InDel
 		OwningHandWidget &&
 		!bPlayingDrawAnimation)
 	{
-		const FVector2D MouseScreenPos =
-			FSlateApplication::Get().GetCursorPos();
+		const FVector2D MouseScreenPos = FSlateApplication::Get().GetCursorPos();
 
-		const FGeometry& HandGeometry =
-			OwningHandWidget->GetHandCanvasGeometry();
+		const FGeometry& HandGeometry = OwningHandWidget->GetHandCanvasGeometry();
 
-		const FVector2D LocalMousePos =
-			HandGeometry.AbsoluteToLocal(MouseScreenPos);
+		const FVector2D LocalMousePos = HandGeometry.AbsoluteToLocal(MouseScreenPos);
 
-		if (UCanvasPanelSlot* CanvasSlot =
-			Cast<UCanvasPanelSlot>(Slot))
+		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
 		{
-			CanvasSlot->SetPosition(
-				LocalMousePos - DragOffset
-			);
+			CanvasSlot->SetPosition(LocalMousePos - DragOffset);
 		}
 	}
 
@@ -318,84 +252,6 @@ void UWidget_BattleCardBase::StopDragging()
 {
 	bIsDragging = false;
 	
-	/*if (OwningHandWidget)
-	{
-		UWidget_CardEquipSlot* OverlappedSlot =
-		OwningHandWidget->FindOverlappedEquipSlot(this);
-		UE_LOG(LogTemp, Log, TEXT("FindOverlappedEquipLSlot check Test1"));
-		if (OverlappedSlot)
-		{
-			UE_LOG(LogTemp, Log, TEXT("FindOverlappedEquipLSlot check Test2"));
-			if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
-			{
-				UE_LOG(LogTemp, Log, TEXT("FindOverlappedEquipLSlot check Test3"));
-				const FVector2D SlotCenter = OverlappedSlot->GetSlotCenterInHandCanvas();
-				const FVector2D CardSize = GetCachedGeometry().GetLocalSize();
-
-				const FVector2D SnapPos = SlotCenter - (CardSize * 0.5f);
-				MoveToCanvasPosition(SnapPos);
-
-				OverlappedSlot->EquipCard(this);
-			}
-
-			OwningHandWidget->RemoveBattleCards(this);
-			if (OwningHandWidget)
-			{
-				OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
-			}
-			return;
-		}
-	}
-	
-
-	// 장착 실패면 원위치 복귀
-	MoveToCanvasPosition(CachedHandPosition);
-
-	if (OwningHandWidget)
-	{
-		OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
-	}*/
-	
-	/*if (OwningHandWidget)
-	{
-		UWidget_CardEquipSlot* OverlappedSlot =
-			OwningHandWidget->FindOverlappedEquipSlot(this);
-
-		if (OverlappedSlot)
-		{
-			const FVector2D SlotCenter =
-				OverlappedSlot->GetSlotCenterInHandCanvas(OwningHandWidget);
-
-			const FVector2D CardSize =
-				GetCachedGeometry().GetLocalSize();
-
-			const FVector2D SnapPos =
-				SlotCenter - CardSize * 0.5f;
-
-			if (OverlappedSlot->EquipCard(this))
-			{
-				MoveToCanvasPosition(SnapPos);
-
-				OwningHandWidget->RemoveBattleCards(this);
-				OwningHandWidget->OrganizeCards(
-					OwningHandWidget->GetDefaultCardSpacing()
-				);
-
-				return;
-			}
-		}
-	}
-
-	MoveToCanvasPosition(CachedHandPosition);
-
-	if (OwningHandWidget)
-	{
-		OwningHandWidget->OrganizeCards(
-			OwningHandWidget->GetDefaultCardSpacing()
-		);
-	}*/
-	bIsDragging = false;
-
 	if (OwningHandWidget)
 	{
 		UWidget_CardEquipSlot* OverlappedSlot =
@@ -403,9 +259,7 @@ void UWidget_BattleCardBase::StopDragging()
 		if (OverlappedSlot && OverlappedSlot->EquipCard(this))
 		{
 			OwningHandWidget->RemoveBattleCards(this);
-			OwningHandWidget->OrganizeCards(
-				OwningHandWidget->GetDefaultCardSpacing()
-			);
+			OwningHandWidget->OrganizeCards( OwningHandWidget->GetDefaultCardSpacing());
 			return;
 		}
 	}
@@ -414,9 +268,7 @@ void UWidget_BattleCardBase::StopDragging()
 
 	if (OwningHandWidget)
 	{
-		OwningHandWidget->OrganizeCards(
-			OwningHandWidget->GetDefaultCardSpacing()
-		);
+		OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
 	}
 }
 
@@ -480,6 +332,7 @@ void UWidget_BattleCardBase::PlayCardFlipToFront()
 			*GetNameSafe(this)
 		);
 
+		OnCardFlipFinished.Broadcast(this);
 		return;
 	}
 

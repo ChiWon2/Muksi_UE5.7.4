@@ -6,8 +6,12 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
+#include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
+// ============================================================================
+// 생명주기
+// ============================================================================
 ABattleSequenceManager::ABattleSequenceManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -41,14 +45,35 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+// ============================================================================
+// Sequence 진입
+// BattleManager 또는 BattleSimulationManager -> StartSequence(WithRequest)
+// ============================================================================
 bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 {
-	if (bSequenceRunning || !ValidateAction(InAction))
+	FBattleSequenceRequest Request;
+	Request.Action = InAction;
+	Request.ExecutionMode = EBattleExecutionMode::Sequence;
+	return StartSequenceWithRequest(Request);
+}
+
+bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceRequest& Request)
+{
+	if (bSequenceRunning || !ValidateRequest(Request))
 	{
 		return false;
 	}
 
-	CurrentAction = InAction;
+	FBattleAction SequenceAction = Request.Action;
+	SequenceAction.Card = Request.GetExecutionCard();
+
+	if (!FBattleTargetResolver::ResolveAction(SequenceAction, BattleGridManager, CurrentResolvedTargeting))
+	{
+		return false;
+	}
+
+	CurrentAction = MoveTemp(SequenceAction);
+	CurrentExecutionMode = Request.ExecutionMode;
 	bSequenceRunning = true;
 	ActiveExecutionRunners.Empty();
 
@@ -68,9 +93,13 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 	return true;
 }
 
-bool ABattleSequenceManager::ValidateAction(const FBattleAction& InAction) const
+// ============================================================================
+// 요청 검증 및 Execution 환경 준비
+// ============================================================================
+bool ABattleSequenceManager::ValidateRequest(const FBattleSequenceRequest& Request) const
 {
-	return IsValid(InAction.Attacker) && IsValid(InAction.Card) && !InAction.Card->MainExecutions.IsEmpty();
+	UMuksiBattleCardDataAsset* ExecutionCard = Request.GetExecutionCard();
+	return IsValid(Request.Action.Attacker) && IsValid(ExecutionCard) && !ExecutionCard->MainExecutions.IsEmpty();
 }
 
 bool ABattleSequenceManager::InitializeExecutionEnvironment()
@@ -120,6 +149,10 @@ void ABattleSequenceManager::UnbindAttackerNotify()
 	AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &ABattleSequenceManager::HandleBattleExecutionNotify);
 }
 
+// ============================================================================
+// Execution Chain 실행
+// Main chain + Animation Notify chain + Runtime requested chain
+// ============================================================================
 void ABattleSequenceManager::StartMainExecutionChain()
 {
 	if (!CurrentAction.Card || CurrentAction.Card->MainExecutions.IsEmpty())
@@ -177,10 +210,13 @@ void ABattleSequenceManager::StartExecutionRunner(const TArray<FBattleExecutionE
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] ExecutionRunner Started. Runner=%s ActiveRunners=%d"), *GetNameSafe(ExecutionRunner), ActiveExecutionRunners.Num());
 
+	FBattleExecutionEntryStarted OnEntryStarted;
+	OnEntryStarted.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryStarted);
+
 	FBattleExecutionRunnerFinished OnFinished;
 	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionRunnerFinished);
 
-	ExecutionRunner->Run(ExecutionEntries, Context, OnFinished);
+	ExecutionRunner->Run(ExecutionEntries, Context, OnEntryStarted, OnFinished);
 }
 
 void ABattleSequenceManager::HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
@@ -194,14 +230,45 @@ FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName Notif
 
 	Context.Attacker = CurrentAction.Attacker;
 	Context.Card = CurrentAction.Card;
-	Context.ExecutionMode = EBattleExecutionMode::Sequence;
+	Context.ExecutionMode = CurrentExecutionMode;
 	Context.Environment = ExecutionEnvironment;
-	Context.TargetingResult = CurrentAction.TargetingResult;
+	Context.ResolvedTargeting = CurrentResolvedTargeting;
 	Context.BattleGridManager = BattleGridManager;
 	Context.NotifyKey = NotifyKey;
 	Context.RequestRuntimeExecutionChain.BindUObject(this, &ABattleSequenceManager::HandleRuntimeExecutionChainRequested);
 
 	return Context;
+}
+
+void ABattleSequenceManager::HandleExecutionEntryStarted(
+	const FBattleExecutionEntry& Entry,
+	int32 EntryIndex,
+	FBattleExecutionContext& InOutExecutionContext)
+{
+	if (!bSequenceRunning)
+	{
+		return;
+	}
+
+	// Targeting intent is preserved for the whole sequence, while the resolved
+	// result is rebuilt immediately before every execution against the current grid.
+	// Preview and execution therefore consume the same snapshot.
+	FResolvedTargeting RefreshedTargeting;
+	if (FBattleTargetResolver::ResolveAction(CurrentAction, BattleGridManager, RefreshedTargeting))
+	{
+		CurrentResolvedTargeting = MoveTemp(RefreshedTargeting);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[BattleSequenceManager] Targeting refresh failed before execution. EntryIndex=%d Execution=%s"),
+			EntryIndex,
+			*GetNameSafe(Entry.ExecutionClass.Get()));
+		CurrentResolvedTargeting.Reset();
+	}
+
+	InOutExecutionContext.ResolvedTargeting = CurrentResolvedTargeting;
+	OnExecutionEntryStarted.Broadcast(CurrentAction, Entry, EntryIndex, CurrentResolvedTargeting);
 }
 
 void ABattleSequenceManager::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
@@ -223,6 +290,10 @@ void ABattleSequenceManager::HandleExecutionRunnerFinished(UBattleExecutionRunne
 	TryFinishSequence();
 }
 
+// ============================================================================
+// Sequence 종료
+// 모든 Runner 완료 -> FinishSequence -> OnSequenceFinished
+// ============================================================================
 void ABattleSequenceManager::TryFinishSequence()
 {
 	if (!bSequenceRunning || !ActiveExecutionRunners.IsEmpty())
@@ -244,6 +315,8 @@ void ABattleSequenceManager::FinishSequence()
 
 	bSequenceRunning = false;
 	CurrentAction = FBattleAction();
+	CurrentResolvedTargeting.Reset();
+	CurrentExecutionMode = EBattleExecutionMode::Sequence;
 	AttackerAnimationComponent = nullptr;
 	ActiveExecutionRunners.Empty();
 	ExecutionEnvironment = nullptr;

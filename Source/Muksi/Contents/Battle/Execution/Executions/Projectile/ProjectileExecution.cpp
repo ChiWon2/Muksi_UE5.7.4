@@ -17,13 +17,13 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 
 	const FProjectileExecutionData* ProjectileData = Context.GetExecutionData<FProjectileExecutionData>();
 
-	if (!ProjectileData || !Context.Attacker || !Context.BattleGridManager || !ProjectileData->ProjectileActorClass || Context.TargetingResult.PathCoords.IsEmpty())
+	if (!ProjectileData || !Context.Attacker || !Context.BattleGridManager || !ProjectileData->ProjectileActorClass || Context.ResolvedTargeting.PathCoords.IsEmpty())
 	{
 		CompleteExecution();
 		return;
 	}
 
-	const FHexOffsetCoord DestinationCoord = Context.TargetingResult.PathCoords.Last();
+	const FHexOffsetCoord DestinationCoord = Context.ResolvedTargeting.PathCoords.Last();
 	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(DestinationCoord);
 
 	if (!DestinationCell)
@@ -34,9 +34,9 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 
 	FVector TargetLocation = DestinationCell->WorldLocation;
 
-	if (!Context.TargetingResult.TargetCharacters.IsEmpty() && Context.TargetingResult.TargetCharacters[0])
+	if (ABattleCharacterBase* TargetCharacter = Cast<ABattleCharacterBase>(DestinationCell->OccupyingActor.Get()))
 	{
-		PendingHitTarget = Context.TargetingResult.TargetCharacters[0];
+		PendingHitTarget = TargetCharacter;
 		TargetLocation = PendingHitTarget->GetActorLocation();
 	}
 

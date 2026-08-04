@@ -4,10 +4,11 @@
 #include "StructUtils/InstancedStruct.h"
 #include "UObject/Object.h"
 
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
-#include "Muksi/Contents/Battle/Targeting/Selection/TargetSelectionContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 
 #include "TargetSelection.generated.h"
+
+class ABattleGridManager;
 
 UCLASS(Abstract)
 class MUKSI_API UTargetSelection : public UObject
@@ -15,30 +16,38 @@ class MUKSI_API UTargetSelection : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void Evaluate(const FTargetSelectionContext& Context, const FInstancedStruct& SelectionData, FTargetingStepContext& OutStepContext) const;
+	virtual void EvaluateCandidate(
+		ABattleGridManager* GridManager,
+		const FHexOffsetCoord& OriginCoord,
+		const FHexOffsetCoord& CandidateCoord,
+		const FInstancedStruct& SelectionData,
+		FTargetingStepResult& OutStepResult
+	) const;
 
 	virtual const UScriptStruct* GetSelectionDataStruct() const;
+
+	// 방향/조준 선택은 선택 좌표를 이동 목적지로 사용하지 않는다.
 
 protected:
 	bool IsSelectionDataValid(const FInstancedStruct& SelectionData) const;
 
-	void InitializeStepContext(const FTargetSelectionContext& Context, FTargetingStepContext& OutStepContext) const;
+	void InitializeStepResult(const FHexOffsetCoord& OriginCoord, FTargetingStepResult& OutStepResult) const;
 };
 
 
 
-#define TARGET_SELECTION_VALIDATE_COMMON_OR_RETURN(Context, SelectionData) \
+#define TARGET_SELECTION_VALIDATE_COMMON_OR_RETURN(GridManager, OriginCoord, SelectionData) \
 	do \
 	{ \
-		if (!(Context).GridManager) \
+		if (!(GridManager)) \
 		{ \
 			return; \
 		} \
-		if (!(Context).HasOriginCoord()) \
+		if (!(OriginCoord).IsValid()) \
 		{ \
 			return; \
 		} \
-		if (!(Context).GridManager->IsValidCoord((Context).OriginCoord)) \
+		if (!(GridManager)->IsValidCoord(OriginCoord)) \
 		{ \
 			return; \
 		} \
@@ -49,17 +58,16 @@ protected:
 	} \
 	while (false)
 
-#define TARGET_SELECTION_VALIDATE_HOVERED_COORD_OR_RETURN(Context) \
+#define TARGET_SELECTION_VALIDATE_CANDIDATE_OR_RETURN(GridManager, CandidateCoord) \
 	do \
 	{ \
-		if (!(Context).InputContext.HasHoveredCoord()) \
+		if (!(CandidateCoord).IsValid()) \
 		{ \
 			return; \
 		} \
-		if (!(Context).GridManager->IsValidCoord((Context).InputContext.HoveredCoord)) \
+		if (!(GridManager)->IsValidCoord(CandidateCoord)) \
 		{ \
 			return; \
 		} \
 	} \
 	while (false)
-

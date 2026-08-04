@@ -35,8 +35,8 @@ void UMoveExecution::Execute(const FBattleExecutionContext& Context, FBattleExec
 		return;
 	}
 
-	StartCoord = MovingCharacter->GetCharacterPosition();
-	DestinationCoord = Context.GetMainTargetPoint();
+	StartCoord = MovingCharacter->GetCharacterCoord();
+	DestinationCoord = Context.GetPrimaryTargetCoord();
 
 	if (!ValidateDestination())
 	{
@@ -186,13 +186,12 @@ bool UMoveExecution::CommitGridMovement()
 		return false;
 	}
 
-	if (!GridManager->MoveActorOnGrid(MovingCharacter.Get(), StartCoord, DestinationCoord))
-	{
-		return false;
-	}
-
-	MovingCharacter->SetCharacterPosition(DestinationCoord);
-	return true;
+	// Grid 점유와 CharacterData.CurrentPosition을 원자적으로 갱신한다.
+	return GridManager->MoveCharacterOnGrid(
+		MovingCharacter.Get(),
+		StartCoord,
+		DestinationCoord,
+		true);
 }
 
 void UMoveExecution::RestoreStartWorldLocation()

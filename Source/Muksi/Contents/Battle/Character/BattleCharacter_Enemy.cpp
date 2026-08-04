@@ -9,8 +9,8 @@ ABattleCharacter_Enemy::ABattleCharacter_Enemy()
 {
 	//카드선택 AI Component
 	BattleAIComponent = CreateDefaultSubobject<UEnemyBattleAIComponent>(TEXT("BattleAIComponent"));
-	
-	
+
+
 }
 
 void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
@@ -19,14 +19,14 @@ void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharac
 	InitData();
 }
 
-UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::GetSelectEnemyCardDataAsset(ABattleGridManager* GridManager, ABattleManager* BattleManager) const
+UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::SelectCardForExchange(ABattleGridManager* GridManager, ABattleManager* BattleManager) const
 {
 	return BattleAIComponent->SelectCardForExchange(CharacterData, GridManager, BattleManager);
 }
 
-TArray<FHexOffsetCoord> ABattleCharacter_Enemy::GetSelectEnemyCardCoord()const
+TArray<FHexOffsetCoord> ABattleCharacter_Enemy::GetSelectedTargetingStepCoords() const
 {
-	return BattleAIComponent->GetPointForExchange();
+	return BattleAIComponent->GetSelectedTargetingStepCoords();
 }
 
 

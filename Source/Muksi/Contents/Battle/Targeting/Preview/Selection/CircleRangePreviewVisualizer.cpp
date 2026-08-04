@@ -2,7 +2,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
@@ -28,7 +28,7 @@ void UCircleRangePreviewVisualizer::Initialize(ATargetingPreviewActor* InPreview
 
 void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Context)
 {
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.StepContext)
+	if (!HasPreviewActor() || !Context.IsValid())
 	{
 		ClearPreview();
 		return;
@@ -43,10 +43,9 @@ void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext
 		return;
 	}
 
-	//PreviewActorInstance->SetSelectionGridCoords(Context.StepContext->SelectableCoords);
 	PreviewMeshComponent->SetVisibility(false);
 
-	if (!Context.StepContext->HasOriginCoord() || Context.StepContext->SelectableCoords.IsEmpty() || !CirclePreviewMesh)
+	if (!Context.StepResult->HasOriginCoord() || !CirclePreviewMesh)
 	{
 		return;
 	}
@@ -59,7 +58,7 @@ void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext
 	}
 
 	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
-	const FVector PreviewLocation = Context.StepContext->OriginWorldLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
+	const FVector PreviewLocation = Context.GridManager->GetWorldLocationByCoord(Context.StepResult->OriginCoord) + FVector(0.0f, 0.0f, PreviewHeightOffset);
 
 	PreviewMeshComponent->SetStaticMesh(CirclePreviewMesh);
 
@@ -81,7 +80,7 @@ float UCircleRangePreviewVisualizer::CalculateWorldRadius(const FTargetingPrevie
 		return 0.0f;
 	}
 
-	const FTileSelectionData* Data = Context.StepData->SelectionData.GetPtr<FTileSelectionData>();
+	const FTileSelectionData* Data = Context.StepData->Selection.SelectionData.GetPtr<FTileSelectionData>();
 
 	if (!Data)
 	{

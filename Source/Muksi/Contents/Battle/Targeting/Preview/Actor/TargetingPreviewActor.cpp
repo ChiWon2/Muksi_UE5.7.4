@@ -1,12 +1,14 @@
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/MeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 ATargetingPreviewActor::ATargetingPreviewActor()
 {
@@ -65,6 +67,44 @@ void ATargetingPreviewActor::Initialize(ABattleGridManager* InGridManager)
 	GridManager = InGridManager;
 	LoadPreviewAssets();
 	ClearAllPreview();
+	ApplyPreviewStyle();
+}
+
+
+void ATargetingPreviewActor::SetEnemyStyle(bool bInEnemyStyle)
+{
+	bEnemyStyle = bInEnemyStyle;
+	ApplyPreviewStyle();
+}
+
+void ATargetingPreviewActor::ApplyPreviewStyle()
+{
+	const FLinearColor Tint = bEnemyStyle ? FLinearColor(1.0f, 0.08f, 0.03f, 1.0f) : FLinearColor(0.05f, 0.45f, 1.0f, 1.0f);
+	TArray<UMeshComponent*> Meshes;
+	Meshes.Add(SelectionPreviewMesh);
+	Meshes.Add(AreaPreviewMesh);
+	Meshes.Add(ArrowPreviewMesh);
+	Meshes.Add(GridPreviewMesh);
+	for (UMeshComponent* Mesh : Meshes)
+	{
+		if (!Mesh) continue;
+		if (UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0))
+		{
+			MID->SetVectorParameterValue(TEXT("TintColor"), Tint);
+			MID->SetVectorParameterValue(TEXT("Color"), Tint);
+		}
+	}
+	for (USplineMeshComponent* Mesh : PathMeshComponents)
+	{
+		if (Mesh)
+		{
+			if (UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0))
+			{
+				MID->SetVectorParameterValue(TEXT("TintColor"), Tint);
+				MID->SetVectorParameterValue(TEXT("Color"), Tint);
+			}
+		}
+	}
 }
 
 void ATargetingPreviewActor::SetSelectionGridCoords(const TArray<FHexOffsetCoord>& InCoords)
@@ -147,6 +187,7 @@ USplineMeshComponent* ATargetingPreviewActor::CreatePathMeshComponent()
 	AddInstanceComponent(PathMeshComponent);
 	PathMeshComponent->RegisterComponent();
 	PathMeshComponents.Add(PathMeshComponent);
+	ApplyPreviewStyle();
 
 	return PathMeshComponent;
 }

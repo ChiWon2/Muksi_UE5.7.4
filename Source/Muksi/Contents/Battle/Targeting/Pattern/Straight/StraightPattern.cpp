@@ -4,20 +4,20 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Straight/StraightPatternData.h"
 
-void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FInstancedStruct& PatternData, FTargetingResult& InOutResult) const
+void UStraightPattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
-	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(Context, PatternData);
+	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(GridManager, PatternData);
 
 	const FStraightPatternData* StraightData = PatternData.GetPtr<FStraightPatternData>();
-	const FTargetingStepContext* StepContext = InOutResult.GetLastStepContext();
+	const FTargetingStepResult* StepResult = InOutResult.GetLastStep();
 
-	if (!StraightData || !StepContext || !StepContext->HasOriginCoord() || !StepContext->HasDirection() || StraightData->Range <= 0)
+	if (!StraightData || !StepResult || !StepResult->HasOriginCoord() || !StepResult->HasDirection() || StraightData->Range <= 0)
 	{
 		return;
 	}
 
-	const FHexCubeCoord Direction = FHexGridMath::GetCubeDirection(StepContext->Direction);
-	FHexCubeCoord CurrentCube = FHexGridMath::OffsetToCube(StepContext->OriginCoord);
+	const FHexCubeCoord Direction = FHexGridMath::GetCubeDirection(StepResult->Direction);
+	FHexCubeCoord CurrentCube = FHexGridMath::OffsetToCube(StepResult->OriginCoord);
 
 	for (int32 Distance = 1; Distance <= StraightData->Range; ++Distance)
 	{
@@ -25,29 +25,26 @@ void UStraightPattern::ApplyPattern(const FAreaPatternContext& Context, const FI
 
 		const FHexOffsetCoord CurrentCoord = FHexGridMath::CubeToOffset(CurrentCube);
 
-		if (!Context.GridManager->IsValidCoord(CurrentCoord))
+		if (!GridManager->IsValidCoord(CurrentCoord))
 		{
 			break;
 		}
 
 		AddPathCoord(InOutResult, CurrentCoord);
 
-		const FBattleGridCell* Cell = Context.GridManager->GetCellByCoord(CurrentCoord);
+		const FBattleGridCell* Cell = GridManager->GetCellByCoord(CurrentCoord);
 
 		if (!Cell || !Cell->OccupyingActor)
 		{
 			continue;
 		}
 
-		ABattleCharacterBase* TargetCharacter = Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get());
-
-		if (!TargetCharacter)
+		if (!Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()))
 		{
 			continue;
 		}
 
 		AddAffectedCoord(InOutResult, CurrentCoord);
-		InOutResult.TargetCharacters.AddUnique(TargetCharacter);
 		break;
 	}
 }

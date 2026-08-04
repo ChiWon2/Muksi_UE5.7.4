@@ -32,11 +32,9 @@ public:
 	virtual void HandleRPressedKey(const FInputActionValue& Value) override;
 	//~ End UPlayerModeBase Interface
 
-	void UpdateHoveredGridTile();
-
 	UPROPERTY()
 	TObjectPtr<ABattleGridTile> HoveredGridTile = nullptr;
-	
+
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
 
@@ -44,7 +42,8 @@ public:
 	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
 
 private:
-	void UpdateCardTargeting(const FHitResult& HitResult);
+	void UpdateHoveredGridTile(const FHitResult& HitResult, bool bHasHitResult);
+	void UpdateCardTargeting(const FHitResult& HitResult, bool bHasHitResult);
 	void PushCharacterDataWidget();
 	void FocusCameraOnCharacter (ABattleCharacterBase* Character);
 

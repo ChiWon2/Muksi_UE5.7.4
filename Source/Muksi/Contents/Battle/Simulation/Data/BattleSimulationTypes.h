@@ -4,6 +4,8 @@
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "BattleSimulationTypes.generated.h"
 
+class UMuksiBattleCardDataAsset;
+
 UENUM(BlueprintType)
 enum class EBattleSimulationState : uint8
 {
@@ -20,6 +22,35 @@ enum class EBattleSimulationState : uint8
 };
 
 USTRUCT(BlueprintType)
+struct FBattleSimulationActionPlan
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	FBattleAction SequenceAction;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UMuksiBattleCardDataAsset> SimulationCardOverride = nullptr;
+
+	void Set(const FBattleAction& InSequenceAction, UMuksiBattleCardDataAsset* InSimulationCardOverride)
+	{
+		SequenceAction = InSequenceAction;
+		SimulationCardOverride = InSimulationCardOverride;
+	}
+
+	UMuksiBattleCardDataAsset* GetSimulationCard() const
+	{
+		return SimulationCardOverride ? SimulationCardOverride.Get() : SequenceAction.Card.Get();
+	}
+
+	void Reset()
+	{
+		SequenceAction = FBattleAction();
+		SimulationCardOverride = nullptr;
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FBattleSimulationExchange
 {
 	GENERATED_BODY()
@@ -28,10 +59,10 @@ struct FBattleSimulationExchange
 	int32 ExchangeIndex = INDEX_NONE;
 
 	UPROPERTY(BlueprintReadOnly)
-	FBattleAction PlayerAction;
+	FBattleSimulationActionPlan PlayerAction;
 
 	UPROPERTY(BlueprintReadOnly)
-	FBattleAction EnemyAction;
+	FBattleSimulationActionPlan EnemyAction;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bHasPlayerAction = false;
@@ -48,28 +79,28 @@ struct FBattleSimulationExchange
 	void Reset(int32 InExchangeIndex)
 	{
 		ExchangeIndex = InExchangeIndex;
-		PlayerAction = FBattleAction();
-		EnemyAction = FBattleAction();
+		PlayerAction.Reset();
+		EnemyAction.Reset();
 		bHasPlayerAction = false;
 		bHasEnemyAction = false;
 		bPlayerFirst = false;
 		bActionOrderResolved = false;
 	}
 
-	void SetPlayerAction(const FBattleAction& InAction)
+	void SetPlayerAction(const FBattleAction& InAction, UMuksiBattleCardDataAsset* SimulationCardOverride)
 	{
-		PlayerAction = InAction;
-		PlayerAction.ExchangeIndex = ExchangeIndex;
-		PlayerAction.bPlayerAction = true;
+		PlayerAction.Set(InAction, SimulationCardOverride);
+		PlayerAction.SequenceAction.ExchangeIndex = ExchangeIndex;
+		PlayerAction.SequenceAction.bPlayerAction = true;
 		bHasPlayerAction = true;
 		bActionOrderResolved = false;
 	}
 
-	void SetEnemyAction(const FBattleAction& InAction)
+	void SetEnemyAction(const FBattleAction& InAction, UMuksiBattleCardDataAsset* SimulationCardOverride)
 	{
-		EnemyAction = InAction;
-		EnemyAction.ExchangeIndex = ExchangeIndex;
-		EnemyAction.bPlayerAction = false;
+		EnemyAction.Set(InAction, SimulationCardOverride);
+		EnemyAction.SequenceAction.ExchangeIndex = ExchangeIndex;
+		EnemyAction.SequenceAction.bPlayerAction = false;
 		bHasEnemyAction = true;
 		bActionOrderResolved = false;
 	}
@@ -86,18 +117,18 @@ struct FBattleSimulationExchange
 			return false;
 		}
 
-		bPlayerFirst = PlayerAction.Speed >= EnemyAction.Speed;
+		bPlayerFirst = PlayerAction.SequenceAction.Speed >= EnemyAction.SequenceAction.Speed;
 		bActionOrderResolved = true;
 		return true;
 	}
 
-	const FBattleAction& GetFirstAction() const
+	const FBattleSimulationActionPlan& GetFirstAction() const
 	{
 		check(bActionOrderResolved);
 		return bPlayerFirst ? PlayerAction : EnemyAction;
 	}
 
-	const FBattleAction& GetSecondAction() const
+	const FBattleSimulationActionPlan& GetSecondAction() const
 	{
 		check(bActionOrderResolved);
 		return bPlayerFirst ? EnemyAction : PlayerAction;

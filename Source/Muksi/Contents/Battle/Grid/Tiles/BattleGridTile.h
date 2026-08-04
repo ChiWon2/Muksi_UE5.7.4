@@ -43,7 +43,7 @@ public:
 	FTransform GetCharacterSpawnTransform() const;
 	
 	UFUNCTION()
-	void SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType);
+	void SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType, bool bEnemy = false);
 	
 	UFUNCTION()
 	void ClearExchangeIndicator();
@@ -77,6 +77,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
 	TObjectPtr<UMaterialInterface> BlockedIndicatorMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid|Indicator")
+	TObjectPtr<UMaterialInterface> EnemyIndicatorMaterial;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
 	TObjectPtr<UMaterialInterface> MoveIndicatorMaterial;

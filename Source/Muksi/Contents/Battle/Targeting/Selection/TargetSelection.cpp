@@ -1,8 +1,13 @@
 #include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
 
-void UTargetSelection::Evaluate(const FTargetSelectionContext& Context, const FInstancedStruct& SelectionData, FTargetingStepContext& OutStepContext) const
+void UTargetSelection::EvaluateCandidate(
+	ABattleGridManager*,
+	const FHexOffsetCoord& OriginCoord,
+	const FHexOffsetCoord&,
+	const FInstancedStruct&,
+	FTargetingStepResult& OutStepResult) const
 {
-	InitializeStepContext(Context, OutStepContext);
+	InitializeStepResult(OriginCoord, OutStepResult);
 }
 
 const UScriptStruct* UTargetSelection::GetSelectionDataStruct() const
@@ -22,10 +27,8 @@ bool UTargetSelection::IsSelectionDataValid(const FInstancedStruct& SelectionDat
 	return SelectionData.GetScriptStruct() == ExpectedStruct;
 }
 
-void UTargetSelection::InitializeStepContext(const FTargetSelectionContext& Context, FTargetingStepContext& OutStepContext) const
+void UTargetSelection::InitializeStepResult(const FHexOffsetCoord& OriginCoord, FTargetingStepResult& OutStepResult) const
 {
-	OutStepContext.Reset();
-	OutStepContext.OriginCoord = Context.OriginCoord;
-	OutStepContext.OriginWorldLocation = Context.OriginWorldLocation;
-	OutStepContext.AimWorldLocation = Context.InputContext.AimWorldLocation;
+	OutStepResult.Reset();
+	OutStepResult.OriginCoord = OriginCoord;
 }

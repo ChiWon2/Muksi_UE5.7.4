@@ -15,98 +15,71 @@ void FTargetingStepCardData::SyncDataTypes()
 
 void FTargetingStepCardData::SyncSelectionDataType()
 {
-	if (!SelectionClass)
+	if (!Selection.SelectionClass)
 	{
-		SelectionData.Reset();
+		Selection.SelectionData.Reset();
 		return;
 	}
 
-	const UTargetSelection* SelectionCDO = SelectionClass.GetDefaultObject();
-
-	if (!SelectionCDO)
-	{
-		SelectionData.Reset();
-		return;
-	}
-
-	const UScriptStruct* ExpectedDataStruct = SelectionCDO->GetSelectionDataStruct();
+	const UTargetSelection* SelectionCDO = Selection.SelectionClass.GetDefaultObject();
+	const UScriptStruct* ExpectedDataStruct = SelectionCDO ? SelectionCDO->GetSelectionDataStruct() : nullptr;
 
 	if (!ExpectedDataStruct)
 	{
-		SelectionData.Reset();
+		Selection.SelectionData.Reset();
 		return;
 	}
 
-	if (SelectionData.GetScriptStruct() == ExpectedDataStruct)
+	if (Selection.SelectionData.GetScriptStruct() != ExpectedDataStruct)
 	{
-		return;
+		Selection.SelectionData.InitializeAs(ExpectedDataStruct);
 	}
-
-	SelectionData.InitializeAs(ExpectedDataStruct);
 }
 
 void FTargetingStepCardData::SyncPathPreviewDataType()
 {
-	if (!PathPreviewClass)
+	if (!Preview.PathPreviewClass)
 	{
-		PathPreviewData.Reset();
+		Preview.PathPreviewData.Reset();
 		return;
 	}
 
-	const UPathPreviewVisualizer* PathPreviewCDO = PathPreviewClass.GetDefaultObject();
-
-	if (!PathPreviewCDO)
-	{
-		PathPreviewData.Reset();
-		return;
-	}
-
-	const UScriptStruct* ExpectedDataStruct = PathPreviewCDO->GetPathPreviewDataStruct();
+	const UPathPreviewVisualizer* PathPreviewCDO = Preview.PathPreviewClass.GetDefaultObject();
+	const UScriptStruct* ExpectedDataStruct = PathPreviewCDO ? PathPreviewCDO->GetPathPreviewDataStruct() : nullptr;
 
 	if (!ExpectedDataStruct)
 	{
-		PathPreviewData.Reset();
+		Preview.PathPreviewData.Reset();
 		return;
 	}
 
-	if (PathPreviewData.GetScriptStruct() == ExpectedDataStruct)
+	if (Preview.PathPreviewData.GetScriptStruct() != ExpectedDataStruct)
 	{
-		return;
+		Preview.PathPreviewData.InitializeAs(ExpectedDataStruct);
 	}
-
-	PathPreviewData.InitializeAs(ExpectedDataStruct);
 }
 
 void FTargetingStepCardData::SyncPatternDataType()
 {
-	if (!PatternClass)
+	if (!Pattern.PatternClass)
 	{
-		PatternData.Reset();
+		Pattern.PatternData.Reset();
 		return;
 	}
 
-	const UAreaPattern* PatternCDO = PatternClass.GetDefaultObject();
-
-	if (!PatternCDO)
-	{
-		PatternData.Reset();
-		return;
-	}
-
-	const UScriptStruct* ExpectedDataStruct = PatternCDO->GetPatternDataStruct();
+	const UAreaPattern* PatternCDO = Pattern.PatternClass.GetDefaultObject();
+	const UScriptStruct* ExpectedDataStruct = PatternCDO ? PatternCDO->GetPatternDataStruct() : nullptr;
 
 	if (!ExpectedDataStruct)
 	{
-		PatternData.Reset();
+		Pattern.PatternData.Reset();
 		return;
 	}
 
-	if (PatternData.GetScriptStruct() == ExpectedDataStruct)
+	if (Pattern.PatternData.GetScriptStruct() != ExpectedDataStruct)
 	{
-		return;
+		Pattern.PatternData.InitializeAs(ExpectedDataStruct);
 	}
-
-	PatternData.InitializeAs(ExpectedDataStruct);
 }
 
 #endif

@@ -9,6 +9,7 @@
 class UBattleExecutionRunner;
 
 DECLARE_DELEGATE_OneParam(FBattleExecutionRunnerFinished, UBattleExecutionRunner*);
+DECLARE_DELEGATE_ThreeParams(FBattleExecutionEntryStarted, const FBattleExecutionEntry&, int32, FBattleExecutionContext&);
 
 UCLASS()
 class MUKSI_API UBattleExecutionRunner : public UObject
@@ -16,7 +17,7 @@ class MUKSI_API UBattleExecutionRunner : public UObject
 	GENERATED_BODY()
 
 public:
-	void Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionRunnerFinished OnFinished);
+	void Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionRunnerFinished OnFinished);
 
 private:
 	void ExecuteNextExecution();
@@ -32,6 +33,7 @@ private:
 	TObjectPtr<UBattleExecution> CurrentExecution = nullptr;
 
 	FBattleExecutionContext CachedContext;
+	FBattleExecutionEntryStarted CachedOnEntryStarted;
 	FBattleExecutionRunnerFinished CachedOnFinished;
 
 	int32 CurrentExecutionIndex = INDEX_NONE;
