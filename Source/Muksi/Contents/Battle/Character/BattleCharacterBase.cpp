@@ -103,7 +103,7 @@ float ABattleCharacterBase::GetCharacterSpeed() const
 	return CharacterData.CharacterSpeed;
 }
 
-void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
+void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager)
 {
 	CharacterData.Init_DataAsset(InCharacterData);
 	if (!CharacterData.IsValid())
@@ -119,7 +119,7 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 	}
 	UE_LOG(LogTemp, Error, TEXT("CharacterData CharacterPassives %d"), CharacterData.CharacterPassives.Num());
 	StatusEffectComponent->Initialize(BattleManager);
-	PassiveComponent->InitializePassives(CharacterData.CharacterPassives, BattleManager, BattleMainScreen);
+	PassiveComponent->InitializePassives(CharacterData.CharacterPassives, BattleManager);
 	
 	InitializeBattleStats();
 }

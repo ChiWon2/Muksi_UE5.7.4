@@ -13,22 +13,24 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 {
     if (BattleManager)
     {
-        BattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
     }
 
     BattleManager = InBattleManager;
 
     if (BattleManager)
     {
-        BattleManager->OnBattlePhaseChanged.AddUniqueDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
     }
 }
 
 void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    FinishRoundPhaseExecution();
+
     if (BattleManager)
     {
-        BattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
         BattleManager = nullptr;
     }
 
@@ -195,28 +197,20 @@ void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase
 {
     switch (NewPhase)
     {
-    case EBattlePhase::RoundStart:
-        HandleRoundStart();
-        break;
-
     case EBattlePhase::ExchangeStart:
         HandleExchangeStart();
         break;
 
-    case EBattlePhase::AttackStart:
-        HandleAttackStart();
+    case EBattlePhase::BattleActionSequenceStart:
+        HandleBattleActionSequenceStart();
         break;
 
-    case EBattlePhase::AttackEnd:
-        HandleAttackEnd();
+    case EBattlePhase::BattleActionSequenceEnd:
+        HandleBattleActionSequenceEnd();
         break;
 
     case EBattlePhase::ExchangeEnd:
         HandleExchangeEnd();
-        break;
-
-    case EBattlePhase::RoundEnd:
-        HandleRoundEnd();
         break;
 
     default:
@@ -224,24 +218,19 @@ void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase
     }
 }
 
-void UMuksiStatusEffectComponent::HandleRoundStart()
-{
-    PROCESS_STATUS_EFFECT_EVENT(OnRoundStart)
-}
-
 void UMuksiStatusEffectComponent::HandleExchangeStart()
 {
     PROCESS_STATUS_EFFECT_EVENT(OnExchangeStart)
 }
 
-void UMuksiStatusEffectComponent::HandleAttackStart()
+void UMuksiStatusEffectComponent::HandleBattleActionSequenceStart()
 {
-    PROCESS_STATUS_EFFECT_EVENT(OnAttackStart)
+    PROCESS_STATUS_EFFECT_EVENT(OnBattleActionSequenceStart)
 }
 
-void UMuksiStatusEffectComponent::HandleAttackEnd()
+void UMuksiStatusEffectComponent::HandleBattleActionSequenceEnd()
 {
-    PROCESS_STATUS_EFFECT_EVENT(OnAttackEnd)
+    PROCESS_STATUS_EFFECT_EVENT(OnBattleActionSequenceEnd)
 }
 
 void UMuksiStatusEffectComponent::HandleExchangeEnd()
@@ -249,10 +238,81 @@ void UMuksiStatusEffectComponent::HandleExchangeEnd()
     PROCESS_STATUS_EFFECT_EVENT(OnExchangeEnd)
 }
 
-void UMuksiStatusEffectComponent::HandleRoundEnd()
+
+void UMuksiStatusEffectComponent::ExecuteRoundPhaseSequentially(
+    EBattlePhase Phase,
+    FSimpleDelegate CompletionDelegate)
 {
-    PROCESS_STATUS_EFFECT_EVENT(OnRoundEnd)
+    if (bExecutingRoundPhase)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffectComponent] Round phase execution is already active."));
+        CompletionDelegate.ExecuteIfBound();
+        return;
+    }
+
+    if (Phase != EBattlePhase::RoundStart && Phase != EBattlePhase::RoundEnd)
+    {
+        CompletionDelegate.ExecuteIfBound();
+        return;
+    }
+
+    bExecutingRoundPhase = true;
+    ExecutingRoundPhase = Phase;
+    RoundPhaseExecutionQueue = ActiveEffects;
+    RoundPhaseExecutionIndex = 0;
+    RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
+    ExecuteNextRoundPhaseStatusEffect();
 }
+
+void UMuksiStatusEffectComponent::ExecuteNextRoundPhaseStatusEffect()
+{
+    if (!bExecutingRoundPhase)
+    {
+        return;
+    }
+
+    while (RoundPhaseExecutionQueue.IsValidIndex(RoundPhaseExecutionIndex))
+    {
+        UMuksiStatusEffect* Effect = RoundPhaseExecutionQueue[RoundPhaseExecutionIndex++];
+        if (!IsValid(Effect))
+        {
+            continue;
+        }
+
+        Effect->ExecuteRoundPhase(
+            ExecutingRoundPhase,
+            FSimpleDelegate::CreateUObject(
+                this,
+                &UMuksiStatusEffectComponent::HandleRoundPhaseStatusEffectFinished));
+        return;
+    }
+
+    RemoveExpiredEffects();
+    FinishRoundPhaseExecution();
+}
+
+void UMuksiStatusEffectComponent::HandleRoundPhaseStatusEffectFinished()
+{
+    ExecuteNextRoundPhaseStatusEffect();
+}
+
+void UMuksiStatusEffectComponent::FinishRoundPhaseExecution()
+{
+    if (!bExecutingRoundPhase)
+    {
+        return;
+    }
+
+    bExecutingRoundPhase = false;
+    ExecutingRoundPhase = EBattlePhase::None;
+    RoundPhaseExecutionIndex = INDEX_NONE;
+    RoundPhaseExecutionQueue.Reset();
+
+    FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
+    RoundPhaseCompletionDelegate.Unbind();
+    CompletionDelegate.ExecuteIfBound();
+}
+
 #undef PROCESS_STATUS_EFFECT_EVENT
 
 

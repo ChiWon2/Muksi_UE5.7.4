@@ -4,11 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "CharacterPassiveComponent.generated.h"
 
 class ABattleManager;
-class UWidget_BattleMainScreen;
-enum class EMuksiPassiveTriggerType : uint8;
 class UMuksiCharacterDataAsset;
 class ABattleCharacterBase;
 class UCharacterPassive;
@@ -19,21 +18,36 @@ class MUKSI_API UCharacterPassiveComponent : public UActorComponent
 	GENERATED_BODY()
 public:
 	UCharacterPassiveComponent();
-	
+
 	auto InitializePassives(
-		const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager,
-		UWidget_BattleMainScreen* BattleMainScreen
+		const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses,
+		ABattleManager* BattleManager
 	) -> void;
-	
-	
+
+
 	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives(){return ActivePassives;};
 
+	void ExecuteRoundPhaseSequentially(EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate);
+
+protected:
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 private:
+	void ExecuteNextRoundPhasePassive();
+	void HandleRoundPhasePassiveFinished();
+	void FinishRoundPhaseExecution();
+
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleCharacterBase> OwnerCharacter = nullptr;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UCharacterPassive>> ActivePassives;
 
-		
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UCharacterPassive>> RoundPhaseExecutionQueue;
+
+	FSimpleDelegate RoundPhaseCompletionDelegate;
+	EBattlePhase ExecutingRoundPhase = EBattlePhase::None;
+	int32 RoundPhaseExecutionIndex = INDEX_NONE;
+	bool bExecutingRoundPhase = false;
 };

@@ -11,6 +11,7 @@
 #include "Muksi/Widgets/Battle/Passive/Widget_CharacterPassivePanel.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Player/Widget_PlayerProfilePanel.h"
 
 
@@ -31,8 +32,14 @@ void UCharacterDataPanelWidget_Enemy::InitializeFromPlayerMode()
 	}
 
 	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-	ABattleManager* BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
-	ApplyCharacterData(Cast<ABattleCharacter_Enemy>(BattleManager->GetEnemyBattleCharacter()));
+	ABattleManager* BattleManager = ManagerSubsystem
+		? ManagerSubsystem->GetManager<ABattleManager>()
+		: nullptr;
+	UBattleRuntimeContext* BattleRuntimeContext = BattleManager
+		? BattleManager->GetBattleRuntimeContext()
+		: nullptr;
+
+	ApplyCharacterData(BattleRuntimeContext ? BattleRuntimeContext->GetEnemyCharacter() : nullptr);
 }
 
 void UCharacterDataPanelWidget_Enemy::ApplyCharacterData(ABattleCharacter_Enemy* PlayerData)

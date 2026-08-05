@@ -7,7 +7,6 @@
 #include "UObject/Object.h"
 #include "CharacterPassive.generated.h"
 
-class UWidget_BattleMainScreen;
 class ABattleCharacterBase;
 class ABattleManager;
 class UMuksiBattleCardDataAsset;
@@ -16,7 +15,7 @@ class UMuksiBattleCardDataAsset;
 UENUM(BlueprintType)
 enum class EMuksiPassiveTriggerType : uint8
 {
-	
+
 	BattleStart,        // 전투 시작
 	BattleEnd,			// 전투 종료
 	RoundStart,         // 국 시작
@@ -25,8 +24,8 @@ enum class EMuksiPassiveTriggerType : uint8
 	ExchangeStart,      // 합 시작
 	ExchangeEnd,        // 합 종료
 
-	AttackStart,        // 공격 시작
-	AttackEnd,          // 공격 종료
+	BattleActionSequenceStart, // 행동 시퀀스 시작
+	BattleActionSequenceEnd,   // 행동 시퀀스 종료
 
 	BeforeDealDamage,   // 피해를 주기 직전
 	AfterDealDamage,    // 피해를 준 직후
@@ -63,8 +62,13 @@ public:
 		ABattleCharacterBase* InOwner
 	);
 
-	
-	virtual void BindingEvent(ABattleManager* BattleManager,UWidget_BattleMainScreen* BattleMainScreen);
+
+	virtual void BindingEvent(ABattleManager* BattleManager);
+
+	void ExecuteRoundPhase(EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate);
+
+	UFUNCTION(BlueprintCallable, Category = "Passive|Execution")
+	void NotifyRoundPhaseExecutionFinished();
 
 	ABattleCharacterBase* GetOwnerCharacter() const
 	{
@@ -81,16 +85,18 @@ public:
 	{
 		return bEnabled;
 	}
-	
+
 	FText GetPassiveName() const{return PassiveName;}
 	TArray<FPassiveTextLine> GetPassiveDescription() const{return PassiveDescriptions;}
-	
+
 	UPROPERTY(BlueprintAssignable, Category = "Passive|Event")
 	FOnPassiveActive OnPassiveActive;
-	
-	
+
+
 protected:
-	virtual void OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	virtual void HandleBattlePhaseChanged(
+		EBattlePhase OldPhase,
+		EBattlePhase NewPhase);
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Passive")
 	TObjectPtr<ABattleCharacterBase> OwnerCharacter = nullptr;
@@ -104,7 +110,7 @@ protected:
 		Category = "Passive"
 	)
 	TObjectPtr<UTexture2D> PassiveImage;
-	
+
 	UPROPERTY(
 		EditDefaultsOnly,
 		BlueprintReadOnly,
@@ -118,9 +124,9 @@ protected:
 		Category = "Passive",
 		meta = (MultiLine = true)
 	)
-	
+
 	TArray<FPassiveTextLine>PassiveDescriptions;
-	
+
 
 	UPROPERTY(
 		EditDefaultsOnly,
@@ -136,7 +142,17 @@ protected:
 	)
 	bool bEnabled = true;
 
+	UPROPERTY(
+		EditDefaultsOnly,
+		BlueprintReadOnly,
+		Category = "Passive|Execution"
+	)
+	bool bWaitForManualRoundPhaseCompletion = false;
+
 private:
+	FSimpleDelegate RoundPhaseCompletionDelegate;
+	bool bRoundPhaseExecutionActive = false;
+
 	UFUNCTION()
-	void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	void HandleChangePhaseDelegate(EBattlePhase OldPhase, EBattlePhase NewPhase);
 };

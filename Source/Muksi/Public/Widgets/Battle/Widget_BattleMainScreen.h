@@ -4,21 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/Widget_ActivatableBase.h"
-#include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Widget_BattleMainScreen.generated.h"
 
 class UWidget_CharacterData;
 class UHandWidget;
 class UInkLineWidget;
 class UPassiveActivePopupWidget;
+class UMuksiBattleCardDataAsset;
 
 
-class ABattleCharacter_Player;
-class ABattleCharacter_Enemy;
-
+class ABattleCharacterBase;
 class UButton;
 
 class ABattleManager;
+class ABattleTargetingManager;
 
 UENUM(BlueprintType)
 enum class EBattleUIPhase : uint8
@@ -61,6 +61,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager;
 
+	UPROPERTY()
+	TObjectPtr<ABattleTargetingManager> BattleTargetingManager;
+
 public:
 	UFUNCTION()
 	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
@@ -86,6 +89,9 @@ protected:
 	//------------------------------------------------------------------------------------------------------------------
 	void BindBattleManagerEvents();
 	void UnbindBattleManagerEvents();
+
+	UFUNCTION()
+	void HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
 	//====================================Ready<준비>===================================================================
 public:
@@ -183,50 +189,40 @@ public:
 	UPROPERTY(EditAnywhere)
 	FString ExchangeEndText = "Exchange End!";
 
-	UFUNCTION()
-	void EnemySelectCardEvent();
-	UFUNCTION()
-	void EnemyPlaceCard();
-
-	UPROPERTY()
-	bool ExchangeTimeOver = false; //나중에 생길 타이머
-
-	FTimerHandle EnemySelectCardTimerHandle;
-
+	void HandleEnemyCardSelectionReady(UMuksiBattleCardDataAsset* EnemyCard, int32 ExchangeIndex);
 
 public:
 	//합 도중 카드 선택 확정 버튼
 	UFUNCTION(BlueprintCallable)
 	void HandleCardSelect();
 
-	bool CanRequestSelectCard();
 	void SelectCardDataSend()const;
 
 
 	bool RevealEnemySelectedCard(int32 ExchangeIndex);
 	//------------------------------------------------------------------------------------------------------------------
 
-	//=================================Attack<공격>=====================================================================
+	//==========================Battle Action Sequence==================================================================
 
 public:
-	void AttackStart();
+	void BattleActionSequenceStart();
 
-	void DisplayAttackStartUI();
-	void DisplayAttackStartUIFinish();
+	void DisplayBattleActionSequenceStartUI();
+	void DisplayBattleActionSequenceStartUIFinish();
 
 	void PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset);
 
-	void AttackEnd();
-	void DisplayAttackEndUI();
-	void DisplayAttackEndUIFinish();
+	void BattleActionSequenceEnd();
+	void DisplayBattleActionSequenceEndUI();
+	void DisplayBattleActionSequenceEndUIFinish();
 
 protected:
 	UPROPERTY(EditAnywhere)
-	FString AttackStartText = "Attack Start!";
+	FString BattleActionSequenceStartText = "BattleAction Start!";
 	UPROPERTY(EditAnywhere)
-	FString AttackEndText = "Attack End!";
+	FString BattleActionSequenceEndText = "BattleAction End!";
 	UPROPERTY()
-	int32 HandleAttackStartFinishCount = 0;
+	int32 BattleActionSequenceUIFinishCount = 0;
 
 	UPROPERTY(EditAnywhere)
 	float TurnTime = 0.1f;

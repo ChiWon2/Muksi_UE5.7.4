@@ -12,7 +12,6 @@
 
 class UCharacterCameraComponent;
 class ABattleManager;
-class UWidget_BattleMainScreen;
 class AExchangeCharacterBase;
 class UBoxComponent;
 class UMuksiBattleAnimationComponent;
@@ -90,7 +89,7 @@ public:
 	
 	float GetCharacterSpeed()const;
 
-	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen);
+	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager);
 	
 	UMuksiCharacterDataAsset* GetCharacterData()const{return CharacterData.CharacterAsset;};
 	
