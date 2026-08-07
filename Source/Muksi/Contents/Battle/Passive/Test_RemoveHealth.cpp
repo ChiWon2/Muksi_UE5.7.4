@@ -16,8 +16,22 @@ UTest_RemoveHealth::UTest_RemoveHealth()
 void UTest_RemoveHealth::BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
 {
 	Super::BindingEvent(BattleManager, BattleMainScreen);
-	UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding "));
-	//BattleManager->OnExchangeStarted.AddDynamic(this, &UTest_RemoveHealth::Passive1_);
+	/*UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding "));
+	BattleManager->OnBattlePhaseChanged
+	BattleManager->OnExchangeStarted.AddDynamic(this, &UTest_RemoveHealth::Passive1_);*/
+}
+
+void UTest_RemoveHealth::OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+	Super::OnBattlePhaseChanged(OldPhase, NewPhase);
+	switch (NewPhase)
+	{
+	case EBattlePhase::ExchangeStart:
+		Passive1_();
+		break;
+	default:
+		break;
+	}
 }
 
 void UTest_RemoveHealth::Passive1()
@@ -36,5 +50,6 @@ void UTest_RemoveHealth::Passive1_()
 {
 	UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding Passive1 Setting"));
 	ABattleCharacterBase* Character = GetOwnerCharacter();
+	UE_LOG(LogTemp, Error, TEXT("Test Get Current HP %f"), Character->GetCurrentHP());
 	Character->SetCurrentHP(Character->GetCurrentHP() - 2);
 }

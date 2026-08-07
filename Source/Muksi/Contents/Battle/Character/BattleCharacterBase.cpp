@@ -80,13 +80,13 @@ ABattleCharacterBase::ABattleCharacterBase()
 	
 }
 
-int32 ABattleCharacterBase::GetCurrentHP() const
+float ABattleCharacterBase::GetCurrentHP() const
 {
 	if (BattleStatComponent){return BattleStatComponent->GetCurrentHP();}
-	return -1;
+	return -1.f;
 }
 
-void ABattleCharacterBase::SetCurrentHP(int32 NewHP)
+void ABattleCharacterBase::SetCurrentHP(float NewHP)
 {
 	if (BattleStatComponent){BattleStatComponent->SetCurrentHP(NewHP);}
 }

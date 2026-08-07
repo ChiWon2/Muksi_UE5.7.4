@@ -63,7 +63,8 @@ public:
 		ABattleCharacterBase* InOwner
 	);
 
-	
+	//기본적으로 파이프라인에 맞춰 델리게이트 되어있음
+	//독자적으로 바인딩 할 경우 Super 쓰지 말것
 	virtual void BindingEvent(ABattleManager* BattleManager,UWidget_BattleMainScreen* BattleMainScreen);
 
 	ABattleCharacterBase* GetOwnerCharacter() const

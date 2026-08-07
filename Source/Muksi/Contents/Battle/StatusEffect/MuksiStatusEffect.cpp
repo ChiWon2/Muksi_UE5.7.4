@@ -40,6 +40,10 @@ void UMuksiStatusEffect::OnAttackStart()
 {
 }
 
+void UMuksiStatusEffect::OnAttackActionStart(const FBattleAction& BattleAction)
+{
+}
+
 void UMuksiStatusEffect::OnAttackEnd()
 {
 }

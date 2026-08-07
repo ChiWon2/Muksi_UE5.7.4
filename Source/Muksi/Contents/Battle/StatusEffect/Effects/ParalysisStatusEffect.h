@@ -11,4 +11,5 @@ class MUKSI_API UParalysisStatusEffect : public UMuksiStatusEffect
 
 public:
     virtual void OnRoundStart() override;
+    virtual void OnRoundEnd() override;
 };

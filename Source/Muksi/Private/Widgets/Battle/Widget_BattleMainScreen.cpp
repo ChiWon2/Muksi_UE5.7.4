@@ -264,12 +264,24 @@ void UWidget_BattleMainScreen::DisplayBattleEndUI()
 	HandWidget->DisplayInkLine(BattleEndText, TurnTime);
 	HandleBattleUIFinishCount += 1;
 
-
+	//일단 그냥 넘기기
+	//DisplayBattleEndUIFinish();
 }
 
 void UWidget_BattleMainScreen::DisplayBattleEndUIFinish()
 {
 	HandleBattleUIFinishCount -= 1;
+	if (HandleBattleUIFinishCount <= 0)
+	{
+		//각종 TimeHandler 해제
+		GetWorld()->GetTimerManager().ClearTimer(InkLineTimerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(EnemySelectCardTimerHandle);
+		//HandWidget의 Timer해제
+		HandWidget->ClearTimerHandler();
+
+		//다 하면 레벨 넘길 준비
+		BattleManager->EndBattleLevel();
+	}
 }
 
 void UWidget_BattleMainScreen::HandleBattleStartFinish()

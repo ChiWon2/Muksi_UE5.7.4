@@ -70,7 +70,16 @@ AMuksiWorldCharacter::AMuksiWorldCharacter()
 void AMuksiWorldCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	UE_LOG(
+	   LogTemp,
+	   Warning,
+	   TEXT(
+		   "[WorldReturn][Pawn BeginPlay] Pawn=%s Controller=%s Location=%s"
+	   ),
+	   *GetNameSafe(this),
+	   *GetNameSafe(GetController()),
+	   *GetActorLocation().ToString()
+   );
 	// stub
 }
 

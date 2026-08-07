@@ -16,6 +16,10 @@ namespace BattleOccurPath
 	const FName CharacterDataFolder(
 		TEXT("/Game/Battle/Data/BattleCharacters")
 	);
+	
+	const FName WorldLevelPath(
+		TEXT("/Game/Maps/Jinsu/L_World_ForTestDialogue")	
+	);
 
 	//레벨 폴더 위치 경로
 	const FName BattleLevelFolder(
@@ -231,7 +235,7 @@ bool UBattleEncounterSubsystem::FinishBattleEncounter(const FBattleResult& Battl
 
 	UGameplayStatics::OpenLevel(
 		this,
-		TargetReturnLevel
+		BattleOccurPath::WorldLevelPath
 	);
 
 	return true;

@@ -5,6 +5,7 @@
 #include "MuksiStatusEffect.generated.h"
 
 class UMuksiStatusEffectComponent;
+struct FBattleAction;
 
 UCLASS(Abstract, BlueprintType)
 class MUKSI_API UMuksiStatusEffect : public UObject
@@ -41,6 +42,7 @@ public:
     virtual void OnExchangeStart();
 
     virtual void OnAttackStart();
+    virtual void OnAttackActionStart(const FBattleAction& BattleAction);
     virtual void OnAttackEnd();
 
     virtual void OnExchangeEnd();

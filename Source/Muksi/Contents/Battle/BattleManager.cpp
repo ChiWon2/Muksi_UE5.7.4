@@ -165,11 +165,12 @@ bool ABattleManager::StartCurrentCardTargeting(UMuksiBattleCardDataAsset* CardDa
 	bAttackActionCompletionPending = false;
 	CurrentAttackActionIndex = INDEX_NONE;
 
-	ChangePhase(EBattlePhase::BattleStart);
+	/*ChangePhase(EBattlePhase::BattleStart);
 
 	BattleMainScreen->BattleStart();
 
-	BattleEnd();
+	BattleEnd();*/
+	
 	return true;
 }
 
@@ -243,24 +244,47 @@ void ABattleManager::BattleStart()
 	ChangePhase(EBattlePhase::BattleStart);
 
 	BattleMainScreen->BattleStart();
-
-	BattleEnd();
+	
 }
 
 
 void ABattleManager::BattleEnd()
 {
 	ChangePhase(EBattlePhase::BattleEnd);
-
+	UnbindingHandler();
+	
+	
 	BattleMainScreen->BattleEnd();
+	//RoundStart();
+}
 
-	RoundStart();
+void ABattleManager::EndBattleLevel()
+{
+	UBattleEncounterSubsystem* EncounterSubsystem = UBattleEncounterSubsystem::Get(this);
+	if (!IsValid(EncounterSubsystem))
+	{
+		return;
+	}
+
+	FBattleResult BattleResult;
+	//TODO 전투 종료 후 체력, 경험치(?)등등 영수증 작성하기
+	EncounterSubsystem->FinishBattleEncounter(
+		BattleResult
+	);
+}
+void ABattleManager::UnbindingHandler()
+{
+	GetWorld()->GetTimerManager().ClearTimer(NextAttackActionTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
+	
 }
 
 // ============================================================================
 // Round 파이프라인
-// 호출 흐름: BattleStart -> RoundStart -> ExchangeStart / RoundEnd -> 다음 Round 또는 BattleEnd
+// 호출 흐름: BattleStart -> RoundStart -> ExchangeStart / RoundEnd -> 다음 Round
 // ============================================================================
+
+
 
 
 void ABattleManager::RoundStart()
@@ -287,22 +311,7 @@ void ABattleManager::CharacterDeadPoint(ABattleCharacterBase* Character)
 	BattleEnd();
 }
 
-void ABattleManager::EndBattleLevel()
-{
-	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst4"));
-	UBattleEncounterSubsystem* EncounterSubsystem = UBattleEncounterSubsystem::Get(this);
-	if (!IsValid(EncounterSubsystem))
-	{
-		return;
-	}
 
-	FBattleResult BattleResult;
-	//TODO 전투 종료 후 체력, 경험치(?)등등 영수증 작성하기
-	UE_LOG(LogTemp, Error, TEXT("EndBattleLevel TEst5"));
-	EncounterSubsystem->FinishBattleEncounter(
-		BattleResult
-	);
-}
 
 void ABattleManager::RoundEnd()
 {
@@ -1214,6 +1223,9 @@ void ABattleManager::StartCurrentAttackAction()
 		return;
 	}
 
+	//공격카드 사용 시작 이벤트 
+	OnAttackActionStarted.Broadcast(CurrentAction);
+	
 	if (!IsValid(BattleSequenceManager))
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleManager] BattleSequenceManager is null"));

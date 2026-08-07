@@ -3,6 +3,8 @@
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "MuksiStatusEffect.h"
 #include "MuksiStatusEffectSubsystem.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 UMuksiStatusEffectComponent::UMuksiStatusEffectComponent()
 {
@@ -14,6 +16,7 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
     if (BattleManager)
     {
         BattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->OnAttackActionStarted.RemoveAll(this);
     }
 
     BattleManager = InBattleManager;
@@ -21,6 +24,7 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
     if (BattleManager)
     {
         BattleManager->OnBattlePhaseChanged.AddUniqueDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->OnAttackActionStarted.AddUObject(this, &UMuksiStatusEffectComponent::HandleAttackActionStarted);
     }
 }
 
@@ -222,6 +226,27 @@ void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase
     default:
         break;
     }
+}
+
+void UMuksiStatusEffectComponent::HandleAttackActionStarted(const FBattleAction& BattleAction)
+{
+    if (GetOwner() != BattleAction.Attacker)
+    {
+        return;
+    }
+
+    const TArray<TObjectPtr<UMuksiStatusEffect>>
+        EffectsSnapshot = ActiveEffects;
+
+    for (UMuksiStatusEffect* Effect : EffectsSnapshot)
+    {
+        if (IsValid(Effect))
+        {
+            Effect->OnAttackActionStart(BattleAction);
+        }
+    }
+
+    RemoveExpiredEffects();
 }
 
 void UMuksiStatusEffectComponent::HandleRoundStart()

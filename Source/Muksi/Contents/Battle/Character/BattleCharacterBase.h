@@ -83,8 +83,8 @@ public:
 	ABattleCharacterBase();
 
 public:
-	int32 GetCurrentHP() const;
-	void SetCurrentHP(int32 NewHP);
+	float GetCurrentHP() const;
+	void SetCurrentHP(float NewHP);
 	
 	FVector2D GetCurrentSelectCardTime()const;
 	

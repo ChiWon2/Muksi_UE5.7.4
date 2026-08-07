@@ -30,7 +30,9 @@ struct FBattleExecutionEntry;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseChanged, EBattlePhase, OldPhase, EBattlePhase, NewPhase);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttack,int32,AttackNumber);
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAttackActionStarted, const FBattleAction&);
+
 
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
@@ -88,10 +90,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
 	FOnBattlePhaseChanged OnBattlePhaseChanged;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-	FOnAttack OnAttack;
-
+	
+	FOnAttackActionStarted OnAttackActionStarted;
 	// =========================
 	// Card
 	// =========================
@@ -221,13 +221,16 @@ public:
 	void ReadyEnd();
 	void BattleStart();
 	void BattleEnd();
+	void EndBattleLevel();
 protected:
 	UFUNCTION()
 	void BindingBattleEndEvent();
+	UFUNCTION()
 	void CharacterDeadPoint(ABattleCharacterBase* Character);
-	void EndBattleLevel();
 	UPROPERTY()
 	bool bIsCharacterDead = false;
+	void UnbindingHandler();
+	
 public:
 	// [2] Round
 	// BattleStart -> RoundStart -> ExchangeStart

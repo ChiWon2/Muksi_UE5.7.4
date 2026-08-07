@@ -8,6 +8,7 @@
 
 class ABattleManager;
 class UMuksiStatusEffect;
+struct FBattleAction;
 
 DECLARE_MULTICAST_DELEGATE(FOnStatusEffectsChanged);
 
@@ -53,6 +54,8 @@ private:
 
     UFUNCTION()
     void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
+
+    void HandleAttackActionStarted(const FBattleAction& BattleAction);
 
     void HandleRoundStart();
     void HandleExchangeStart();
