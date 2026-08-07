@@ -61,12 +61,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Targeting")
 	FTargetingCardData TargetingData;
 
-	/**
-	 * 기존 MainEffectExecution이 사용하는 카드 효과 데이터. 현재는 Section에서 아무 기능도 하지 않는다.
-	 * 지워야 하는데 의존성이 좀 많이 큰거같다.
-	 * BattleCardEffectComponent, BattleManager
-	 * 완전히 분리한 뒤 제거할 예정이다.
-	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	FMuksiBattleCardAttackTypeData AttackType;
 

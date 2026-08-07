@@ -2,6 +2,12 @@
 
 #include "MuksiStatusEffectComponent.h"
 
+void UMuksiStatusEffect::BeginDestroy()
+{
+    NotifyRoundPhaseExecutionFinished();
+    Super::BeginDestroy();
+}
+
 void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,UMuksiStatusEffectComponent* InOwnerComponent,FName InEffectID,int32 InStackCount,int32 InDuration)
 {
     OwnerActor = InOwnerActor;
@@ -11,6 +17,54 @@ void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,UMuksiStatusEffectCompo
 
     CurrentStack = FMath::Max(1, InStackCount);
     RemainingDuration = FMath::Max(1, InDuration);
+}
+
+void UMuksiStatusEffect::ExecuteRoundPhase(
+    EBattlePhase Phase,
+    FSimpleDelegate CompletionDelegate)
+{
+    if (bRoundPhaseExecutionActive)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffect] Round phase execution is already active."));
+        CompletionDelegate.ExecuteIfBound();
+        return;
+    }
+
+    if (Phase != EBattlePhase::RoundStart && Phase != EBattlePhase::RoundEnd)
+    {
+        CompletionDelegate.ExecuteIfBound();
+        return;
+    }
+
+    bRoundPhaseExecutionActive = true;
+    RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
+
+    if (Phase == EBattlePhase::RoundStart)
+    {
+        OnRoundStart();
+    }
+    else
+    {
+        OnRoundEnd();
+    }
+
+    if (!bWaitForManualRoundPhaseCompletion)
+    {
+        NotifyRoundPhaseExecutionFinished();
+    }
+}
+
+void UMuksiStatusEffect::NotifyRoundPhaseExecutionFinished()
+{
+    if (!bRoundPhaseExecutionActive)
+    {
+        return;
+    }
+
+    bRoundPhaseExecutionActive = false;
+    FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
+    RoundPhaseCompletionDelegate.Unbind();
+    CompletionDelegate.ExecuteIfBound();
 }
 
 void UMuksiStatusEffect::OnApplied()
@@ -36,11 +90,11 @@ void UMuksiStatusEffect::OnExchangeStart()
 {
 }
 
-void UMuksiStatusEffect::OnAttackStart()
+void UMuksiStatusEffect::OnBattleActionSequenceStart()
 {
 }
 
-void UMuksiStatusEffect::OnAttackEnd()
+void UMuksiStatusEffect::OnBattleActionSequenceEnd()
 {
 }
 

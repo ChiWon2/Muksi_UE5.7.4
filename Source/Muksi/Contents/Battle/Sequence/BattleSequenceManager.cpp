@@ -1,12 +1,18 @@
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 
+#include "TimerManager.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
+#include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 // ============================================================================
@@ -26,14 +32,39 @@ void ABattleSequenceManager::BeginPlay()
 		return;
 	}
 
+	TargetingPresentationController = NewObject<UTargetingPresentationController>(this);
+	if (TargetingPresentationController)
+	{
+		TargetingPresentationController->Initialize(BattleGridManager);
+	}
+
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 	{
 		ManagerSubsystem->RegisterManager<ABattleSequenceManager>(this);
+	}
+
+	if (!TryBindBattleFlow())
+	{
+		BattleFlowBindingTimerHandle = GetWorldTimerManager().SetTimerForNextTick(
+			FTimerDelegate::CreateUObject(this, &ABattleSequenceManager::BindBattleFlowDeferred));
 	}
 }
 
 void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	GetWorldTimerManager().ClearTimer(BattleFlowBindingTimerHandle);
+	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
+
+	if (BattleManager)
+	{
+		BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
+	}
+
+	ClearBattleActionPresentation();
+	ResetBattleActionSequence();
+	BattleManager = nullptr;
+	BattleRuntimeContext = nullptr;
+
 	if (bWorldManagerRegistrationEnabled)
 	{
 		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
@@ -45,9 +76,100 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+bool ABattleSequenceManager::TryBindBattleFlow()
+{
+	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
+	if (!ManagerSubsystem)
+	{
+		return false;
+	}
+
+	BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
+
+	if (!IsValid(BattleManager))
+	{
+		return false;
+	}
+
+	InitializeBattleRuntimeContext(BattleManager->GetBattleRuntimeContext());
+	if (!IsValid(BattleRuntimeContext))
+	{
+		return false;
+	}
+
+	if (!IsValid(BattleGridManager))
+	{
+		BattleGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
+	}
+
+	if (!IsValid(BattleGridManager))
+	{
+		return false;
+	}
+
+	if (TargetingPresentationController)
+	{
+		TargetingPresentationController->Initialize(BattleGridManager);
+	}
+
+	BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
+	BattleManager->PhaseUIFinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandleBattlePhaseUIFinished);
+	return true;
+}
+
+void ABattleSequenceManager::BindBattleFlowDeferred()
+{
+	if (!TryBindBattleFlow())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleSequenceManager] Failed to bind Battle flow managers."));
+	}
+}
+
+void ABattleSequenceManager::InitializeBattleRuntimeContext(UBattleRuntimeContext* InBattleRuntimeContext)
+{
+	BattleRuntimeContext = InBattleRuntimeContext;
+}
+
+void ABattleSequenceManager::HandleBattlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+	(void)OldPhase;
+
+	if (NewPhase != EBattlePhase::BattleActionSequenceStart)
+	{
+		return;
+	}
+
+	if (!IsValid(BattleRuntimeContext) && IsValid(BattleManager))
+	{
+		InitializeBattleRuntimeContext(BattleManager->GetBattleRuntimeContext());
+	}
+
+	if (!IsValid(BattleRuntimeContext))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleSequenceManager] BattleRuntimeContext is invalid."));
+		NotifyBattleActionSequenceCompleted();
+		return;
+	}
+
+	const TArray<FBattleAction>& SequenceActions = BattleRuntimeContext->GetBattleActionSequenceQueue();
+	if (SequenceActions.IsEmpty() || !StartBattleActionSequence(SequenceActions))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] Battle Action Sequence could not start."));
+		NotifyBattleActionSequenceCompleted();
+	}
+}
+
+void ABattleSequenceManager::NotifyBattleActionSequenceCompleted()
+{
+	if (IsValid(BattleManager) && BattleManager->GetCurrentPhase() == EBattlePhase::BattleActionSequenceStart)
+	{
+		BattleManager->NotifyPhaseExecutionFinished();
+	}
+}
+
 // ============================================================================
 // Sequence 진입
-// BattleManager 또는 BattleSimulationManager -> StartSequence(WithRequest)
+// BattleRuntimeContext 또는 내부 Action Queue -> StartSequence(WithRequest)
 // ============================================================================
 bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 {
@@ -59,7 +181,7 @@ bool ABattleSequenceManager::StartSequence(const FBattleAction& InAction)
 
 bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceRequest& Request)
 {
-	if (bSequenceRunning || !ValidateRequest(Request))
+	if (bSequenceRunning || (bBattleActionSequenceRunning && !bStartingQueuedBattleAction) || !ValidateRequest(Request))
 	{
 		return false;
 	}
@@ -91,6 +213,245 @@ bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceReque
 
 	StartMainExecutionChain();
 	return true;
+}
+
+// ============================================================================
+// Battle Action Queue 실행
+// 정렬/인덱스/다음 틱 진행은 이 Manager가 전담한다.
+// ============================================================================
+bool ABattleSequenceManager::StartBattleActionSequence(const TArray<FBattleAction>& InActions)
+{
+	if (bBattleActionSequenceRunning || bSequenceRunning || InActions.IsEmpty())
+	{
+		return false;
+	}
+
+	BattleActionQueue = InActions;
+	SortBattleActionQueue();
+	CurrentBattleActionIndex = 0;
+	bBattleActionSequenceRunning = true;
+	bBattleActionCompletionPending = false;
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Battle Action Sequence Started. ActionCount=%d"), BattleActionQueue.Num());
+	StartCurrentBattleAction();
+	return true;
+}
+
+void ABattleSequenceManager::SortBattleActionQueue()
+{
+	BattleActionQueue.Sort([](const FBattleAction& A, const FBattleAction& B)
+	{
+		if (A.ExchangeIndex != B.ExchangeIndex)
+		{
+			return A.ExchangeIndex < B.ExchangeIndex;
+		}
+
+		if (A.Speed != B.Speed)
+		{
+			return A.Speed > B.Speed;
+		}
+
+		if (A.bPlayerAction != B.bPlayerAction)
+		{
+			return A.bPlayerAction;
+		}
+
+		return false;
+	});
+}
+
+void ABattleSequenceManager::StartCurrentBattleAction()
+{
+	if (!bBattleActionSequenceRunning)
+	{
+		return;
+	}
+
+	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+	{
+		FinishBattleActionSequence();
+		return;
+	}
+
+	const FBattleAction& CurrentQueuedAction = BattleActionQueue[CurrentBattleActionIndex];
+	if (!IsValid(CurrentQueuedAction.Attacker) || !IsValid(CurrentQueuedAction.Card))
+	{
+		HandleCurrentBattleActionFinished();
+		return;
+	}
+
+	bStartingQueuedBattleAction = true;
+	const bool bStarted = StartSequence(CurrentQueuedAction);
+	bStartingQueuedBattleAction = false;
+
+	if (!bStarted)
+	{
+		HandleCurrentBattleActionFinished();
+	}
+}
+
+void ABattleSequenceManager::HandleCurrentBattleActionFinished()
+{
+	if (!bBattleActionSequenceRunning || bBattleActionCompletionPending)
+	{
+		return;
+	}
+
+	bBattleActionCompletionPending = true;
+
+	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] Invalid Battle Action index: %d"), CurrentBattleActionIndex);
+		FinishBattleActionSequence();
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Battle Action Finished. Index=%d"), CurrentBattleActionIndex);
+	ClearBattleActionPresentation();
+	OnBattleActionFinished.Broadcast();
+	FinishCurrentBattleAction();
+}
+
+void ABattleSequenceManager::FinishCurrentBattleAction()
+{
+	++CurrentBattleActionIndex;
+
+	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+	{
+		FinishBattleActionSequence();
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
+	NextBattleActionTimerHandle = GetWorldTimerManager().SetTimerForNextTick(
+		FTimerDelegate::CreateUObject(this, &ABattleSequenceManager::StartNextBattleActionDeferred));
+}
+
+void ABattleSequenceManager::StartNextBattleActionDeferred()
+{
+	bBattleActionCompletionPending = false;
+	StartCurrentBattleAction();
+}
+
+void ABattleSequenceManager::FinishBattleActionSequence()
+{
+	if (!bBattleActionSequenceRunning)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Battle Action Sequence Finished."));
+	ClearBattleActionPresentation();
+	ResetBattleActionSequence();
+	OnBattleActionSequenceFinished.Broadcast();
+	NotifyBattleActionSequenceCompleted();
+}
+
+void ABattleSequenceManager::ResetBattleActionSequence()
+{
+	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
+	BattleActionQueue.Empty();
+	CurrentBattleActionIndex = INDEX_NONE;
+	bBattleActionSequenceRunning = false;
+	bBattleActionCompletionPending = false;
+	bStartingQueuedBattleAction = false;
+}
+
+void ABattleSequenceManager::RefreshBattleActionTargetingPresentation(
+	const FBattleAction& Action,
+	const FResolvedTargeting& ExecutionResolvedTargeting)
+{
+	ClearBattleActionPresentation();
+
+	if (!IsValid(BattleGridManager) || !IsValid(Action.Card))
+	{
+		return;
+	}
+
+	TArray<FHexOffsetCoord> IndicatorCoords;
+	const int32 StepCount = Action.Card->TargetingData.Steps.Num();
+	for (int32 StepIndex = 0; StepIndex < StepCount; ++StepIndex)
+	{
+		const FTargetingStepCardData* StepData = Action.Card->TargetingData.GetStep(StepIndex);
+		if (!StepData)
+		{
+			continue;
+		}
+
+		FResolvedTargeting StepResolvedTargeting;
+		if (StepIndex == StepCount - 1)
+		{
+			StepResolvedTargeting = ExecutionResolvedTargeting;
+		}
+		else if (!FBattleTargetResolver::ResolveActionThroughStep(
+			Action,
+			BattleGridManager,
+			StepIndex,
+			StepResolvedTargeting))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[BattleSequenceManager] Targeting preview resolve failed. Step=%d"), StepIndex);
+			continue;
+		}
+
+		const FTargetingPhasePresentationSettings& PresentationSettings =
+			StepData->AdvancedSettings.Presentation.AttackSequencePhase;
+
+		if (PresentationSettings.bShowIndicator)
+		{
+			TArray<FHexOffsetCoord> StepIndicatorCoords = StepResolvedTargeting.AffectedCoords;
+			if (StepIndicatorCoords.IsEmpty())
+			{
+				if (const FTargetingStepResult* StepResult = StepResolvedTargeting.GetStep(StepIndex))
+				{
+					if (StepResult->HasSelectedCoord())
+					{
+						StepIndicatorCoords.Add(StepResult->SelectedCoord);
+					}
+				}
+			}
+
+			for (const FHexOffsetCoord& Coord : StepIndicatorCoords)
+			{
+				IndicatorCoords.AddUnique(Coord);
+			}
+		}
+
+		const bool bShowAnyPreview = PresentationSettings.bShowSelectionPreview
+			|| PresentationSettings.bShowPathPreview
+			|| PresentationSettings.bShowAreaPreview;
+		if (bShowAnyPreview && TargetingPresentationController)
+		{
+			TargetingPresentationController->AddResolvedStepPreview(
+				Action.Attacker,
+				Action.Card->TargetingData,
+				StepResolvedTargeting,
+				StepIndex,
+				PresentationSettings,
+				!Action.bPlayerAction);
+		}
+	}
+
+	if (!IndicatorCoords.IsEmpty())
+	{
+		BattleGridManager->SetExchangeIndicator(
+			Action.Card->AttackType.AttackType,
+			IndicatorCoords,
+			!Action.bPlayerAction);
+	}
+}
+
+void ABattleSequenceManager::ClearBattleActionPresentation()
+{
+	if (TargetingPresentationController)
+	{
+		TargetingPresentationController->ClearExecutionPreview();
+	}
+
+	if (BattleGridManager)
+	{
+		BattleGridManager->AllClearGridHovered();
+		BattleGridManager->AllClearExchangeIndicator();
+	}
 }
 
 // ============================================================================
@@ -213,10 +574,13 @@ void ABattleSequenceManager::StartExecutionRunner(const TArray<FBattleExecutionE
 	FBattleExecutionEntryStarted OnEntryStarted;
 	OnEntryStarted.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryStarted);
 
+	FBattleExecutionEntryFinished OnEntryFinished;
+	OnEntryFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryFinished);
+
 	FBattleExecutionRunnerFinished OnFinished;
 	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionRunnerFinished);
 
-	ExecutionRunner->Run(ExecutionEntries, Context, OnEntryStarted, OnFinished);
+	ExecutionRunner->Run(ExecutionEntries, Context, OnEntryStarted, OnEntryFinished, OnFinished);
 }
 
 void ABattleSequenceManager::HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
@@ -268,7 +632,26 @@ void ABattleSequenceManager::HandleExecutionEntryStarted(
 	}
 
 	InOutExecutionContext.ResolvedTargeting = CurrentResolvedTargeting;
+
+	if (bBattleActionSequenceRunning)
+	{
+		RefreshBattleActionTargetingPresentation(CurrentAction, CurrentResolvedTargeting);
+	}
+
 	OnExecutionEntryStarted.Broadcast(CurrentAction, Entry, EntryIndex, CurrentResolvedTargeting);
+}
+
+void ABattleSequenceManager::HandleExecutionEntryFinished(
+	const FBattleExecutionEntry& Entry,
+	int32 EntryIndex,
+	const FBattleExecutionContext& ExecutionContext)
+{
+	if (!bSequenceRunning)
+	{
+		return;
+	}
+
+	OnExecutionEntryFinished.Broadcast(CurrentAction, Entry, EntryIndex, ExecutionContext.ResolvedTargeting);
 }
 
 void ABattleSequenceManager::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
@@ -324,4 +707,9 @@ void ABattleSequenceManager::FinishSequence()
 	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Sequence Finished."));
 
 	OnSequenceFinished.Broadcast();
+
+	if (bBattleActionSequenceRunning)
+	{
+		HandleCurrentBattleActionFinished();
+	}
 }

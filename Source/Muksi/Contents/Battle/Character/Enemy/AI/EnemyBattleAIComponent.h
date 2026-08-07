@@ -14,7 +14,6 @@ class UEnemyCardSelectStrategyBase;
 class UCharacterDataBase;
 class UMuksiBattleCardDataAsset;
 class ABattleGridManager;
-class ABattleManager;
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -30,7 +29,8 @@ public:
 	UMuksiBattleCardDataAsset* SelectCardForExchange(
 		FCharacterData EnemyData,
 		ABattleGridManager* GridManager,
-		ABattleManager* BattleManager
+		const FHexOffsetCoord& EnemyCoord,
+		const FHexOffsetCoord& PlayerCoord
 	);
 
 	TArray<FHexOffsetCoord> GetSelectedTargetingStepCoords() const;

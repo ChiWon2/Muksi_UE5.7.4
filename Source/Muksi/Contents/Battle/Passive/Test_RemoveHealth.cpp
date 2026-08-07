@@ -13,11 +13,10 @@ UTest_RemoveHealth::UTest_RemoveHealth()
 	Passive1();
 }
 
-void UTest_RemoveHealth::BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
+void UTest_RemoveHealth::BindingEvent(ABattleManager* BattleManager)
 {
-	Super::BindingEvent(BattleManager, BattleMainScreen);
+	Super::BindingEvent(BattleManager);
 	UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding "));
-	//BattleManager->OnExchangeStarted.AddDynamic(this, &UTest_RemoveHealth::Passive1_);
 }
 
 void UTest_RemoveHealth::Passive1()

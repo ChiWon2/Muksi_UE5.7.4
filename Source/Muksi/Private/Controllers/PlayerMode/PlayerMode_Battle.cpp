@@ -8,21 +8,19 @@
 
 #include "MuksiDebugHelper.h"
 #include "MuksiGameplayTags.h"
-#include "Kismet/GameplayStatics.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
-#include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
-#include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 namespace
 {
 	bool ResolveGridCoordFromCursorHit(
-		ABattleManager* BattleManager,
+		ABattleGridManager* BattleGridManager,
 		const FHitResult& HitResult,
 		FHexOffsetCoord& OutCoord,
 		ABattleGridTile*& OutTile)
@@ -30,13 +28,7 @@ namespace
 		OutCoord = FHexOffsetCoord::Invalid();
 		OutTile = nullptr;
 
-		if (!BattleManager)
-		{
-			return false;
-		}
-
-		ABattleGridManager* GridManager = BattleManager->GetBattleGridManager();
-		if (!GridManager)
+		if (!BattleGridManager)
 		{
 			return false;
 		}
@@ -53,7 +45,7 @@ namespace
 		if (const ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
 		{
 			OutCoord = HitCharacter->GetCharacterCoord();
-			OutTile = GridManager->GetTileActorByCoord(OutCoord);
+			OutTile = BattleGridManager->GetTileActorByCoord(OutCoord);
 			return OutCoord.IsValid() && OutTile;
 		}
 
@@ -61,18 +53,18 @@ namespace
 		// Visibility Trace를 맞는 경우에도 ImpactPoint에 가장 가까운 Grid Tile을
 		// 선택한다. Selection 종류와 점유 여부는 이 좌표 획득 단계에서 검사하지 않는다.
 		float BestDistanceSquared = TNumericLimits<float>::Max();
-		for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
+		for (int32 X = 0; X < BattleGridManager->GetGridWidth(); ++X)
 		{
-			for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
+			for (int32 Y = 0; Y < BattleGridManager->GetGridHeight(); ++Y)
 			{
 				const FHexOffsetCoord Coord(X, Y);
-				ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
+				ABattleGridTile* Tile = BattleGridManager->GetTileActorByCoord(Coord);
 				if (!Tile)
 				{
 					continue;
 				}
 
-				const FVector Delta = GridManager->GetWorldLocationByCoord(Coord) - HitResult.ImpactPoint;
+				const FVector Delta = BattleGridManager->GetWorldLocationByCoord(Coord) - HitResult.ImpactPoint;
 				const float DistanceSquared = FVector2D(Delta.X, Delta.Y).SizeSquared();
 				if (DistanceSquared < BestDistanceSquared)
 				{
@@ -98,27 +90,28 @@ void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 	PC->bEnableClickEvents = true;
 	PC->bEnableMouseOverEvents = true;
 
-	BattleManager = Cast<ABattleManager>(UGameplayStatics::GetActorOfClass( this, ABattleManager::StaticClass()));
-
-	if (!BattleManager)
+	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 	{
-		UE_LOG(LogTemp, Error, TEXT("[PlayerMode_Battle]EnterMode - BattleManager not found"));
-		return;
+		BattleTargetingManager = ManagerSubsystem->GetManager<ABattleTargetingManager>();
+		BattleGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
 	}
 
-	BattleMainScreen = BattleManager->GetBattleMainScreen();
-	if (!BattleMainScreen)
+	if (!BattleTargetingManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[PlayerMode_Battle]EnterMode - BattleMainScreen not found"));
+		UE_LOG(LogTemp, Error, TEXT("[PlayerMode_Battle] EnterMode - BattleTargetingManager not found"));
+		return;
 	}
 }
 
 void UPlayerMode_Battle::ExitMode()
 {
-	if (BattleManager)
+	if (BattleTargetingManager)
 	{
-		BattleManager->CancelPlayerCardTargeting();
+		BattleTargetingManager->RequestCancelPlayerTargeting();
 	}
+
+	BattleTargetingManager = nullptr;
+	BattleGridManager = nullptr;
 
 	Super::ExitMode();
 
@@ -152,14 +145,13 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 		return;
 	}
 
-	if (!BattleManager)
+	if (!BattleTargetingManager)
 	{
 		return;
 	}
 
-	if (BattleManager->IsPlayerCardTargeting())
+	if (BattleTargetingManager->RequestConfirmPlayerTargeting())
 	{
-		BattleManager->ConfirmPlayerCardTargetingStep();
 		return;
 	}
 
@@ -200,23 +192,12 @@ void UPlayerMode_Battle::HandleRightClick(const FInputActionValue& Value)
 {
 	Super::HandleRightClick(Value);
 
-	if (!BattleManager)
+	if (!BattleTargetingManager)
 	{
 		return;
 	}
 
-	// Do not gate undo through IsPlayerCardTargeting(). The session itself owns
-	// whether one confirmed step can be restored, including Completed state.
-	if (BattleManager->UndoPlayerCardTargetingStep())
-	{
-		return;
-	}
-
-	// No confirmed step remains: a right click cancels the whole card targeting.
-	if (BattleManager->HasActivePlayerTargetingSession())
-	{
-		BattleManager->CancelPlayerCardTargeting();
-	}
+	BattleTargetingManager->RequestUndoOrCancelPlayerTargeting();
 }
 
 void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
@@ -231,7 +212,7 @@ void UPlayerMode_Battle::UpdateHoveredGridTile(const FHitResult& HitResult, bool
 
 	if (bHasHitResult)
 	{
-		ResolveGridCoordFromCursorHit(BattleManager, HitResult, HoveredCoord, NewHoveredGridTile);
+		ResolveGridCoordFromCursorHit(BattleGridManager, HitResult, HoveredCoord, NewHoveredGridTile);
 	}
 
 	if (HoveredGridTile == NewHoveredGridTile)
@@ -254,27 +235,10 @@ void UPlayerMode_Battle::UpdateHoveredGridTile(const FHitResult& HitResult, bool
 
 void UPlayerMode_Battle::UpdateCardTargeting(const FHitResult& HitResult, bool bHasHitResult)
 {
-	if (!BattleManager || !BattleManager->IsPlayerCardTargeting())
+	if (BattleTargetingManager)
 	{
-		return;
+		BattleTargetingManager->RequestUpdatePlayerTargeting(HitResult, bHasHitResult);
 	}
-
-	if (!bHasHitResult)
-	{
-		BattleManager->UpdatePlayerTargetingAim(FVector::ZeroVector, false);
-		BattleManager->UpdatePlayerTargetingCandidate(FHexOffsetCoord::Invalid());
-		return;
-	}
-
-	BattleManager->UpdatePlayerTargetingAim(HitResult.ImpactPoint, true);
-
-	FHexOffsetCoord CandidateCoord = FHexOffsetCoord::Invalid();
-	ABattleGridTile* CandidateTile = nullptr;
-	ResolveGridCoordFromCursorHit(BattleManager, HitResult, CandidateCoord, CandidateTile);
-
-	// 좌표 획득은 Point/Direction/Target/AreaCenter/Destination 모두 공통이다.
-	// 점유/경로 제한은 TargetingStepCardData의 Purpose 검증 단계에서만 적용한다.
-	BattleManager->UpdatePlayerTargetingCandidate(CandidateCoord);
 }
 
 void UPlayerMode_Battle::PushCharacterDataWidget()

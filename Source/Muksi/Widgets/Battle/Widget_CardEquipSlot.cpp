@@ -382,7 +382,7 @@ bool UWidget_CardEquipSlot::UnequipCard(UHandWidget* HandWidget)
 	HandWidget->PlaceCardInHand(CardToReturn);
 	HandWidget->OrganizeCards(HandWidget->GetDefaultCardSpacing());
 
-	// 슬롯 데이터뿐 아니라 BattleManager가 들고 있는 PendingCard/TargetingSession도 정리한다.
+	// 슬롯 데이터 정리와 함께 TargetingManager의 플레이어 Targeting 상태도 취소한다.
 	if (HandWidget->BattleMainScreen)
 	{
 		HandWidget->BattleMainScreen->NotifyPlayerCardUnequipped();

@@ -2,26 +2,28 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleSimulationManager.generated.h"
 
 class ABattleCharacterBase;
 class ABattleGridManager;
+class ABattleManager;
 class ABattleSequenceManager;
 class ABattleSimulationCharacter;
+class UBattleRuntimeContext;
 class ABattleSimulationPostProcessVolume;
 class UMuksiBattleCardDataAsset;
 class UMaterialInterface;
+class UTargetingPresentationController;
 struct FBattleSequenceRequest;
 struct FBattleExecutionEntry;
 struct FResolvedTargeting;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnSimulationExchangeFinished, int32);
-DECLARE_MULTICAST_DELEGATE(FOnBattleSimulationFinished);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnSimulationActionStarted, const FBattleAction&);
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnSimulationExecutionStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FResolvedTargeting&);
-DECLARE_MULTICAST_DELEGATE(FOnSimulationActionFinished);
-
+/**
+ * Round Simulation Runtime, Exchange Action 실행과 Simulation Preview를 담당한다.
+ * Phase 순서는 결정하지 않으며 SimulationSequence 완료만 BattleManager에 통지한다.
+ */
 UCLASS()
 class MUKSI_API ABattleSimulationManager : public AActor
 {
@@ -29,13 +31,9 @@ class MUKSI_API ABattleSimulationManager : public AActor
 
 public:
 	ABattleSimulationManager();
-	FOnSimulationExchangeFinished OnSimulationExchangeFinished;
-	FOnBattleSimulationFinished OnBattleSimulationFinished;
-	FOnSimulationActionStarted OnSimulationActionStarted;
-	FOnSimulationExecutionStarted OnSimulationExecutionStarted;
-	FOnSimulationActionFinished OnSimulationActionFinished;
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
@@ -48,21 +46,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	bool IsSimulationRunning() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	bool StartSimulation(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	bool SetPlayerAction(const FBattleAction& PlayerAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	bool SetEnemyAction(const FBattleAction& EnemyAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	bool ExecuteCurrentExchange();
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation")
-	void StopSimulation();
-
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
@@ -73,11 +56,28 @@ public:
 	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
 
 	const FBattleSimulationExchange& GetCurrentExchange() const { return CurrentExchange; }
-	const TArray<FBattleAction>& GetSequenceActionQueue() const { return SequenceActionQueue; }
 
-public:
+private:
+	bool TryBindBattleFlow();
+	void BindBattleFlowDeferred();
+
+	UFUNCTION()
+	void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	void HandleBattlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
+
+	bool InitializeRoundSimulation();
+	bool PrepareCurrentExchangeSimulation();
+	bool StartCurrentExchangeSimulation();
+	void NotifySimulationPhaseFinished(int32 FinishedExchangeIndex);
+
+	bool StartSimulation(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
+	bool SetPlayerAction(const FBattleAction& PlayerAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
+	bool SetEnemyAction(const FBattleAction& EnemyAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
+	bool ExecuteCurrentExchange();
+	void StopSimulation();
+
 	bool CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool CreateSimulationExecutionEnvironment(ABattleGridManager* SourceGridManager);
+	bool CreateSimulationExecutionEnvironment(ABattleGridManager* InSourceGridManager);
 	bool CreateSimulationPostProcess();
 	void DestroySimulationPostProcess();
 	void HideSourceCharacters();
@@ -85,8 +85,13 @@ public:
 	bool TryExecuteCurrentExchange();
 	bool ExecuteSimulationAction(const FBattleSimulationActionPlan& ActionPlan);
 	bool BuildSimulationSequenceRequest(const FBattleSimulationActionPlan& ActionPlan, FBattleSequenceRequest& OutRequest) const;
+	void HandleSimulationActionStarted(const FBattleAction& Action);
 	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
+	void HandleSimulationActionFinished();
 	void HandleSimulationSequenceFinished();
+	void RefreshSimulationTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);
+	bool ResolveSimulationActionTargetingThroughStep(const FBattleAction& Action, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting) const;
+	void ClearRuntimeSimulationPreview();
 	void FinishCurrentExchange();
 	void DestroySimulationRuntime();
 	void ResetSimulationRuntime();
@@ -99,10 +104,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
 	FBattleSimulationExchange CurrentExchange;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
-	TArray<FBattleAction> SequenceActionQueue;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Rule", meta = (ClampMin = "1"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Rule")
 	int32 MaxExchangeCount = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
@@ -115,16 +117,28 @@ protected:
 	TObjectPtr<UMaterialInterface> EnemySimulationMaterial = nullptr;
 
 	UPROPERTY(Transient)
-	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> SimulationCharacterMap;
+	TObjectPtr<ABattleManager> BattleManager = nullptr;
 
 	UPROPERTY(Transient)
-	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
+	TObjectPtr<UBattleRuntimeContext> BattleRuntimeContext = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> SourceGridManager = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSequenceManager> SimulationSequenceManager = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTargetingPresentationController> SimulationTargetingPresentationController = nullptr;
+
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> SimulationCharacterMap;
+
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
 	// Disabled by default for clearer simulation testing.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
@@ -135,4 +149,6 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSimulationPostProcessVolume> SimulationPostProcessVolume = nullptr;
+
+	FTimerHandle BattleFlowBindingTimerHandle;
 };

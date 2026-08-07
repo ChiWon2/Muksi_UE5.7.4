@@ -18,7 +18,9 @@ public:
 
 	
 protected:
-	virtual void OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase) override;
+	virtual void HandleBattlePhaseChanged(
+		EBattlePhase OldPhase,
+		EBattlePhase NewPhase) override;
 
 	UFUNCTION()
 	void Passive1();

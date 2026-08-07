@@ -18,7 +18,7 @@ UCharacterPassiveComponent::UCharacterPassiveComponent()
 
 
 
-void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
+void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager)
 {
 	ActivePassives.Empty();
 
@@ -50,9 +50,89 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 			continue;
 		}
 		NewPassive->InitializePassive(OwnerCharacter);
-		NewPassive->BindingEvent(BattleManager, BattleMainScreen);
+		NewPassive->BindingEvent(BattleManager);
 		ActivePassives.Add(NewPassive);
 	}
 }
 
 
+
+
+void UCharacterPassiveComponent::ExecuteRoundPhaseSequentially(
+	EBattlePhase NewPhase,
+	FSimpleDelegate CompletionDelegate)
+{
+	if (bExecutingRoundPhase)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[CharacterPassiveComponent] Round phase execution is already active."));
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
+	if (NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::RoundEnd)
+	{
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
+	bExecutingRoundPhase = true;
+	ExecutingRoundPhase = NewPhase;
+	RoundPhaseExecutionQueue = ActivePassives;
+	RoundPhaseExecutionIndex = 0;
+	RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
+	ExecuteNextRoundPhasePassive();
+}
+
+void UCharacterPassiveComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	FinishRoundPhaseExecution();
+	Super::EndPlay(EndPlayReason);
+}
+
+void UCharacterPassiveComponent::ExecuteNextRoundPhasePassive()
+{
+	if (!bExecutingRoundPhase)
+	{
+		return;
+	}
+
+	while (RoundPhaseExecutionQueue.IsValidIndex(RoundPhaseExecutionIndex))
+	{
+		UCharacterPassive* Passive = RoundPhaseExecutionQueue[RoundPhaseExecutionIndex++];
+		if (!IsValid(Passive))
+		{
+			continue;
+		}
+
+		Passive->ExecuteRoundPhase(
+			ExecutingRoundPhase,
+			FSimpleDelegate::CreateUObject(
+				this,
+				&UCharacterPassiveComponent::HandleRoundPhasePassiveFinished));
+		return;
+	}
+
+	FinishRoundPhaseExecution();
+}
+
+void UCharacterPassiveComponent::HandleRoundPhasePassiveFinished()
+{
+	ExecuteNextRoundPhasePassive();
+}
+
+void UCharacterPassiveComponent::FinishRoundPhaseExecution()
+{
+	if (!bExecutingRoundPhase)
+	{
+		return;
+	}
+
+	bExecutingRoundPhase = false;
+	ExecutingRoundPhase = EBattlePhase::None;
+	RoundPhaseExecutionIndex = INDEX_NONE;
+	RoundPhaseExecutionQueue.Reset();
+
+	FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
+	RoundPhaseCompletionDelegate.Unbind();
+	CompletionDelegate.ExecuteIfBound();
+}

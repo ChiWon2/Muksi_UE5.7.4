@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "UObject/Object.h"
 #include "MuksiStatusEffect.generated.h"
 
@@ -10,7 +11,7 @@ UCLASS(Abstract, BlueprintType)
 class MUKSI_API UMuksiStatusEffect : public UObject
 {
     GENERATED_BODY()
-    
+
 protected:
     UPROPERTY()
     TObjectPtr<AActor> OwnerActor;
@@ -27,8 +28,21 @@ protected:
     UPROPERTY()
     int32 RemainingDuration = 1;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "StatusEffect|Execution")
+    bool bWaitForManualRoundPhaseCompletion = false;
+
+private:
+    FSimpleDelegate RoundPhaseCompletionDelegate;
+    bool bRoundPhaseExecutionActive = false;
+
 public:
+    virtual void BeginDestroy() override;
     virtual void Initialize(AActor* InOwnerActor,UMuksiStatusEffectComponent* InOwnerComponent,FName InEffectID,int32 InStackCount,int32 InDuration);
+
+    void ExecuteRoundPhase(EBattlePhase Phase, FSimpleDelegate CompletionDelegate);
+
+    UFUNCTION(BlueprintCallable, Category = "StatusEffect|Execution")
+    void NotifyRoundPhaseExecutionFinished();
 
 public:
     virtual void OnApplied();
@@ -40,8 +54,8 @@ public:
     virtual void OnRoundStart();
     virtual void OnExchangeStart();
 
-    virtual void OnAttackStart();
-    virtual void OnAttackEnd();
+    virtual void OnBattleActionSequenceStart();
+    virtual void OnBattleActionSequenceEnd();
 
     virtual void OnExchangeEnd();
     virtual void OnRoundEnd();

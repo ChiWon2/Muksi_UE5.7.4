@@ -1,10 +1,12 @@
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 
-void UBattleExecutionRunner::Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionRunnerFinished OnFinished)
+void UBattleExecutionRunner::Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished)
 {
 	ExecutionEntries = InExecutionEntries;
 	CachedContext = Context;
+	CurrentExecutionContext = FBattleExecutionContext();
 	CachedOnEntryStarted = OnEntryStarted;
+	CachedOnEntryFinished = OnEntryFinished;
 	CachedOnFinished = OnFinished;
 	CurrentExecution = nullptr;
 	CurrentExecutionIndex = INDEX_NONE;
@@ -52,7 +54,8 @@ void UBattleExecutionRunner::ExecuteNextExecution()
 
 	bWaitingForCurrentExecution = true;
 	CachedOnEntryStarted.ExecuteIfBound(Entry, CurrentExecutionIndex, ExecutionContext);
-	CurrentExecution->Execute(ExecutionContext, OnExecutionFinished);
+	CurrentExecutionContext = ExecutionContext;
+	CurrentExecution->Execute(CurrentExecutionContext, OnExecutionFinished);
 }
 
 void UBattleExecutionRunner::HandleCurrentExecutionFinished()
@@ -62,8 +65,20 @@ void UBattleExecutionRunner::HandleCurrentExecutionFinished()
 		return;
 	}
 
+	const int32 FinishedEntryIndex = CurrentExecutionIndex;
+	const FBattleExecutionEntry FinishedEntry = ExecutionEntries.IsValidIndex(FinishedEntryIndex)
+		? ExecutionEntries[FinishedEntryIndex]
+		: FBattleExecutionEntry();
+	const FBattleExecutionContext FinishedContext = CurrentExecutionContext;
+
 	bWaitingForCurrentExecution = false;
 	CurrentExecution = nullptr;
+	CurrentExecutionContext = FBattleExecutionContext();
+
+	if (FinishedEntry.IsValid())
+	{
+		CachedOnEntryFinished.ExecuteIfBound(FinishedEntry, FinishedEntryIndex, FinishedContext);
+	}
 
 	ExecuteNextExecution();
 }
@@ -80,10 +95,12 @@ void UBattleExecutionRunner::FinishRunner()
 	CurrentExecution = nullptr;
 	ExecutionEntries.Empty();
 	CachedContext = FBattleExecutionContext();
+	CurrentExecutionContext = FBattleExecutionContext();
 	CurrentExecutionIndex = INDEX_NONE;
 
 	FBattleExecutionRunnerFinished OnRunnerFinished = CachedOnFinished;
 	CachedOnEntryStarted.Unbind();
+	CachedOnEntryFinished.Unbind();
 	CachedOnFinished.Unbind();
 	OnRunnerFinished.ExecuteIfBound(this);
 }

@@ -5,7 +5,6 @@
 
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
-#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 // Sets default values for this component's properties
@@ -42,7 +41,8 @@ void UEnemyBattleAIComponent::InitializeAI(UMuksiCharacterDataAsset* InCharacter
 UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 	FCharacterData EnemyData,
 	ABattleGridManager* GridManager,
-	ABattleManager* BattleManager
+	const FHexOffsetCoord& EnemyCoord,
+	const FHexOffsetCoord& PlayerCoord
 )
 {
 	if (!CardSelectStrategy)
@@ -60,8 +60,8 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 	Result = CardSelectStrategy->SelectCardForExchange(
 		EnemyData,
 		GridManager,
-		BattleManager->GetEnemyTargetingCoord(),
-		BattleManager->GetPlayerTargetingCoord()
+		EnemyCoord,
+		PlayerCoord
 	);
 	return Result.SelectedCard;
 }

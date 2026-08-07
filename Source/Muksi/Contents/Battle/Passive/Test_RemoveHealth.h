@@ -15,7 +15,7 @@ class MUKSI_API UTest_RemoveHealth : public UCharacterPassive
 	GENERATED_BODY()
 public:
 	UTest_RemoveHealth();
-	virtual void BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen) override;
+	virtual void BindingEvent(ABattleManager* BattleManager) override;
 	
 protected:
 	UFUNCTION()

@@ -7,9 +7,11 @@
 
 void UCharacterPassive::BeginDestroy()
 {
+	NotifyRoundPhaseExecutionFinished();
+
 	if (CachedBattleManager)
 	{
-		CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UCharacterPassive::HandleBattlePhaseChanged);
+		CachedBattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
 		CachedBattleManager = nullptr;
 	}
 
@@ -22,31 +24,74 @@ void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner)
 }
 
 
-void UCharacterPassive::BindingEvent(ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
+void UCharacterPassive::BindingEvent(ABattleManager* BattleManager)
 {
 	if (CachedBattleManager)
 	{
-		CachedBattleManager->OnBattlePhaseChanged.RemoveDynamic(this, &UCharacterPassive::HandleBattlePhaseChanged);
+		CachedBattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
 	}
 
 	CachedBattleManager = BattleManager;
-
 	if (CachedBattleManager)
 	{
-		CachedBattleManager->OnBattlePhaseChanged.AddUniqueDynamic(this, &UCharacterPassive::HandleBattlePhaseChanged);
+		CachedBattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
 	}
 }
 
-void UCharacterPassive::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void UCharacterPassive::ExecuteRoundPhase(
+	EBattlePhase NewPhase,
+	FSimpleDelegate CompletionDelegate)
 {
-	if (!bEnabled)
+	if (bRoundPhaseExecutionActive)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[CharacterPassive] Round phase execution is already active."));
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
+	if (!bEnabled || (NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::RoundEnd))
+	{
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
+	bRoundPhaseExecutionActive = true;
+	RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
+	HandleBattlePhaseChanged(EBattlePhase::None, NewPhase);
+
+	if (!bWaitForManualRoundPhaseCompletion)
+	{
+		NotifyRoundPhaseExecutionFinished();
+	}
+}
+
+void UCharacterPassive::NotifyRoundPhaseExecutionFinished()
+{
+	if (!bRoundPhaseExecutionActive)
 	{
 		return;
 	}
 
-	OnBattlePhaseChanged(OldPhase, NewPhase);
+	bRoundPhaseExecutionActive = false;
+	FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
+	RoundPhaseCompletionDelegate.Unbind();
+	CompletionDelegate.ExecuteIfBound();
 }
 
-void UCharacterPassive::OnBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void UCharacterPassive::HandleChangePhaseDelegate(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
+	if (!bEnabled || NewPhase == EBattlePhase::RoundStart || NewPhase == EBattlePhase::RoundEnd)
+	{
+		return;
+	}
+
+	HandleBattlePhaseChanged(OldPhase, NewPhase);
+}
+
+void UCharacterPassive::HandleBattlePhaseChanged(
+	EBattlePhase OldPhase,
+	EBattlePhase NewPhase)
+{
+	static_cast<void>(OldPhase);
+	static_cast<void>(NewPhase);
 }

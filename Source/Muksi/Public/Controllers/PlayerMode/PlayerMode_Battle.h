@@ -6,14 +6,14 @@
 #include "Controllers/PlayerMode/PlayerModeBase.h"
 #include "PlayerMode_Battle.generated.h"
 
-class UWidget_BattleMainScreen;
 class UDataTable;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
 class ABattleCharacterBase;
 
+class ABattleGridManager;
 class ABattleGridTile;
-class ABattleManager;
+class ABattleTargetingManager;
 
 UCLASS(Blueprintable, BlueprintType)
 class MUKSI_API UPlayerMode_Battle : public UPlayerModeBase
@@ -36,10 +36,10 @@ public:
 	TObjectPtr<ABattleGridTile> HoveredGridTile = nullptr;
 
 	UPROPERTY()
-	TObjectPtr<ABattleManager> BattleManager = nullptr;
+	TObjectPtr<ABattleTargetingManager> BattleTargetingManager = nullptr;
 
 	UPROPERTY()
-	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
+	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
 
 private:
 	void UpdateHoveredGridTile(const FHitResult& HitResult, bool bHasHitResult);

@@ -13,15 +13,18 @@ ABattleCharacter_Enemy::ABattleCharacter_Enemy()
 
 }
 
-void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen)
+void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager)
 {
-	Super::SetCharacterData(InCharacterData, BattleManager, BattleMainScreen);
+	Super::SetCharacterData(InCharacterData, BattleManager);
 	InitData();
 }
 
-UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::SelectCardForExchange(ABattleGridManager* GridManager, ABattleManager* BattleManager) const
+UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::SelectCardForExchange(
+	ABattleGridManager* GridManager,
+	const FHexOffsetCoord& EnemyCoord,
+	const FHexOffsetCoord& PlayerCoord) const
 {
-	return BattleAIComponent->SelectCardForExchange(CharacterData, GridManager, BattleManager);
+	return BattleAIComponent->SelectCardForExchange(CharacterData, GridManager, EnemyCoord, PlayerCoord);
 }
 
 TArray<FHexOffsetCoord> ABattleCharacter_Enemy::GetSelectedTargetingStepCoords() const

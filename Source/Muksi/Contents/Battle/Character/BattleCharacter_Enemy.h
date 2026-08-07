@@ -8,7 +8,6 @@
 
 class UEnemyBattleAIComponent;
 class UMuksiCharacterDataAsset;
-class ABattleManager;
 class ABattleGridManager;
 /**
  *
@@ -22,9 +21,9 @@ public:
 
 public:
 	UEnemyBattleAIComponent* BattleAIComponent;
-	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager, UWidget_BattleMainScreen* BattleMainScreen) override;
+	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager) override;
 
-	UMuksiBattleCardDataAsset* SelectCardForExchange(ABattleGridManager* GridManager, ABattleManager* BattleManager) const;
+	UMuksiBattleCardDataAsset* SelectCardForExchange(ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord) const;
 	TArray<FHexOffsetCoord> GetSelectedTargetingStepCoords() const;
 
 

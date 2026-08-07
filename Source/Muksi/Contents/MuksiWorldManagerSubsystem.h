@@ -16,6 +16,7 @@ class MUKSI_API UMuksiWorldManagerSubsystem : public UWorldSubsystem
 private:
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<UClass>, TWeakObjectPtr<AActor>> RegisteredManagers;
+
 public:
 	static UMuksiWorldManagerSubsystem* Get(const UObject* WorldContextObject);
 
@@ -33,6 +34,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Muksi|World Manager")
 	bool HasManagerByClass(TSubclassOf<AActor> ManagerClass) const;
+
 
 public:
 	template<typename T>

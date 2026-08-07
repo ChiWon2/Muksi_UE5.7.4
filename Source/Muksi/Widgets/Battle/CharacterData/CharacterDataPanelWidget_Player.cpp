@@ -14,6 +14,7 @@
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 
 void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 {
@@ -32,9 +33,14 @@ void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
 	}
 
 	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-	ABattleManager* BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
+	ABattleManager* BattleManager = ManagerSubsystem
+		? ManagerSubsystem->GetManager<ABattleManager>()
+		: nullptr;
+	UBattleRuntimeContext* BattleRuntimeContext = BattleManager
+		? BattleManager->GetBattleRuntimeContext()
+		: nullptr;
 
-	ApplyCharacterData(Cast<ABattleCharacter_Player>(BattleManager->GetPlayerBattleCharacter()));
+	ApplyCharacterData(BattleRuntimeContext ? BattleRuntimeContext->GetPlayerCharacter() : nullptr);
 }
 
 void UCharacterDataPanelWidget_Player::ApplyCharacterData(ABattleCharacter_Player* PlayerData)
