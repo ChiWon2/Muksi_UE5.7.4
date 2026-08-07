@@ -257,6 +257,8 @@ public:
 	void EnableExchangeSlot(int32 InIndex, bool bActive);
 
 	void ActiveHandCards(bool bActive);
+	
+	void ClearTimerHandler();
 
 protected:
 	void RequestOrganizeCards(float OffsetX = -1.0f);

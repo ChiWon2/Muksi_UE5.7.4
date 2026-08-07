@@ -3,6 +3,8 @@
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "MuksiStatusEffect.h"
 #include "MuksiStatusEffectSubsystem.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 UMuksiStatusEffectComponent::UMuksiStatusEffectComponent()
 {
@@ -14,6 +16,7 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
     if (BattleManager)
     {
         BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->BattleActionStartDelegate.RemoveAll(this);
     }
 
     BattleManager = InBattleManager;
@@ -21,6 +24,7 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
     if (BattleManager)
     {
         BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->BattleActionStartDelegate.AddUObject(this, &UMuksiStatusEffectComponent::HandleBattleActionStart);
     }
 }
 
@@ -31,6 +35,7 @@ void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
     if (BattleManager)
     {
         BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
+        BattleManager->BattleActionStartDelegate.RemoveAll(this);
         BattleManager = nullptr;
     }
 
@@ -192,6 +197,25 @@ for (UMuksiStatusEffect* Effect : ActiveEffects) \
 } \
 RemoveExpiredEffects();
 
+
+void UMuksiStatusEffectComponent::HandleBattleActionStart(const FBattleAction& BattleAction)
+{
+    if (GetOwner() != BattleAction.Attacker)
+    {
+        return;
+    }
+
+    const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
+    for (UMuksiStatusEffect* Effect : EffectsSnapshot)
+    {
+        if (IsValid(Effect))
+        {
+            Effect->OnBattleActionStart(BattleAction);
+        }
+    }
+
+    RemoveExpiredEffects();
+}
 
 void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {

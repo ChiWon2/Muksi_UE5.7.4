@@ -121,6 +121,25 @@ void AMuksiPlayerController::SetupInputComponent()
 	}
 }
 
+void AMuksiPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	
+	UE_LOG(
+	   LogTemp,
+	   Warning,
+	   TEXT(
+		   "[WorldReturn][OnPossess] Controller=%s Pawn=%s Class=%s Location=%s"
+	   ),
+	   *GetNameSafe(this),
+	   *GetNameSafe(InPawn),
+	   InPawn ? *GetNameSafe(InPawn->GetClass()) : TEXT("None"),
+	   InPawn
+		   ? *InPawn->GetActorLocation().ToString()
+		   : TEXT("None")
+   );
+}
+
 void AMuksiPlayerController::OnLeftClick(const FInputActionValue& Value)
 {
 	if (CurrentPlayerMode){CurrentPlayerMode->HandleLeftClick(Value);}

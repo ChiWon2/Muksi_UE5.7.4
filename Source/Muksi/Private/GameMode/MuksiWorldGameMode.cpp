@@ -29,9 +29,37 @@ void AMuksiWorldGameMode::HandleStartingNewPlayer_Implementation(APlayerControll
 void AMuksiWorldGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	
-	
+	//Pawn 제대로 생성되었는지 확인용
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT(
+			"[WorldReturn] GameMode BeginPlay | "
+			"World=%s | GameMode=%s | DefaultPawnClass=%s"
+		),
+		*GetNameSafe(GetWorld()),
+		*GetNameSafe(this),
+		*GetNameSafe(DefaultPawnClass)
+	);
+	//PlayerController가 Pawn을 제대로 받았는지
+	APlayerController* PC =
+	UGameplayStatics::GetPlayerController(this, 0);
+
+	APawn* Pawn = IsValid(PC)
+		? PC->GetPawn()
+		: nullptr;
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT(
+			"[WorldReturn] Controller=%s | Pawn=%s | "
+			"PawnClass=%s"
+		),
+		*GetNameSafe(PC),
+		*GetNameSafe(Pawn),
+		Pawn ? *Pawn->GetClass()->GetName() : TEXT("None")
+	);
 	
 
 	//아래 내용은 BattleEncounter 테스트 삼아 진행하는 내용

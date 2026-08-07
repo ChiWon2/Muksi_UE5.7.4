@@ -16,6 +16,7 @@ class MUKSI_API UTest_RemoveHealth : public UCharacterPassive
 public:
 	UTest_RemoveHealth();
 	virtual void BindingEvent(ABattleManager* BattleManager) override;
+	virtual void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase) override;
 	
 protected:
 	UFUNCTION()

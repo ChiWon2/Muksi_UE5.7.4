@@ -98,14 +98,17 @@ void UBattleStatComponent::SetCurrentHP(float NewHP)
 		return;
 	}
 
+	if (NewHP > BaseStats.HP){NewHP = BaseStats.HP;}
+	
 	CurrentHP = FMath::Clamp(
 		NewHP,
 		0.0f,
 		CurrentStats.HP
 	);
 	
-	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
-
+	OnHPChanged.Broadcast(CurrentStats.HP,NewHP);
+	
+	CurrentStats.HP = NewHP;
 	if (CurrentHP <= 0.0f)
 	{
 		HandleDeath();
@@ -143,6 +146,7 @@ void UBattleStatComponent::HandleDeath()
 	ABattleCharacterBase* OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
 	checkf(IsValid(OwnerCharacter), TEXT("OwnerCharacter is null BattleStatComponent.cpp"));
 
+	UE_LOG(LogTemp, Error, TEXT("Handle Death (BattleStatComponent.cpp)"));
 	OnDead.Broadcast(OwnerCharacter);
 }
 

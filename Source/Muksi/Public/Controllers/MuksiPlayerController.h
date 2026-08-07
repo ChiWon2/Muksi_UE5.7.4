@@ -81,6 +81,7 @@ protected:
 	//~ Begin AActor Interface
 	virtual void BeginPlay() override; //PlayerMode 인스턴스 초기화
 	virtual void SetupInputComponent() override;
+	virtual void OnPossess(APawn* InPawn) override;
 	//~ End AActor Interface
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")

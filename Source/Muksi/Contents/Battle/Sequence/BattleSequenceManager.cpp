@@ -58,6 +58,7 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (BattleManager)
 	{
 		BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
+		BattleActionStartDelegate.RemoveAll(BattleManager);
 	}
 
 	ClearBattleActionPresentation();
@@ -114,6 +115,9 @@ bool ABattleSequenceManager::TryBindBattleFlow()
 
 	BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
 	BattleManager->PhaseUIFinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandleBattlePhaseUIFinished);
+
+	BattleActionStartDelegate.RemoveAll(BattleManager);
+	BattleActionStartDelegate.AddUObject(BattleManager, &ABattleManager::NotifyBattleActionStart);
 	return true;
 }
 
@@ -211,6 +215,7 @@ bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceReque
 		return false;
 	}
 
+	BattleActionStartDelegate.Broadcast(CurrentAction);
 	StartMainExecutionChain();
 	return true;
 }

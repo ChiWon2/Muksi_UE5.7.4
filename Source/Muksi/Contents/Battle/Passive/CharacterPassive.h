@@ -10,6 +10,7 @@
 class ABattleCharacterBase;
 class ABattleManager;
 class UMuksiBattleCardDataAsset;
+struct FBattleAction;
 
 //안씀	언제쯤 호출되게 하는게 보기 좋은지 보는 용도
 UENUM(BlueprintType)
@@ -94,6 +95,9 @@ public:
 
 
 protected:
+	// 개별 Passive가 필요한 Attacker/Owner 조건을 직접 판단한다.
+	virtual void HandleBattleActionStart(const FBattleAction&) {}
+
 	virtual void HandleBattlePhaseChanged(
 		EBattlePhase OldPhase,
 		EBattlePhase NewPhase);
@@ -155,4 +159,5 @@ private:
 
 	UFUNCTION()
 	void HandleChangePhaseDelegate(EBattlePhase OldPhase, EBattlePhase NewPhase);
+
 };

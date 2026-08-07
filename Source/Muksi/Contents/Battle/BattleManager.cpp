@@ -57,6 +57,11 @@ void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void ABattleManager::NotifyBattleActionStart(const FBattleAction& BattleAction)
+{
+	BattleActionStartDelegate.Broadcast(BattleAction);
+}
+
 void ABattleManager::ReadyStart()
 {
 	bIsCharacterDead = false;
@@ -91,7 +96,6 @@ void ABattleManager::BattleEnd()
 	ChangePhase(EBattlePhase::BattleEnd);
 	NotifyPhaseExecutionFinished();
 }
-
 void ABattleManager::RoundStart()
 {
 	++CurrentRound;

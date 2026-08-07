@@ -17,6 +17,7 @@ class UMuksiBattleAnimationComponent;
 class UBattleSequenceExecutionEnvironment;
 class UTargetingPresentationController;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleActionStart, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
 DECLARE_MULTICAST_DELEGATE(FOnBattleActionFinished);
 DECLARE_MULTICAST_DELEGATE(FOnBattleActionSequenceFinished);
@@ -37,6 +38,10 @@ protected:
 	bool bWorldManagerRegistrationEnabled = true;
 public:
 	void SetWorldManagerRegistrationEnabled(bool bEnabled) { bWorldManagerRegistrationEnabled = bEnabled; }
+
+	// 단일 BattleAction Sequence가 실제 실행을 시작하는 순간 발생한다.
+	// Simulation / BattleActionSequence 모두 StartSequenceWithRequest()를 통과하므로 공통 발생 지점이다.
+	FOnBattleActionStart BattleActionStartDelegate;
 
 	// 단일 Action의 Execution Chain 완료 이벤트. Simulation에서도 기존대로 사용한다.
 	FOnBattleSequenceFinished OnSequenceFinished;

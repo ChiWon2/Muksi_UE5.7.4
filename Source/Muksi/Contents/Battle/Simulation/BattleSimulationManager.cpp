@@ -429,6 +429,10 @@ bool ABattleSimulationManager::CreateSimulationExecutionEnvironment(ABattleGridM
 	SimulationSequenceManager->SetWorldManagerRegistrationEnabled(false);
 	UGameplayStatics::FinishSpawningActor(SimulationSequenceManager, FTransform::Identity);
 	SimulationSequenceManager->BattleGridManager = SourceGridManager;
+	if (IsValid(BattleManager))
+	{
+		SimulationSequenceManager->BattleActionStartDelegate.AddUObject(BattleManager, &ABattleManager::NotifyBattleActionStart);
+	}
 	SimulationSequenceManager->OnSequenceFinished.AddUObject(this, &ABattleSimulationManager::HandleSimulationSequenceFinished);
 	SimulationSequenceManager->OnExecutionEntryStarted.AddUObject(this, &ABattleSimulationManager::HandleSimulationExecutionStarted);
 	return true;
@@ -804,6 +808,10 @@ void ABattleSimulationManager::DestroySimulationRuntime()
 	{
 		SimulationSequenceManager->OnSequenceFinished.RemoveAll(this);
 		SimulationSequenceManager->OnExecutionEntryStarted.RemoveAll(this);
+		if (IsValid(BattleManager))
+		{
+			SimulationSequenceManager->BattleActionStartDelegate.RemoveAll(BattleManager);
+		}
 		SimulationSequenceManager->Destroy();
 		SimulationSequenceManager = nullptr;
 	}
