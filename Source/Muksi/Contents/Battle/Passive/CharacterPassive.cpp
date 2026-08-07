@@ -4,6 +4,7 @@
 #include "Muksi/Contents/Battle/Passive/CharacterPassive.h"
 
 #include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
 
 void UCharacterPassive::BeginDestroy()
 {
@@ -12,6 +13,7 @@ void UCharacterPassive::BeginDestroy()
 	if (CachedBattleManager)
 	{
 		CachedBattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
+		CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
 		CachedBattleManager = nullptr;
 	}
 
@@ -29,12 +31,14 @@ void UCharacterPassive::BindingEvent(ABattleManager* BattleManager)
 	if (CachedBattleManager)
 	{
 		CachedBattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
+		CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
 	}
 
 	CachedBattleManager = BattleManager;
 	if (CachedBattleManager)
 	{
 		CachedBattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
+		CachedBattleManager->BattleActionStartDelegate.AddUObject(this, &UCharacterPassive::HandleBattleActionStart);
 	}
 }
 

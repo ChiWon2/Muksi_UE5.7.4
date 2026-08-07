@@ -1120,6 +1120,11 @@ void UHandWidget::ActiveHandCards(bool bActive)
 	}
 }
 
+void UHandWidget::ClearTimerHandler()
+{
+	GetWorld()->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
+}
+
 void UHandWidget::BindSelectButton()
 {
 	if (!Button_Select)

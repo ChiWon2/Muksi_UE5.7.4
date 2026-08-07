@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
+#include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "BattleManager.generated.h"
 
 class UBattleRoundPhaseCoordinator;
@@ -12,6 +13,7 @@ class UBattleRuntimeContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseChanged, EBattlePhase, OldPhase, EBattlePhase, NewPhase);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseNativeEvent, EBattlePhase, EBattlePhase);
+
 
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
@@ -33,6 +35,9 @@ public:
     FOnBattlePhaseChanged PhaseUIDelegate;
 
     FOnBattlePhaseNativeEvent PhaseUIFinishedDelegate;
+
+    // 실제 전투/Simulation의 BattleSequenceManager 시작 이벤트를 하나로 중계한다.
+    FOnBattleActionStart BattleActionStartDelegate;
 
 public:
     UFUNCTION(BlueprintPure, Category = "Battle")
@@ -59,6 +64,7 @@ public:
     void NotifyInteractivePhaseFinished(EBattlePhase FinishedPhase);
     void RestartCurrentExchangeCardSelection();
     void NotifyBattleCharacterDead();
+    void NotifyBattleActionStart(const FBattleAction& BattleAction);
 
     void ReadyStart();
 

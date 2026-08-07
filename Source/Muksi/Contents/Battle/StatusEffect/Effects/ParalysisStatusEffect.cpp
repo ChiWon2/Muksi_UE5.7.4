@@ -6,3 +6,8 @@ void UParalysisStatusEffect::OnRoundStart()
 
     ConsumeDuration();
 }
+
+void UParalysisStatusEffect::OnRoundEnd()
+{
+    SetStack(0);
+}

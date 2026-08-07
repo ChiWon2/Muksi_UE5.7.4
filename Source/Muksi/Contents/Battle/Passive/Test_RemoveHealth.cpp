@@ -19,6 +19,19 @@ void UTest_RemoveHealth::BindingEvent(ABattleManager* BattleManager)
 	UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding "));
 }
 
+void UTest_RemoveHealth::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+	Super::HandleBattlePhaseChanged(OldPhase, NewPhase);
+	switch (NewPhase)
+	{
+	case EBattlePhase::ExchangeStart:
+		Passive1_();
+		break;
+	default:
+		break;
+	}
+}
+
 void UTest_RemoveHealth::Passive1()
 {
 	FText PassiveDescription1 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">합 시작 시</> 체력을 2 감소합니다."));
@@ -35,5 +48,6 @@ void UTest_RemoveHealth::Passive1_()
 {
 	UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding Passive1 Setting"));
 	ABattleCharacterBase* Character = GetOwnerCharacter();
+	UE_LOG(LogTemp, Error, TEXT("Test Get Current HP %f"), Character->GetCurrentHP());
 	Character->SetCurrentHP(Character->GetCurrentHP() - 2);
 }

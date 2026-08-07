@@ -373,7 +373,8 @@ void UWidget_BattleMainScreen::DisplayBattleEndUI()
 	HandWidget->DisplayInkLine(BattleEndText, TurnTime);
 	HandleBattleUIFinishCount += 1;
 
-
+	//일단 그냥 넘기기
+	//DisplayBattleEndUIFinish();
 }
 
 void UWidget_BattleMainScreen::DisplayBattleEndUIFinish()

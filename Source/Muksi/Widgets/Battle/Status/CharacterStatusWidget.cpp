@@ -38,7 +38,7 @@ void UCharacterStatusWidget::HPUp(float PreHP, float AftHP)
 		MaxHP > 0.0f
 		? FMath::Clamp(AftHP / MaxHP, 0.0f, 1.0f)
 		: 0.0f;
-
+	
 	if (IsValid(ProgressBar_CharacterHP))
 	{
 		ProgressBar_CharacterHP->SetPercent(HPPercent);
@@ -66,7 +66,7 @@ void UCharacterStatusWidget::HPDown(float PreHP, float AftHP)
 		MaxHP > 0.0f
 		? FMath::Clamp(AftHP / MaxHP, 0.0f, 1.0f)
 		: 0.0f;
-
+	
 	if (IsValid(ProgressBar_CharacterHP))
 	{
 		ProgressBar_CharacterHP->SetPercent(HPPercent);

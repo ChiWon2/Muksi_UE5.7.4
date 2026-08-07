@@ -94,6 +94,11 @@ void UMuksiStatusEffect::OnBattleActionSequenceStart()
 {
 }
 
+void UMuksiStatusEffect::OnBattleActionStart(const FBattleAction& BattleAction)
+{
+    static_cast<void>(BattleAction);
+}
+
 void UMuksiStatusEffect::OnBattleActionSequenceEnd()
 {
 }
