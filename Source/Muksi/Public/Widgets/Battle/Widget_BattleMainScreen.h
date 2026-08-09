@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/Widget_ActivatableBase.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Widget_BattleMainScreen.generated.h"
 
 class UWidget_CharacterData;
@@ -19,6 +20,7 @@ class UButton;
 
 class ABattleManager;
 class ABattleTargetingManager;
+class ABattleSequenceManager;
 
 UENUM(BlueprintType)
 enum class EBattleUIPhase : uint8
@@ -64,6 +66,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<ABattleTargetingManager> BattleTargetingManager;
 
+	UPROPERTY()
+	TObjectPtr<ABattleSequenceManager> BattleSequenceManager;
+
 public:
 	UFUNCTION()
 	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
@@ -89,9 +94,13 @@ protected:
 	//------------------------------------------------------------------------------------------------------------------
 	void BindBattleManagerEvents();
 	void UnbindBattleManagerEvents();
+	void BindBattleSequenceManagerEvents();
+	void UnbindBattleSequenceManagerEvents();
 
 	UFUNCTION()
 	void HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase);
+
+	void HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction);
 
 	//====================================Ready<준비>===================================================================
 public:
@@ -209,6 +218,14 @@ public:
 
 	void DisplayBattleActionSequenceStartUI();
 	void DisplayBattleActionSequenceStartUIFinish();
+
+	// 비동기 Reveal 연출을 시작했으면 true를 반환하고, 연출 종료 시 NotifyDeceiveCardRevealFinished()를 호출한다.
+	UFUNCTION(BlueprintNativeEvent, Category = "Battle|Deceive")
+	bool PlayDeceiveCardReveal(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard);
+	virtual bool PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Deceive")
+	void NotifyDeceiveCardRevealFinished();
 
 	void PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset);
 

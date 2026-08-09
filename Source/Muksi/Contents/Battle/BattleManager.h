@@ -23,6 +23,8 @@ class MUKSI_API ABattleManager : public AActor
 public:
     ABattleManager();
 
+
+
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

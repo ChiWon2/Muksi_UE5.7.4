@@ -191,7 +191,7 @@ bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceReque
 	}
 
 	FBattleAction SequenceAction = Request.Action;
-	SequenceAction.Card = Request.GetExecutionCard();
+	UMuksiBattleCardDataAsset* ExecutionCard = Request.GetExecutionCard();
 
 	if (!FBattleTargetResolver::ResolveAction(SequenceAction, BattleGridManager, CurrentResolvedTargeting))
 	{
@@ -199,6 +199,7 @@ bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceReque
 	}
 
 	CurrentAction = MoveTemp(SequenceAction);
+	CurrentExecutionCard = ExecutionCard;
 	CurrentExecutionMode = Request.ExecutionMode;
 	bSequenceRunning = true;
 	ActiveExecutionRunners.Empty();
@@ -267,7 +268,7 @@ void ABattleSequenceManager::SortBattleActionQueue()
 
 void ABattleSequenceManager::StartCurrentBattleAction()
 {
-	if (!bBattleActionSequenceRunning)
+	if (!bBattleActionSequenceRunning || bWaitingForDeceiveCardReveal)
 	{
 		return;
 	}
@@ -285,6 +286,45 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 		return;
 	}
 
+	if (ShouldRequestDeceiveCardReveal(CurrentQueuedAction) && DeceiveCardRevealRequestedDelegate.IsBound())
+	{
+		bWaitingForDeceiveCardReveal = true;
+		DeceiveCardRevealRequestedDelegate.Broadcast(CurrentQueuedAction);
+		return;
+	}
+
+	StartCurrentBattleActionExecution();
+}
+
+bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const
+{
+	if (!IsValid(Action.Card))
+	{
+		return false;
+	}
+
+	return IsValid(Action.Card->GetDeceivedCard());
+}
+
+void ABattleSequenceManager::NotifyDeceiveCardRevealFinished()
+{
+	if (!bBattleActionSequenceRunning || !bWaitingForDeceiveCardReveal)
+	{
+		return;
+	}
+
+	bWaitingForDeceiveCardReveal = false;
+	StartCurrentBattleActionExecution();
+}
+
+void ABattleSequenceManager::StartCurrentBattleActionExecution()
+{
+	if (!bBattleActionSequenceRunning || !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+	{
+		return;
+	}
+
+	const FBattleAction& CurrentQueuedAction = BattleActionQueue[CurrentBattleActionIndex];
 	bStartingQueuedBattleAction = true;
 	const bool bStarted = StartSequence(CurrentQueuedAction);
 	bStartingQueuedBattleAction = false;
@@ -360,6 +400,7 @@ void ABattleSequenceManager::ResetBattleActionSequence()
 	bBattleActionSequenceRunning = false;
 	bBattleActionCompletionPending = false;
 	bStartingQueuedBattleAction = false;
+	bWaitingForDeceiveCardReveal = false;
 }
 
 void ABattleSequenceManager::RefreshBattleActionTargetingPresentation(
@@ -465,7 +506,7 @@ void ABattleSequenceManager::ClearBattleActionPresentation()
 bool ABattleSequenceManager::ValidateRequest(const FBattleSequenceRequest& Request) const
 {
 	UMuksiBattleCardDataAsset* ExecutionCard = Request.GetExecutionCard();
-	return IsValid(Request.Action.Attacker) && IsValid(ExecutionCard) && !ExecutionCard->MainExecutions.IsEmpty();
+	return IsValid(Request.Action.Attacker) && IsValid(Request.Action.Card) && IsValid(ExecutionCard) && !ExecutionCard->MainExecutions.IsEmpty();
 }
 
 bool ABattleSequenceManager::InitializeExecutionEnvironment()
@@ -477,13 +518,13 @@ bool ABattleSequenceManager::InitializeExecutionEnvironment()
 		return false;
 	}
 
-	ExecutionEnvironment->InitializeSequence(CurrentAction.Attacker, CurrentAction.Card, BattleGridManager);
+	ExecutionEnvironment->InitializeSequence(CurrentAction.Attacker, CurrentExecutionCard, BattleGridManager);
 	return ExecutionEnvironment->IsValidEnvironment();
 }
 
 bool ABattleSequenceManager::BindAttackerNotify()
 {
-	if (!CurrentAction.Card || CurrentAction.Card->NotifyExecutionChains.IsEmpty())
+	if (!CurrentExecutionCard || CurrentExecutionCard->NotifyExecutionChains.IsEmpty())
 	{
 		return true;
 	}
@@ -521,13 +562,13 @@ void ABattleSequenceManager::UnbindAttackerNotify()
 // ============================================================================
 void ABattleSequenceManager::StartMainExecutionChain()
 {
-	if (!CurrentAction.Card || CurrentAction.Card->MainExecutions.IsEmpty())
+	if (!CurrentExecutionCard || CurrentExecutionCard->MainExecutions.IsEmpty())
 	{
 		FinishSequence();
 		return;
 	}
 
-	StartExecutionRunner(CurrentAction.Card->MainExecutions, MakeExecutionContext(NAME_None));
+	StartExecutionRunner(CurrentExecutionCard->MainExecutions, MakeExecutionContext(NAME_None));
 }
 
 void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
@@ -542,12 +583,12 @@ void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
 
 void ABattleSequenceManager::StartNotifyExecutionChains(FName NotifyKey)
 {
-	if (!CurrentAction.Card)
+	if (!CurrentExecutionCard)
 	{
 		return;
 	}
 
-	for (const FBattleNotifyExecutionChain& NotifyChain : CurrentAction.Card->NotifyExecutionChains)
+	for (const FBattleNotifyExecutionChain& NotifyChain : CurrentExecutionCard->NotifyExecutionChains)
 	{
 		if (!NotifyChain.IsValid() || NotifyChain.NotifyKey != NotifyKey)
 		{
@@ -598,7 +639,7 @@ FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName Notif
 	FBattleExecutionContext Context;
 
 	Context.Attacker = CurrentAction.Attacker;
-	Context.Card = CurrentAction.Card;
+	Context.Card = CurrentExecutionCard;
 	Context.ExecutionMode = CurrentExecutionMode;
 	Context.Environment = ExecutionEnvironment;
 	Context.ResolvedTargeting = CurrentResolvedTargeting;
@@ -703,6 +744,7 @@ void ABattleSequenceManager::FinishSequence()
 
 	bSequenceRunning = false;
 	CurrentAction = FBattleAction();
+	CurrentExecutionCard = nullptr;
 	CurrentResolvedTargeting.Reset();
 	CurrentExecutionMode = EBattleExecutionMode::Sequence;
 	AttackerAnimationComponent = nullptr;

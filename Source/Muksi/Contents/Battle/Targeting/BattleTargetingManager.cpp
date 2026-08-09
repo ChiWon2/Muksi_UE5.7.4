@@ -490,7 +490,14 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
         return;
     }
 
-    OnEnemyCardSelectionReady.Broadcast(EnemyAction->Card.Get(), ExchangeIndex);
+    UMuksiBattleCardDataAsset* PresentedCard = EnemyAction->Card.Get();
+    UMuksiBattleCardDataAsset* DeceivedCard = EnemyAction->Card->GetDeceivedCard();
+    if (IsValid(DeceivedCard))
+    {
+        PresentedCard = DeceivedCard;
+    }
+
+    OnEnemyCardSelectionReady.Broadcast(PresentedCard, ExchangeIndex);
 }
 
 bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()

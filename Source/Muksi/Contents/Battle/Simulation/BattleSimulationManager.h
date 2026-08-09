@@ -73,6 +73,7 @@ private:
 	bool StartSimulation(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool SetPlayerAction(const FBattleAction& PlayerAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
 	bool SetEnemyAction(const FBattleAction& EnemyAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
+	UMuksiBattleCardDataAsset* GetSimulationExecutionOverride(const FBattleAction& Action) const;
 	bool ExecuteCurrentExchange();
 	void StopSimulation();
 

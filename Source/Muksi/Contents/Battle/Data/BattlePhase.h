@@ -7,7 +7,7 @@ UENUM(BlueprintType)
 enum class EBattlePhase : uint8
 {
 	None UMETA(DisplayName = "None"),
-	Ready UMETA(DisplayName = "Ready"),
+	ReadyStart UMETA(DisplayName = "Ready"),
 	ReadyEnd UMETA(DisplayName = "Ready End"),
 	BattleStart UMETA(DisplayName = "Battle Start"),
 	RoundStart UMETA(DisplayName = "Round Start"),

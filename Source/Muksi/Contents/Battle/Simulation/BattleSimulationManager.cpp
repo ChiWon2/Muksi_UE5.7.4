@@ -226,7 +226,10 @@ bool ABattleSimulationManager::PrepareCurrentExchangeSimulation()
 	CurrentExchange.Reset(ExchangeIndex);
 	SetSimulationState(EBattleSimulationState::WaitingForPlayerTargeting);
 
-	if (!SetEnemyAction(*EnemyAction) || !SetPlayerAction(*PlayerAction))
+	UMuksiBattleCardDataAsset* EnemyExecutionOverride = GetSimulationExecutionOverride(*EnemyAction);
+	UMuksiBattleCardDataAsset* PlayerExecutionOverride = GetSimulationExecutionOverride(*PlayerAction);
+
+	if (!SetEnemyAction(*EnemyAction, EnemyExecutionOverride) || !SetPlayerAction(*PlayerAction, PlayerExecutionOverride))
 	{
 		CurrentExchange.Reset(ExchangeIndex);
 		SetSimulationState(EBattleSimulationState::WaitingForPlayerTargeting);
@@ -319,6 +322,22 @@ bool ABattleSimulationManager::SetEnemyAction(const FBattleAction& EnemyAction, 
 	);
 
 	return true;
+}
+
+UMuksiBattleCardDataAsset* ABattleSimulationManager::GetSimulationExecutionOverride(const FBattleAction& Action) const
+{
+	if (!IsValid(Action.Card))
+	{
+		return nullptr;
+	}
+
+	UMuksiBattleCardDataAsset* DeceivedCard = Action.Card->GetDeceivedCard();
+	if (!IsValid(DeceivedCard))
+	{
+		return nullptr;
+	}
+
+	return DeceivedCard;
 }
 
 bool ABattleSimulationManager::ExecuteCurrentExchange()
