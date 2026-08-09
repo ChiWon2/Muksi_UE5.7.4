@@ -142,8 +142,9 @@ void ABattleCharacterBase::InitializeBattleStats()
 void ABattleCharacterBase::CopyBattleStateFrom(const ABattleCharacterBase& SourceCharacter)
 {
 	CharacterData = SourceCharacter.CharacterData;
-	InitializeBattleStats();
-	SetCurrentHP(SourceCharacter.GetCurrentHP());
+	if (BattleStatComponent && SourceCharacter.BattleStatComponent) BattleStatComponent->CopyRuntimeStateFrom(*SourceCharacter.BattleStatComponent);
+	if (StatusEffectComponent && SourceCharacter.StatusEffectComponent) StatusEffectComponent->CopyRuntimeStateFrom(*SourceCharacter.StatusEffectComponent);
+	if (PassiveComponent && SourceCharacter.PassiveComponent) PassiveComponent->CopyRuntimeStateFrom(*SourceCharacter.PassiveComponent);
 }
 
 void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)

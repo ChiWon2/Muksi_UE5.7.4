@@ -6,6 +6,7 @@
 #include "Widgets/Widget_ActivatableBase.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "Widget_BattleMainScreen.generated.h"
 
 class UWidget_CharacterData;
@@ -21,6 +22,7 @@ class UButton;
 class ABattleManager;
 class ABattleTargetingManager;
 class ABattleSequenceManager;
+class ABattleSimulationManager;
 
 UENUM(BlueprintType)
 enum class EBattleUIPhase : uint8
@@ -40,6 +42,15 @@ class MUKSI_API UWidget_BattleMainScreen : public UWidget_ActivatableBase
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Battle")
 	void BP_OnSelectableCharacterClicked();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Battle|Simulation|Time")
+	void BP_OnSimulationTimeScaleChanged(float TimeScale);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Battle|Simulation|View")
+	void BP_OnSimulationPlayerViewChanged(EBattlePlayerSimulationView View);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Battle|Simulation|View")
+	void BP_OnSimulationPlayerViewAvailabilityChanged(bool bAvailable);
 
 protected:
 	//~Begin UCommonActivatableWidget Interface
@@ -69,6 +80,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<ABattleSequenceManager> BattleSequenceManager;
 
+	UPROPERTY()
+	TObjectPtr<ABattleSimulationManager> BattleSimulationManager;
+
 public:
 	UFUNCTION()
 	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
@@ -78,6 +92,18 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void UnbindHandWidgetEvents();
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
+	bool SetSimulationPlayerView(EBattlePlayerSimulationView View);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
+	bool ToggleSimulationPlayerView();
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
+	EBattlePlayerSimulationView GetSimulationPlayerView() const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
+	bool CanToggleSimulationPlayerView() const;
 
 	bool CanRequestEndExchange();
 
@@ -96,9 +122,20 @@ protected:
 	void UnbindBattleManagerEvents();
 	void BindBattleSequenceManagerEvents();
 	void UnbindBattleSequenceManagerEvents();
+	void BindBattleSimulationManagerEvents();
+	void UnbindBattleSimulationManagerEvents();
 
 	UFUNCTION()
 	void HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase);
+
+	UFUNCTION()
+	void HandleSimulationTimeScaleChanged(float TimeScale);
+
+	UFUNCTION()
+	void HandleSimulationPlayerViewChanged(EBattlePlayerSimulationView View);
+
+	UFUNCTION()
+	void HandleSimulationPlayerViewAvailabilityChanged(bool bAvailable);
 
 	void HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction);
 

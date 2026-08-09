@@ -4,12 +4,14 @@
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingConfirmResult.h"
 #include "BattleTargetingManager.generated.h"
 
 class ABattleCharacterBase;
 class ABattleGridManager;
 class ABattleManager;
+class ABattleSimulationManager;
 class UBattleRuntimeContext;
 class UBattleTargetingSession;
 class UMuksiBattleCardDataAsset;
@@ -61,9 +63,13 @@ private:
     UFUNCTION()
     void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
+    UFUNCTION()
+    void HandlePlayerSimulationViewChanged(EBattlePlayerSimulationView View);
+
     void ResetCurrentExchangeTargeting();
     void ClearSelectionAndRevealPreviews();
     bool StartPendingPlayerTargeting();
+    bool RestartPlayerTargetingForSimulationViewChange();
     bool BuildPlayerActionForCurrentExchange();
     bool BuildEnemyActionForCurrentExchange();
     void CompleteEnemyCardSelectionRequest();
@@ -83,6 +89,8 @@ private:
     void HideEnemyTargetingPreview();
     void HideEnemyTargetingPreviewAndFinishReveal();
 
+    ABattleGridManager* ResolveRuntimeGridManager() const;
+    ABattleCharacterBase* ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const;
     ABattleCharacterBase* GetPlayerTargetingActor() const;
     ABattleCharacterBase* GetEnemyTargetingActor() const;
     bool ResolveActionTargetingForCurrentGrid(const FBattleAction& Action, FResolvedTargeting& OutResolvedTargeting) const;
@@ -97,6 +105,9 @@ private:
 
     UPROPERTY(Transient)
     TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
+
+    UPROPERTY(Transient)
+    TObjectPtr<ABattleSimulationManager> BattleSimulationManager = nullptr;
 
     UPROPERTY(Transient)
     TObjectPtr<UBattleTargetingSession> PlayerTargetingSession = nullptr;

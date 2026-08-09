@@ -33,16 +33,21 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
-	UPROPERTY(Transient)
-	bool bUsingSimulationGrid = false;
-
-	/** 실제 전투(Sequence)에서 사용하는 Grid 상태. */
+	/** 이 GridManager가 소유하는 독립 Runtime Grid 상태. 실제 전투 Grid와 Simulation Grid 모두 동일한 컨테이너 규칙을 사용한다. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BattleGrid")
 	TArray<FBattleGridCell> GridCells;
 
-	/** Simulation 시작 시 GridCells를 복사해 사용하는 독립 상태. */
 	UPROPERTY(Transient)
-	TArray<FBattleGridCell> SimulationGridCells;
+	TObjectPtr<ABattleGridManager> RuntimeSourceGridManager = nullptr;
+
+	UPROPERTY(Transient)
+	bool bWorldManagerRegistrationEnabled = true;
+
+	UPROPERTY(Transient)
+	bool bGenerateGridOnConstruction = true;
+
+	UPROPERTY(Transient)
+	bool bRuntimeGridInstance = false;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "BattleGrid") FHexOffsetCoord PlayerStartPoint = FHexOffsetCoord(0, 0);
@@ -83,10 +88,13 @@ public:
 
 public:
 	TArray<FBattleGridCell>& GetActiveGridCells();
-	void BeginSimulationRuntime();
-	void EndSimulationRuntime();
-	bool ReplaceSimulationActor(AActor* SourceActor, AActor* ReplacementActor);
-	bool IsUsingSimulationGrid() const { return bUsingSimulationGrid; }
+	const TArray<FBattleGridCell>& GetGridCells() const { return GridCells; }
+	void SetWorldManagerRegistrationEnabled(bool bEnabled) { bWorldManagerRegistrationEnabled = bEnabled; }
+	void SetGridGenerationEnabled(bool bEnabled) { bGenerateGridOnConstruction = bEnabled; }
+	bool InitializeRuntimeGridFromSource(ABattleGridManager* InSourceGridManager);
+	bool ReplaceGridActor(AActor* SourceActor, AActor* ReplacementActor);
+	bool IsRuntimeGridInstance() const { return bRuntimeGridInstance; }
+	ABattleGridManager* GetRuntimeSourceGridManager() const { return RuntimeSourceGridManager; }
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Character") 

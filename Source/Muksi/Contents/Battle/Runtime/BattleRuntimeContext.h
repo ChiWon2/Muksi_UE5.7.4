@@ -30,10 +30,6 @@ public:
 	ABattleCharacter_Player* GetPlayerCharacter() const { return PlayerCharacter; }
 	ABattleCharacter_Enemy* GetEnemyCharacter() const { return EnemyCharacter; }
 
-	void SetRuntimeCharacterOverride(ABattleCharacterBase* SourceCharacter, ABattleCharacterBase* RuntimeCharacter);
-	void ClearRuntimeCharacterOverrides();
-	ABattleCharacterBase* ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const;
-
 	void ResetExchangeActions(int32 ExchangeIndex);
 	void SetPlayerExchangeAction(int32 ExchangeIndex, const FBattleAction& Action);
 	void SetEnemyExchangeAction(int32 ExchangeIndex, const FBattleAction& Action);
@@ -60,9 +56,6 @@ private:
 
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Runtime", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ABattleCharacter_Enemy> EnemyCharacter = nullptr;
-
-	UPROPERTY(Transient)
-	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleCharacterBase>> RuntimeCharacterOverrides;
 
 	UPROPERTY(Transient)
 	TArray<FBattleAction> PlayerExchangeActions;

@@ -6,6 +6,7 @@
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 
@@ -36,6 +37,7 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
 	BattleTargetingManager = ManagerSubsystem->GetManager<ABattleTargetingManager>();
 	BattleSequenceManager = ManagerSubsystem->GetManager<ABattleSequenceManager>();
+	BattleSimulationManager = ManagerSubsystem->GetManager<ABattleSimulationManager>();
 
 	if (!BattleManager)
 	{
@@ -53,6 +55,7 @@ void UWidget_BattleMainScreen::NativeConstruct()
 
 	BindBattleManagerEvents();
 	BindBattleSequenceManagerEvents();
+	BindBattleSimulationManagerEvents();
 	BindHandWidgetEvents();
 
 	if (HandWidget)HandWidget->BattleMainScreen = this;
@@ -63,6 +66,7 @@ void UWidget_BattleMainScreen::NativeDestruct()
 {
 	UnbindBattleManagerEvents();
 	UnbindBattleSequenceManagerEvents();
+	UnbindBattleSimulationManagerEvents();
 	UnbindHandWidgetEvents();
 
 	if (BattleTargetingManager)
@@ -187,6 +191,43 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
 }
 
+void UWidget_BattleMainScreen::BindBattleSimulationManagerEvents()
+{
+	if (!BattleSimulationManager) return;
+	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+	BattleSimulationManager->SimulationTimeScaleChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+	BattleSimulationManager->PlayerSimulationViewChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+	BP_OnSimulationTimeScaleChanged(BattleSimulationManager->GetSimulationTimeScale());
+	BP_OnSimulationPlayerViewChanged(BattleSimulationManager->GetPlayerSimulationView());
+	BP_OnSimulationPlayerViewAvailabilityChanged(BattleSimulationManager->CanChangePlayerSimulationView());
+}
+
+void UWidget_BattleMainScreen::UnbindBattleSimulationManagerEvents()
+{
+	if (!BattleSimulationManager) return;
+	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+}
+
+void UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged(float TimeScale)
+{
+	BP_OnSimulationTimeScaleChanged(TimeScale);
+}
+
+void UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged(EBattlePlayerSimulationView View)
+{
+	BP_OnSimulationPlayerViewChanged(View);
+}
+
+void UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged(bool bAvailable)
+{
+	BP_OnSimulationPlayerViewAvailabilityChanged(bAvailable);
+}
+
 void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction)
 {
 	if (!BattleSequenceManager || !IsValid(BattleAction.Card))
@@ -280,6 +321,26 @@ void UWidget_BattleMainScreen::NotifyPlayerCardUnequipped()
 	{
 		BattleTargetingManager->RequestCancelPlayerTargeting();
 	}
+}
+
+bool UWidget_BattleMainScreen::SetSimulationPlayerView(EBattlePlayerSimulationView View)
+{
+	return BattleSimulationManager ? BattleSimulationManager->SetPlayerSimulationView(View) : false;
+}
+
+bool UWidget_BattleMainScreen::ToggleSimulationPlayerView()
+{
+	return BattleSimulationManager ? BattleSimulationManager->TogglePlayerSimulationView() : false;
+}
+
+EBattlePlayerSimulationView UWidget_BattleMainScreen::GetSimulationPlayerView() const
+{
+	return BattleSimulationManager ? BattleSimulationManager->GetPlayerSimulationView() : EBattlePlayerSimulationView::ActualSelf;
+}
+
+bool UWidget_BattleMainScreen::CanToggleSimulationPlayerView() const
+{
+	return BattleSimulationManager ? BattleSimulationManager->CanChangePlayerSimulationView() : false;
 }
 
 bool UWidget_BattleMainScreen::CanRequestEndExchange()

@@ -9,20 +9,19 @@
 class ABattleCharacterBase;
 class ABattleGridManager;
 class ABattleManager;
-class ABattleSequenceManager;
 class ABattleSimulationCharacter;
-class UBattleRuntimeContext;
 class ABattleSimulationPostProcessVolume;
-class UMuksiBattleCardDataAsset;
+class ABattleSimulationWorldManager;
+class UBattleRuntimeContext;
 class UMaterialInterface;
-class UTargetingPresentationController;
-struct FBattleSequenceRequest;
-struct FBattleExecutionEntry;
-struct FResolvedTargeting;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float, TimeScale);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerSimulationViewChanged, EBattlePlayerSimulationView, View);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerSimulationViewAvailabilityChanged, bool, bAvailable);
 
 /**
- * Round Simulation Runtime, Exchange Action 실행과 Simulation Preview를 담당한다.
- * Phase 순서는 결정하지 않으며 SimulationSequence 완료만 BattleManager에 통지한다.
+ * Round Simulation 전체를 조율한다.
+ * AD / DD / DA Simulation Runtime을 조율하고 AA 원본 Action Queue와 분리한다.
  */
 UCLASS()
 class MUKSI_API ABattleSimulationManager : public AActor
@@ -46,11 +45,35 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	bool IsSimulationRunning() const;
 
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Time")
+	float GetSimulationTimeScale() const { return CurrentSimulationTimeScale; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|Time")
+	FOnSimulationTimeScaleChanged SimulationTimeScaleChangedDelegate;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
+	EBattlePlayerSimulationView GetPlayerSimulationView() const { return PlayerSimulationView; }
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
+	bool CanChangePlayerSimulationView() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
+	bool SetPlayerSimulationView(EBattlePlayerSimulationView NewView);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
+	bool TogglePlayerSimulationView();
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
+	FOnPlayerSimulationViewChanged PlayerSimulationViewChangedDelegate;
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
+	FOnPlayerSimulationViewAvailabilityChanged PlayerSimulationViewAvailabilityChangedDelegate;
+
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
-	ABattleGridManager* GetSimulationGridManager() const { return SourceGridManager; }
+	ABattleGridManager* GetSimulationGridManager() const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
@@ -60,43 +83,47 @@ public:
 private:
 	bool TryBindBattleFlow();
 	void BindBattleFlowDeferred();
+	bool EnsureSimulationWorldManagers();
+	bool EnsureSimulationWorldManager(TObjectPtr<ABattleSimulationWorldManager>& InOutWorldManager);
+	void DestroySimulationWorldManager(TObjectPtr<ABattleSimulationWorldManager>& InOutWorldManager);
+	void DestroySimulationWorldManagers();
+	ABattleSimulationWorldManager* ResolveSimulationWorldManager(EBattleSimulationWorldType WorldType) const;
+	ABattleSimulationWorldManager* GetPlayerPresentationWorldManager() const;
+	bool IsManagedSimulationWorld(const ABattleSimulationWorldManager* WorldManager) const;
+	void ApplyPlayerSimulationView();
+	void SetPlayerSimulationViewAvailable(bool bAvailable);
+	void RefreshFastForwardForPrimarySimulationWorld();
+	void NotifySimulationWorldPhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
 	UFUNCTION()
 	void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 	void HandleBattlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	void HandleSimulationWorldStateChanged(ABattleSimulationWorldManager* WorldManager, EBattleSimulationState NewState);
+	void HandleSimulationWorldExchangeFinished(ABattleSimulationWorldManager* WorldManager, int32 FinishedExchangeIndex, bool bSimulationCompleted, const FBattleSimulationExchange& FinishedExchange);
 
+	bool CommitActualExchangeActions(int32 ExchangeIndex);
+	bool ValidateActualExchangeAction(const FBattleAction& Action, int32 ExchangeIndex, bool bExpectedPlayerAction) const;
 	bool InitializeRoundSimulation();
 	bool PrepareCurrentExchangeSimulation();
 	bool StartCurrentExchangeSimulation();
 	void NotifySimulationPhaseFinished(int32 FinishedExchangeIndex);
-
-	bool StartSimulation(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool SetPlayerAction(const FBattleAction& PlayerAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
-	bool SetEnemyAction(const FBattleAction& EnemyAction, UMuksiBattleCardDataAsset* SimulationCardOverride = nullptr);
-	UMuksiBattleCardDataAsset* GetSimulationExecutionOverride(const FBattleAction& Action) const;
-	bool ExecuteCurrentExchange();
+	bool ResetSimulationWorldsFromActualBattle(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
+	bool InitializeSimulationWorldFromActualBattle(ABattleSimulationWorldManager* WorldManager, EBattleSimulationWorldType WorldType, ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void StopSimulation();
-
-	bool CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool CreateSimulationExecutionEnvironment(ABattleGridManager* InSourceGridManager);
 	bool CreateSimulationPostProcess();
 	void DestroySimulationPostProcess();
-	void HideSourceCharacters();
+	void HideSourceCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void RestoreSourceCharacters();
-	bool TryExecuteCurrentExchange();
-	bool ExecuteSimulationAction(const FBattleSimulationActionPlan& ActionPlan);
-	bool BuildSimulationSequenceRequest(const FBattleSimulationActionPlan& ActionPlan, FBattleSequenceRequest& OutRequest) const;
-	void HandleSimulationActionStarted(const FBattleAction& Action);
-	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
-	void HandleSimulationActionFinished();
-	void HandleSimulationSequenceFinished();
-	void RefreshSimulationTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);
-	bool ResolveSimulationActionTargetingThroughStep(const FBattleAction& Action, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting) const;
 	void ClearRuntimeSimulationPreview();
-	void FinishCurrentExchange();
-	void DestroySimulationRuntime();
-	void ResetSimulationRuntime();
-	void SetSimulationState(EBattleSimulationState NewState);
+	void SyncWorldSnapshot();
+	void CaptureSimulationTimeScaleBaseline();
+	void SetSimulationTimeScale(float NewTimeScale);
+	void StartSimulationFastForward();
+	void StopSimulationFastForward();
+	void RestoreSimulationTimeScale();
+	void ResetExchangeCompletionBarrier(int32 ExchangeIndex);
+	bool IsExchangeCompletionBarrierSatisfied() const;
+	bool AreAllSimulationWorldsCompleted() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
@@ -127,21 +154,29 @@ protected:
 	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleGridManager> SourceGridManager = nullptr;
+	TObjectPtr<ABattleSimulationWorldManager> ADWorldManager = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleSequenceManager> SimulationSequenceManager = nullptr;
+	TObjectPtr<ABattleSimulationWorldManager> DDWorldManager = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTargetingPresentationController> SimulationTargetingPresentationController = nullptr;
+	TObjectPtr<ABattleSimulationWorldManager> DAWorldManager = nullptr;
 
-	UPROPERTY(Transient)
-	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> SimulationCharacterMap;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|View")
+	EBattlePlayerSimulationView PlayerSimulationView = EBattlePlayerSimulationView::ActualSelf;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|View")
+	bool bPlayerSimulationViewAvailable = false;
 
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
-	// Disabled by default for clearer simulation testing.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Time", meta = (ClampMin = "1.0"))
+	float FastForwardSimulationTimeScale = 3.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Time")
+	float CurrentSimulationTimeScale = 1.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
 	bool bEnableSimulationPostProcess = false;
 
@@ -151,5 +186,9 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSimulationPostProcessVolume> SimulationPostProcessVolume = nullptr;
 
+	TSet<EBattleSimulationWorldType> FinishedWorldTypesForCurrentExchange;
+	int32 ExchangeCompletionBarrierIndex = INDEX_NONE;
+	float CapturedGlobalTimeDilation = 1.0f;
+	bool bHasCapturedGlobalTimeDilation = false;
 	FTimerHandle BattleFlowBindingTimerHandle;
 };
