@@ -71,8 +71,8 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	// CirclePattern is resolved from SelectedCoord. Raw AimWorldLocation may be an
 	// arbitrary point inside the tile, so using it here makes the mesh disagree with
 	// the indicator and with reveal/runtime previews.
-	const FVector CenterLocation =
-		Context.GridManager->GetWorldLocationByCoord(StepResult->SelectedCoord);
+	FVector CenterLocation = FVector::ZeroVector;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(StepResult->SelectedCoord, CenterLocation)) return;
 	const float WorldRadius = CalculateWorldRadius(Context, Data->Radius);
 
 	if (WorldRadius <= KINDA_SMALL_NUMBER)

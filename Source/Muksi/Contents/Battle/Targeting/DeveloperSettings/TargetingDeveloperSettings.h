@@ -26,6 +26,9 @@ public:
     UPROPERTY(Config, EditAnywhere, Category = "Preview|Grid")
     TSoftObjectPtr<UStaticMesh> GridPreviewMesh;
 
+    UPROPERTY(Config, EditAnywhere, Category = "Preview|Grid", meta = (ClampMin = "1.0"))
+    float OccupiedGridPreviewScale = 1.2f;
+
     UPROPERTY(Config, EditAnywhere, Category = "Preview|Straight")
     TSoftObjectPtr<UMaterialInterface> StraightPreviewMaterial;
 

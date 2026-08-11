@@ -58,7 +58,9 @@ void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext
 	}
 
 	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
-	const FVector PreviewLocation = Context.GridManager->GetWorldLocationByCoord(Context.StepResult->OriginCoord) + FVector(0.0f, 0.0f, PreviewHeightOffset);
+	FVector PresentationOriginLocation = FVector::ZeroVector;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->OriginCoord, PresentationOriginLocation)) return;
+	const FVector PreviewLocation = PresentationOriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
 
 	PreviewMeshComponent->SetStaticMesh(CirclePreviewMesh);
 

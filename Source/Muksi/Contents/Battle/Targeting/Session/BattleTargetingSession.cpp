@@ -111,23 +111,23 @@ bool UBattleTargetingSession::UpdateCandidateCoord(const FHexOffsetCoord& Candid
 	// 최종 선택 타일 중심을 fallback으로 사용한다.
 	if (CurrentStepResult.bValid && CurrentStepResult.HasOriginCoord())
 	{
-		FVector DirectionTargetWorldLocation = FVector::ZeroVector;
+		FVector AimDirection = FVector::ZeroVector;
 		bool bHasDirectionTarget = false;
 
 		if (bHasAimWorldLocation)
 		{
-			DirectionTargetWorldLocation = AimWorldLocation;
-			bHasDirectionTarget = true;
+			FVector PresentationOriginLocation = FVector::ZeroVector;
+			if (GridManager->GetPresentationWorldLocationByCoord(CurrentStepResult.OriginCoord, PresentationOriginLocation)) AimDirection = AimWorldLocation - PresentationOriginLocation;
+			bHasDirectionTarget = !AimDirection.IsNearlyZero();
 		}
 		else if (CurrentStepResult.HasSelectedCoord())
 		{
-			DirectionTargetWorldLocation = GridManager->GetWorldLocationByCoord(CurrentStepResult.SelectedCoord);
-			bHasDirectionTarget = true;
+			AimDirection = GridManager->GetWorldLocationByCoord(CurrentStepResult.SelectedCoord) - GridManager->GetWorldLocationByCoord(CurrentStepResult.OriginCoord);
+			bHasDirectionTarget = !AimDirection.IsNearlyZero();
 		}
 
 		if (bHasDirectionTarget)
 		{
-			FVector AimDirection = DirectionTargetWorldLocation - GridManager->GetWorldLocationByCoord(CurrentStepResult.OriginCoord);
 			AimDirection.Z = 0.0f;
 
 			if (!AimDirection.IsNearlyZero())
@@ -214,8 +214,7 @@ bool UBattleTargetingSession::UndoStep()
 	// step's last mouse location until the cursor moves again.
 	if (IsValid(GridManager.Get()))
 	{
-		AimWorldLocation = GridManager->GetWorldLocationByCoord(CurrentStepResult.SelectedCoord);
-		bHasAimWorldLocation = true;
+		bHasAimWorldLocation = GridManager->GetPresentationWorldLocationByCoord(CurrentStepResult.SelectedCoord, AimWorldLocation);
 	}
 	else
 	{
@@ -327,8 +326,7 @@ bool UBattleTargetingSession::ShowResolvedPreview(
 	PreviewContext.ResolvedTargeting = &InResolvedTargeting;
 	if (RuntimeStepResult->HasSelectedCoord())
 	{
-		PreviewContext.AimWorldLocation = InGridManager->GetWorldLocationByCoord(RuntimeStepResult->SelectedCoord);
-		PreviewContext.bHasAimWorldLocation = true;
+		PreviewContext.bHasAimWorldLocation = InGridManager->GetPresentationWorldLocationByCoord(RuntimeStepResult->SelectedCoord, PreviewContext.AimWorldLocation);
 	}
 
 	PreviewActor->SetGridPreviewMode(RuntimeStepData->Preview.GridPreviewMode);

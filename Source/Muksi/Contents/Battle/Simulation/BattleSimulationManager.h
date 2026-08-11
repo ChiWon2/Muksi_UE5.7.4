@@ -75,6 +75,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleGridManager* GetSimulationGridManager() const;
 
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Targeting")
+	ABattleSimulationCharacter* GetPlayerTargetingSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Targeting")
+	ABattleGridManager* GetPlayerTargetingSimulationGridManager() const;
+
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
 
@@ -89,9 +95,12 @@ private:
 	void DestroySimulationWorldManagers();
 	ABattleSimulationWorldManager* ResolveSimulationWorldManager(EBattleSimulationWorldType WorldType) const;
 	ABattleSimulationWorldManager* GetPlayerPresentationWorldManager() const;
+	ABattleSimulationWorldManager* GetPlayerTargetingWorldManager() const;
 	bool IsManagedSimulationWorld(const ABattleSimulationWorldManager* WorldManager) const;
+	void SetPlayerSimulationViewInternal(EBattlePlayerSimulationView NewView);
 	void ApplyPlayerSimulationView();
 	void SetPlayerSimulationViewAvailable(bool bAvailable);
+	void SetPlayerSimulationViewChangeLocked(bool bLocked);
 	void RefreshFastForwardForPrimarySimulationWorld();
 	void NotifySimulationWorldPhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
@@ -167,6 +176,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|View")
 	bool bPlayerSimulationViewAvailable = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|View")
+	bool bPlayerSimulationViewChangeLocked = false;
 
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;

@@ -143,38 +143,40 @@ FVector ABattleGridManager::GetWorldLocationByCoord(const FHexOffsetCoord& Coord
 	return GetActorTransform().TransformPosition(LocalLocation);
 }
 
+bool ABattleGridManager::GetPresentationWorldLocationByCoord(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const
+{
+	OutWorldLocation = FVector::ZeroVector;
+	if (!IsValidCoord(Coord)) return false;
+	const int32 Index = CoordToIndex(Coord);
+	if (!GridCells.IsValidIndex(Index)) return false;
+	OutWorldLocation = GridCells[Index].WorldLocation;
+	return true;
+}
+
 float ABattleGridManager::GetAdjacentTileCenterDistance()
 {
 	float MinimumDistance = TNumericLimits<float>::Max();
 
-	for (const FBattleGridCell& Cell : GridCells)
+	for (int32 X = 0; X < GetGridWidth(); ++X)
 	{
-		if (!Cell.TileActor)
+		for (int32 Y = 0; Y < GetGridHeight(); ++Y)
 		{
-			continue;
-		}
+			const FHexOffsetCoord CellCoord(X, Y);
+			const FVector CellLocation = GetWorldLocationByCoord(CellCoord);
+			const TArray<FHexOffsetCoord> NeighborCoords = GetHexNeighbors(CellCoord);
 
-		const FVector CellLocation = Cell.TileActor->GetGridCenterWorldLocation();
-		const TArray<FHexOffsetCoord> NeighborCoords = GetHexNeighbors(Cell.GridCoord);
-
-		for (const FHexOffsetCoord& NeighborCoord : NeighborCoords)
-		{
-			FBattleGridCell* NeighborCell = GetCellByCoord(NeighborCoord);
-
-			if (!NeighborCell || !NeighborCell->TileActor)
+			for (const FHexOffsetCoord& NeighborCoord : NeighborCoords)
 			{
-				continue;
+				const FVector NeighborLocation = GetWorldLocationByCoord(NeighborCoord);
+				const float Distance = FVector::Dist2D(CellLocation, NeighborLocation);
+
+				if (Distance <= KINDA_SMALL_NUMBER)
+				{
+					continue;
+				}
+
+				MinimumDistance = FMath::Min(MinimumDistance, Distance);
 			}
-
-			const FVector NeighborLocation = NeighborCell->TileActor->GetGridCenterWorldLocation();
-			const float Distance = FVector::Dist2D(CellLocation, NeighborLocation);
-
-			if (Distance <= KINDA_SMALL_NUMBER)
-			{
-				continue;
-			}
-
-			MinimumDistance = FMath::Min(MinimumDistance, Distance);
 		}
 	}
 
@@ -184,9 +186,7 @@ float ABattleGridManager::GetAdjacentTileCenterDistance()
 	}
 
 	const FBattleGridLayoutSettings& Layout = GetLayoutSettings();
-	const float DiagonalDistance = FMath::Sqrt(
-		FMath::Square(Layout.GridSpacingX * Layout.OddRowXOffsetRatio) +
-		FMath::Square(Layout.GridSpacingY));
+	const float DiagonalDistance = FMath::Sqrt(FMath::Square(Layout.GridSpacingX * Layout.OddRowXOffsetRatio) + FMath::Square(Layout.GridSpacingY));
 
 	return FMath::Min(Layout.GridSpacingX, DiagonalDistance);
 }
@@ -497,6 +497,7 @@ bool ABattleGridManager::InitializeRuntimeGridFromSource(ABattleGridManager* InS
 	}
 	RuntimeSourceGridManager = InSourceGridManager;
 	bRuntimeGridInstance = true;
+	bTilePresentationEnabled = false;
 	GridCells = InSourceGridManager->GridCells;
 	TargetGridArray.Reset();
 	SetActorTransform(InSourceGridManager->GetActorTransform());

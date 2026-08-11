@@ -53,17 +53,13 @@ bool ABattleSimulationManager::IsSimulationRunning() const
 
 bool ABattleSimulationManager::CanChangePlayerSimulationView() const
 {
-	return bPlayerSimulationViewAvailable;
+	return bPlayerSimulationViewAvailable && !bPlayerSimulationViewChangeLocked;
 }
 
 bool ABattleSimulationManager::SetPlayerSimulationView(EBattlePlayerSimulationView NewView)
 {
 	if (!CanChangePlayerSimulationView()) return false;
-	if (PlayerSimulationView == NewView) return true;
-	PlayerSimulationView = NewView;
-	ApplyPlayerSimulationView();
-	SyncWorldSnapshot();
-	PlayerSimulationViewChangedDelegate.Broadcast(PlayerSimulationView);
+	SetPlayerSimulationViewInternal(NewView);
 	return true;
 }
 
@@ -82,6 +78,18 @@ ABattleSimulationCharacter* ABattleSimulationManager::GetSimulationCharacter(con
 ABattleGridManager* ABattleSimulationManager::GetSimulationGridManager() const
 {
 	ABattleSimulationWorldManager* WorldManager = GetPlayerPresentationWorldManager();
+	return IsValid(WorldManager) ? WorldManager->GetSimulationGridManager() : nullptr;
+}
+
+ABattleSimulationCharacter* ABattleSimulationManager::GetPlayerTargetingSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const
+{
+	ABattleSimulationWorldManager* WorldManager = GetPlayerTargetingWorldManager();
+	return IsValid(WorldManager) ? WorldManager->GetSimulationCharacter(SourceCharacter) : nullptr;
+}
+
+ABattleGridManager* ABattleSimulationManager::GetPlayerTargetingSimulationGridManager() const
+{
+	ABattleSimulationWorldManager* WorldManager = GetPlayerTargetingWorldManager();
 	return IsValid(WorldManager) ? WorldManager->GetSimulationGridManager() : nullptr;
 }
 
@@ -182,23 +190,47 @@ ABattleSimulationWorldManager* ABattleSimulationManager::GetPlayerPresentationWo
 	return PlayerSimulationView == EBattlePlayerSimulationView::DeceivedSelf ? DDWorldManager.Get() : ADWorldManager.Get();
 }
 
+ABattleSimulationWorldManager* ABattleSimulationManager::GetPlayerTargetingWorldManager() const
+{
+	return ADWorldManager.Get();
+}
+
 bool ABattleSimulationManager::IsManagedSimulationWorld(const ABattleSimulationWorldManager* WorldManager) const
 {
 	return WorldManager == ADWorldManager.Get() || WorldManager == DDWorldManager.Get() || WorldManager == DAWorldManager.Get();
 }
 
+void ABattleSimulationManager::SetPlayerSimulationViewInternal(EBattlePlayerSimulationView NewView)
+{
+	if (PlayerSimulationView == NewView) return;
+	PlayerSimulationView = NewView;
+	ApplyPlayerSimulationView();
+	SyncWorldSnapshot();
+	PlayerSimulationViewChangedDelegate.Broadcast(PlayerSimulationView);
+}
+
 void ABattleSimulationManager::ApplyPlayerSimulationView()
 {
-	if (IsValid(ADWorldManager)) ADWorldManager->SetWorldVisible(bPlayerSimulationViewAvailable && PlayerSimulationView == EBattlePlayerSimulationView::ActualSelf);
-	if (IsValid(DDWorldManager)) DDWorldManager->SetWorldVisible(bPlayerSimulationViewAvailable && PlayerSimulationView == EBattlePlayerSimulationView::DeceivedSelf);
+	ABattleSimulationWorldManager* VisibleWorldManager = bPlayerSimulationViewAvailable ? GetPlayerPresentationWorldManager() : nullptr;
+	if (IsValid(ADWorldManager) && ADWorldManager.Get() != VisibleWorldManager) ADWorldManager->SetWorldVisible(false);
+	if (IsValid(DDWorldManager) && DDWorldManager.Get() != VisibleWorldManager) DDWorldManager->SetWorldVisible(false);
 	if (IsValid(DAWorldManager)) DAWorldManager->SetWorldVisible(false);
+	if (IsValid(VisibleWorldManager)) VisibleWorldManager->SetWorldVisible(true);
 }
 
 void ABattleSimulationManager::SetPlayerSimulationViewAvailable(bool bAvailable)
 {
+	if (!bAvailable) bPlayerSimulationViewChangeLocked = false;
 	if (bPlayerSimulationViewAvailable == bAvailable) return;
 	bPlayerSimulationViewAvailable = bAvailable;
 	ApplyPlayerSimulationView();
+	PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
+}
+
+void ABattleSimulationManager::SetPlayerSimulationViewChangeLocked(bool bLocked)
+{
+	if (bPlayerSimulationViewChangeLocked == bLocked) return;
+	bPlayerSimulationViewChangeLocked = bLocked;
 	PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
 }
 
@@ -220,7 +252,9 @@ void ABattleSimulationManager::NotifySimulationWorldPhaseChanged(EBattlePhase Ol
 
 void ABattleSimulationManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
-	if (bPlayerSimulationViewAvailable) PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
+	if (NewPhase == EBattlePhase::Targeting) SetPlayerSimulationViewInternal(EBattlePlayerSimulationView::ActualSelf);
+	if (NewPhase == EBattlePhase::Targeting) SetPlayerSimulationViewChangeLocked(true);
+	if (OldPhase == EBattlePhase::Targeting && NewPhase != EBattlePhase::Targeting) SetPlayerSimulationViewChangeLocked(false);
 	NotifySimulationWorldPhaseChanged(OldPhase, NewPhase);
 	switch (NewPhase)
 	{

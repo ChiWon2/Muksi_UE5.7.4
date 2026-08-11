@@ -63,13 +63,10 @@ private:
     UFUNCTION()
     void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
-    UFUNCTION()
-    void HandlePlayerSimulationViewChanged(EBattlePlayerSimulationView View);
-
     void ResetCurrentExchangeTargeting();
+    void ResetPlayerTargetingForCardReselection();
     void ClearSelectionAndRevealPreviews();
     bool StartPendingPlayerTargeting();
-    bool RestartPlayerTargetingForSimulationViewChange();
     bool BuildPlayerActionForCurrentExchange();
     bool BuildEnemyActionForCurrentExchange();
     void CompleteEnemyCardSelectionRequest();

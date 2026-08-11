@@ -49,6 +49,9 @@ protected:
 	UPROPERTY(Transient)
 	bool bRuntimeGridInstance = false;
 
+	UPROPERTY(Transient)
+	bool bTilePresentationEnabled = true;
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "BattleGrid") FHexOffsetCoord PlayerStartPoint = FHexOffsetCoord(0, 0);
 	UPROPERTY(EditAnywhere, Category = "BattleGrid") FHexOffsetCoord EnemyStartPoint = FHexOffsetCoord(4, 4);
@@ -79,6 +82,7 @@ public:
 
 	FTransform GetTransformToPosition(const FHexOffsetCoord& InPosition);
 	FVector GetWorldLocationByCoord(const FHexOffsetCoord& Coord) const;
+	bool GetPresentationWorldLocationByCoord(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const;
 
 
 public:
@@ -95,6 +99,8 @@ public:
 	bool ReplaceGridActor(AActor* SourceActor, AActor* ReplacementActor);
 	bool IsRuntimeGridInstance() const { return bRuntimeGridInstance; }
 	ABattleGridManager* GetRuntimeSourceGridManager() const { return RuntimeSourceGridManager; }
+	void SetTilePresentationEnabled(bool bEnabled) { bTilePresentationEnabled = bEnabled; }
+	bool IsTilePresentationEnabled() const { return bTilePresentationEnabled; }
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Character") 

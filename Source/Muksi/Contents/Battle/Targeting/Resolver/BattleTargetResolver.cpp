@@ -232,12 +232,8 @@ bool FBattleTargetResolver::ResolveDesiredCoord(
 			break;
 		}
 
-		if (!StepIntent.HasSelectedCoord())
-		{
-			return false;
-		}
-
-		OutDesiredCoord = StepIntent.SelectedCoord;
+		if (!StepIntent.HasSelectedCoord()) return false;
+		OutDesiredCoord = FHexGridMath::CubeToOffset(FHexGridMath::OffsetToCube(OriginCoord) + StepIntent.RelativeOffset);
 		break;
 
 	case ETargetingIntentBinding::WorldFixed:

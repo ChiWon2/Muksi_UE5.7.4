@@ -59,22 +59,15 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 		return;
 	}
 
-	const FVector OriginLocation = Context.GridManager->GetWorldLocationByCoord(StepResult->OriginCoord);
+	if (!Context.GridManager->IsValidCoord(StepResult->OriginCoord)) return;
+
+	const FVector LogicalOriginLocation = Context.GridManager->GetWorldLocationByCoord(StepResult->OriginCoord);
 
 	// Area previews must visualize the exact resolved pattern result.
 	// AimWorldLocation is presentation input for path/selection previews only; using it
 	// here can point the cone away from StepResult.Direction during enemy/reveal/runtime phases.
-	const FHexOffsetCoord ResolvedAimCoord = FHexGridMath::GetNeighborCoord(
-		StepResult->OriginCoord,
-		StepResult->Direction);
-
-	if (!Context.GridManager->IsValidCoord(ResolvedAimCoord))
-	{
-		return;
-	}
-
-	FVector ResolvedDirection =
-		Context.GridManager->GetWorldLocationByCoord(ResolvedAimCoord) - OriginLocation;
+	const FHexOffsetCoord ResolvedAimCoord = FHexGridMath::GetNeighborCoord(StepResult->OriginCoord, StepResult->Direction);
+	FVector ResolvedDirection = Context.GridManager->GetWorldLocationByCoord(ResolvedAimCoord) - LogicalOriginLocation;
 	ResolvedDirection.Z = 0.0f;
 
 	if (!ResolvedDirection.Normalize())
@@ -114,7 +107,9 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 	}
 
 	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
-	const FVector PreviewLocation = OriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
+	FVector PresentationOriginLocation = FVector::ZeroVector;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(StepResult->OriginCoord, PresentationOriginLocation)) return;
+	const FVector PreviewLocation = PresentationOriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
 	const FRotator PreviewRotation(0.0f, CurrentPreviewYaw, 0.0f);
 
 	PreviewMeshComponent->SetStaticMesh(ConePreviewMesh);
@@ -141,7 +136,7 @@ float UConeAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewCo
 		return 0.0f;
 	}
 
-	return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(0, GridRange), true);
+	return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(1, GridRange), true);
 }
 
 const UScriptStruct* UConeAreaPreviewVisualizer::GetSupportedPatternDataStruct() const

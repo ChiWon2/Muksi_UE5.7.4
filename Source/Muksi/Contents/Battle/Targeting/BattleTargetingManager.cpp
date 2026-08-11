@@ -54,8 +54,6 @@ void ABattleTargetingManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
         BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandleBattlePhaseChanged);
     }
 
-    if (BattleSimulationManager) BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePlayerSimulationViewChanged);
-
     ClearSelectionAndRevealPreviews();
     PendingPlayerCard = nullptr;
     BattleRuntimeContext = nullptr;
@@ -100,7 +98,6 @@ bool ABattleTargetingManager::TryBindBattleFlow()
         return false;
     }
 
-    if (BattleSimulationManager && BattleSimulationManager != FoundSimulationManager) BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePlayerSimulationViewChanged);
     BattleSimulationManager = FoundSimulationManager;
 
     if (TargetingPresentationController)
@@ -110,8 +107,6 @@ bool ABattleTargetingManager::TryBindBattleFlow()
 
     BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandleBattlePhaseChanged);
     BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandleBattlePhaseChanged);
-    BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePlayerSimulationViewChanged);
-    BattleSimulationManager->PlayerSimulationViewChangedDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePlayerSimulationViewChanged);
     return true;
 }
 
@@ -128,13 +123,15 @@ void ABattleTargetingManager::BindBattleFlowDeferred()
 
 void ABattleTargetingManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
-    (void)OldPhase;
-
     switch (NewPhase)
     {
     case EBattlePhase::RoundStart:
-    case EBattlePhase::CardSelect:
         ResetCurrentExchangeTargeting();
+        break;
+
+    case EBattlePhase::CardSelect:
+        if (OldPhase == EBattlePhase::Targeting) ResetPlayerTargetingForCardReselection();
+        else ResetCurrentExchangeTargeting();
         break;
 
     case EBattlePhase::Targeting:
@@ -165,15 +162,6 @@ void ABattleTargetingManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EB
     }
 }
 
-void ABattleTargetingManager::HandlePlayerSimulationViewChanged(EBattlePlayerSimulationView View)
-{
-    (void)View;
-    if (!BattleManager || BattleManager->GetCurrentPhase() != EBattlePhase::Targeting || !IsValid(PendingPlayerCard)) return;
-    if (RestartPlayerTargetingForSimulationViewChange()) return;
-    UE_LOG(LogTemp, Error, TEXT("[BattleTargetingManager] Failed to restart player targeting after simulation view change."));
-    GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]() { if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::Targeting) BattleManager->RestartCurrentExchangeCardSelection(); }));
-}
-
 void ABattleTargetingManager::ResetCurrentExchangeTargeting()
 {
     GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
@@ -187,6 +175,23 @@ void ABattleTargetingManager::ResetCurrentExchangeTargeting()
     {
         BattleRuntimeContext->ResetExchangeActions(BattleManager->GetCurrentExchange());
     }
+}
+
+void ABattleTargetingManager::ResetPlayerTargetingForCardReselection()
+{
+    GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
+
+    if (TargetingPresentationController) TargetingPresentationController->ClearSession(PlayerTargetingSession);
+    else if (PlayerTargetingSession)
+    {
+        PlayerTargetingSession->EndSession();
+        PlayerTargetingSession = nullptr;
+    }
+
+    PendingPlayerCard = nullptr;
+    bPlayerCardSelectionFinished = false;
+
+    if (BattleRuntimeContext && BattleManager) BattleRuntimeContext->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
 }
 
 void ABattleTargetingManager::ClearSelectionAndRevealPreviews()
@@ -276,19 +281,6 @@ bool ABattleTargetingManager::StartPendingPlayerTargeting()
         return false;
     }
 
-    return true;
-}
-
-bool ABattleTargetingManager::RestartPlayerTargetingForSimulationViewChange()
-{
-    if (!BattleManager || BattleManager->GetCurrentPhase() != EBattlePhase::Targeting || !IsValid(PendingPlayerCard)) return false;
-    if (TargetingPresentationController) TargetingPresentationController->ClearSession(PlayerTargetingSession);
-    else if (PlayerTargetingSession) PlayerTargetingSession->EndSession();
-    PlayerTargetingSession = nullptr;
-    bPlayerCardSelectionFinished = false;
-    if (BattleRuntimeContext) BattleRuntimeContext->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
-    if (!StartPendingPlayerTargeting()) return false;
-    if (PlayerTargetingSession && PlayerTargetingSession->IsCompleted()) NotifyPlayerCardSelectionFinished();
     return true;
 }
 
@@ -489,6 +481,10 @@ bool ABattleTargetingManager::RequestEnemyCardSelection()
     {
         return false;
     }
+
+    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+    if (BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex)) return true;
+    if (GetWorldTimerManager().IsTimerActive(EnemyCardSelectionTimerHandle)) return true;
 
     ABattleCharacter_Enemy* EnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
     if (!IsValid(EnemyCharacter))
@@ -784,7 +780,9 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
 {
     OutCoord = FHexOffsetCoord::Invalid();
 
-    if (!BattleGridManager)
+    ABattleGridManager* RuntimeGridManager = ResolveRuntimeGridManager();
+
+    if (!IsValid(RuntimeGridManager))
     {
         return false;
     }
@@ -804,17 +802,14 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
     }
 
     float BestDistanceSquared = TNumericLimits<float>::Max();
-    for (int32 X = 0; X < BattleGridManager->GetGridWidth(); ++X)
+    for (int32 X = 0; X < RuntimeGridManager->GetGridWidth(); ++X)
     {
-        for (int32 Y = 0; Y < BattleGridManager->GetGridHeight(); ++Y)
+        for (int32 Y = 0; Y < RuntimeGridManager->GetGridHeight(); ++Y)
         {
             const FHexOffsetCoord Coord(X, Y);
-            if (!BattleGridManager->GetTileActorByCoord(Coord))
-            {
-                continue;
-            }
-
-            const FVector Delta = BattleGridManager->GetWorldLocationByCoord(Coord) - HitResult.ImpactPoint;
+            FVector PresentationLocation = FVector::ZeroVector;
+            if (!RuntimeGridManager->GetPresentationWorldLocationByCoord(Coord, PresentationLocation)) continue;
+            const FVector Delta = PresentationLocation - HitResult.ImpactPoint;
             const float DistanceSquared = FVector2D(Delta.X, Delta.Y).SizeSquared();
             if (DistanceSquared < BestDistanceSquared)
             {
@@ -830,7 +825,7 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
 ABattleGridManager* ABattleTargetingManager::ResolveRuntimeGridManager() const
 {
     if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return BattleGridManager.Get();
-    ABattleGridManager* SimulationGridManager = BattleSimulationManager->GetSimulationGridManager();
+    ABattleGridManager* SimulationGridManager = BattleSimulationManager->GetPlayerTargetingSimulationGridManager();
     return IsValid(SimulationGridManager) ? SimulationGridManager : BattleGridManager.Get();
 }
 
@@ -838,7 +833,7 @@ ABattleCharacterBase* ABattleTargetingManager::ResolveRuntimeCharacter(const ABa
 {
     if (!IsValid(SourceCharacter)) return nullptr;
     if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return const_cast<ABattleCharacterBase*>(SourceCharacter);
-    ABattleSimulationCharacter* SimulationCharacter = BattleSimulationManager->GetSimulationCharacter(SourceCharacter);
+    ABattleSimulationCharacter* SimulationCharacter = BattleSimulationManager->GetPlayerTargetingSimulationCharacter(SourceCharacter);
     return IsValid(SimulationCharacter) ? SimulationCharacter : const_cast<ABattleCharacterBase*>(SourceCharacter);
 }
 

@@ -48,6 +48,7 @@ ATargetingPreviewActor::ATargetingPreviewActor()
 	GridPreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GridPreviewMesh->SetCastShadow(false);
 	GridPreviewMesh->SetCanEverAffectNavigation(false);
+	GridPreviewMesh->SetTranslucentSortPriority(100);
 	GridPreviewMesh->SetVisibility(false);
 
 	PathSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PathSpline"));
@@ -215,6 +216,7 @@ void ATargetingPreviewActor::LoadPreviewAssets()
 	}
 
 	PreviewHeightOffset = Settings->PreviewHeightOffset;
+	OccupiedGridPreviewScale = FMath::Max(1.0f, Settings->OccupiedGridPreviewScale);
 
 	if (UStaticMesh* GridMesh = Settings->GridPreviewMesh.LoadSynchronous())
 	{
@@ -259,8 +261,12 @@ void ATargetingPreviewActor::RebuildGridPreview()
 			continue;
 		}
 
-		const FVector InstanceLocation = Cell->WorldLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
-		const FTransform InstanceTransform(FRotator::ZeroRotator, InstanceLocation);
+		const bool bOccupied = Cell->bOccupied && IsValid(Cell->OccupyingActor.Get());
+		const float PreviewScale = bOccupied ? OccupiedGridPreviewScale : 1.0f;
+		FVector PresentationLocation = FVector::ZeroVector;
+		if (!GridManager->GetPresentationWorldLocationByCoord(Coord, PresentationLocation)) continue;
+		const FVector InstanceLocation = PresentationLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
+		const FTransform InstanceTransform(FRotator::ZeroRotator, InstanceLocation, FVector(PreviewScale, PreviewScale, 1.0f));
 		GridPreviewMesh->AddInstance(InstanceTransform, true);
 	}
 

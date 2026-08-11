@@ -62,15 +62,17 @@ bool ABattleSimulationWorldManager::ResetFromActualBattleState(ABattleGridManage
 
 void ABattleSimulationWorldManager::SetWorldVisible(bool bVisible)
 {
+	const bool bWasWorldVisible = bWorldVisible;
+	if (!bVisible && bWasWorldVisible) ClearRuntimeSimulationPreview();
+	if (!bVisible && bWasWorldVisible && SimulationGridManager) SimulationGridManager->AllClearGridHovered();
+	if (!bVisible && bWasWorldVisible && SimulationGridManager) SimulationGridManager->AllClearExchangeIndicator();
 	bWorldVisible = bVisible;
+	if (SimulationGridManager) SimulationGridManager->SetTilePresentationEnabled(bWorldVisible);
 	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
 	{
 		if (IsValid(Pair.Value)) Pair.Value->SetActorHiddenInGame(!bWorldVisible);
 	}
 	if (SimulationGridManager) SimulationGridManager->SetActorHiddenInGame(!bWorldVisible);
-	if (!bWorldVisible) ClearRuntimeSimulationPreview();
-	if (!bWorldVisible && SimulationGridManager) SimulationGridManager->AllClearGridHovered();
-	if (!bWorldVisible && SimulationGridManager) SimulationGridManager->AllClearExchangeIndicator();
 	if (bWorldVisible && bHasCachedPresentation) RefreshSimulationTargetingPresentation(CachedPresentationAction, CachedPresentationResolvedTargeting);
 }
 

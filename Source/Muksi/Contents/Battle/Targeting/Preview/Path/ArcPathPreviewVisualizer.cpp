@@ -55,8 +55,12 @@ void UArcPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Co
 		return;
 	}
 
-	FVector StartLocation = Context.GridManager->GetWorldLocationByCoord(Context.StepResult->OriginCoord);
-	FVector EndLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : Context.GridManager->GetWorldLocationByCoord(Context.StepResult->SelectedCoord);
+	FVector StartLocation = FVector::ZeroVector;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->OriginCoord, StartLocation)) return;
+	FVector SelectedPresentationLocation = FVector::ZeroVector;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->SelectedCoord, SelectedPresentationLocation)) return;
+	FVector EndLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : SelectedPresentationLocation;
+	EndLocation.Z = SelectedPresentationLocation.Z;
 
 	StartLocation.Z += PreviewHeightOffset;
 	EndLocation.Z += PreviewHeightOffset;

@@ -28,6 +28,11 @@ void UBattleGridIndicatorComponent::SetHovered(const TArray<FHexOffsetCoord>& Co
 		return;
 	}
 
+	if (!GridManager->IsTilePresentationEnabled())
+	{
+		return;
+	}
+
 	ClearHovered();
 
 	for (const FHexOffsetCoord& Coord : Coords)
@@ -47,6 +52,11 @@ void UBattleGridIndicatorComponent::SetHovered(const TArray<FHexOffsetCoord>& Co
 void UBattleGridIndicatorComponent::ClearHovered()
 {
 	if (!ResolveGridManager())
+	{
+		return;
+	}
+
+	if (!GridManager->IsTilePresentationEnabled())
 	{
 		return;
 	}
@@ -71,6 +81,11 @@ void UBattleGridIndicatorComponent::ClearAllHovered()
 		return;
 	}
 
+	if (!GridManager->IsTilePresentationEnabled())
+	{
+		return;
+	}
+
 	for (FBattleGridCell& Cell : GridManager->GridCells)
 	{
 		if (Cell.TileActor)
@@ -89,6 +104,11 @@ void UBattleGridIndicatorComponent::SetExchange(const EMuksiBattleCardType& Atta
 		return;
 	}
 
+	if (!GridManager->IsTilePresentationEnabled())
+	{
+		return;
+	}
+
 	for (const FHexOffsetCoord& Coord : Coords)
 	{
 		ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
@@ -103,6 +123,11 @@ void UBattleGridIndicatorComponent::SetExchange(const EMuksiBattleCardType& Atta
 void UBattleGridIndicatorComponent::ClearExchange()
 {
 	if (!ResolveGridManager())
+	{
+		return;
+	}
+
+	if (!GridManager->IsTilePresentationEnabled())
 	{
 		return;
 	}
