@@ -82,6 +82,7 @@ private:
 	TArray<FHexOffsetCoord> AreaGridCoords;
 	ETargetingGridPreviewMode GridPreviewMode = ETargetingGridPreviewMode::AffectedTiles;
 	float PreviewHeightOffset = 5.0f;
+	float OccupiedGridPreviewScale = 1.2f;
 	bool bEnemyStyle = false;
 	void ApplyPreviewStyle();
 };

@@ -39,6 +39,7 @@ private:
 public:
     virtual void BeginDestroy() override;
     virtual void Initialize(AActor* InOwnerActor,UMuksiStatusEffectComponent* InOwnerComponent,FName InEffectID,int32 InStackCount,int32 InDuration);
+    virtual void CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor, UMuksiStatusEffectComponent* InOwnerComponent);
 
     void ExecuteRoundPhase(EBattlePhase Phase, FSimpleDelegate CompletionDelegate);
 

@@ -22,18 +22,26 @@ void ABattleGridManager::BeginPlay()
 	Super::BeginPlay();
 
 
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	if (bWorldManagerRegistrationEnabled)
 	{
-		ManagerSubsystem->RegisterManager<ABattleGridManager>(this);
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+		{
+			ManagerSubsystem->RegisterManager<ABattleGridManager>(this);
+		}
 	}
 }
 
 void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+	if (bWorldManagerRegistrationEnabled)
 	{
-		ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
+		{
+			ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
+		}
 	}
+	RuntimeSourceGridManager = nullptr;
+	bRuntimeGridInstance = false;
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -41,7 +49,10 @@ void ABattleGridManager::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	GenerateGrid();
+	if (bGenerateGridOnConstruction)
+	{
+		GenerateGrid();
+	}
 }
 
 bool ABattleGridManager::IsValidCoord(const FHexOffsetCoord& Coord) const
@@ -58,6 +69,10 @@ ABattleGridTile* ABattleGridManager::GetTileActorByCoord(const FHexOffsetCoord& 
 
 const FBattleGridLayoutSettings& ABattleGridManager::GetLayoutSettings() const
 {
+	if (IsValid(RuntimeSourceGridManager))
+	{
+		return RuntimeSourceGridManager->GetLayoutSettings();
+	}
 	check(BattleGridGeneratorComponent);
 	return BattleGridGeneratorComponent->GetLayoutSettings();
 }
@@ -86,11 +101,24 @@ void ABattleGridManager::PlaceCharacter(ABattleCharacterBase* CharacterBase, con
 
 void ABattleGridManager::GenerateGrid()
 {
-	if (BattleGridGeneratorComponent) { BattleGridGeneratorComponent->GenerateTiles(); }
+	if (IsRuntimeGridInstance())
+	{
+		return;
+	}
+	if (BattleGridGeneratorComponent)
+	{
+		BattleGridGeneratorComponent->GenerateTiles();
+	}
 }
 
 void ABattleGridManager::ClearGrid()
 {
+	if (IsRuntimeGridInstance())
+	{
+		GridCells.Reset();
+		TargetGridArray.Reset();
+		return;
+	}
 	if (BattleGridGeneratorComponent)
 	{
 		BattleGridGeneratorComponent->ClearTiles();
@@ -115,38 +143,40 @@ FVector ABattleGridManager::GetWorldLocationByCoord(const FHexOffsetCoord& Coord
 	return GetActorTransform().TransformPosition(LocalLocation);
 }
 
+bool ABattleGridManager::GetPresentationWorldLocationByCoord(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const
+{
+	OutWorldLocation = FVector::ZeroVector;
+	if (!IsValidCoord(Coord)) return false;
+	const int32 Index = CoordToIndex(Coord);
+	if (!GridCells.IsValidIndex(Index)) return false;
+	OutWorldLocation = GridCells[Index].WorldLocation;
+	return true;
+}
+
 float ABattleGridManager::GetAdjacentTileCenterDistance()
 {
 	float MinimumDistance = TNumericLimits<float>::Max();
 
-	for (const FBattleGridCell& Cell : GridCells)
+	for (int32 X = 0; X < GetGridWidth(); ++X)
 	{
-		if (!Cell.TileActor)
+		for (int32 Y = 0; Y < GetGridHeight(); ++Y)
 		{
-			continue;
-		}
+			const FHexOffsetCoord CellCoord(X, Y);
+			const FVector CellLocation = GetWorldLocationByCoord(CellCoord);
+			const TArray<FHexOffsetCoord> NeighborCoords = GetHexNeighbors(CellCoord);
 
-		const FVector CellLocation = Cell.TileActor->GetGridCenterWorldLocation();
-		const TArray<FHexOffsetCoord> NeighborCoords = GetHexNeighbors(Cell.GridCoord);
-
-		for (const FHexOffsetCoord& NeighborCoord : NeighborCoords)
-		{
-			FBattleGridCell* NeighborCell = GetCellByCoord(NeighborCoord);
-
-			if (!NeighborCell || !NeighborCell->TileActor)
+			for (const FHexOffsetCoord& NeighborCoord : NeighborCoords)
 			{
-				continue;
+				const FVector NeighborLocation = GetWorldLocationByCoord(NeighborCoord);
+				const float Distance = FVector::Dist2D(CellLocation, NeighborLocation);
+
+				if (Distance <= KINDA_SMALL_NUMBER)
+				{
+					continue;
+				}
+
+				MinimumDistance = FMath::Min(MinimumDistance, Distance);
 			}
-
-			const FVector NeighborLocation = NeighborCell->TileActor->GetGridCenterWorldLocation();
-			const float Distance = FVector::Dist2D(CellLocation, NeighborLocation);
-
-			if (Distance <= KINDA_SMALL_NUMBER)
-			{
-				continue;
-			}
-
-			MinimumDistance = FMath::Min(MinimumDistance, Distance);
 		}
 	}
 
@@ -156,9 +186,7 @@ float ABattleGridManager::GetAdjacentTileCenterDistance()
 	}
 
 	const FBattleGridLayoutSettings& Layout = GetLayoutSettings();
-	const float DiagonalDistance = FMath::Sqrt(
-		FMath::Square(Layout.GridSpacingX * Layout.OddRowXOffsetRatio) +
-		FMath::Square(Layout.GridSpacingY));
+	const float DiagonalDistance = FMath::Sqrt(FMath::Square(Layout.GridSpacingX * Layout.OddRowXOffsetRatio) + FMath::Square(Layout.GridSpacingY));
 
 	return FMath::Min(Layout.GridSpacingX, DiagonalDistance);
 }
@@ -458,36 +486,39 @@ void ABattleGridManager::AllClearExchangeIndicator()
 
 TArray<FBattleGridCell>& ABattleGridManager::GetActiveGridCells()
 {
-	return bUsingSimulationGrid ? SimulationGridCells : GridCells;
+	return GridCells;
 }
 
-void ABattleGridManager::BeginSimulationRuntime()
+bool ABattleGridManager::InitializeRuntimeGridFromSource(ABattleGridManager* InSourceGridManager)
 {
-	SimulationGridCells = GridCells;
-	bUsingSimulationGrid = true;
-}
-
-void ABattleGridManager::EndSimulationRuntime()
-{
-	bUsingSimulationGrid = false;
-	SimulationGridCells.Reset();
-}
-
-bool ABattleGridManager::ReplaceSimulationActor( AActor* SourceActor, AActor* ReplacementActor)
-{
-	if (!bUsingSimulationGrid || !IsValid(SourceActor) || !IsValid(ReplacementActor))
+	if (!IsValid(InSourceGridManager) || InSourceGridManager == this)
 	{
 		return false;
 	}
+	RuntimeSourceGridManager = InSourceGridManager;
+	bRuntimeGridInstance = true;
+	bTilePresentationEnabled = false;
+	GridCells = InSourceGridManager->GridCells;
+	TargetGridArray.Reset();
+	SetActorTransform(InSourceGridManager->GetActorTransform());
+	return !GridCells.IsEmpty();
+}
 
-	for (FBattleGridCell& Cell : SimulationGridCells)
+bool ABattleGridManager::ReplaceGridActor(AActor* SourceActor, AActor* ReplacementActor)
+{
+	if (!IsRuntimeGridInstance() || !IsValid(SourceActor) || !IsValid(ReplacementActor))
 	{
-		if (Cell.OccupyingActor == SourceActor)
+		return false;
+	}
+	for (FBattleGridCell& Cell : GridCells)
+	{
+		if (Cell.OccupyingActor != SourceActor)
 		{
-			Cell.OccupyingActor = ReplacementActor;
-			Cell.bOccupied = true;
-			return true;
+			continue;
 		}
+		Cell.OccupyingActor = ReplacementActor;
+		Cell.bOccupied = true;
+		return true;
 	}
 	return false;
 }

@@ -65,7 +65,7 @@ void ABattleManager::NotifyBattleActionStart(const FBattleAction& BattleAction)
 void ABattleManager::ReadyStart()
 {
 	bIsCharacterDead = false;
-	ChangePhase(EBattlePhase::Ready);
+	ChangePhase(EBattlePhase::ReadyStart);
 }
 
 void ABattleManager::ReadyEnd()
@@ -261,12 +261,7 @@ void ABattleManager::NotifyPhaseUIFinished(EBattlePhase FinishedPhase)
 {
 	if (CurrentPhase != FinishedPhase)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("[BattleManager] Ignored stale phase UI completion. Current: %d, Finished: %d"),
-			static_cast<int32>(CurrentPhase),
-			static_cast<int32>(FinishedPhase));
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Ignored stale phase UI completion. Current: %d, Finished: %d"), static_cast<int32>(CurrentPhase), static_cast<int32>(FinishedPhase));
 		return;
 	}
 
@@ -309,7 +304,7 @@ void ABattleManager::AdvanceFromPhase(EBattlePhase FinishedPhase)
 {
 	switch (FinishedPhase)
 	{
-	case EBattlePhase::Ready:
+	case EBattlePhase::ReadyStart:
 		ReadyEnd();
 		break;
 
@@ -386,7 +381,7 @@ bool ABattleManager::ShouldWaitForPhaseUI(EBattlePhase Phase) const
 {
 	switch (Phase)
 	{
-	case EBattlePhase::Ready:
+	case EBattlePhase::ReadyStart:
 	case EBattlePhase::ReadyEnd:
 	case EBattlePhase::SimulationSequence:
 		return false;

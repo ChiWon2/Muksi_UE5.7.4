@@ -124,7 +124,5 @@ void UBattleGridTileGeneratorComponent::ClearTilesInternal()
 	}
 
 	GridManager->GridCells.Empty();
-	GridManager->SimulationGridCells.Empty();
-	GridManager->bUsingSimulationGrid = false;
 	GridManager->TargetGridArray.Empty();
 }

@@ -11,6 +11,7 @@ class ABattleManager;
 class UMuksiCharacterDataAsset;
 class ABattleCharacterBase;
 class UCharacterPassive;
+struct FBattleAction;
 
 UCLASS(ClassGroup = (Muksi), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UCharacterPassiveComponent : public UActorComponent
@@ -19,11 +20,10 @@ class MUKSI_API UCharacterPassiveComponent : public UActorComponent
 public:
 	UCharacterPassiveComponent();
 
-	auto InitializePassives(
-		const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses,
-		ABattleManager* BattleManager
-	) -> void;
-
+	auto InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager) -> void;
+	void CopyRuntimeStateFrom(const UCharacterPassiveComponent& SourceComponent);
+	void NotifyBattleActionStart(const FBattleAction& BattleAction);
+	void NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
 	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives(){return ActivePassives;};
 

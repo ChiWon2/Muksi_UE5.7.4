@@ -5,6 +5,8 @@
 
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
+#include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 
@@ -34,6 +36,8 @@ void UWidget_BattleMainScreen::NativeConstruct()
 
 	BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
 	BattleTargetingManager = ManagerSubsystem->GetManager<ABattleTargetingManager>();
+	BattleSequenceManager = ManagerSubsystem->GetManager<ABattleSequenceManager>();
+	BattleSimulationManager = ManagerSubsystem->GetManager<ABattleSimulationManager>();
 
 	if (!BattleManager)
 	{
@@ -47,11 +51,11 @@ void UWidget_BattleMainScreen::NativeConstruct()
 		return;
 	}
 
-	BattleTargetingManager->OnEnemyCardSelectionReady.AddUObject(
-		this,
-		&UWidget_BattleMainScreen::HandleEnemyCardSelectionReady);
+	BattleTargetingManager->OnEnemyCardSelectionReady.AddUObject(this, &UWidget_BattleMainScreen::HandleEnemyCardSelectionReady);
 
 	BindBattleManagerEvents();
+	BindBattleSequenceManagerEvents();
+	BindBattleSimulationManagerEvents();
 	BindHandWidgetEvents();
 
 	if (HandWidget)HandWidget->BattleMainScreen = this;
@@ -61,6 +65,8 @@ void UWidget_BattleMainScreen::NativeConstruct()
 void UWidget_BattleMainScreen::NativeDestruct()
 {
 	UnbindBattleManagerEvents();
+	UnbindBattleSequenceManagerEvents();
+	UnbindBattleSimulationManagerEvents();
 	UnbindHandWidgetEvents();
 
 	if (BattleTargetingManager)
@@ -164,13 +170,91 @@ void UWidget_BattleMainScreen::UnbindBattleManagerEvents()
 	BattleManager->PhaseUIDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandlePhaseUIRequested);
 }
 
+void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
+{
+	if (!BattleSequenceManager)
+	{
+		return;
+	}
+
+	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
+	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested);
+}
+
+void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
+{
+	if (!BattleSequenceManager)
+	{
+		return;
+	}
+
+	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
+}
+
+void UWidget_BattleMainScreen::BindBattleSimulationManagerEvents()
+{
+	if (!BattleSimulationManager) return;
+	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+	BattleSimulationManager->SimulationTimeScaleChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+	BattleSimulationManager->PlayerSimulationViewChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+	BP_OnSimulationTimeScaleChanged(BattleSimulationManager->GetSimulationTimeScale());
+	BP_OnSimulationPlayerViewChanged(BattleSimulationManager->GetPlayerSimulationView());
+	BP_OnSimulationPlayerViewAvailabilityChanged(BattleSimulationManager->CanChangePlayerSimulationView());
+}
+
+void UWidget_BattleMainScreen::UnbindBattleSimulationManagerEvents()
+{
+	if (!BattleSimulationManager) return;
+	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+}
+
+void UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged(float TimeScale)
+{
+	BP_OnSimulationTimeScaleChanged(TimeScale);
+}
+
+void UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged(EBattlePlayerSimulationView View)
+{
+	BP_OnSimulationPlayerViewChanged(View);
+}
+
+void UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged(bool bAvailable)
+{
+	BP_OnSimulationPlayerViewAvailabilityChanged(bAvailable);
+}
+
+void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction)
+{
+	if (!BattleSequenceManager || !IsValid(BattleAction.Card))
+	{
+		return;
+	}
+
+	UMuksiBattleCardDataAsset* DeceivedCard = BattleAction.Card->GetDeceivedCard();
+	if (!IsValid(DeceivedCard))
+	{
+		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
+		return;
+	}
+
+	if (!PlayDeceiveCardReveal(BattleAction, DeceivedCard, BattleAction.Card.Get()))
+	{
+		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
+	}
+}
+
 void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
 	(void)OldPhase;
 
 	switch (NewPhase)
 	{
-	case EBattlePhase::Ready:
+	case EBattlePhase::ReadyStart:
 		ReadyStart();
 		break;
 
@@ -237,6 +321,26 @@ void UWidget_BattleMainScreen::NotifyPlayerCardUnequipped()
 	{
 		BattleTargetingManager->RequestCancelPlayerTargeting();
 	}
+}
+
+bool UWidget_BattleMainScreen::SetSimulationPlayerView(EBattlePlayerSimulationView View)
+{
+	return BattleSimulationManager ? BattleSimulationManager->SetPlayerSimulationView(View) : false;
+}
+
+bool UWidget_BattleMainScreen::ToggleSimulationPlayerView()
+{
+	return BattleSimulationManager ? BattleSimulationManager->TogglePlayerSimulationView() : false;
+}
+
+EBattlePlayerSimulationView UWidget_BattleMainScreen::GetSimulationPlayerView() const
+{
+	return BattleSimulationManager ? BattleSimulationManager->GetPlayerSimulationView() : EBattlePlayerSimulationView::ActualSelf;
+}
+
+bool UWidget_BattleMainScreen::CanToggleSimulationPlayerView() const
+{
+	return BattleSimulationManager ? BattleSimulationManager->CanChangePlayerSimulationView() : false;
 }
 
 bool UWidget_BattleMainScreen::CanRequestEndExchange()
@@ -451,32 +555,38 @@ void UWidget_BattleMainScreen::RoundEnd()
 
 void UWidget_BattleMainScreen::RemoveSelectCards()const
 {
-	UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
-	ABattleCharacterBase* PlayerBattleCharacter = BattleRuntimeContext
-		? BattleRuntimeContext->GetPlayerCharacter()
-		: nullptr;
-	ABattleCharacterBase* EnemyBattleCharacter = BattleRuntimeContext
-		? BattleRuntimeContext->GetEnemyCharacter()
-		: nullptr;
+	if (!BattleManager)
+	{
+		return;
+	}
 
+	UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
+	if (!BattleRuntimeContext)
+	{
+		return;
+	}
+
+	ABattleCharacterBase* PlayerBattleCharacter = BattleRuntimeContext->GetPlayerCharacter();
+	ABattleCharacterBase* EnemyBattleCharacter = BattleRuntimeContext->GetEnemyCharacter();
 	if (!PlayerBattleCharacter || !EnemyBattleCharacter)
 	{
 		return;
 	}
 
-	for (int32 Count = 1; Count <= BattleManager->GetMaxExchangeCount(); Count++)
+	for (int32 ExchangeIndex = 0; ExchangeIndex < BattleManager->GetMaxExchangeCount(); ++ExchangeIndex)
 	{
-		UMuksiBattleCardDataAsset* DataAsset = HandWidget->GetExchangeDataIndex_Player(Count);
-		if (DataAsset != nullptr){UE_LOG(LogTemp, Error, TEXT("Remove Select Cards is %s"), *DataAsset->GetName());}
-		else{	UE_LOG(LogTemp, Error, TEXT("Remove Select Cards is nullptr"));}
-	}
+		const FBattleAction* PlayerAction = BattleRuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
+		const FBattleAction* EnemyAction = BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
 
-	for (int32 Count = 1; Count <= BattleManager->GetMaxExchangeCount(); Count++)
-	{
-		PlayerBattleCharacter->RemoveBattleCard(HandWidget->GetExchangeDataIndex_Player(Count));
-		EnemyBattleCharacter->RemoveBattleCard(HandWidget->GetExchangeDataIndex_Enemy(Count));
+		if (PlayerAction && IsValid(PlayerAction->Card))
+		{
+			PlayerBattleCharacter->RemoveBattleCard(PlayerAction->Card.Get());
+		}
 
-
+		if (EnemyAction && IsValid(EnemyAction->Card))
+		{
+			EnemyBattleCharacter->RemoveBattleCard(EnemyAction->Card.Get());
+		}
 	}
 }
 
@@ -755,6 +865,24 @@ void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUIFinish()
 	{
 		BattleManager->NotifyPhaseUIFinished(EBattlePhase::BattleActionSequenceStart);
 	}
+}
+
+bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard)
+{
+	(void)BattleAction;
+	(void)DeceivedCard;
+	(void)ActualCard;
+	return false;
+}
+
+void UWidget_BattleMainScreen::NotifyDeceiveCardRevealFinished()
+{
+	if (!BattleSequenceManager)
+	{
+		return;
+	}
+
+	BattleSequenceManager->NotifyDeceiveCardRevealFinished();
 }
 
 void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset)

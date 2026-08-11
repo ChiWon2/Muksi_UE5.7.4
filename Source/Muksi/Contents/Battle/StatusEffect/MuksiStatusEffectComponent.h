@@ -25,6 +25,9 @@ public:
 
 public:
     void Initialize(ABattleManager* InBattleManager);
+    void CopyRuntimeStateFrom(const UMuksiStatusEffectComponent& SourceComponent);
+    void NotifyBattleActionStart(const FBattleAction& BattleAction);
+    void NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
     UFUNCTION(BlueprintCallable)
     UMuksiStatusEffect* AddStatusEffect(FName EffectID, int32 StackCount = 1, int32 Duration = 1);
@@ -61,7 +64,6 @@ private:
     UFUNCTION()
     void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
-    void HandleBattleActionStart(const FBattleAction& BattleAction);
     void HandleExchangeStart();
 
     void HandleBattleActionSequenceStart();

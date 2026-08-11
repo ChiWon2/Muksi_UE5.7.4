@@ -10,6 +10,16 @@ UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
 	CardTexture = nullptr;
 }
 
+UMuksiBattleCardDataAsset* UMuksiBattleCardDataAsset::GetDeceivedCard() const
+{
+	if (!bIsDeceiveCard || !IsValid(DeceivedCard) || DeceivedCard.Get() == this)
+	{
+		return nullptr;
+	}
+
+	return DeceivedCard.Get();
+}
+
 #if WITH_EDITOR
 
 void UMuksiBattleCardDataAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

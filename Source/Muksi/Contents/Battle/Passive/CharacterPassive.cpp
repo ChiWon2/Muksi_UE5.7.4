@@ -25,6 +25,17 @@ void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner)
 	OwnerCharacter = InOwner;
 }
 
+void UCharacterPassive::CopyRuntimeStateFrom(const UCharacterPassive& SourcePassive, ABattleCharacterBase* InOwner)
+{
+	NotifyRoundPhaseExecutionFinished();
+	if (CachedBattleManager) CachedBattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
+	if (CachedBattleManager) CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
+	CachedBattleManager = nullptr;
+	OwnerCharacter = InOwner;
+	Priority = SourcePassive.Priority;
+	bEnabled = SourcePassive.bEnabled;
+	bWaitForManualRoundPhaseCompletion = SourcePassive.bWaitForManualRoundPhaseCompletion;
+}
 
 void UCharacterPassive::BindingEvent(ABattleManager* BattleManager)
 {
@@ -40,6 +51,17 @@ void UCharacterPassive::BindingEvent(ABattleManager* BattleManager)
 		CachedBattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &UCharacterPassive::HandleChangePhaseDelegate);
 		CachedBattleManager->BattleActionStartDelegate.AddUObject(this, &UCharacterPassive::HandleBattleActionStart);
 	}
+}
+
+void UCharacterPassive::NotifyBattleActionStart(const FBattleAction& BattleAction)
+{
+	HandleBattleActionStart(BattleAction);
+}
+
+void UCharacterPassive::NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+	if (!bEnabled || NewPhase == EBattlePhase::RoundStart || NewPhase == EBattlePhase::RoundEnd) return;
+	HandleBattlePhaseChanged(OldPhase, NewPhase);
 }
 
 void UCharacterPassive::ExecuteRoundPhase(
@@ -84,12 +106,7 @@ void UCharacterPassive::NotifyRoundPhaseExecutionFinished()
 
 void UCharacterPassive::HandleChangePhaseDelegate(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
-	if (!bEnabled || NewPhase == EBattlePhase::RoundStart || NewPhase == EBattlePhase::RoundEnd)
-	{
-		return;
-	}
-
-	HandleBattlePhaseChanged(OldPhase, NewPhase);
+	NotifyBattlePhaseChanged(OldPhase, NewPhase);
 }
 
 void UCharacterPassive::HandleBattlePhaseChanged(

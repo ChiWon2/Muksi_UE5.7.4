@@ -9,7 +9,6 @@ void UBattleRuntimeContext::ResetBattle()
 	CurrentExchange = 0;
 	PlayerCharacter = nullptr;
 	EnemyCharacter = nullptr;
-	RuntimeCharacterOverrides.Empty();
 	PlayerExchangeActions.Empty();
 	EnemyExchangeActions.Empty();
 	BattleActionSequenceQueue.Empty();
@@ -19,7 +18,6 @@ void UBattleRuntimeContext::ResetRound(const int32 InRound)
 {
 	CurrentRound = InRound;
 	CurrentExchange = 0;
-	RuntimeCharacterOverrides.Empty();
 	PlayerExchangeActions.Empty();
 	EnemyExchangeActions.Empty();
 	BattleActionSequenceQueue.Empty();
@@ -31,44 +29,6 @@ void UBattleRuntimeContext::SetBattleCharacters(
 {
 	PlayerCharacter = InPlayerCharacter;
 	EnemyCharacter = InEnemyCharacter;
-}
-
-void UBattleRuntimeContext::SetRuntimeCharacterOverride(
-	ABattleCharacterBase* SourceCharacter,
-	ABattleCharacterBase* RuntimeCharacter)
-{
-	if (!IsValid(SourceCharacter))
-	{
-		return;
-	}
-
-	if (!IsValid(RuntimeCharacter) || RuntimeCharacter == SourceCharacter)
-	{
-		RuntimeCharacterOverrides.Remove(SourceCharacter);
-		return;
-	}
-
-	RuntimeCharacterOverrides.Add(SourceCharacter, RuntimeCharacter);
-}
-
-void UBattleRuntimeContext::ClearRuntimeCharacterOverrides()
-{
-	RuntimeCharacterOverrides.Empty();
-}
-
-ABattleCharacterBase* UBattleRuntimeContext::ResolveRuntimeCharacter(
-	const ABattleCharacterBase* SourceCharacter) const
-{
-	if (!IsValid(SourceCharacter))
-	{
-		return nullptr;
-	}
-
-	const TObjectPtr<ABattleCharacterBase>* RuntimeCharacter =
-		RuntimeCharacterOverrides.Find(const_cast<ABattleCharacterBase*>(SourceCharacter));
-	return RuntimeCharacter && IsValid(RuntimeCharacter->Get())
-		? RuntimeCharacter->Get()
-		: const_cast<ABattleCharacterBase*>(SourceCharacter);
 }
 
 void UBattleRuntimeContext::ResetExchangeActions(const int32 ExchangeIndex)

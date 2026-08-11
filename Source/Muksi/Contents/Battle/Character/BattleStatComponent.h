@@ -73,6 +73,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle Stat")
 	void InitializeStats(const FBattleStats& InStats);
 
+	void CopyRuntimeStateFrom(const UBattleStatComponent& SourceComponent);
+
 	// 피해 적용
 	UFUNCTION(BlueprintCallable, Category = "Battle Stat")
 	float ApplyDamage(float Damage);

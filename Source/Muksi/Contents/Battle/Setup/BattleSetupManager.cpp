@@ -91,13 +91,13 @@ bool ABattleSetupManager::TryBindBattleFlow()
     BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &ABattleSetupManager::HandleBattlePhaseChanged);
 
     const EBattlePhase CurrentPhase = BattleManager->GetCurrentPhase();
-    if (CurrentPhase == EBattlePhase::Ready)
+    if (CurrentPhase == EBattlePhase::ReadyStart)
     {
         HandleBattlePhaseChanged(EBattlePhase::None, CurrentPhase);
     }
     else if (CurrentPhase == EBattlePhase::ReadyEnd)
     {
-        HandleBattlePhaseChanged(EBattlePhase::Ready, CurrentPhase);
+        HandleBattlePhaseChanged(EBattlePhase::ReadyStart, CurrentPhase);
     }
 
     return true;
@@ -120,7 +120,7 @@ void ABattleSetupManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattl
 
     switch (NewPhase)
     {
-    case EBattlePhase::Ready:
+    case EBattlePhase::ReadyStart:
         if (PrepareReadyData())
         {
             BattleManager->NotifyPhaseExecutionFinished();

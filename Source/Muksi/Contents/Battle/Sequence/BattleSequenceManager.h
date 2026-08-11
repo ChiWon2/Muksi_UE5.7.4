@@ -14,10 +14,12 @@ class ABattleManager;
 class UBattleRuntimeContext;
 class UBattleExecutionRunner;
 class UMuksiBattleAnimationComponent;
+class UMuksiBattleCardDataAsset;
 class UBattleSequenceExecutionEnvironment;
 class UTargetingPresentationController;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleActionStart, const FBattleAction&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveCardRevealRequested, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
 DECLARE_MULTICAST_DELEGATE(FOnBattleActionFinished);
 DECLARE_MULTICAST_DELEGATE(FOnBattleActionSequenceFinished);
@@ -42,6 +44,9 @@ public:
 	// 단일 BattleAction Sequence가 실제 실행을 시작하는 순간 발생한다.
 	// Simulation / BattleActionSequence 모두 StartSequenceWithRequest()를 통과하므로 공통 발생 지점이다.
 	FOnBattleActionStart BattleActionStartDelegate;
+
+	// 실제 BattleActionQueue에서 변초 Action 실행 직전에 Reveal UI를 요청한다.
+	FOnDeceiveCardRevealRequested DeceiveCardRevealRequestedDelegate;
 
 	// 단일 Action의 Execution Chain 완료 이벤트. Simulation에서도 기존대로 사용한다.
 	FOnBattleSequenceFinished OnSequenceFinished;
@@ -76,11 +81,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
 	int32 GetCurrentBattleActionIndex() const { return CurrentBattleActionIndex; }
 
+	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
+	void NotifyDeceiveCardRevealFinished();
+
 	void InitializeBattleRuntimeContext(UBattleRuntimeContext* InBattleRuntimeContext);
 
 private:
 	UPROPERTY(Transient)
 	FBattleAction CurrentAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMuksiBattleCardDataAsset> CurrentExecutionCard = nullptr;
 
 	UPROPERTY(Transient)
 	FResolvedTargeting CurrentResolvedTargeting;
@@ -105,6 +116,7 @@ private:
 	bool bBattleActionSequenceRunning = false;
 	bool bBattleActionCompletionPending = false;
 	bool bStartingQueuedBattleAction = false;
+	bool bWaitingForDeceiveCardReveal = false;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
@@ -148,6 +160,8 @@ private:
 
 	void SortBattleActionQueue();
 	void StartCurrentBattleAction();
+	bool ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const;
+	void StartCurrentBattleActionExecution();
 	void HandleCurrentBattleActionFinished();
 	void FinishCurrentBattleAction();
 	void StartNextBattleActionDeferred();

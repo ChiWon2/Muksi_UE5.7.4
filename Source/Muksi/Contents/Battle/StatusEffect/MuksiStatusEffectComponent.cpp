@@ -24,7 +24,21 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
     if (BattleManager)
     {
         BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
-        BattleManager->BattleActionStartDelegate.AddUObject(this, &UMuksiStatusEffectComponent::HandleBattleActionStart);
+        BattleManager->BattleActionStartDelegate.AddUObject(this, &UMuksiStatusEffectComponent::NotifyBattleActionStart);
+    }
+}
+
+void UMuksiStatusEffectComponent::CopyRuntimeStateFrom(const UMuksiStatusEffectComponent& SourceComponent)
+{
+    FinishRoundPhaseExecution();
+    ActiveEffects.Reset();
+    for (UMuksiStatusEffect* SourceEffect : SourceComponent.ActiveEffects)
+    {
+        if (!IsValid(SourceEffect)) continue;
+        UMuksiStatusEffect* NewEffect = NewObject<UMuksiStatusEffect>(this, SourceEffect->GetClass());
+        if (!IsValid(NewEffect)) continue;
+        NewEffect->CopyRuntimeStateFrom(*SourceEffect, GetOwner(), this);
+        ActiveEffects.Add(NewEffect);
     }
 }
 
@@ -215,7 +229,7 @@ for (UMuksiStatusEffect* Effect : ActiveEffects) \
 RemoveExpiredEffects();
 
 
-void UMuksiStatusEffectComponent::HandleBattleActionStart(const FBattleAction& BattleAction)
+void UMuksiStatusEffectComponent::NotifyBattleActionStart(const FBattleAction& BattleAction)
 {
     if (GetOwner() != BattleAction.Attacker)
     {
@@ -232,6 +246,11 @@ void UMuksiStatusEffectComponent::HandleBattleActionStart(const FBattleAction& B
     }
 
     RemoveExpiredEffects();
+}
+
+void UMuksiStatusEffectComponent::NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+    HandleBattlePhaseChanged(OldPhase, NewPhase);
 }
 
 void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)

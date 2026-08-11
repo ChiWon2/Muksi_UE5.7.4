@@ -1,7 +1,6 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/Cone/ConePattern.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Cone/ConePatternData.h"
 
@@ -20,7 +19,7 @@ void UConePattern::ApplyPattern(ABattleGridManager* GridManager, const FInstance
 	const FHexOffsetCoord OriginCoord = StepResult->OriginCoord;
 	const FHexOffsetCoord AimCoord = FHexGridMath::GetNeighborCoord(OriginCoord, StepResult->Direction);
 
-	if (!GridManager->IsValidCoord(OriginCoord) || !GridManager->IsValidCoord(AimCoord))
+	if (!GridManager->IsValidCoord(OriginCoord))
 	{
 		return;
 	}
@@ -65,14 +64,9 @@ void UConePattern::ApplyPattern(ABattleGridManager* GridManager, const FInstance
 				continue;
 			}
 
-			const ABattleGridTile* CandidateTile = GridManager->GetTileActorByCoord(CandidateCoord);
+			const FVector CandidateWorldLocation = GridManager->GetWorldLocationByCoord(CandidateCoord);
 
-			if (!CandidateTile)
-			{
-				continue;
-			}
-
-			if (!IsInsideCone(OriginWorldLocation, AimWorldLocation, CandidateTile->GetGridCenterWorldLocation(), SafeAngle))
+			if (!IsInsideCone(OriginWorldLocation, AimWorldLocation, CandidateWorldLocation, SafeAngle))
 			{
 				continue;
 			}

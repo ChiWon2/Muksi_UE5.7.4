@@ -11,6 +11,8 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
+#include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
+#include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
@@ -56,6 +58,7 @@ void ABattleTargetingManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     PendingPlayerCard = nullptr;
     BattleRuntimeContext = nullptr;
     BattleGridManager = nullptr;
+    BattleSimulationManager = nullptr;
     BattleManager = nullptr;
 
     if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
@@ -88,11 +91,14 @@ bool ABattleTargetingManager::TryBindBattleFlow()
     BattleManager = FoundBattleManager;
     BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
     BattleGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
+    ABattleSimulationManager* FoundSimulationManager = ManagerSubsystem->GetManager<ABattleSimulationManager>();
 
-    if (!IsValid(BattleGridManager))
+    if (!IsValid(BattleGridManager) || !IsValid(FoundSimulationManager))
     {
         return false;
     }
+
+    BattleSimulationManager = FoundSimulationManager;
 
     if (TargetingPresentationController)
     {
@@ -117,13 +123,15 @@ void ABattleTargetingManager::BindBattleFlowDeferred()
 
 void ABattleTargetingManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
-    (void)OldPhase;
-
     switch (NewPhase)
     {
     case EBattlePhase::RoundStart:
-    case EBattlePhase::CardSelect:
         ResetCurrentExchangeTargeting();
+        break;
+
+    case EBattlePhase::CardSelect:
+        if (OldPhase == EBattlePhase::Targeting) ResetPlayerTargetingForCardReselection();
+        else ResetCurrentExchangeTargeting();
         break;
 
     case EBattlePhase::Targeting:
@@ -167,6 +175,23 @@ void ABattleTargetingManager::ResetCurrentExchangeTargeting()
     {
         BattleRuntimeContext->ResetExchangeActions(BattleManager->GetCurrentExchange());
     }
+}
+
+void ABattleTargetingManager::ResetPlayerTargetingForCardReselection()
+{
+    GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
+
+    if (TargetingPresentationController) TargetingPresentationController->ClearSession(PlayerTargetingSession);
+    else if (PlayerTargetingSession)
+    {
+        PlayerTargetingSession->EndSession();
+        PlayerTargetingSession = nullptr;
+    }
+
+    PendingPlayerCard = nullptr;
+    bPlayerCardSelectionFinished = false;
+
+    if (BattleRuntimeContext && BattleManager) BattleRuntimeContext->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
 }
 
 void ABattleTargetingManager::ClearSelectionAndRevealPreviews()
@@ -222,7 +247,8 @@ bool ABattleTargetingManager::RequestPlayerCardSelection(UMuksiBattleCardDataAss
 
 bool ABattleTargetingManager::StartPendingPlayerTargeting()
 {
-    if (!IsValid(PendingPlayerCard) || !IsValid(BattleGridManager))
+    ABattleGridManager* RuntimeGridManager = ResolveRuntimeGridManager();
+    if (!IsValid(PendingPlayerCard) || !IsValid(RuntimeGridManager))
     {
         return false;
     }
@@ -247,7 +273,7 @@ bool ABattleTargetingManager::StartPendingPlayerTargeting()
     PlayerTargetingSession = NewObject<UBattleTargetingSession>(this);
     if (!PlayerTargetingSession || !PlayerTargetingSession->StartSession(
         PlayerTargetingActor,
-        BattleGridManager,
+        RuntimeGridManager,
         PendingPlayerCard->TargetingData,
         true))
     {
@@ -456,6 +482,10 @@ bool ABattleTargetingManager::RequestEnemyCardSelection()
         return false;
     }
 
+    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+    if (BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex)) return true;
+    if (GetWorldTimerManager().IsTimerActive(EnemyCardSelectionTimerHandle)) return true;
+
     ABattleCharacter_Enemy* EnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
     if (!IsValid(EnemyCharacter))
     {
@@ -490,7 +520,14 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
         return;
     }
 
-    OnEnemyCardSelectionReady.Broadcast(EnemyAction->Card.Get(), ExchangeIndex);
+    UMuksiBattleCardDataAsset* PresentedCard = EnemyAction->Card.Get();
+    UMuksiBattleCardDataAsset* DeceivedCard = EnemyAction->Card->GetDeceivedCard();
+    if (IsValid(DeceivedCard))
+    {
+        PresentedCard = DeceivedCard;
+    }
+
+    OnEnemyCardSelectionReady.Broadcast(PresentedCard, ExchangeIndex);
 }
 
 bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
@@ -506,16 +543,17 @@ bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
         return false;
     }
 
+    ABattleGridManager* RuntimeGridManager = ResolveRuntimeGridManager();
     ABattleCharacter_Enemy* EnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
     ABattleCharacterBase* EnemyTargetingActor = GetEnemyTargetingActor();
     ABattleCharacterBase* PlayerTargetingActor = GetPlayerTargetingActor();
-    if (!IsValid(EnemyCharacter) || !EnemyTargetingActor || !PlayerTargetingActor)
+    if (!IsValid(RuntimeGridManager) || !IsValid(EnemyCharacter) || !EnemyTargetingActor || !PlayerTargetingActor)
     {
         return false;
     }
 
     UMuksiBattleCardDataAsset* SelectedCard = EnemyCharacter->SelectCardForExchange(
-        BattleGridManager,
+        RuntimeGridManager,
         EnemyTargetingActor->GetCharacterCoord(),
         PlayerTargetingActor->GetCharacterCoord());
     if (!IsValid(SelectedCard))
@@ -538,7 +576,7 @@ bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
     EnemyTargetingSession = NewObject<UBattleTargetingSession>(this);
     if (!EnemyTargetingSession || !EnemyTargetingSession->StartSession(
         EnemyTargetingActor,
-        BattleGridManager,
+        RuntimeGridManager,
         SelectedCard->TargetingData,
         false))
     {
@@ -550,7 +588,7 @@ bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
     {
         const int32 StepIndex = EnemyTargetingSession->GetCurrentStepIndex();
         const FHexOffsetCoord PlayerCoord = PlayerTargetingActor->GetCharacterCoord();
-        const FVector PlayerWorldLocation = BattleGridManager->GetWorldLocationByCoord(PlayerCoord);
+        const FVector PlayerWorldLocation = RuntimeGridManager->GetWorldLocationByCoord(PlayerCoord);
         EnemyTargetingSession->UpdateAimWorldLocation(PlayerWorldLocation, true);
 
         if (!EnemyTargetingSession->UpdateCandidateCoord(PlayerCoord)
@@ -692,7 +730,7 @@ void ABattleTargetingManager::NotifyEnemyCardRevealUIFinished(int32 ExchangeInde
             if (ResolveActionTargetingThroughStepForCurrentGrid(*EnemyAction, StepIndex, StepResolvedTargeting))
             {
                 TargetingPresentationController->AddResolvedStepPreview(
-                    BattleRuntimeContext->ResolveRuntimeCharacter(EnemyAction->Attacker),
+                    ResolveRuntimeCharacter(EnemyAction->Attacker),
                     EnemyAction->Card->TargetingData,
                     StepResolvedTargeting,
                     StepIndex,
@@ -742,7 +780,9 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
 {
     OutCoord = FHexOffsetCoord::Invalid();
 
-    if (!BattleGridManager)
+    ABattleGridManager* RuntimeGridManager = ResolveRuntimeGridManager();
+
+    if (!IsValid(RuntimeGridManager))
     {
         return false;
     }
@@ -756,25 +796,20 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
 
     if (ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
     {
-        ABattleCharacterBase* RuntimeCharacter = BattleRuntimeContext
-            ? BattleRuntimeContext->ResolveRuntimeCharacter(HitCharacter)
-            : HitCharacter;
+        ABattleCharacterBase* RuntimeCharacter = ResolveRuntimeCharacter(HitCharacter);
         OutCoord = RuntimeCharacter ? RuntimeCharacter->GetCharacterCoord() : FHexOffsetCoord::Invalid();
         return OutCoord.IsValid();
     }
 
     float BestDistanceSquared = TNumericLimits<float>::Max();
-    for (int32 X = 0; X < BattleGridManager->GetGridWidth(); ++X)
+    for (int32 X = 0; X < RuntimeGridManager->GetGridWidth(); ++X)
     {
-        for (int32 Y = 0; Y < BattleGridManager->GetGridHeight(); ++Y)
+        for (int32 Y = 0; Y < RuntimeGridManager->GetGridHeight(); ++Y)
         {
             const FHexOffsetCoord Coord(X, Y);
-            if (!BattleGridManager->GetTileActorByCoord(Coord))
-            {
-                continue;
-            }
-
-            const FVector Delta = BattleGridManager->GetWorldLocationByCoord(Coord) - HitResult.ImpactPoint;
+            FVector PresentationLocation = FVector::ZeroVector;
+            if (!RuntimeGridManager->GetPresentationWorldLocationByCoord(Coord, PresentationLocation)) continue;
+            const FVector Delta = PresentationLocation - HitResult.ImpactPoint;
             const float DistanceSquared = FVector2D(Delta.X, Delta.Y).SizeSquared();
             if (DistanceSquared < BestDistanceSquared)
             {
@@ -787,26 +822,29 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
     return OutCoord.IsValid();
 }
 
+ABattleGridManager* ABattleTargetingManager::ResolveRuntimeGridManager() const
+{
+    if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return BattleGridManager.Get();
+    ABattleGridManager* SimulationGridManager = BattleSimulationManager->GetPlayerTargetingSimulationGridManager();
+    return IsValid(SimulationGridManager) ? SimulationGridManager : BattleGridManager.Get();
+}
+
+ABattleCharacterBase* ABattleTargetingManager::ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const
+{
+    if (!IsValid(SourceCharacter)) return nullptr;
+    if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return const_cast<ABattleCharacterBase*>(SourceCharacter);
+    ABattleSimulationCharacter* SimulationCharacter = BattleSimulationManager->GetPlayerTargetingSimulationCharacter(SourceCharacter);
+    return IsValid(SimulationCharacter) ? SimulationCharacter : const_cast<ABattleCharacterBase*>(SourceCharacter);
+}
+
 ABattleCharacterBase* ABattleTargetingManager::GetPlayerTargetingActor() const
 {
-    if (!BattleRuntimeContext)
-    {
-        return nullptr;
-    }
-
-    return BattleRuntimeContext->ResolveRuntimeCharacter(
-        BattleRuntimeContext->GetPlayerCharacter());
+    return BattleRuntimeContext ? ResolveRuntimeCharacter(BattleRuntimeContext->GetPlayerCharacter()) : nullptr;
 }
 
 ABattleCharacterBase* ABattleTargetingManager::GetEnemyTargetingActor() const
 {
-    if (!BattleRuntimeContext)
-    {
-        return nullptr;
-    }
-
-    return BattleRuntimeContext->ResolveRuntimeCharacter(
-        BattleRuntimeContext->GetEnemyCharacter());
+    return BattleRuntimeContext ? ResolveRuntimeCharacter(BattleRuntimeContext->GetEnemyCharacter()) : nullptr;
 }
 
 bool ABattleTargetingManager::ResolveActionTargetingForCurrentGrid(
@@ -814,12 +852,9 @@ bool ABattleTargetingManager::ResolveActionTargetingForCurrentGrid(
     FResolvedTargeting& OutResolvedTargeting) const
 {
     FBattleAction RuntimeAction = Action;
-    if (BattleRuntimeContext)
-    {
-        RuntimeAction.Attacker = BattleRuntimeContext->ResolveRuntimeCharacter(Action.Attacker);
-    }
+    RuntimeAction.Attacker = ResolveRuntimeCharacter(Action.Attacker);
 
-    return FBattleTargetResolver::ResolveAction(RuntimeAction, BattleGridManager, OutResolvedTargeting);
+    return FBattleTargetResolver::ResolveAction(RuntimeAction, ResolveRuntimeGridManager(), OutResolvedTargeting);
 }
 
 bool ABattleTargetingManager::ResolveActionTargetingThroughStepForCurrentGrid(
@@ -828,14 +863,11 @@ bool ABattleTargetingManager::ResolveActionTargetingThroughStepForCurrentGrid(
     FResolvedTargeting& OutResolvedTargeting) const
 {
     FBattleAction RuntimeAction = Action;
-    if (BattleRuntimeContext)
-    {
-        RuntimeAction.Attacker = BattleRuntimeContext->ResolveRuntimeCharacter(Action.Attacker);
-    }
+    RuntimeAction.Attacker = ResolveRuntimeCharacter(Action.Attacker);
 
     return FBattleTargetResolver::ResolveActionThroughStep(
         RuntimeAction,
-        BattleGridManager,
+        ResolveRuntimeGridManager(),
         LastStepIndex,
         OutResolvedTargeting);
 }

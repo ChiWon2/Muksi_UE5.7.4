@@ -58,6 +58,39 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 
 
 
+void UCharacterPassiveComponent::CopyRuntimeStateFrom(const UCharacterPassiveComponent& SourceComponent)
+{
+	FinishRoundPhaseExecution();
+	OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
+	ActivePassives.Reset();
+	for (UCharacterPassive* SourcePassive : SourceComponent.ActivePassives)
+	{
+		if (!IsValid(SourcePassive)) continue;
+		UCharacterPassive* NewPassive = NewObject<UCharacterPassive>(this, SourcePassive->GetClass());
+		if (!IsValid(NewPassive)) continue;
+		NewPassive->CopyRuntimeStateFrom(*SourcePassive, OwnerCharacter);
+		ActivePassives.Add(NewPassive);
+	}
+}
+
+void UCharacterPassiveComponent::NotifyBattleActionStart(const FBattleAction& BattleAction)
+{
+	const TArray<TObjectPtr<UCharacterPassive>> PassivesSnapshot = ActivePassives;
+	for (UCharacterPassive* Passive : PassivesSnapshot)
+	{
+		if (IsValid(Passive)) Passive->NotifyBattleActionStart(BattleAction);
+	}
+}
+
+void UCharacterPassiveComponent::NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+	const TArray<TObjectPtr<UCharacterPassive>> PassivesSnapshot = ActivePassives;
+	for (UCharacterPassive* Passive : PassivesSnapshot)
+	{
+		if (IsValid(Passive)) Passive->NotifyBattlePhaseChanged(OldPhase, NewPhase);
+	}
+}
+
 void UCharacterPassiveComponent::ExecuteRoundPhaseSequentially(
 	EBattlePhase NewPhase,
 	FSimpleDelegate CompletionDelegate)

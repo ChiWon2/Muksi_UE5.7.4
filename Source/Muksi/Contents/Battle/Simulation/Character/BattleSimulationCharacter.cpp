@@ -9,6 +9,7 @@
 ABattleSimulationCharacter::ABattleSimulationCharacter()
 {
 	ClickCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MeshComponent->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	BattleMovementComponent->MovementYawOffset = -90.0f;
 }
 

@@ -34,6 +34,7 @@ void ABattleProjectileActor::BeginPlay()
 void ABattleProjectileActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (AActor* OwnerActor = GetOwner()) SetActorHiddenInGame(OwnerActor->IsHidden());
 
 	if (!bProjectileLaunched || bProjectileFinished)
 	{
@@ -96,7 +97,7 @@ void ABattleProjectileActor::FinishProjectile(bool bInterrupted)
 		TrailComponent->Deactivate();
 	}
 
-	if (!bInterrupted && ImpactSystem)
+	if (!bInterrupted && ImpactSystem && !IsHidden())
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactSystem, GetActorLocation(), GetActorRotation());
 	}

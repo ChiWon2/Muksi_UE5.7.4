@@ -28,6 +28,14 @@ void UBattleStatComponent::InitializeStats(const FBattleStats& InStats)
 	
 }
 
+void UBattleStatComponent::CopyRuntimeStateFrom(const UBattleStatComponent& SourceComponent)
+{
+	BaseStats = SourceComponent.BaseStats;
+	CurrentStats = SourceComponent.CurrentStats;
+	CurrentHP = SourceComponent.CurrentHP;
+	bIsDead = SourceComponent.bIsDead;
+}
+
 float UBattleStatComponent::ApplyDamage(float Damage)
 {
 	if (bIsDead)

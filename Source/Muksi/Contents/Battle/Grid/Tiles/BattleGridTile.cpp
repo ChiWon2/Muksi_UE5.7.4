@@ -41,6 +41,7 @@ void ABattleGridTile::SetTargetIndicatorVisible(bool bVisible)
 		return;
 	}
 
+	TargetIndicatorMesh->SetTranslucentSortPriority(100);
 	TargetIndicatorMesh->SetVisibility(bVisible);
 	TargetIndicatorMesh->SetMaterial(0, NormalIndicatorMaterial);
 }
@@ -66,6 +67,7 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 
 void ABattleGridTile::SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType, bool bEnemy)
 {
+	ExchangeIndicatorMesh->SetTranslucentSortPriority(100);
 	ExchangeIndicatorMesh->SetVisibility(true);
 
 	if (bEnemy && EnemyIndicatorMaterial)

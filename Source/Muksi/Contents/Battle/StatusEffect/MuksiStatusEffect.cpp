@@ -19,6 +19,17 @@ void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,UMuksiStatusEffectCompo
     RemainingDuration = FMath::Max(1, InDuration);
 }
 
+void UMuksiStatusEffect::CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor, UMuksiStatusEffectComponent* InOwnerComponent)
+{
+    NotifyRoundPhaseExecutionFinished();
+    OwnerActor = InOwnerActor;
+    OwnerComponent = InOwnerComponent;
+    EffectID = SourceEffect.EffectID;
+    CurrentStack = SourceEffect.CurrentStack;
+    RemainingDuration = SourceEffect.RemainingDuration;
+    bWaitForManualRoundPhaseCompletion = SourceEffect.bWaitForManualRoundPhaseCompletion;
+}
+
 void UMuksiStatusEffect::ExecuteRoundPhase(
     EBattlePhase Phase,
     FSimpleDelegate CompletionDelegate)

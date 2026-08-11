@@ -59,12 +59,12 @@ class MUKSI_API UCharacterPassive : public UObject
 public:
 	virtual void BeginDestroy() override;
 
-	virtual void InitializePassive(
-		ABattleCharacterBase* InOwner
-	);
-
+	virtual void InitializePassive(ABattleCharacterBase* InOwner);
+	virtual void CopyRuntimeStateFrom(const UCharacterPassive& SourcePassive, ABattleCharacterBase* InOwner);
 
 	virtual void BindingEvent(ABattleManager* BattleManager);
+	void NotifyBattleActionStart(const FBattleAction& BattleAction);
+	void NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
 	void ExecuteRoundPhase(EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate);
 

@@ -18,6 +18,7 @@ struct FBattleSequenceRequest
 	UPROPERTY(BlueprintReadWrite, Category = "Battle|Sequence")
 	EBattleExecutionMode ExecutionMode = EBattleExecutionMode::Sequence;
 
+	// Action.Card와 TargetingIntent는 원본을 유지하고 실행할 Execution 데이터만 교체한다.
 	UPROPERTY(BlueprintReadWrite, Category = "Battle|Sequence")
 	TObjectPtr<UMuksiBattleCardDataAsset> ExecutionCardOverride = nullptr;
 

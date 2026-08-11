@@ -55,8 +55,12 @@ void UStraightPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContex
 		return;
 	}
 
-	FVector StartLocation = Context.GridManager->GetWorldLocationByCoord(Context.StepResult->OriginCoord);
-	FVector AimLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : Context.GridManager->GetWorldLocationByCoord(Context.StepResult->SelectedCoord);
+	FVector StartLocation = FVector::ZeroVector;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->OriginCoord, StartLocation)) return;
+	FVector SelectedPresentationLocation = FVector::ZeroVector;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->SelectedCoord, SelectedPresentationLocation)) return;
+	FVector AimLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : SelectedPresentationLocation;
+	AimLocation.Z = SelectedPresentationLocation.Z;
 	FVector AimDirection = AimLocation - StartLocation;
 
 	AimDirection.Z = 0.0f;
@@ -67,7 +71,7 @@ void UStraightPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContex
 	}
 
 	StartLocation.Z += PreviewHeightOffset;
-	AimLocation.Z = StartLocation.Z;
+	AimLocation.Z += PreviewHeightOffset;
 
 	const float SafeLength = FMath::Max(0.0f, Data->Length);
 	const FVector EndLocation = Data->bUseFixedLength ? StartLocation + AimDirection * SafeLength : AimLocation;
