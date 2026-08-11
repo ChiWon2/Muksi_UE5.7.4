@@ -6,8 +6,10 @@
 #include "BattleStatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
+#include "Muksi/Contents/Battle/StatusEffect/Widgets/StatusEffectBarWidget.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Camera/CharacterCameraComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
@@ -71,6 +73,12 @@ ABattleCharacterBase::ABattleCharacterBase()
 
 	StatusEffectComponent = CreateDefaultSubobject<UMuksiStatusEffectComponent>(TEXT("StatusEffectComponent"));
 
+	StatusEffectWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("StatusEffectWidgetComponent"));
+	StatusEffectWidgetComponent->SetupAttachment(SceneRoot);
+	StatusEffectWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	StatusEffectWidgetComponent->SetDrawAtDesiredSize(true);
+	StatusEffectWidgetComponent->SetPivot(FVector2D(0.5f, 1.0f));
+
 	BattleAnimationComponent = CreateDefaultSubobject<UMuksiBattleAnimationComponent>(TEXT("BattleAnimationComponent"));
 
 	BattleMovementComponent =CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
@@ -78,6 +86,30 @@ ABattleCharacterBase::ABattleCharacterBase()
 	BattleStatComponent = CreateDefaultSubobject<UBattleStatComponent>(TEXT("BattleStatComponent"));
 
 	
+}
+
+
+void ABattleCharacterBase::BeginPlay()
+{
+	Super::BeginPlay();
+	InitializeStatusEffectWidget();
+}
+
+void ABattleCharacterBase::InitializeStatusEffectWidget()
+{
+	if (!IsValid(StatusEffectWidgetComponent) || !StatusEffectWidgetComponent->GetWidgetClass()) return;
+	StatusEffectWidgetComponent->InitWidget();
+	UStatusEffectBarWidget* StatusEffectBarWidget = Cast<UStatusEffectBarWidget>(StatusEffectWidgetComponent->GetUserWidgetObject());
+	if (!IsValid(StatusEffectBarWidget)) return;
+	StatusEffectBarWidget->InitWidget(StatusEffectComponent);
+}
+
+void ABattleCharacterBase::CopyStatusEffectWidgetClassFrom(const ABattleCharacterBase& SourceCharacter)
+{
+	if (!IsValid(StatusEffectWidgetComponent) || !IsValid(SourceCharacter.StatusEffectWidgetComponent)) return;
+	StatusEffectWidgetComponent->SetRelativeTransform(SourceCharacter.StatusEffectWidgetComponent->GetRelativeTransform());
+	StatusEffectWidgetComponent->SetWidgetClass(SourceCharacter.StatusEffectWidgetComponent->GetWidgetClass());
+	InitializeStatusEffectWidget();
 }
 
 float ABattleCharacterBase::GetCurrentHP() const
@@ -119,6 +151,7 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 	}
 	UE_LOG(LogTemp, Error, TEXT("CharacterData CharacterPassives %d"), CharacterData.CharacterPassives.Num());
 	StatusEffectComponent->Initialize(BattleManager);
+	InitializeStatusEffectWidget();
 	PassiveComponent->InitializePassives(CharacterData.CharacterPassives, BattleManager);
 	
 	InitializeBattleStats();
@@ -144,6 +177,7 @@ void ABattleCharacterBase::CopyBattleStateFrom(const ABattleCharacterBase& Sourc
 	CharacterData = SourceCharacter.CharacterData;
 	if (BattleStatComponent && SourceCharacter.BattleStatComponent) BattleStatComponent->CopyRuntimeStateFrom(*SourceCharacter.BattleStatComponent);
 	if (StatusEffectComponent && SourceCharacter.StatusEffectComponent) StatusEffectComponent->CopyRuntimeStateFrom(*SourceCharacter.StatusEffectComponent);
+	InitializeStatusEffectWidget();
 	if (PassiveComponent && SourceCharacter.PassiveComponent) PassiveComponent->CopyRuntimeStateFrom(*SourceCharacter.PassiveComponent);
 }
 

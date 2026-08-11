@@ -21,6 +21,7 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 	}
 
 	SourceCharacter = const_cast<ABattleCharacterBase*>(InSourceCharacter);
+	CopyStatusEffectWidgetClassFrom(*InSourceCharacter);
 
 	CopyBattleStateFrom(*InSourceCharacter);
 	SetActorTransform(InSourceCharacter->GetActorTransform());

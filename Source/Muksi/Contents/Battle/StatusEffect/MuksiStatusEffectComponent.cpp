@@ -173,6 +173,23 @@ UMuksiStatusEffect* UMuksiStatusEffectComponent::FindEffectByID(FName EffectID) 
     return nullptr;
 }
 
+int32 UMuksiStatusEffectComponent::GetEffectStackCount(FName EffectID) const
+{
+    if (EffectID.IsNone())
+    {
+        return 0;
+    }
+    
+    for (UMuksiStatusEffect* Effect : ActiveEffects)
+    {
+        if (Effect && Effect->GetEffectID() == EffectID)
+        {
+            return Effect->GetCurrentStack();
+        }
+    }
+    return 0;
+}
+
 const TArray<TObjectPtr<UMuksiStatusEffect>>& UMuksiStatusEffectComponent::GetActiveEffects() const
 {
     return ActiveEffects;
