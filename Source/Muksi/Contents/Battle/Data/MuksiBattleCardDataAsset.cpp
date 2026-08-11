@@ -1,5 +1,7 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
+#include "Muksi/Contents/Battle/Card/Effect/BattleCardEffect.h"
+
 UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
 {
 	CardID = NAME_None;
@@ -34,6 +36,31 @@ void UMuksiBattleCardDataAsset::SyncExecutionDataTypes()
 void UMuksiBattleCardDataAsset::SyncTargetingDataTypes()
 {
 	TargetingData.SyncDataTypes();
+}
+
+void UMuksiBattleCardDataAsset::TriggerCardEffects(EBattleCardEffectTrigger InTrigger,
+	const FBattleCardEffectContext& Context)
+{
+	/*for (UBattleCardEffect* Effect : CardEffects)
+	{
+		if (!IsValid(Effect))
+		{
+			continue;
+		}
+
+		if (Effect->GetTrigger() != InTrigger)
+		{
+			continue;
+		}
+
+		Effect->Execute(Context);
+	}*/
+}
+
+void UMuksiBattleCardDataAsset::TriggerDamageCardEffects(EBattleCardEffectTrigger InTrigger,
+	const FBattleDamageContext& DamageContext)
+{
+	
 }
 
 #endif

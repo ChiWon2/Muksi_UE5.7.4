@@ -37,6 +37,7 @@ public:
 
 public:
     UMuksiStatusEffect* FindEffectByID(FName EffectID) const;
+    int32 GetEffectStackCount(FName EffectID) const;
     const TArray<TObjectPtr<UMuksiStatusEffect>>& GetActiveEffects() const;
 
     void ExecuteRoundPhaseSequentially(EBattlePhase Phase, FSimpleDelegate CompletionDelegate);

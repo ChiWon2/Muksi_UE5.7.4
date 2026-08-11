@@ -12,7 +12,11 @@
 
 #include "MuksiBattleCardDataAsset.generated.h"
 
+enum class EBattleCardEffectTrigger : uint8;
+struct FBattleCardEffectContext;
+struct FBattleDamageContext;
 class UTexture2D;
+class UBattleCardEffect;
 
 UCLASS()
 class MUKSI_API UMuksiBattleCardDataAsset : public UPrimaryDataAsset
@@ -64,7 +68,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	FMuksiBattleCardAttackTypeData AttackType;
 
+	//카드 발동 효과
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	TArray<FText> CardEffectsDescription;
+public:
+	void TriggerCardEffects(EBattleCardEffectTrigger InTrigger, const FBattleCardEffectContext& Context);
+	void TriggerDamageCardEffects(EBattleCardEffectTrigger InTrigger, const FBattleDamageContext& DamageContext);
+	
 };
