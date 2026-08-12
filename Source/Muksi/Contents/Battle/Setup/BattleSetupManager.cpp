@@ -285,9 +285,7 @@ void ABattleSetupManager::BindBattleEndEvents()
 
 void ABattleSetupManager::UnbindBattleEndEvents()
 {
-    UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager)
-        ? BattleManager->GetBattleRuntimeContext()
-        : nullptr;
+    UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
     if (!IsValid(RuntimeContext))
     {
         return;

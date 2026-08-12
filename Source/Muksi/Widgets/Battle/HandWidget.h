@@ -198,7 +198,6 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Enemy;
 
-
 	//****** Bind Widget ******
 
 

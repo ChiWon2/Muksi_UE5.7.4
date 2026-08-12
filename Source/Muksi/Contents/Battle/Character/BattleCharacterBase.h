@@ -18,7 +18,6 @@ class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 class UMuksiBattleMovementComponent;
 class UMuksiStatusEffectComponent;
-class UWidgetComponent;
 class UCharacterPassiveComponent;
 class UBattleStatComponent;
 
@@ -81,9 +80,6 @@ class MUKSI_API ABattleCharacterBase : public AActor, public ISelectableCharacte
 
 public:
 	ABattleCharacterBase();
-
-protected:
-	virtual void BeginPlay() override;
 
 public:
 	float GetCurrentHP() const;
@@ -151,8 +147,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
 
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect|UI")
-	UWidgetComponent* GetStatusEffectWidgetComponent() const { return StatusEffectWidgetComponent; }
 	
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Stat")
 	UBattleStatComponent* GetBattleStatComponent() const { return BattleStatComponent; }
@@ -169,9 +163,6 @@ public:
 	virtual void OnDeselected() override;
 
 protected:
-	void InitializeStatusEffectWidget();
-	void CopyStatusEffectWidgetClassFrom(const ABattleCharacterBase& SourceCharacter);
-
 	UFUNCTION()
 	void HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed);
 
@@ -185,8 +176,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> ClickCollision = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UWidgetComponent> StatusEffectWidgetComponent = nullptr;
 
 public:
 	//Component

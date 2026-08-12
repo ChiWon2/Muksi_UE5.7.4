@@ -9,10 +9,10 @@
 class UImage;
 class UTextBlock;
 class UProgressBar;
-
 class ABattleCharacterBase;
 class UMuksiCharacterDataAsset;
 class UBattleStatComponent;
+class UStatusEffectBarWidget;
 
 /**
  * 
@@ -23,7 +23,9 @@ class MUKSI_API UCharacterStatusWidget : public UUserWidget
 	GENERATED_BODY()
 public:
 	void SetData(ABattleCharacterBase* BattleCharacter);
+
 protected:
+	virtual void NativeDestruct() override;
 	//*** Bind Widget ***//
 	UPROPERTY(meta = (BindWidget))
 	UImage* Image_CharacterImage;
@@ -33,6 +35,8 @@ protected:
 	UTextBlock* TextBlock_CharacterHP;
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* ProgressBar_CharacterHP;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UStatusEffectBarWidget> StatusEffectBarWidget;
 	
 	UPROPERTY()
 	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;
@@ -45,5 +49,6 @@ protected:
 	
 	void HPUp(float PreHP, float AftHP);
 	void HPDown(float PreHP, float AftHP);
+	void UnbindBattleStatComponent();
 	
 };

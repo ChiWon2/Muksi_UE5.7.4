@@ -18,6 +18,7 @@ class UMaterialInterface;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float, TimeScale);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerSimulationViewChanged, EBattlePlayerSimulationView, View);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerSimulationViewAvailabilityChanged, bool, bAvailable);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSimulationPresentationCharactersChanged, ABattleCharacterBase*, PlayerCharacter, ABattleCharacterBase*, EnemyCharacter);
 
 /**
  * Round Simulation 전체를 조율한다.
@@ -69,6 +70,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
 	FOnPlayerSimulationViewAvailabilityChanged PlayerSimulationViewAvailabilityChangedDelegate;
 
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
+	FOnSimulationPresentationCharactersChanged PresentationCharactersChangedDelegate;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
+	ABattleCharacterBase* GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const;
+
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
@@ -101,6 +108,7 @@ private:
 	void ApplyPlayerSimulationView();
 	void SetPlayerSimulationViewAvailable(bool bAvailable);
 	void SetPlayerSimulationViewChangeLocked(bool bLocked);
+	void BroadcastPresentationCharacters();
 	void RefreshFastForwardForPrimarySimulationWorld();
 	void NotifySimulationWorldPhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
