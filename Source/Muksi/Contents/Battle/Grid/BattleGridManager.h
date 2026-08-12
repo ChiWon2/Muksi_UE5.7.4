@@ -142,6 +142,6 @@ public:
 	void SetGridHovered(const TArray<FHexOffsetCoord>& NewGridArray);
 	void ClearGridHovered();
 	void AllClearGridHovered();
-	void SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy = false);
+	void SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy = false);
 	void AllClearExchangeIndicator();
 };

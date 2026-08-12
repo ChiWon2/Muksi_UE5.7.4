@@ -43,7 +43,7 @@ public:
 	FTransform GetCharacterSpawnTransform() const;
 	
 	UFUNCTION()
-	void SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType, bool bEnemy = false);
+	void SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, bool bEnemy = false);
 	
 	UFUNCTION()
 	void ClearExchangeIndicator();

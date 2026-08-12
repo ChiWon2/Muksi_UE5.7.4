@@ -75,15 +75,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Deceive")
 	UMuksiBattleCardDataAsset* GetDeceivedCard() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
-	FMuksiBattleCardAttackTypeData AttackType;
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "Card|Type")
+	FBattleCardTypeInfoData CardTypeInfo;
 
-	//카드 발동 효과
+	//카드 발동 효과 묘사
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	TArray<FText> CardEffectsDescription;
 public:
 	void TriggerCardEffects(EBattleCardEffectTrigger InTrigger, const FBattleCardEffectContext& Context);
 	void TriggerDamageCardEffects(EBattleCardEffectTrigger InTrigger, const FBattleDamageContext& DamageContext);
+	
 	
 };

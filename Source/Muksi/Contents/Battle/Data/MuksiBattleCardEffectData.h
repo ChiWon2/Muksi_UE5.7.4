@@ -16,11 +16,4 @@ enum class EEffectType : uint8
 	Burn	UMETA(DisplayName = "화상"),
 };
 
-USTRUCT(BlueprintType)
-struct FMuksiBattleCardAttackTypeData
-{
-	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
-	EMuksiBattleCardType AttackType = EMuksiBattleCardType::None;
-};
