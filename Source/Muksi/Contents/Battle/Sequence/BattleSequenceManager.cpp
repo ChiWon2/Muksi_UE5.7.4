@@ -480,7 +480,7 @@ void ABattleSequenceManager::RefreshBattleActionTargetingPresentation(
 	if (!IndicatorCoords.IsEmpty())
 	{
 		BattleGridManager->SetExchangeIndicator(
-			Action.Card->AttackType.AttackType,
+			Action.Card->CardTypeInfo,
 			IndicatorCoords,
 			!Action.bPlayerAction);
 	}

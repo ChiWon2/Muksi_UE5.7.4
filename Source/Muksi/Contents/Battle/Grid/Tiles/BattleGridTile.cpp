@@ -65,7 +65,7 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 	return GetActorTransform();
 }
 
-void ABattleGridTile::SetExchangeIndicator(const EMuksiBattleCardType& IndicatorType, bool bEnemy)
+void ABattleGridTile::SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, bool bEnemy)
 {
 	ExchangeIndicatorMesh->SetTranslucentSortPriority(100);
 	ExchangeIndicatorMesh->SetVisibility(true);
@@ -78,18 +78,18 @@ void ABattleGridTile::SetExchangeIndicator(const EMuksiBattleCardType& Indicator
 	
 	if (!AttackableIndicatorMaterial && !MoveIndicatorMaterial && !BlockedIndicatorMaterial){UE_LOG(LogTemp, Error, TEXT("IndicatorMaterior is null (BattleGridTile.cpp)")); return;}
 	
-	switch (IndicatorType)
+	switch (CardTypeInfo.CardType)
 	{
 		case EMuksiBattleCardType::None:
 		ExchangeIndicatorMesh->SetMaterial(0, AttackableIndicatorMaterial);
 		break;
-		case EMuksiBattleCardType::RangeAttack:
+		/*case EMuksiBattleCardType::RangeAttack:
 		case EMuksiBattleCardType::Defense:
-		case EMuksiBattleCardType::Heal:
-		case EMuksiBattleCardType::Move:
+		case EMuksiBattleCardType::Heal:*/
+		case EMuksiBattleCardType::Defence:
 		ExchangeIndicatorMesh->SetMaterial(0, MoveIndicatorMaterial);
 		break;
-		case EMuksiBattleCardType::Rush:
+		case EMuksiBattleCardType::Attack:
 		ExchangeIndicatorMesh->SetMaterial(0, BlockedIndicatorMaterial);
 		break;
 		default:
