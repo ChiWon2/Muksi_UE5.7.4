@@ -3,7 +3,6 @@
 
 #include "Muksi/Widgets/Battle/HandWidget.h"
 
-
 #include "CommonButtonBase.h"
 #include "Widget_CardEquipSlot.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
@@ -52,6 +51,7 @@ void UHandWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	{
 		TryOrganizeCards(PendingCardSpacing > 0.0f ? PendingCardSpacing : DefaultCardSpacing);
 	}
+
 }
 
 void UHandWidget::NativeDestruct()
@@ -1458,8 +1458,8 @@ void UHandWidget::RemoveSelectedCardsData()
 
 void UHandWidget::SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
 {
-	CharacterStatusWidget_Player->SetData(Player);
-	CharacterStatusWidget_Enemy->SetData(Enemy);
+	if (CharacterStatusWidget_Player) CharacterStatusWidget_Player->SetData(Player);
+	if (CharacterStatusWidget_Enemy) CharacterStatusWidget_Enemy->SetData(Enemy);
 }
 
 
