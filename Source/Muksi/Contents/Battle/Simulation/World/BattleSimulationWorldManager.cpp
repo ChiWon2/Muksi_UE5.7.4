@@ -324,7 +324,7 @@ void ABattleSimulationWorldManager::RefreshSimulationTargetingPresentation(const
 		const bool bShowAnyPreview = PresentationSettings.bShowSelectionPreview || PresentationSettings.bShowPathPreview || PresentationSettings.bShowAreaPreview;
 		if (bShowAnyPreview && SimulationTargetingPresentationController) SimulationTargetingPresentationController->AddResolvedStepPreview(RuntimeAttacker, Action.Card->TargetingData, StepResolvedTargeting, StepIndex, PresentationSettings, !Action.bPlayerAction);
 	}
-	if (!IndicatorCoords.IsEmpty()) SimulationGridManager->SetExchangeIndicator(Action.Card->AttackType.AttackType, IndicatorCoords, !Action.bPlayerAction);
+	if (!IndicatorCoords.IsEmpty()) SimulationGridManager->SetExchangeIndicator(Action.Card->CardTypeInfo, IndicatorCoords, !Action.bPlayerAction);
 }
 
 bool ABattleSimulationWorldManager::ResolveSimulationActionTargetingThroughStep(const FBattleAction& Action, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting) const

@@ -676,7 +676,7 @@ void ABattleTargetingManager::RefreshExchangeTargetIndicators()
         {
             TargetCoords.Add(PlayerResolvedTargeting.GetSelectedCoord());
         }
-        BattleGridManager->SetExchangeIndicator(PlayerAction->Card->AttackType.AttackType, TargetCoords, false);
+        BattleGridManager->SetExchangeIndicator(PlayerAction->Card->CardTypeInfo, TargetCoords, false);
     }
 
     FResolvedTargeting EnemyResolvedTargeting;
@@ -687,7 +687,7 @@ void ABattleTargetingManager::RefreshExchangeTargetIndicators()
         {
             TargetCoords.Add(EnemyResolvedTargeting.GetSelectedCoord());
         }
-        BattleGridManager->SetExchangeIndicator(EnemyAction->Card->AttackType.AttackType, TargetCoords, true);
+        BattleGridManager->SetExchangeIndicator(EnemyAction->Card->CardTypeInfo, TargetCoords, true);
     }
 }
 

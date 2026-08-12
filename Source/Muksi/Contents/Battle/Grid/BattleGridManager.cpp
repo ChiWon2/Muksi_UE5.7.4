@@ -473,9 +473,9 @@ void ABattleGridManager::AllClearGridHovered()
 	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->ClearAllHovered();
 }
 
-void ABattleGridManager::SetExchangeIndicator(const EMuksiBattleCardType& BattleCardType, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy)
+void ABattleGridManager::SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy)
 {
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetExchange(BattleCardType, GridArray, bEnemy);
+	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetExchange(CardTypeInfo, GridArray, bEnemy);
 }
 
 void ABattleGridManager::AllClearExchangeIndicator()
