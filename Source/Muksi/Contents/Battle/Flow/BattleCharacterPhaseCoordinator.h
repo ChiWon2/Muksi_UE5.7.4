@@ -34,7 +34,7 @@ private:
     void ExecutePassiveStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
     void ExecuteStatusEffectStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
     void FinishCharacterPhaseExecution(EBattlePhase FinishedPhase);
-    void NotifyCharacterPhaseFinishedIfCurrent(EBattlePhase FinishedPhase);
+    void NotifyPhasePrepFinishedIfCurrent(EBattlePhase FinishedPhase);
     void CancelCharacterPhaseExecution();
 
 private:

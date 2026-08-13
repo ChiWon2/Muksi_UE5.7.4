@@ -181,17 +181,17 @@ void UBattleCharacterPhaseCoordinator::FinishCharacterPhaseExecution(EBattlePhas
         return;
     }
 
-    BattleManager->GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UBattleCharacterPhaseCoordinator::NotifyCharacterPhaseFinishedIfCurrent, FinishedPhase));
+    BattleManager->GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UBattleCharacterPhaseCoordinator::NotifyPhasePrepFinishedIfCurrent, FinishedPhase));
 }
 
-void UBattleCharacterPhaseCoordinator::NotifyCharacterPhaseFinishedIfCurrent(EBattlePhase FinishedPhase)
+void UBattleCharacterPhaseCoordinator::NotifyPhasePrepFinishedIfCurrent(EBattlePhase FinishedPhase)
 {
     if (!BattleManager || BattleManager->GetCurrentPhase() != FinishedPhase)
     {
         return;
     }
 
-    BattleManager->NotifyCharacterPhaseExecutionFinished(FinishedPhase);
+    BattleManager->NotifyPhasePrepFinished(FinishedPhase);
 }
 
 void UBattleCharacterPhaseCoordinator::CancelCharacterPhaseExecution()

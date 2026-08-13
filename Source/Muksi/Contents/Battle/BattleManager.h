@@ -37,7 +37,7 @@ public:
     FOnBattlePhaseChanged PhaseUIDelegate;
 
     FOnBattlePhaseNativeEvent PhaseUIFinishedDelegate;
-    FOnBattlePhaseNativeEvent CharacterPhaseFinishedDelegate;
+    FOnBattlePhaseNativeEvent PhasePrepFinishedDelegate;
 
     // 실제 전투/Simulation의 BattleSequenceManager 시작 이벤트를 하나로 중계한다.
     FOnBattleActionStart BattleActionStartDelegate;
@@ -64,7 +64,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Battle|Phase")
     void NotifyPhaseUIFinished(EBattlePhase FinishedPhase);
 
-    void NotifyCharacterPhaseExecutionFinished(EBattlePhase FinishedPhase);
+    void NotifyPhasePrepFinished(EBattlePhase FinishedPhase);
     void NotifyInteractivePhaseFinished(EBattlePhase FinishedPhase);
     void RestartCurrentExchangeCardSelection();
     void NotifyBattleCharacterDead();

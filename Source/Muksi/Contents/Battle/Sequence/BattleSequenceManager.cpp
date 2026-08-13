@@ -57,7 +57,7 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (BattleManager)
 	{
-		BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
+		BattleManager->PhasePrepFinishedDelegate.RemoveAll(this);
 		BattleActionStartDelegate.RemoveAll(BattleManager);
 	}
 
@@ -113,8 +113,8 @@ bool ABattleSequenceManager::TryBindBattleFlow()
 		TargetingPresentationController->Initialize(BattleGridManager);
 	}
 
-	BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
-	BattleManager->CharacterPhaseFinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandleCharacterPhaseFinished);
+	BattleManager->PhasePrepFinishedDelegate.RemoveAll(this);
+	BattleManager->PhasePrepFinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandlePhasePrepFinished);
 
 	BattleActionStartDelegate.RemoveAll(BattleManager);
 	BattleActionStartDelegate.AddUObject(BattleManager, &ABattleManager::NotifyBattleActionStart);
@@ -134,7 +134,7 @@ void ABattleSequenceManager::InitializeBattleRuntimeContext(UBattleRuntimeContex
 	BattleRuntimeContext = InBattleRuntimeContext;
 }
 
-void ABattleSequenceManager::HandleCharacterPhaseFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void ABattleSequenceManager::HandlePhasePrepFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
 	(void)OldPhase;
 

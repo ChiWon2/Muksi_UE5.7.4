@@ -241,7 +241,7 @@ void ABattleManager::NotifyPhaseExecutionFinished()
 		}
 		else if (!CharacterPhaseCoordinator)
 		{
-			NotifyCharacterPhaseExecutionFinished(FinishedPhase);
+			NotifyPhasePrepFinished(FinishedPhase);
 		}
 		return;
 	}
@@ -270,11 +270,11 @@ void ABattleManager::NotifyPhaseUIFinished(EBattlePhase FinishedPhase)
 	}
 	else if (!CharacterPhaseCoordinator)
 	{
-		NotifyCharacterPhaseExecutionFinished(FinishedPhase);
+		NotifyPhasePrepFinished(FinishedPhase);
 	}
 }
 
-void ABattleManager::NotifyCharacterPhaseExecutionFinished(EBattlePhase FinishedPhase)
+void ABattleManager::NotifyPhasePrepFinished(EBattlePhase FinishedPhase)
 {
 	if (CurrentPhase != FinishedPhase)
 	{
@@ -282,7 +282,7 @@ void ABattleManager::NotifyCharacterPhaseExecutionFinished(EBattlePhase Finished
 		return;
 	}
 
-	CharacterPhaseFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
+	PhasePrepFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
 
 	if (!ShouldWaitForExternalExecutionAfterCharacterPhase(FinishedPhase))
 	{
