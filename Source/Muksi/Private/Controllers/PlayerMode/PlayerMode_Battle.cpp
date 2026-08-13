@@ -9,6 +9,7 @@
 #include "MuksiDebugHelper.h"
 #include "MuksiGameplayTags.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
@@ -92,8 +93,11 @@ void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 	{
-		BattleTargetingManager = ManagerSubsystem->GetManager<ABattleTargetingManager>();
-		BattleGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
+		if (ABattleManager* BattleManager = ManagerSubsystem->GetManager<ABattleManager>())
+		{
+			BattleTargetingManager = BattleManager->GetBattleTargetingManager();
+			BattleGridManager = BattleManager->GetBattleGridManager();
+		}
 	}
 
 	if (!BattleTargetingManager)

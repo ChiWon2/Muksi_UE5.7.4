@@ -14,6 +14,8 @@ class UHandWidget;
 class UInkLineWidget;
 class UPassiveActivePopupWidget;
 class UMuksiBattleCardDataAsset;
+class UBattlePhaseTask;
+class UBattlePhaseTaskContext;
 
 
 class ABattleCharacterBase;
@@ -42,15 +44,6 @@ class MUKSI_API UWidget_BattleMainScreen : public UWidget_ActivatableBase
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Battle")
 	void BP_OnSelectableCharacterClicked();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Battle|Simulation|Time")
-	void BP_OnSimulationTimeScaleChanged(float TimeScale);
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Battle|Simulation|View")
-	void BP_OnSimulationPlayerViewChanged(EBattlePlayerSimulationView View);
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Battle|Simulation|View")
-	void BP_OnSimulationPlayerViewAvailabilityChanged(bool bAvailable);
 
 protected:
 	//~Begin UCommonActivatableWidget Interface
@@ -82,6 +75,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<ABattleSimulationManager> BattleSimulationManager;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBattlePhaseTask> PhaseUITask;
 
 public:
 	UFUNCTION()
@@ -126,16 +122,9 @@ protected:
 	void UnbindBattleSimulationManagerEvents();
 
 	UFUNCTION()
-	void HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	void HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
-	UFUNCTION()
-	void HandleSimulationTimeScaleChanged(float TimeScale);
-
-	UFUNCTION()
-	void HandleSimulationPlayerViewChanged(EBattlePlayerSimulationView View);
-
-	UFUNCTION()
-	void HandleSimulationPlayerViewAvailabilityChanged(bool bAvailable);
+	void CompletePhaseUI(EBattlePhase FinishedPhase);
 
 	UFUNCTION()
 	void HandleSimulationPresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter);

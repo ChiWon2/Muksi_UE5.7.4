@@ -1,7 +1,6 @@
 #include "Muksi/Contents/Battle/Setup/BattleSetupManager.h"
 
 #include "Engine/World.h"
-#include "TimerManager.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
@@ -9,8 +8,8 @@
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
-#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
 
 ABattleSetupManager::ABattleSetupManager()
@@ -21,122 +20,69 @@ ABattleSetupManager::ABattleSetupManager()
 void ABattleSetupManager::BeginPlay()
 {
     Super::BeginPlay();
-
-    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-    {
-        ManagerSubsystem->RegisterManager<ABattleSetupManager>(this);
-    }
-
-    if (!TryBindBattleFlow())
-    {
-        BattleFlowBindingTimerHandle = GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ABattleSetupManager::BindBattleFlowDeferred));
-    }
 }
 
 void ABattleSetupManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    GetWorldTimerManager().ClearTimer(BattleFlowBindingTimerHandle);
-
-    if (BattleManager)
-    {
-        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSetupManager::HandleBattlePhaseChanged);
-    }
-
     UnbindBattleEndEvents();
+    if (BattleManager)
+        BattleManager->PhaseEntryRequestedDelegate.RemoveDynamic(this, &ABattleSetupManager::HandlePhaseEntryRequested);
+
     BattleGridManager = nullptr;
     BattleManager = nullptr;
-
-    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-    {
-        ManagerSubsystem->UnregisterManager<ABattleSetupManager>(this);
-    }
 
     Super::EndPlay(EndPlayReason);
 }
 
-bool ABattleSetupManager::TryBindBattleFlow()
+bool ABattleSetupManager::InitializeBattleFlow(ABattleManager* InBattleManager, ABattleGridManager* InBattleGridManager)
 {
-    UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-    if (!ManagerSubsystem)
-    {
+    if (!IsValid(InBattleManager) || !IsValid(InBattleGridManager))
         return false;
-    }
 
-    ABattleManager* FoundBattleManager = ManagerSubsystem->GetManager<ABattleManager>();
-    if (!IsValid(FoundBattleManager) || !IsValid(FoundBattleManager->GetBattleRuntimeContext()))
-    {
-        return false;
-    }
-
-    ABattleGridManager* FoundGridManager = BattleGridManager;
-    if (!IsValid(FoundGridManager))
-    {
-        FoundGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
-    }
-
-    if (!IsValid(FoundGridManager))
-    {
-        return false;
-    }
-
-    if (BattleManager && BattleManager != FoundBattleManager)
-    {
-        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSetupManager::HandleBattlePhaseChanged);
-    }
-
-    BattleManager = FoundBattleManager;
-    BattleGridManager = FoundGridManager;
-
-    BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSetupManager::HandleBattlePhaseChanged);
-    BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &ABattleSetupManager::HandleBattlePhaseChanged);
-
-    const EBattlePhase CurrentPhase = BattleManager->GetCurrentPhase();
-    if (CurrentPhase == EBattlePhase::ReadyStart)
-    {
-        HandleBattlePhaseChanged(EBattlePhase::None, CurrentPhase);
-    }
-    else if (CurrentPhase == EBattlePhase::ReadyEnd)
-    {
-        HandleBattlePhaseChanged(EBattlePhase::ReadyStart, CurrentPhase);
-    }
-
+    BattleManager = InBattleManager;
+    BattleGridManager = InBattleGridManager;
+    BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleSetupManager::HandlePhaseEntryRequested);
     return true;
 }
 
-void ABattleSetupManager::BindBattleFlowDeferred()
+bool ABattleSetupManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
 {
-    if (TryBindBattleFlow())
-    {
-        return;
-    }
-
-    BattleFlowBindingTimerHandle = GetWorldTimerManager().SetTimerForNextTick(
-        FTimerDelegate::CreateUObject(this, &ABattleSetupManager::BindBattleFlowDeferred));
+    return Phase == EBattlePhase::ReadyStart || Phase == EBattlePhase::ReadyEnd;
 }
 
-void ABattleSetupManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void ABattleSetupManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
     (void)OldPhase;
+
+    if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext)
+        return;
+
+    UBattlePhaseTask* Task = TaskContext->RegisterTask(this);
+    if (!Task)
+        return;
+
+    if (!IsValid(BattleManager) || !IsValid(BattleGridManager))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleSetupManager] Failed to resolve phase entry dependencies."));
+        Task->Complete();
+        return;
+    }
 
     switch (NewPhase)
     {
     case EBattlePhase::ReadyStart:
-        if (PrepareReadyData())
-        {
-            BattleManager->NotifyPhaseExecutionFinished();
-        }
+        PrepareReadyData();
         break;
 
     case EBattlePhase::ReadyEnd:
-        if (PrepareReadyEnd())
-        {
-            BattleManager->NotifyPhaseExecutionFinished();
-        }
+        PrepareReadyEnd();
         break;
 
     default:
         break;
     }
+
+    Task->Complete();
 }
 
 bool ABattleSetupManager::PrepareReadyData()
@@ -255,9 +201,7 @@ bool ABattleSetupManager::CreateBattleCharacters()
 
 void ABattleSetupManager::BindBattleEndEvents()
 {
-    UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager)
-        ? BattleManager->GetBattleRuntimeContext()
-        : nullptr;
+    UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
     if (!IsValid(RuntimeContext))
     {
         return;
@@ -265,6 +209,7 @@ void ABattleSetupManager::BindBattleEndEvents()
 
     ABattleCharacter_Player* PlayerCharacter = RuntimeContext->GetPlayerCharacter();
     ABattleCharacter_Enemy* EnemyCharacter = RuntimeContext->GetEnemyCharacter();
+
     if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter))
     {
         return;

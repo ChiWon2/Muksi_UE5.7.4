@@ -7,11 +7,11 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldManager.h"
-#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 ABattleSimulationManager::ABattleSimulationManager()
 {
@@ -22,25 +22,37 @@ ABattleSimulationManager::ABattleSimulationManager()
 void ABattleSimulationManager::BeginPlay()
 {
 	Super::BeginPlay();
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this)) ManagerSubsystem->RegisterManager<ABattleSimulationManager>(this);
-	if (!TryBindBattleFlow()) BattleFlowBindingTimerHandle = GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ABattleSimulationManager::BindBattleFlowDeferred));
 }
 
 void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorldTimerManager().ClearTimer(BattleFlowBindingTimerHandle);
 	if (BattleManager)
-	{
-		BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-		BattleManager->PhasePrepFinishedDelegate.RemoveAll(this);
-	}
+		BattleManager->PhaseEntryRequestedDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandlePhaseEntryRequested);
+
+	if (BattleManager)
+		BattleManager->PhaseExecutionRequestedDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandlePhaseExecutionRequested);
+
+	PhaseExecutionTask = nullptr;
 	StopSimulation();
 	DestroySimulationWorldManagers();
 	BattleGridManager = nullptr;
 	BattleRuntimeContext = nullptr;
 	BattleManager = nullptr;
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this)) ManagerSubsystem->UnregisterManager<ABattleSimulationManager>(this);
 	Super::EndPlay(EndPlayReason);
+}
+
+bool ABattleSimulationManager::InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager)
+{
+	if (!IsValid(InBattleManager) || !IsValid(InBattleRuntimeContext) || !IsValid(InBattleGridManager))
+		return false;
+
+	BattleManager = InBattleManager;
+	BattleRuntimeContext = InBattleRuntimeContext;
+	BattleGridManager = InBattleGridManager;
+	MaxExchangeCount = BattleManager->GetMaxExchangeCount();
+	BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleSimulationManager::HandlePhaseEntryRequested);
+	BattleManager->PhaseExecutionRequestedDelegate.AddUniqueDynamic(this, &ABattleSimulationManager::HandlePhaseExecutionRequested);
+	return true;
 }
 
 bool ABattleSimulationManager::IsSimulationRunning() const
@@ -109,34 +121,6 @@ ABattleCharacterBase* ABattleSimulationManager::GetSourceCharacter(const ABattle
 	if (IsValid(DDWorldManager) && DDWorldManager->GetSimulationCharacter(SimulationCharacter->GetSourceCharacter()) == SimulationCharacter) return SimulationCharacter->GetSourceCharacter();
 	if (IsValid(DAWorldManager) && DAWorldManager->GetSimulationCharacter(SimulationCharacter->GetSourceCharacter()) == SimulationCharacter) return SimulationCharacter->GetSourceCharacter();
 	return nullptr;
-}
-
-bool ABattleSimulationManager::TryBindBattleFlow()
-{
-	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-	if (!ManagerSubsystem) return false;
-	ABattleManager* FoundBattleManager = ManagerSubsystem->GetManager<ABattleManager>();
-	if (!IsValid(FoundBattleManager) || !IsValid(FoundBattleManager->GetBattleRuntimeContext())) return false;
-	if (BattleManager && BattleManager != FoundBattleManager)
-	{
-		BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-		BattleManager->PhasePrepFinishedDelegate.RemoveAll(this);
-	}
-	BattleManager = FoundBattleManager;
-	BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
-	BattleGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
-	if (!IsValid(BattleGridManager)) return false;
-	MaxExchangeCount = BattleManager->GetMaxExchangeCount();
-	BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-	BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-	BattleManager->PhasePrepFinishedDelegate.RemoveAll(this);
-	BattleManager->PhasePrepFinishedDelegate.AddUObject(this, &ABattleSimulationManager::HandlePhasePrepFinished);
-	return true;
-}
-
-void ABattleSimulationManager::BindBattleFlowDeferred()
-{
-	if (!TryBindBattleFlow()) UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to bind battle flow."));
 }
 
 bool ABattleSimulationManager::EnsureSimulationWorldManagers()
@@ -272,8 +256,18 @@ void ABattleSimulationManager::NotifySimulationWorldPhaseChanged(EBattlePhase Ol
 	if (IsValid(DAWorldManager)) DAWorldManager->NotifyBattlePhaseChanged(OldPhase, NewPhase);
 }
 
-void ABattleSimulationManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
+	if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext) return;
+	UBattlePhaseTask* Task = TaskContext->RegisterTask(this);
+	if (!Task) return;
+	if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to resolve phase entry dependencies."));
+		Task->Complete();
+		return;
+	}
+
 	if (NewPhase == EBattlePhase::Targeting) SetPlayerSimulationViewInternal(EBattlePlayerSimulationView::ActualSelf);
 	if (NewPhase == EBattlePhase::Targeting) SetPlayerSimulationViewChangeLocked(true);
 	if (OldPhase == EBattlePhase::Targeting && NewPhase != EBattlePhase::Targeting) SetPlayerSimulationViewChangeLocked(false);
@@ -290,9 +284,6 @@ void ABattleSimulationManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, E
 			}));
 		}
 		break;
-	case EBattlePhase::SimulationSequence:
-		if (!StartCurrentExchangeSimulation()) UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to execute current exchange simulation."));
-		break;
 	case EBattlePhase::ExchangeEnd:
 	case EBattlePhase::BattleActionSequenceStart:
 		ClearRuntimeSimulationPreview();
@@ -304,21 +295,61 @@ void ABattleSimulationManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, E
 	default:
 		break;
 	}
+	Task->Complete();
 }
 
-void ABattleSimulationManager::HandlePhasePrepFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
+bool ABattleSimulationManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
+{
+	switch (Phase)
+	{
+	case EBattlePhase::ExchangeStart:
+	case EBattlePhase::Targeting:
+	case EBattlePhase::CardReveal:
+	case EBattlePhase::ExchangeEnd:
+	case EBattlePhase::BattleActionSequenceStart:
+	case EBattlePhase::RoundEnd:
+	case EBattlePhase::BattleEnd:
+		return true;
+	default:
+		return false;
+	}
+}
+
+void ABattleSimulationManager::HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	(void)OldPhase;
-	if (NewPhase != EBattlePhase::RoundStart || IsSimulationRunning()) return;
+	if ((NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::SimulationSequence) || !TaskContext) return;
+	PhaseExecutionTask = TaskContext->RegisterTask(this);
+	if (!PhaseExecutionTask) return;
+	if (NewPhase == EBattlePhase::RoundStart) ExecuteRoundStart();
+	if (NewPhase == EBattlePhase::SimulationSequence) ExecuteSimulationSequence();
+}
+
+void ABattleSimulationManager::ExecuteRoundStart()
+{
+
+	if (IsSimulationRunning())
+	{
+		CompletePhaseExecution(EBattlePhase::RoundStart);
+		return;
+	}
+
 	if (!InitializeRoundSimulation())
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to initialize round simulation."));
+		CompletePhaseExecution(EBattlePhase::RoundStart);
 		return;
 	}
-	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
-	{
-		if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::RoundStart) BattleManager->NotifyPhaseExecutionFinished();
-	}));
+
+	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ABattleSimulationManager::CompletePhaseExecution, EBattlePhase::RoundStart));
+}
+
+void ABattleSimulationManager::ExecuteSimulationSequence()
+{
+	if (StartCurrentExchangeSimulation()) return;
+
+	UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to execute current exchange simulation."));
+	CompletePhaseExecution(EBattlePhase::SimulationSequence);
 }
 
 void ABattleSimulationManager::HandleSimulationWorldStateChanged(ABattleSimulationWorldManager* WorldManager, EBattleSimulationState NewState)
@@ -415,7 +446,19 @@ void ABattleSimulationManager::NotifySimulationPhaseFinished(int32 FinishedExcha
 		UE_LOG(LogTemp, Warning, TEXT("[BattleSimulationManager] Ignored stale simulation completion. Finished=%d"), FinishedExchangeIndex);
 		return;
 	}
-	BattleManager->NotifyPhaseExecutionFinished();
+	CompletePhaseExecution(EBattlePhase::SimulationSequence);
+}
+
+void ABattleSimulationManager::CompletePhaseExecution(EBattlePhase FinishedPhase)
+{
+	if (BattleManager && BattleManager->GetCurrentPhase() != FinishedPhase)
+	{
+		PhaseExecutionTask = nullptr;
+		return;
+	}
+	UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
+	PhaseExecutionTask = nullptr;
+	if (CompletedTask) CompletedTask->Complete();
 }
 
 bool ABattleSimulationManager::ResetSimulationWorldsFromActualBattle(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)

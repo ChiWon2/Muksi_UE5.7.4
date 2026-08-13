@@ -10,6 +10,7 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
@@ -18,7 +19,6 @@
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/Battle/Targeting/Session/BattleTargetingSession.h"
-#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 ABattleTargetingManager::ABattleTargetingManager()
 {
@@ -28,101 +28,70 @@ ABattleTargetingManager::ABattleTargetingManager()
 void ABattleTargetingManager::BeginPlay()
 {
     Super::BeginPlay();
-
-    TargetingPresentationController = NewObject<UTargetingPresentationController>(this);
-
-    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-    {
-        ManagerSubsystem->RegisterManager<ABattleTargetingManager>(this);
-    }
-
-    if (!TryBindBattleFlow())
-    {
-        BattleFlowBindingTimerHandle = GetWorldTimerManager().SetTimerForNextTick(
-            FTimerDelegate::CreateUObject(this, &ABattleTargetingManager::BindBattleFlowDeferred));
-    }
 }
 
 void ABattleTargetingManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    GetWorldTimerManager().ClearTimer(BattleFlowBindingTimerHandle);
     GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
     GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
 
-    if (BattleManager)
-    {
-        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandleBattlePhaseChanged);
-    }
-
     ClearSelectionAndRevealPreviews();
+    if (BattleManager)
+        BattleManager->PhaseEntryRequestedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePhaseEntryRequested);
+
+    if (BattleManager)
+        BattleManager->PhaseUIRequestedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePhaseUIRequested);
+
+    if (BattleManager)
+        BattleManager->PhaseExecutionRequestedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePhaseExecutionRequested);
+
+    PhaseUITask = nullptr;
+    PhaseExecutionTask = nullptr;
     PendingPlayerCard = nullptr;
     BattleRuntimeContext = nullptr;
     BattleGridManager = nullptr;
     BattleSimulationManager = nullptr;
     BattleManager = nullptr;
 
-    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-    {
-        ManagerSubsystem->UnregisterManager<ABattleTargetingManager>(this);
-    }
-
     Super::EndPlay(EndPlayReason);
 }
 
-bool ABattleTargetingManager::TryBindBattleFlow()
+bool ABattleTargetingManager::InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager, ABattleSimulationManager* InBattleSimulationManager)
 {
-    UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-    if (!ManagerSubsystem)
-    {
+    if (!IsValid(InBattleManager) || !IsValid(InBattleRuntimeContext) || !IsValid(InBattleGridManager) || !IsValid(InBattleSimulationManager))
         return false;
-    }
 
-    ABattleManager* FoundBattleManager = ManagerSubsystem->GetManager<ABattleManager>();
-    if (!IsValid(FoundBattleManager) || !IsValid(FoundBattleManager->GetBattleRuntimeContext()))
-    {
+    BattleManager = InBattleManager;
+    BattleRuntimeContext = InBattleRuntimeContext;
+    BattleGridManager = InBattleGridManager;
+    BattleSimulationManager = InBattleSimulationManager;
+    BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePhaseEntryRequested);
+    BattleManager->PhaseUIRequestedDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePhaseUIRequested);
+    BattleManager->PhaseExecutionRequestedDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePhaseExecutionRequested);
+
+    if (!TargetingPresentationController)
+        TargetingPresentationController = NewObject<UTargetingPresentationController>(this);
+
+    if (!TargetingPresentationController)
         return false;
-    }
 
-    if (BattleManager && BattleManager != FoundBattleManager)
-    {
-        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandleBattlePhaseChanged);
-    }
+    TargetingPresentationController->Initialize(BattleGridManager);
 
-    BattleManager = FoundBattleManager;
-    BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
-    BattleGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
-    ABattleSimulationManager* FoundSimulationManager = ManagerSubsystem->GetManager<ABattleSimulationManager>();
-
-    if (!IsValid(BattleGridManager) || !IsValid(FoundSimulationManager))
-    {
-        return false;
-    }
-
-    BattleSimulationManager = FoundSimulationManager;
-
-    if (TargetingPresentationController)
-    {
-        TargetingPresentationController->Initialize(BattleGridManager);
-    }
-
-    BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandleBattlePhaseChanged);
-    BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandleBattlePhaseChanged);
     return true;
 }
 
-void ABattleTargetingManager::BindBattleFlowDeferred()
+void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
-    if (TryBindBattleFlow())
+    if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext) return;
+    UBattlePhaseTask* Task = TaskContext->RegisterTask(this);
+    if (!Task) return;
+    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager) || !IsValid(BattleSimulationManager))
     {
+        UE_LOG(LogTemp, Error, TEXT("[BattleTargetingManager] Failed to resolve phase entry dependencies."));
+        Task->Complete();
         return;
     }
 
-    BattleFlowBindingTimerHandle = GetWorldTimerManager().SetTimerForNextTick(
-        FTimerDelegate::CreateUObject(this, &ABattleTargetingManager::BindBattleFlowDeferred));
-}
-
-void ABattleTargetingManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
-{
     switch (NewPhase)
     {
     case EBattlePhase::RoundStart:
@@ -160,6 +129,40 @@ void ABattleTargetingManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, EB
     default:
         break;
     }
+
+    Task->Complete();
+}
+
+bool ABattleTargetingManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
+{
+    switch (Phase)
+    {
+    case EBattlePhase::RoundStart:
+    case EBattlePhase::CardSelect:
+    case EBattlePhase::Targeting:
+    case EBattlePhase::SimulationSequence:
+    case EBattlePhase::ExchangeEnd:
+    case EBattlePhase::BattleActionSequenceStart:
+    case EBattlePhase::RoundEnd:
+    case EBattlePhase::BattleEnd:
+        return true;
+    default:
+        return false;
+    }
+}
+
+void ABattleTargetingManager::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
+{
+    (void)OldPhase;
+    if (NewPhase != EBattlePhase::CardReveal || !TaskContext) return;
+    PhaseUITask = TaskContext->RegisterTask(this);
+}
+
+void ABattleTargetingManager::HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
+{
+    (void)OldPhase;
+    if ((NewPhase != EBattlePhase::CardSelect && NewPhase != EBattlePhase::Targeting) || !TaskContext) return;
+    PhaseExecutionTask = TaskContext->RegisterTask(this);
 }
 
 void ABattleTargetingManager::ResetCurrentExchangeTargeting()
@@ -223,7 +226,7 @@ void ABattleTargetingManager::ClearSelectionAndRevealPreviews()
 
 bool ABattleTargetingManager::RequestPlayerCardSelection(UMuksiBattleCardDataAsset* CardData)
 {
-    if ((!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager)) && !TryBindBattleFlow())
+    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager))
     {
         return false;
     }
@@ -234,7 +237,9 @@ bool ABattleTargetingManager::RequestPlayerCardSelection(UMuksiBattleCardDataAss
     }
 
     PendingPlayerCard = CardData;
-    BattleManager->NotifyInteractivePhaseFinished(EBattlePhase::CardSelect);
+    UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
+    PhaseExecutionTask = nullptr;
+    if (CompletedTask) CompletedTask->Complete();
 
     // Phase delegate broadcast가 끝난 뒤 즉시 완료 카드를 처리해 재진입 전환을 피한다.
     if (PlayerTargetingSession && PlayerTargetingSession->IsCompleted())
@@ -471,7 +476,7 @@ bool ABattleTargetingManager::BuildPlayerActionForCurrentExchange()
 
 bool ABattleTargetingManager::RequestEnemyCardSelection()
 {
-    if ((!IsValid(BattleManager) || !IsValid(BattleRuntimeContext)) && !TryBindBattleFlow())
+    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext))
     {
         return false;
     }
@@ -532,7 +537,7 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
 
 bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
 {
-    if ((!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager)) && !TryBindBattleFlow())
+    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager))
     {
         return false;
     }
@@ -647,7 +652,9 @@ void ABattleTargetingManager::TryFinishCurrentExchangeTargeting()
         return;
     }
 
-    BattleManager->NotifyInteractivePhaseFinished(EBattlePhase::Targeting);
+    UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
+    PhaseExecutionTask = nullptr;
+    if (CompletedTask) CompletedTask->Complete();
 }
 
 void ABattleTargetingManager::RefreshExchangeTargetIndicators()
@@ -770,7 +777,9 @@ void ABattleTargetingManager::HideEnemyTargetingPreviewAndFinishReveal()
 
     if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::CardReveal)
     {
-        BattleManager->NotifyInteractivePhaseFinished(EBattlePhase::CardReveal);
+        UBattlePhaseTask* CompletedTask = PhaseUITask;
+        PhaseUITask = nullptr;
+        if (CompletedTask) CompletedTask->Complete();
     }
 }
 

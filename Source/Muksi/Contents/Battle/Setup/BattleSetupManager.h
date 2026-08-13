@@ -12,10 +12,11 @@ class ABattleCharacter_Enemy;
 class ABattleGridManager;
 class ABattleManager;
 class UMuksiCharacterDataAsset;
+class UBattlePhaseTaskContext;
 
 /**
  * Ready 단계의 전투 데이터 준비, 캐릭터 생성, 초기 배치와 사망 이벤트 연결을 담당한다.
- * Phase 순서는 결정하지 않으며 Setup 작업 완료만 BattleManager에 통지한다.
+ * Phase 순서는 결정하지 않으며 Entry 단계에서 등록한 Task만 완료한다.
  */
 UCLASS()
 class MUKSI_API ABattleSetupManager : public AActor
@@ -24,20 +25,19 @@ class MUKSI_API ABattleSetupManager : public AActor
 
 public:
     ABattleSetupManager();
+    bool InitializeBattleFlow(ABattleManager* InBattleManager, ABattleGridManager* InBattleGridManager);
 
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-    bool TryBindBattleFlow();
-    void BindBattleFlowDeferred();
-
     UFUNCTION()
-    void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
+    void HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
     bool PrepareReadyData();
     bool PrepareReadyEnd();
+    bool ShouldHandlePhaseEntry(EBattlePhase Phase) const;
     void ResolveEnemyCharacterData();
     bool CreateBattleCharacters();
     void BindBattleEndEvents();
@@ -64,6 +64,4 @@ private:
 
     UPROPERTY(EditAnywhere, Category = "Battle|Setup|Character")
     FHexOffsetCoord StartEnemyCoord = FHexOffsetCoord(3, 2);
-
-    FTimerHandle BattleFlowBindingTimerHandle;
 };

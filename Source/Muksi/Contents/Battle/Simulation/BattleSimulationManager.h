@@ -13,6 +13,8 @@ class ABattleSimulationCharacter;
 class ABattleSimulationPostProcessVolume;
 class ABattleSimulationWorldManager;
 class UBattleRuntimeContext;
+class UBattlePhaseTask;
+class UBattlePhaseTaskContext;
 class UMaterialInterface;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float, TimeScale);
@@ -31,6 +33,7 @@ class MUKSI_API ABattleSimulationManager : public AActor
 
 public:
 	ABattleSimulationManager();
+	bool InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager);
 
 protected:
 	virtual void BeginPlay() override;
@@ -94,8 +97,13 @@ public:
 	const FBattleSimulationExchange& GetCurrentExchange() const { return CurrentExchange; }
 
 private:
-	bool TryBindBattleFlow();
-	void BindBattleFlowDeferred();
+    UFUNCTION()
+    void HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
+
+    UFUNCTION()
+    void HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
+
+    bool ShouldHandlePhaseEntry(EBattlePhase Phase) const;
 	bool EnsureSimulationWorldManagers();
 	bool EnsureSimulationWorldManager(TObjectPtr<ABattleSimulationWorldManager>& InOutWorldManager);
 	void DestroySimulationWorldManager(TObjectPtr<ABattleSimulationWorldManager>& InOutWorldManager);
@@ -112,9 +120,6 @@ private:
 	void RefreshFastForwardForPrimarySimulationWorld();
 	void NotifySimulationWorldPhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
-	UFUNCTION()
-	void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
-	void HandlePhasePrepFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
 	void HandleSimulationWorldStateChanged(ABattleSimulationWorldManager* WorldManager, EBattleSimulationState NewState);
 	void HandleSimulationWorldExchangeFinished(ABattleSimulationWorldManager* WorldManager, int32 FinishedExchangeIndex, bool bSimulationCompleted, const FBattleSimulationExchange& FinishedExchange);
 
@@ -123,6 +128,9 @@ private:
 	bool InitializeRoundSimulation();
 	bool PrepareCurrentExchangeSimulation();
 	bool StartCurrentExchangeSimulation();
+	void ExecuteRoundStart();
+	void ExecuteSimulationSequence();
+	void CompletePhaseExecution(EBattlePhase FinishedPhase);
 	void NotifySimulationPhaseFinished(int32 FinishedExchangeIndex);
 	bool ResetSimulationWorldsFromActualBattle(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool InitializeSimulationWorldFromActualBattle(ABattleSimulationWorldManager* WorldManager, EBattleSimulationWorldType WorldType, ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
@@ -210,5 +218,6 @@ protected:
 	int32 ExchangeCompletionBarrierIndex = INDEX_NONE;
 	float CapturedGlobalTimeDilation = 1.0f;
 	bool bHasCapturedGlobalTimeDilation = false;
-	FTimerHandle BattleFlowBindingTimerHandle;
+	UPROPERTY(Transient)
+	TObjectPtr<UBattlePhaseTask> PhaseExecutionTask = nullptr;
 };
