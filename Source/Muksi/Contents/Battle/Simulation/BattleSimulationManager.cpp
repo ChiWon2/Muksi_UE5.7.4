@@ -32,7 +32,7 @@ void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (BattleManager)
 	{
 		BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-		BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
+		BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
 	}
 	StopSimulation();
 	DestroySimulationWorldManagers();
@@ -120,7 +120,7 @@ bool ABattleSimulationManager::TryBindBattleFlow()
 	if (BattleManager && BattleManager != FoundBattleManager)
 	{
 		BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-		BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
+		BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
 	}
 	BattleManager = FoundBattleManager;
 	BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
@@ -129,8 +129,8 @@ bool ABattleSimulationManager::TryBindBattleFlow()
 	MaxExchangeCount = BattleManager->GetMaxExchangeCount();
 	BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
 	BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-	BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
-	BattleManager->PhaseUIFinishedDelegate.AddUObject(this, &ABattleSimulationManager::HandleBattlePhaseUIFinished);
+	BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
+	BattleManager->CharacterPhaseFinishedDelegate.AddUObject(this, &ABattleSimulationManager::HandleCharacterPhaseFinished);
 	return true;
 }
 
@@ -306,7 +306,7 @@ void ABattleSimulationManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, E
 	}
 }
 
-void ABattleSimulationManager::HandleBattlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void ABattleSimulationManager::HandleCharacterPhaseFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
 	(void)OldPhase;
 	if (NewPhase != EBattlePhase::RoundStart || IsSimulationRunning()) return;

@@ -254,8 +254,6 @@ public:
 	void EnableExchangeSlots(int32 InIndex);
 
 	void EnableExchangeSlot(int32 InIndex, bool bActive);
-
-	void ActiveHandCards(bool bActive);
 	
 	void ClearTimerHandler();
 

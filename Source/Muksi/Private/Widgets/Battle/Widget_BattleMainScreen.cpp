@@ -94,17 +94,16 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 {
 	checkf(IsValid(Player), TEXT("PlayerCharacter is null"));
 	checkf(IsValid(Enemy), TEXT("EnemyCharacter is null"));
-	
-	SetPresentationCharacterData(Player, Enemy);
-	ActivePassiveWidget->SetData(Player, Enemy);
 
+	ActivePassiveWidget->SetData(Player, Enemy);
+	SetPresentationCharacterData(Player, Enemy);
 }
 
 void UWidget_BattleMainScreen::SetPresentationCharacterData(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
 {
 	if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter)) 
 		return;
-	if (HandWidget) 
+	if (HandWidget)
 		HandWidget->SetCharacterData(PlayerCharacter, EnemyCharacter);
 }
 
@@ -117,7 +116,6 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 
 	// 중복 바인딩 방지
 	HandWidget->OnEndTurnRequested.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
-
 	HandWidget->OnEndTurnRequested.AddDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
 
 	HandWidget->OnEnemyCardRevealFinished.RemoveAll(this);
@@ -179,15 +177,21 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 
 void UWidget_BattleMainScreen::BindBattleSimulationManagerEvents()
 {
-	if (!BattleSimulationManager) return;
+	if (!BattleSimulationManager) 
+		return;
+
 	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
 	BattleSimulationManager->SimulationTimeScaleChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+
 	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
 	BattleSimulationManager->PlayerSimulationViewChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+
 	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
 	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+	
 	BattleSimulationManager->PresentationCharactersChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
 	BattleSimulationManager->PresentationCharactersChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
+	
 	BP_OnSimulationTimeScaleChanged(BattleSimulationManager->GetSimulationTimeScale());
 	BP_OnSimulationPlayerViewChanged(BattleSimulationManager->GetPlayerSimulationView());
 	BP_OnSimulationPlayerViewAvailabilityChanged(BattleSimulationManager->CanChangePlayerSimulationView());

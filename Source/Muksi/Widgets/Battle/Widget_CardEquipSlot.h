@@ -21,10 +21,7 @@ class MUKSI_API UWidget_CardEquipSlot : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	virtual FReply NativeOnMouseButtonDown(
-		const FGeometry& InGeometry,
-		const FPointerEvent& InMouseEvent
-	) override;
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	
 	bool IsPointInsideSlot(const FVector2D& ScreenPosition) const;
 
@@ -56,15 +53,10 @@ public:
 
 	// DataAsset 기반 카드 데이터 장착
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
-	void EquipCardData(
-		UMuksiBattleCardDataAsset* InCardData,
-		ABattleCharacterBase* InSourceCharacter
-	);
+	void EquipCardData(UMuksiBattleCardDataAsset* InCardData, ABattleCharacterBase* InSourceCharacter);
 
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
-	void SetBattleContext(
-		ABattleCharacterBase* InSourceCharacter
-	);
+	void SetBattleContext(ABattleCharacterBase* InSourceCharacter);
 
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
 	void ClearSlot();
@@ -115,8 +107,6 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget_BattleCardBase> EquippedCard = nullptr;
-	
-	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	FCardEquipSlotData SlotData;
@@ -124,8 +114,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	bool bSlotEnabled = false;
 	
-	
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	bool bHighlighted = false;
 	

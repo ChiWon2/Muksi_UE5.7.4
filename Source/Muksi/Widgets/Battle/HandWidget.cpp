@@ -29,9 +29,6 @@ void UHandWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-
-
-
 	Debug::Print(TEXT("Battle Manager Settings"));
 
 	BindSelectButton();
@@ -93,8 +90,7 @@ void UHandWidget::CreateTestHandCards(int32 InCount)
 
 	for (int32 i = 0; i < InCount; ++i)
 	{
-		UWidget_BattleCardBase* Widget_BattleCard =
-			CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
+		UWidget_BattleCardBase* Widget_BattleCard = CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
 
 		if (!Widget_BattleCard)
 		{
@@ -152,8 +148,7 @@ void UHandWidget::ScheduleOrganizeCards()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
-		OrganizeCardsTimerHandle = World->GetTimerManager().SetTimerForNextTick(
-			FTimerDelegate::CreateUObject(this, &UHandWidget::HandleOrganizeCardsTimer));
+		OrganizeCardsTimerHandle = World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UHandWidget::HandleOrganizeCardsTimer));
 	}
 }
 
@@ -194,8 +189,7 @@ bool UHandWidget::TryOrganizeCards(float OffsetX)
 	ForceLayoutPrepass();
 	const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
 	const FGeometry& PointGeometry = HandCardPoint->GetCachedGeometry();
-	if (HandGeometry.GetLocalSize().X <= 1.0f || HandGeometry.GetLocalSize().Y <= 1.0f ||
-		PointGeometry.GetLocalSize().X <= 1.0f || PointGeometry.GetLocalSize().Y <= 1.0f)
+	if (HandGeometry.GetLocalSize().X <= 1.0f || HandGeometry.GetLocalSize().Y <= 1.0f || PointGeometry.GetLocalSize().X <= 1.0f || PointGeometry.GetLocalSize().Y <= 1.0f)
 	{
 		return false;
 	}
@@ -237,50 +231,33 @@ void UHandWidget::OrganizeCards(float OffsetX)
 
 	if (!HandCanvas || !HandCardPoint)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("OrganizeCards failed: HandCanvas or HandCardPoint is null")
-		);
+		UE_LOG(LogTemp, Warning, TEXT("OrganizeCards failed: HandCanvas or HandCardPoint is null"));
 		return;
 	}
 	/*
 	 * HandCardPoint의 중앙 좌표를 HandCanvas 로컬 좌표로 변환
 	 */
-	const FGeometry& HandGeometry =
-		HandCanvas->GetCachedGeometry();
+	const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
 
-	const FGeometry& HandCardPointGeometry =
-		HandCardPoint->GetCachedGeometry();
+	const FGeometry& HandCardPointGeometry = HandCardPoint->GetCachedGeometry();
 
-	const FVector2D HandCardPointAbsoluteCenter =
-		HandCardPointGeometry.LocalToAbsolute(
-			HandCardPointGeometry.GetLocalSize() * 0.5f
-		);
+	const FVector2D HandCardPointAbsoluteCenter = HandCardPointGeometry.LocalToAbsolute(HandCardPointGeometry.GetLocalSize() * 0.5f);
 
-	const FVector2D HandCardPointLocalCenter =
-		HandGeometry.AbsoluteToLocal(
-			HandCardPointAbsoluteCenter
-		);
+	const FVector2D HandCardPointLocalCenter = HandGeometry.AbsoluteToLocal(HandCardPointAbsoluteCenter);
 
 	/*
 	 * 카드의 CanvasSlot Anchor가 (0.5, 1.0)이므로
 	 * HandCanvas 아래쪽 중앙이 Position (0, 0)의 기준이다.
 	 */
-	const FVector2D HandBottomCenter(
-		HandGeometry.GetLocalSize().X * 0.5f,
-		HandGeometry.GetLocalSize().Y
-	);
+	const FVector2D HandBottomCenter(HandGeometry.GetLocalSize().X * 0.5f, HandGeometry.GetLocalSize().Y);
 
 	/*
 	 * HandCanvas 아래쪽 중앙에서 HandCardPoint 오프셋
 	 */
-	const FVector2D FanCenterOffset =
-		HandCardPointLocalCenter - HandBottomCenter;
+	const FVector2D FanCenterOffset = HandCardPointLocalCenter - HandBottomCenter;
 
 	const int32 CardCount = BattleCards.Num();
-	const float CenterIndex =
-		(CardCount - 1) * 0.5f;
+	const float CenterIndex = (CardCount - 1) * 0.5f;
 
 	const float CurveHeight = 12.0f;
 	const float AnglePerCard = 7.0f;
@@ -290,25 +267,21 @@ void UHandWidget::OrganizeCards(float OffsetX)
 
 	if (HoveredCard)
 	{
-		HoveredIndex =
-			BattleCards.IndexOfByKey(HoveredCard);
+		HoveredIndex = BattleCards.IndexOfByKey(HoveredCard);
 	}
 
 	for (int32 i = 0; i < CardCount; ++i)
 	{
-		UWidget_BattleCardBase* CardWidget =
-			BattleCards[i];
+		UWidget_BattleCardBase* CardWidget = BattleCards[i];
 
 		if (!CardWidget)
 		{
 			continue;
 		}
 
-		const float RelativeIndex =
-			i - CenterIndex;
+		const float RelativeIndex = i - CenterIndex;
 
-		const bool bIsHovered =
-			(CardWidget == HoveredCard);
+		const bool bIsHovered = (CardWidget == HoveredCard);
 
 		float AdditionalXOffset = 0.0f;
 
@@ -316,64 +289,44 @@ void UHandWidget::OrganizeCards(float OffsetX)
 		{
 			if (i < HoveredIndex)
 			{
-				AdditionalXOffset =
-					-HoverSpreadOffset;
+				AdditionalXOffset = -HoverSpreadOffset;
 			}
 			else if (i > HoveredIndex)
 			{
-				AdditionalXOffset =
-					HoverSpreadOffset;
+				AdditionalXOffset = HoverSpreadOffset;
 			}
 		}
 
 		/*
 		 * HandCardPoint 중심으로 한 부채꼴 상대 좌표
 		 */
-		const float BaseX =
-			RelativeIndex * OffsetX;
+		const float BaseX = RelativeIndex * OffsetX;
 
-		const float BaseY =
-			FMath::Square(RelativeIndex) *
-			CurveHeight;
+		const float BaseY = FMath::Square(RelativeIndex) * CurveHeight;
 
-		const float HoverOffsetY =
-			bIsHovered ? -25.0f : 0.0f;
+		const float HoverOffsetY = bIsHovered ? -25.0f : 0.0f;
 
 		/*
 		 * 기존 부채꼴 위치에 HandCardPoint 중심 오프셋 추가
 		 */
-		const float TargetX =
-			FanCenterOffset.X +
-			BaseX +
-			AdditionalXOffset;
+		const float TargetX = FanCenterOffset.X + BaseX + AdditionalXOffset;
 
-		const float TargetY =
-			FanCenterOffset.Y +
-			BaseY +
-			HoverOffsetY;
+		const float TargetY = FanCenterOffset.Y + BaseY + HoverOffsetY;
 
-		float TargetAngle =
-			RelativeIndex * AnglePerCard;
+		float TargetAngle = RelativeIndex * AnglePerCard;
 
 		if (bIsHovered)
 		{
 			TargetAngle *= 0.35f;
 		}
 
-		CardWidget->MoveToCanvasPosition(
-			FVector2D(TargetX, TargetY)
-		);
+		CardWidget->MoveToCanvasPosition(FVector2D(TargetX, TargetY));
 
-		CardWidget->SetCardRenderAngle(
-			TargetAngle
-		);
+		CardWidget->SetCardRenderAngle(TargetAngle);
 
-		if (UCanvasPanelSlot* CanvasSlot =
-			Cast<UCanvasPanelSlot>(CardWidget->Slot))
+		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CardWidget->Slot))
 		{
-			CanvasSlot->SetZOrder(
-				bIsHovered ? 999 : i
-			);
+			CanvasSlot->SetZOrder(bIsHovered ? 999 : i);
 		}
 	}
 
@@ -466,7 +419,8 @@ void UHandWidget::HitActiveHandCards(bool bHitActive)
 		{
 			CardWidget->SetVisibility(ESlateVisibility::Visible);
 		}
-	}else
+	}
+	else
 	{
 		for (UWidget_BattleCardBase* CardWidget : BattleCards)
 		{
@@ -493,7 +447,9 @@ void UHandWidget::ClearHoveredCard(UWidget_BattleCardBase* InCard)
 }
 
 const FGeometry& UHandWidget::GetHandCanvasGeometry() const
-{ return HandCanvas->GetCachedGeometry(); }
+{
+	return HandCanvas->GetCachedGeometry();
+}
 
 UWidget_CardEquipSlot* UHandWidget::GetEquipSlot() const
 {
@@ -530,7 +486,11 @@ UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBa
 
 		if (EquipSlot->IsCardOverlappingSlot(Card))
 		{
-			if (!EquipSlot->CheckEmptySlot())return nullptr;
+			if (!EquipSlot->CheckEmptySlot())
+			{
+				return nullptr;
+			}
+
 			return EquipSlot;
 		}
 	}
@@ -632,16 +592,9 @@ void UHandWidget::ClearEnemySelectCard()
 			continue;
 		}
 		ForceLayoutPrepass();
-		const FGeometry& CardGeometry =
-		CardWidget->GetCachedGeometry();
+		const FGeometry& CardGeometry = CardWidget->GetCachedGeometry();
 
-		const FVector2D CardAbsoluteBottomCenter =
-			CardGeometry.LocalToAbsolute(
-				FVector2D(
-					CardGeometry.GetLocalSize().X * 0.5f,
-					CardGeometry.GetLocalSize().Y
-				)
-			);
+		const FVector2D CardAbsoluteBottomCenter = CardGeometry.LocalToAbsolute(FVector2D(CardGeometry.GetLocalSize().X * 0.5f, CardGeometry.GetLocalSize().Y));
 
 
 		EquipSlot->ForceClearSlot();
@@ -650,8 +603,7 @@ void UHandWidget::ClearEnemySelectCard()
 		/*
 		 * HandCanvas의 직접 자식으로 다시 추가
 		 */
-		UCanvasPanelSlot* CardCanvasSlot =
-			HandCanvas->AddChildToCanvas(CardWidget);
+		UCanvasPanelSlot* CardCanvasSlot = HandCanvas->AddChildToCanvas(CardWidget);
 
 		if (!CardCanvasSlot)
 		{
@@ -661,36 +613,24 @@ void UHandWidget::ClearEnemySelectCard()
 		CardCanvasSlot->SetAutoSize(true);
 
 		// 핸드 카드 좌표계와 동일하게 통일
-		CardCanvasSlot->SetAnchors(
-			FAnchors(0.5f, 1.0f, 0.5f, 1.0f)
-		);
+		CardCanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
 
-		CardCanvasSlot->SetAlignment(
-			FVector2D(0.5f, 1.0f)
-		);
+		CardCanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
 
-		const FGeometry& HandGeometry =
-			HandCanvas->GetCachedGeometry();
+		const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
 
 		/*
 		 * 카드의 기존 절대 위치를 HandCanvas 로컬 좌표로 변환
 		 */
-		const FVector2D CardLocalPosition =
-			HandGeometry.AbsoluteToLocal(
-				CardAbsoluteBottomCenter
-			);
+		const FVector2D CardLocalPosition = HandGeometry.AbsoluteToLocal(CardAbsoluteBottomCenter);
 
 		/*
 		 * 카드 Anchor가 HandCanvas 아래 중앙이므로
 		 * Anchor 기준 좌표로 다시 변환
 		 */
-		const FVector2D HandBottomCenter(
-			HandGeometry.GetLocalSize().X * 0.5f,
-			HandGeometry.GetLocalSize().Y
-		);
+		const FVector2D HandBottomCenter(HandGeometry.GetLocalSize().X * 0.5f, HandGeometry.GetLocalSize().Y);
 
-		const FVector2D CardAnchorOffset =
-			CardLocalPosition - HandBottomCenter;
+		const FVector2D CardAnchorOffset = CardLocalPosition - HandBottomCenter;
 
 		CardCanvasSlot->SetPosition(CardAnchorOffset);
 		CardCanvasSlot->SetZOrder(10000);
@@ -701,40 +641,26 @@ void UHandWidget::ClearEnemySelectCard()
 
 		if (!CardRemovePoint_Enemy)
 		{
-			UE_LOG(
-				LogTemp,
-				Warning,
-				TEXT("CardRemovePoint_Enemy is null")
-			);
+			UE_LOG(LogTemp, Warning, TEXT("CardRemovePoint_Enemy is null"));
 			return;
 		}
 
 		ForceLayoutPrepass();
 
-		const FGeometry& RemovePointGeometry =
-			CardRemovePoint_Enemy->GetCachedGeometry();
+		const FGeometry& RemovePointGeometry = CardRemovePoint_Enemy->GetCachedGeometry();
 
 		// 제거 지점 중앙의 절대 좌표
-		const FVector2D RemoveAbsolutePosition =
-			RemovePointGeometry.LocalToAbsolute(
-				RemovePointGeometry.GetLocalSize() * 0.5f
-			);
+		const FVector2D RemoveAbsolutePosition = RemovePointGeometry.LocalToAbsolute(RemovePointGeometry.GetLocalSize() * 0.5f);
 
 		// 제거 지점 절대 좌표를 HandCanvas 로컬 좌표로 변환
-		const FVector2D RemoveLocalPosition =
-			HandGeometry.AbsoluteToLocal(
-				RemoveAbsolutePosition
-			);
+		const FVector2D RemoveLocalPosition = HandGeometry.AbsoluteToLocal(RemoveAbsolutePosition);
 
 		// 카드의 Anchor가 HandCanvas 아래 중앙이므로
 		// HandCanvas 아래 중앙 기준 오프셋으로 변환
-		const FVector2D RemoveAnchorOffset =
-			RemoveLocalPosition - HandBottomCenter;
+		const FVector2D RemoveAnchorOffset = RemoveLocalPosition - HandBottomCenter;
 
 		// 제거 위치로 이동
-		CardWidget->MoveToCanvasPosition(
-			RemoveAnchorOffset
-		);
+		CardWidget->MoveToCanvasPosition(RemoveAnchorOffset);
 		RemoveCardArray.Add(CardWidget);
 	}
 
@@ -752,16 +678,9 @@ void UHandWidget::ClearPlayerSelectCard()
 			continue;
 		}
 		ForceLayoutPrepass();
-		const FGeometry& CardGeometry =
-		CardWidget->GetCachedGeometry();
+		const FGeometry& CardGeometry = CardWidget->GetCachedGeometry();
 
-		const FVector2D CardAbsoluteBottomCenter =
-			CardGeometry.LocalToAbsolute(
-				FVector2D(
-					CardGeometry.GetLocalSize().X * 0.5f,
-					CardGeometry.GetLocalSize().Y
-				)
-			);
+		const FVector2D CardAbsoluteBottomCenter = CardGeometry.LocalToAbsolute(FVector2D(CardGeometry.GetLocalSize().X * 0.5f, CardGeometry.GetLocalSize().Y));
 
 
 		EquipSlot->ForceClearSlot();
@@ -770,8 +689,7 @@ void UHandWidget::ClearPlayerSelectCard()
 		/*
 		 * HandCanvas의 직접 자식으로 다시 추가
 		 */
-		UCanvasPanelSlot* CardCanvasSlot =
-			HandCanvas->AddChildToCanvas(CardWidget);
+		UCanvasPanelSlot* CardCanvasSlot = HandCanvas->AddChildToCanvas(CardWidget);
 
 		if (!CardCanvasSlot)
 		{
@@ -781,36 +699,24 @@ void UHandWidget::ClearPlayerSelectCard()
 		CardCanvasSlot->SetAutoSize(true);
 
 		// 핸드 카드 좌표계와 동일하게 통일
-		CardCanvasSlot->SetAnchors(
-			FAnchors(0.5f, 1.0f, 0.5f, 1.0f)
-		);
+		CardCanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
 
-		CardCanvasSlot->SetAlignment(
-			FVector2D(0.5f, 1.0f)
-		);
+		CardCanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
 
-		const FGeometry& HandGeometry =
-			HandCanvas->GetCachedGeometry();
+		const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
 
 		/*
 		 * 카드의 기존 절대 위치를 HandCanvas 로컬 좌표로 변환
 		 */
-		const FVector2D CardLocalPosition =
-			HandGeometry.AbsoluteToLocal(
-				CardAbsoluteBottomCenter
-			);
+		const FVector2D CardLocalPosition = HandGeometry.AbsoluteToLocal(CardAbsoluteBottomCenter);
 
 		/*
 		 * 카드 Anchor가 HandCanvas 아래 중앙이므로
 		 * Anchor 기준 좌표로 다시 변환
 		 */
-		const FVector2D HandBottomCenter(
-			HandGeometry.GetLocalSize().X * 0.5f,
-			HandGeometry.GetLocalSize().Y
-		);
+		const FVector2D HandBottomCenter(HandGeometry.GetLocalSize().X * 0.5f, HandGeometry.GetLocalSize().Y);
 
-		const FVector2D CardAnchorOffset =
-			CardLocalPosition - HandBottomCenter;
+		const FVector2D CardAnchorOffset = CardLocalPosition - HandBottomCenter;
 
 		CardCanvasSlot->SetPosition(CardAnchorOffset);
 		CardCanvasSlot->SetZOrder(10000);
@@ -821,40 +727,26 @@ void UHandWidget::ClearPlayerSelectCard()
 
 		if (!CardRemovePoint_Player)
 		{
-			UE_LOG(
-				LogTemp,
-				Warning,
-				TEXT("CardRemovePoint_Player is null")
-			);
+			UE_LOG(LogTemp, Warning, TEXT("CardRemovePoint_Player is null"));
 			return;
 		}
 
 		ForceLayoutPrepass();
 
-		const FGeometry& RemovePointGeometry =
-			CardRemovePoint_Player->GetCachedGeometry();
+		const FGeometry& RemovePointGeometry = CardRemovePoint_Player->GetCachedGeometry();
 
 		// 제거 지점 중앙의 절대 좌표
-		const FVector2D RemoveAbsolutePosition =
-			RemovePointGeometry.LocalToAbsolute(
-				RemovePointGeometry.GetLocalSize() * 0.5f
-			);
+		const FVector2D RemoveAbsolutePosition = RemovePointGeometry.LocalToAbsolute(RemovePointGeometry.GetLocalSize() * 0.5f);
 
 		// 제거 지점 절대 좌표를 HandCanvas 로컬 좌표로 변환
-		const FVector2D RemoveLocalPosition =
-			HandGeometry.AbsoluteToLocal(
-				RemoveAbsolutePosition
-			);
+		const FVector2D RemoveLocalPosition = HandGeometry.AbsoluteToLocal(RemoveAbsolutePosition);
 
 		// 카드의 Anchor가 HandCanvas 아래 중앙이므로
 		// HandCanvas 아래 중앙 기준 오프셋으로 변환
-		const FVector2D RemoveAnchorOffset =
-			RemoveLocalPosition - HandBottomCenter;
+		const FVector2D RemoveAnchorOffset = RemoveLocalPosition - HandBottomCenter;
 
 		// 제거 위치로 이동
-		CardWidget->MoveToCanvasPosition(
-			RemoveAnchorOffset
-		);
+		CardWidget->MoveToCanvasPosition(RemoveAnchorOffset);
 		RemoveCardArray.Add(CardWidget);
 	}
 }
@@ -866,11 +758,12 @@ void UHandWidget::ShowTurnEndButton(bool bShow)
 
 
 	//바뀐 버튼
-	if (!Button_Select){return;}
+	if (!Button_Select)
+	{
+		return;
+	}
 
-	Button_Select->SetVisibility(
-	bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
-	);
+	Button_Select->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
 	Button_Select->SetIsEnabled(bShow);
 
@@ -928,13 +821,18 @@ void UHandWidget::ConfirmExchangeInput(int32 InIndex)
 	{
 		for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
 		{
-			if (!EquipSlot){continue;}
+			if (!EquipSlot)
+			{
+				continue;
+			}
+
 			EquipSlot->ConfirmSlot();
 			EquipSlot->SetSlotEnabled(false);
 			EquipSlot->SetSlotHighlighted(false);
 			EquipSlot->SetSlotConfirmed(false);
 		}
-	}else
+	}
+	else
 	{
 		UWidget_CardEquipSlot* EquipSlot = GetSlotByExchangeNumber(InIndex);
 
@@ -990,8 +888,6 @@ void UHandWidget::StartExchangeInput(int32 ExchangeNumber)
 
 void UHandWidget::InitializeExchangeSlots()
 {
-
-
 	ExchangeSlots.Empty();
 
 	ExchangeSlots.Add(CardEquipSlot_1);
@@ -1109,17 +1005,6 @@ void UHandWidget::EnableExchangeSlot(int32 InIndex, bool bActive)
 	EquipSlot->SetSlotHighlighted(bActive);
 }
 
-void UHandWidget::ActiveHandCards(bool bActive)
-{
-	if (bActive)
-	{
-
-	}else
-	{
-
-	}
-}
-
 void UHandWidget::ClearTimerHandler()
 {
 	GetWorld()->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
@@ -1168,27 +1053,23 @@ UWidget_CardEquipSlot* UHandWidget::GetSlotByExchangeNumber(int32 ExchangeNumber
 
 void UHandWidget::DisplayInkLine(FString InText, float Time)
 {
-	if (!InkLineWidget){UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)")); return;}
+	if (!InkLineWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)"));
+		return;
+	}
 
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
 
-		World->GetTimerManager().SetTimer(
-			BattleMainScreen->InkLineTimerHandle,
-			this,
-			&UHandWidget::DisplayInkLinebActive,
-			Time,
-			false
-		);
+		World->GetTimerManager().SetTimer(BattleMainScreen->InkLineTimerHandle, this, &UHandWidget::DisplayInkLinebActive, Time, false);
 	}
 
 	InkLineWidget->SetVisibility(ESlateVisibility::Visible);
-	InkLineWidget->SetInkText( FText::FromString(InText));
+	InkLineWidget->SetInkText(FText::FromString(InText));
 	InkLineWidget->PlayInkLine();
 }
-
-
 
 void UHandWidget::DisplayInkLinebActive()
 {
@@ -1199,23 +1080,21 @@ void UHandWidget::DisplayInkLinebActive()
 
 void UHandWidget::DisplayInkLineEnabled(FString InText, float Time)
 {
-	if (!InkLineWidget){UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)")); return;}
+	if (!InkLineWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)"));
+		return;
+	}
 
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
 
-		World->GetTimerManager().SetTimer(
-			BattleMainScreen->InkLineTimerHandle,
-			this,
-			&UHandWidget::DisplayInkLineDisabled,
-			Time,
-			false
-		);
+		World->GetTimerManager().SetTimer(BattleMainScreen->InkLineTimerHandle, this, &UHandWidget::DisplayInkLineDisabled, Time, false);
 	}
 	UE_LOG(LogTemp, Error, TEXT("DisplayInkLine Enabled %s"), *InText);
 	InkLineWidget->SetVisibility(ESlateVisibility::Visible);
-	InkLineWidget->SetInkText( FText::FromString(InText));
+	InkLineWidget->SetInkText(FText::FromString(InText));
 	InkLineWidget->PlayInkLine();
 }
 
@@ -1261,29 +1140,17 @@ void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
 {
 	if (BattleCharacter->GetAllBattleDeck().IsEmpty())
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("DrawCards failed: BattleCardAssets is empty")
-		);
+		UE_LOG(LogTemp, Warning, TEXT("DrawCards failed: BattleCardAssets is empty"));
 		return;
 	}
 	if (!HandCanvas)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("DrawCards failed: HandCanvas is null")
-		);
+		UE_LOG(LogTemp, Warning, TEXT("DrawCards failed: HandCanvas is null"));
 		return;
 	}
 	if (!CardDrawSpawnPoint)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("DrawCards failed: CardDrawSpawnPoint is null")
-		);
+		UE_LOG(LogTemp, Warning, TEXT("DrawCards failed: CardDrawSpawnPoint is null"));
 		return;
 	}
 	BattleCharacter->RefillBattleDeckIfEmpty();
@@ -1428,22 +1295,15 @@ FVector2D UHandWidget::GetCardDrawStartLocalPosition() const
 		return FVector2D::ZeroVector;
 	}
 
-	const FGeometry& SpawnGeometry =
-		CardDrawSpawnPoint->GetCachedGeometry();
+	const FGeometry& SpawnGeometry = CardDrawSpawnPoint->GetCachedGeometry();
 
-	const FGeometry& HandGeometry =
-		HandCanvas->GetCachedGeometry();
+	const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
 
 	// SpawnPoint의 중앙 화면 좌표
-	const FVector2D SpawnAbsolutePosition =
-		SpawnGeometry.LocalToAbsolute(
-			SpawnGeometry.GetLocalSize() * 0.5f
-		);
+	const FVector2D SpawnAbsolutePosition = SpawnGeometry.LocalToAbsolute(SpawnGeometry.GetLocalSize() * 0.5f);
 
 	// 화면 좌표를 HandCanvas 기준 로컬 좌표로 변환
-	return HandGeometry.AbsoluteToLocal(
-		SpawnAbsolutePosition
-	);
+	return HandGeometry.AbsoluteToLocal(SpawnAbsolutePosition);
 }
 
 
@@ -1458,8 +1318,13 @@ void UHandWidget::RemoveSelectedCardsData()
 
 void UHandWidget::SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
 {
-	if (CharacterStatusWidget_Player) CharacterStatusWidget_Player->SetData(Player);
-	if (CharacterStatusWidget_Enemy) CharacterStatusWidget_Enemy->SetData(Enemy);
+	if (CharacterStatusWidget_Player)
+	{
+		CharacterStatusWidget_Player->SetData(Player);
+	}
+
+	if (CharacterStatusWidget_Enemy)
+	{
+		CharacterStatusWidget_Enemy->SetData(Enemy);
+	}
 }
-
-
