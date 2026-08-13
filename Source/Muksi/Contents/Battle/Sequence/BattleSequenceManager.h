@@ -132,7 +132,7 @@ private:
 private:
 	bool TryBindBattleFlow();
 	void BindBattleFlowDeferred();
-	void HandleBattlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	void HandleCharacterPhaseFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
 	void NotifyBattleActionSequenceCompleted();
 	void RefreshBattleActionTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);
 	void ClearBattleActionPresentation();

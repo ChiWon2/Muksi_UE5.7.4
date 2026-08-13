@@ -8,17 +8,43 @@
 #include "Components/TextBlock.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
+#include "Muksi/Contents/Battle/StatusEffect/Widgets/StatusEffectBarWidget.h"
 
 void UCharacterStatusWidget::SetData(ABattleCharacterBase* BattleCharacter)
 {
-	Image_CharacterImage->SetBrushFromTexture(BattleCharacter->GetCharacterData()->CharacterIllustration);
-	TextBlock_CharacterName->SetText(BattleCharacter->GetCharacterData()->CharacterName);
-	
-	BattleStatComponent = BattleCharacter->FindComponentByClass<UBattleStatComponent>();
-	if (!BattleStatComponent){UE_LOG(LogTemp, Error, TEXT("BattleStatComponent not found (CharacterStatusWidget.cpp	)")); return;}
+	UnbindBattleStatComponent();
+	if (StatusEffectBarWidget) StatusEffectBarWidget->InitWidget(nullptr);
+	if (!IsValid(BattleCharacter)) return;
+	if (IsValid(BattleCharacter->GetCharacterData()))
+	{
+		Image_CharacterImage->SetBrushFromTexture(BattleCharacter->GetCharacterData()->CharacterIllustration);
+		TextBlock_CharacterName->SetText(BattleCharacter->GetCharacterData()->CharacterName);
+	}
+	BattleStatComponent = BattleCharacter->GetBattleStatComponent();
+	if (!BattleStatComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleStatComponent not found (CharacterStatusWidget.cpp)"));
+		return;
+	}
 	MaxHP = BattleStatComponent->GetMaxHP();
-	HPChanged(MaxHP, MaxHP);
+	const float CurrentHP = BattleStatComponent->GetCurrentHP();
+	HPChanged(CurrentHP, CurrentHP);
+	BattleStatComponent->OnHPChanged.RemoveDynamic(this, &UCharacterStatusWidget::HPChanged);
 	BattleStatComponent->OnHPChanged.AddDynamic(this, &UCharacterStatusWidget::HPChanged);
+	if (StatusEffectBarWidget) StatusEffectBarWidget->InitWidget(BattleCharacter->GetStatusEffectComponent());
+}
+
+void UCharacterStatusWidget::NativeDestruct()
+{
+	UnbindBattleStatComponent();
+	if (StatusEffectBarWidget) StatusEffectBarWidget->InitWidget(nullptr);
+	Super::NativeDestruct();
+}
+
+void UCharacterStatusWidget::UnbindBattleStatComponent()
+{
+	if (BattleStatComponent) BattleStatComponent->OnHPChanged.RemoveDynamic(this, &UCharacterStatusWidget::HPChanged);
+	BattleStatComponent = nullptr;
 }
 
 void UCharacterStatusWidget::HPChanged(float PreHP, float AftHP)

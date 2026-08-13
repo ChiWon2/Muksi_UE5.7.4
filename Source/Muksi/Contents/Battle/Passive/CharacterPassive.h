@@ -156,8 +156,4 @@ protected:
 private:
 	FSimpleDelegate RoundPhaseCompletionDelegate;
 	bool bRoundPhaseExecutionActive = false;
-
-	UFUNCTION()
-	void HandleChangePhaseDelegate(EBattlePhase OldPhase, EBattlePhase NewPhase);
-
 };

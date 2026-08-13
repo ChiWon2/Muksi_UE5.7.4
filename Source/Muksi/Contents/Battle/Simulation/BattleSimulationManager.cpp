@@ -32,7 +32,7 @@ void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (BattleManager)
 	{
 		BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-		BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
+		BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
 	}
 	StopSimulation();
 	DestroySimulationWorldManagers();
@@ -67,6 +67,15 @@ bool ABattleSimulationManager::TogglePlayerSimulationView()
 {
 	const EBattlePlayerSimulationView NewView = PlayerSimulationView == EBattlePlayerSimulationView::ActualSelf ? EBattlePlayerSimulationView::DeceivedSelf : EBattlePlayerSimulationView::ActualSelf;
 	return SetPlayerSimulationView(NewView);
+}
+
+ABattleCharacterBase* ABattleSimulationManager::GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const
+{
+	if (!IsValid(SourceCharacter)) return nullptr;
+	if (!bPlayerSimulationViewAvailable) return const_cast<ABattleCharacterBase*>(SourceCharacter);
+	ABattleSimulationWorldManager* WorldManager = GetPlayerPresentationWorldManager();
+	ABattleSimulationCharacter* SimulationCharacter = IsValid(WorldManager) ? WorldManager->GetSimulationCharacter(SourceCharacter) : nullptr;
+	return IsValid(SimulationCharacter) ? static_cast<ABattleCharacterBase*>(SimulationCharacter) : const_cast<ABattleCharacterBase*>(SourceCharacter);
 }
 
 ABattleSimulationCharacter* ABattleSimulationManager::GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const
@@ -111,7 +120,7 @@ bool ABattleSimulationManager::TryBindBattleFlow()
 	if (BattleManager && BattleManager != FoundBattleManager)
 	{
 		BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-		BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
+		BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
 	}
 	BattleManager = FoundBattleManager;
 	BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
@@ -120,8 +129,8 @@ bool ABattleSimulationManager::TryBindBattleFlow()
 	MaxExchangeCount = BattleManager->GetMaxExchangeCount();
 	BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
 	BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &ABattleSimulationManager::HandleBattlePhaseChanged);
-	BattleManager->PhaseUIFinishedDelegate.RemoveAll(this);
-	BattleManager->PhaseUIFinishedDelegate.AddUObject(this, &ABattleSimulationManager::HandleBattlePhaseUIFinished);
+	BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
+	BattleManager->CharacterPhaseFinishedDelegate.AddUObject(this, &ABattleSimulationManager::HandleCharacterPhaseFinished);
 	return true;
 }
 
@@ -206,6 +215,7 @@ void ABattleSimulationManager::SetPlayerSimulationViewInternal(EBattlePlayerSimu
 	PlayerSimulationView = NewView;
 	ApplyPlayerSimulationView();
 	SyncWorldSnapshot();
+	BroadcastPresentationCharacters();
 	PlayerSimulationViewChangedDelegate.Broadcast(PlayerSimulationView);
 }
 
@@ -224,6 +234,7 @@ void ABattleSimulationManager::SetPlayerSimulationViewAvailable(bool bAvailable)
 	if (bPlayerSimulationViewAvailable == bAvailable) return;
 	bPlayerSimulationViewAvailable = bAvailable;
 	ApplyPlayerSimulationView();
+	BroadcastPresentationCharacters();
 	PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
 }
 
@@ -232,6 +243,17 @@ void ABattleSimulationManager::SetPlayerSimulationViewChangeLocked(bool bLocked)
 	if (bPlayerSimulationViewChangeLocked == bLocked) return;
 	bPlayerSimulationViewChangeLocked = bLocked;
 	PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
+}
+
+void ABattleSimulationManager::BroadcastPresentationCharacters()
+{
+	if (!IsValid(BattleRuntimeContext)) return;
+	ABattleCharacterBase* SourcePlayerCharacter = BattleRuntimeContext->GetPlayerCharacter();
+	ABattleCharacterBase* SourceEnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
+	ABattleCharacterBase* PresentationPlayerCharacter = GetPresentationCharacter(SourcePlayerCharacter);
+	ABattleCharacterBase* PresentationEnemyCharacter = GetPresentationCharacter(SourceEnemyCharacter);
+	if (!IsValid(PresentationPlayerCharacter) || !IsValid(PresentationEnemyCharacter)) return;
+	PresentationCharactersChangedDelegate.Broadcast(PresentationPlayerCharacter, PresentationEnemyCharacter);
 }
 
 void ABattleSimulationManager::RefreshFastForwardForPrimarySimulationWorld()
@@ -284,7 +306,7 @@ void ABattleSimulationManager::HandleBattlePhaseChanged(EBattlePhase OldPhase, E
 	}
 }
 
-void ABattleSimulationManager::HandleBattlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void ABattleSimulationManager::HandleCharacterPhaseFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
 	(void)OldPhase;
 	if (NewPhase != EBattlePhase::RoundStart || IsSimulationRunning()) return;

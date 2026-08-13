@@ -137,6 +137,10 @@ protected:
 	UFUNCTION()
 	void HandleSimulationPlayerViewAvailabilityChanged(bool bAvailable);
 
+	UFUNCTION()
+	void HandleSimulationPresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter);
+
+	void SetPresentationCharacterData(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter);
 	void HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction);
 
 	//====================================Ready<준비>===================================================================

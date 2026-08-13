@@ -21,10 +21,7 @@ struct FBattleAction;
 struct FHitResult;
 struct FResolvedTargeting;
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(
-    FOnEnemyCardSelectionReady,
-    UMuksiBattleCardDataAsset*,
-    int32);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnemyCardSelectionReady, UMuksiBattleCardDataAsset*, int32);
 
 /**
  * Exchange 카드 선택, Targeting Session, Action 생성과 카드 공개 Preview를 담당한다.

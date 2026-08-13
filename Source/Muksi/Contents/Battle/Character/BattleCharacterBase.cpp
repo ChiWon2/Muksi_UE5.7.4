@@ -71,6 +71,7 @@ ABattleCharacterBase::ABattleCharacterBase()
 
 	StatusEffectComponent = CreateDefaultSubobject<UMuksiStatusEffectComponent>(TEXT("StatusEffectComponent"));
 
+
 	BattleAnimationComponent = CreateDefaultSubobject<UMuksiBattleAnimationComponent>(TEXT("BattleAnimationComponent"));
 
 	BattleMovementComponent =CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
@@ -79,6 +80,7 @@ ABattleCharacterBase::ABattleCharacterBase()
 
 	
 }
+
 
 float ABattleCharacterBase::GetCurrentHP() const
 {

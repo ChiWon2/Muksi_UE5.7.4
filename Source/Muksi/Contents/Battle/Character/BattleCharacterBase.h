@@ -146,6 +146,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
+
 	
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Stat")
 	UBattleStatComponent* GetBattleStatComponent() const { return BattleStatComponent; }
@@ -174,6 +175,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> ClickCollision = nullptr;
+
 
 public:
 	//Component

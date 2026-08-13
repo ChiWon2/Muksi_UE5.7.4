@@ -61,7 +61,6 @@ private:
     void HandleRoundPhaseStatusEffectFinished();
     void FinishRoundPhaseExecution();
 
-    UFUNCTION()
     void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
     void HandleExchangeStart();

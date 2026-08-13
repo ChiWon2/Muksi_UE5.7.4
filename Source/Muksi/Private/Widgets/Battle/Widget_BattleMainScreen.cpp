@@ -79,7 +79,6 @@ void UWidget_BattleMainScreen::NativeDestruct()
 
 FReply UWidget_BattleMainScreen::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	//return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	Debug::Print(TEXT("ActivatableBase MouseDown"));
 	return FReply::Unhandled();
 }
@@ -88,14 +87,6 @@ void UWidget_BattleMainScreen::NativeOnActivated()
 {
 	Super::NativeOnActivated();
 	RequestRefreshFocus();
-
-	/*if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
-	{
-		Debug::Print(TEXT("TestNativeOnActivated"));
-		//FInputModeUIOnly InputMode;
-		FInputModeGameAndUI InputMode;
-		PC->SetInputMode(InputMode);
-	}*/
 }
 
 
@@ -103,10 +94,17 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 {
 	checkf(IsValid(Player), TEXT("PlayerCharacter is null"));
 	checkf(IsValid(Enemy), TEXT("EnemyCharacter is null"));
-	
-	HandWidget->SetCharacterData(Player, Enemy);
-	ActivePassiveWidget->SetData(Player, Enemy);
 
+	ActivePassiveWidget->SetData(Player, Enemy);
+	SetPresentationCharacterData(Player, Enemy);
+}
+
+void UWidget_BattleMainScreen::SetPresentationCharacterData(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
+{
+	if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter)) 
+		return;
+	if (HandWidget)
+		HandWidget->SetCharacterData(PlayerCharacter, EnemyCharacter);
 }
 
 void UWidget_BattleMainScreen::BindHandWidgetEvents()
@@ -117,21 +115,11 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 	}
 
 	// 중복 바인딩 방지
-	HandWidget->OnEndTurnRequested.RemoveDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleCardSelect
-	);
-
-	HandWidget->OnEndTurnRequested.AddDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleCardSelect
-	);
+	HandWidget->OnEndTurnRequested.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
+	HandWidget->OnEndTurnRequested.AddDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
 
 	HandWidget->OnEnemyCardRevealFinished.RemoveAll(this);
-	HandWidget->OnEnemyCardRevealFinished.AddUObject(
-		this,
-		&UWidget_BattleMainScreen::HandleEnemyCardRevealFinished
-	);
+	HandWidget->OnEnemyCardRevealFinished.AddUObject(this,&UWidget_BattleMainScreen::HandleEnemyCardRevealFinished);
 }
 
 void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
@@ -141,11 +129,7 @@ void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
 		return;
 	}
 
-	HandWidget->OnEndTurnRequested.RemoveDynamic(
-		this,
-		&UWidget_BattleMainScreen::HandleCardSelect
-	);
-
+	HandWidget->OnEndTurnRequested.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
 	HandWidget->OnEnemyCardRevealFinished.RemoveAll(this);
 }
 
@@ -193,13 +177,21 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 
 void UWidget_BattleMainScreen::BindBattleSimulationManagerEvents()
 {
-	if (!BattleSimulationManager) return;
+	if (!BattleSimulationManager) 
+		return;
+
 	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
 	BattleSimulationManager->SimulationTimeScaleChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
+
 	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
 	BattleSimulationManager->PlayerSimulationViewChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
+
 	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
 	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+	
+	BattleSimulationManager->PresentationCharactersChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
+	BattleSimulationManager->PresentationCharactersChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
+	
 	BP_OnSimulationTimeScaleChanged(BattleSimulationManager->GetSimulationTimeScale());
 	BP_OnSimulationPlayerViewChanged(BattleSimulationManager->GetPlayerSimulationView());
 	BP_OnSimulationPlayerViewAvailabilityChanged(BattleSimulationManager->CanChangePlayerSimulationView());
@@ -211,6 +203,7 @@ void UWidget_BattleMainScreen::UnbindBattleSimulationManagerEvents()
 	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
 	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
 	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+	BattleSimulationManager->PresentationCharactersChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
 }
 
 void UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged(float TimeScale)
@@ -226,6 +219,11 @@ void UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged(EBattlePlayerSi
 void UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged(bool bAvailable)
 {
 	BP_OnSimulationPlayerViewAvailabilityChanged(bAvailable);
+}
+
+void UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
+{
+	SetPresentationCharacterData(PlayerCharacter, EnemyCharacter);
 }
 
 void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction)

@@ -198,7 +198,6 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Enemy;
 
-
 	//****** Bind Widget ******
 
 
@@ -255,8 +254,6 @@ public:
 	void EnableExchangeSlots(int32 InIndex);
 
 	void EnableExchangeSlot(int32 InIndex, bool bActive);
-
-	void ActiveHandCards(bool bActive);
 	
 	void ClearTimerHandler();
 

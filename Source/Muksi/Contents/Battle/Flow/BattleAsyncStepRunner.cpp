@@ -1,16 +1,10 @@
 #include "Muksi/Contents/Battle/Flow/BattleAsyncStepRunner.h"
 
-bool UBattleAsyncStepRunner::Start(
-    TArray<FBattleAsyncStep>&& InSteps,
-    FSimpleDelegate InCompletionDelegate)
+bool UBattleAsyncStepRunner::Start(TArray<FBattleAsyncStep>&& InSteps, FSimpleDelegate InCompletionDelegate)
 {
     if (bRunning)
     {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("[BattleAsyncStepRunner] Ignored overlapping sequence start. Owner=%s"),
-            *GetNameSafe(GetOuter()));
+        UE_LOG(LogTemp, Warning, TEXT("[BattleAsyncStepRunner] Ignored overlapping sequence start. Owner=%s"), *GetNameSafe(GetOuter()));
         return false;
     }
 
@@ -91,9 +85,7 @@ void UBattleAsyncStepRunner::ExecuteNextStep()
     }
 }
 
-void UBattleAsyncStepRunner::HandleCurrentStepFinished(
-    int32 InExecutionSerial,
-    int32 InStepIndex)
+void UBattleAsyncStepRunner::HandleCurrentStepFinished( int32 InExecutionSerial, int32 InStepIndex)
 {
     if (!bRunning
         || !bWaitingForCurrentStep
