@@ -2,7 +2,7 @@
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
-#include "Muksi/Contents/Battle/Round/BattleRoundPhaseCoordinator.h"
+#include "Muksi/Contents/Battle/Flow/BattleCharacterPhaseCoordinator.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
 
 
@@ -20,11 +20,11 @@ void ABattleManager::BeginPlay()
 	if (BattleRuntimeContext)
 	{
 		BattleRuntimeContext->ResetBattle();
-		RoundPhaseCoordinator = NewObject<UBattleRoundPhaseCoordinator>(this);
-		if (!RoundPhaseCoordinator || !RoundPhaseCoordinator->Initialize(this))
+		CharacterPhaseCoordinator = NewObject<UBattleCharacterPhaseCoordinator>(this);
+		if (!CharacterPhaseCoordinator || !CharacterPhaseCoordinator->Initialize(this))
 		{
-			UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize BattleRoundPhaseCoordinator."));
-			RoundPhaseCoordinator = nullptr;
+			UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize BattleCharacterPhaseCoordinator."));
+			CharacterPhaseCoordinator = nullptr;
 		}
 	}
 	else
@@ -41,10 +41,10 @@ void ABattleManager::BeginPlay()
 
 void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (RoundPhaseCoordinator)
+	if (CharacterPhaseCoordinator)
 	{
-		RoundPhaseCoordinator->Shutdown();
-		RoundPhaseCoordinator = nullptr;
+		CharacterPhaseCoordinator->Shutdown();
+		CharacterPhaseCoordinator = nullptr;
 	}
 
 	BattleRuntimeContext = nullptr;
@@ -105,11 +105,7 @@ void ABattleManager::RoundStart()
 		BattleRuntimeContext->ResetRound(CurrentRound);
 	}
 	ChangePhase(EBattlePhase::RoundStart);
-	if (!RoundPhaseCoordinator)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] RoundPhaseCoordinator is unavailable. Skipping round start processing."));
-		NotifyPhaseExecutionFinished();
-	}
+	NotifyPhaseExecutionFinished();
 }
 
 void ABattleManager::NotifyBattleCharacterDead()
@@ -139,11 +135,7 @@ void ABattleManager::EndBattleLevel()
 void ABattleManager::RoundEnd()
 {
 	ChangePhase(EBattlePhase::RoundEnd);
-	if (!RoundPhaseCoordinator)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] RoundPhaseCoordinator is unavailable. Skipping round end processing."));
-		NotifyPhaseExecutionFinished();
-	}
+	NotifyPhaseExecutionFinished();
 }
 
 
@@ -243,9 +235,13 @@ void ABattleManager::NotifyPhaseExecutionFinished()
 		bCurrentPhaseUIFinished = true;
 		PhaseUIFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
 
-		if (!ShouldWaitForExternalExecutionAfterUI(FinishedPhase))
+		if (!ShouldWaitForCharacterPhaseExecutionAfterUI(FinishedPhase))
 		{
 			AdvanceFromPhase(FinishedPhase);
+		}
+		else if (!CharacterPhaseCoordinator)
+		{
+			NotifyCharacterPhaseExecutionFinished(FinishedPhase);
 		}
 		return;
 	}
@@ -268,7 +264,27 @@ void ABattleManager::NotifyPhaseUIFinished(EBattlePhase FinishedPhase)
 	bCurrentPhaseUIFinished = true;
 	PhaseUIFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
 
-	if (!ShouldWaitForExternalExecutionAfterUI(FinishedPhase))
+	if (!ShouldWaitForCharacterPhaseExecutionAfterUI(FinishedPhase))
+	{
+		AdvanceFromPhase(FinishedPhase);
+	}
+	else if (!CharacterPhaseCoordinator)
+	{
+		NotifyCharacterPhaseExecutionFinished(FinishedPhase);
+	}
+}
+
+void ABattleManager::NotifyCharacterPhaseExecutionFinished(EBattlePhase FinishedPhase)
+{
+	if (CurrentPhase != FinishedPhase)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Ignored stale character phase completion. Current: %d, Finished: %d"), static_cast<int32>(CurrentPhase), static_cast<int32>(FinishedPhase));
+		return;
+	}
+
+	CharacterPhaseFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
+
+	if (!ShouldWaitForExternalExecutionAfterCharacterPhase(FinishedPhase))
 	{
 		AdvanceFromPhase(FinishedPhase);
 	}
@@ -392,7 +408,26 @@ bool ABattleManager::ShouldWaitForPhaseUI(EBattlePhase Phase) const
 }
 
 
-bool ABattleManager::ShouldWaitForExternalExecutionAfterUI(EBattlePhase Phase) const
+bool ABattleManager::ShouldWaitForCharacterPhaseExecutionAfterUI(EBattlePhase Phase) const
+{
+	switch (Phase)
+	{
+	case EBattlePhase::BattleStart:
+	case EBattlePhase::RoundStart:
+	case EBattlePhase::ExchangeStart:
+	case EBattlePhase::ExchangeEnd:
+	case EBattlePhase::BattleActionSequenceStart:
+	case EBattlePhase::BattleActionSequenceEnd:
+	case EBattlePhase::RoundEnd:
+	case EBattlePhase::BattleEnd:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+bool ABattleManager::ShouldWaitForExternalExecutionAfterCharacterPhase(EBattlePhase Phase) const
 {
 	return Phase == EBattlePhase::RoundStart || Phase == EBattlePhase::BattleActionSequenceStart;
 }

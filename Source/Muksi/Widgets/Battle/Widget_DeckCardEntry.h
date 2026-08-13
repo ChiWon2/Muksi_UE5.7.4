@@ -28,8 +28,6 @@ protected:
 	//~ Begin UUserWidget Interface
 	virtual void NativeConstruct() override;
 	//~ End UUserWidget Interface
-	
-	
 	void RefreshCardData();
 
 protected:
@@ -53,6 +51,4 @@ protected:
 	TObjectPtr<UTextBlock> CardDescriptionText;
 	
 	//***** BindWidget *****
-	
-	
 };

@@ -114,7 +114,7 @@ private:
 
 	UFUNCTION()
 	void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
-	void HandleBattlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	void HandleCharacterPhaseFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
 	void HandleSimulationWorldStateChanged(ABattleSimulationWorldManager* WorldManager, EBattleSimulationState NewState);
 	void HandleSimulationWorldExchangeFinished(ABattleSimulationWorldManager* WorldManager, int32 FinishedExchangeIndex, bool bSimulationCompleted, const FBattleSimulationExchange& FinishedExchange);
 

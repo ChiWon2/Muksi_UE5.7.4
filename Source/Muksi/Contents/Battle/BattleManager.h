@@ -8,7 +8,7 @@
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "BattleManager.generated.h"
 
-class UBattleRoundPhaseCoordinator;
+class UBattleCharacterPhaseCoordinator;
 class UBattleRuntimeContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseChanged, EBattlePhase, OldPhase, EBattlePhase, NewPhase);
@@ -37,6 +37,7 @@ public:
     FOnBattlePhaseChanged PhaseUIDelegate;
 
     FOnBattlePhaseNativeEvent PhaseUIFinishedDelegate;
+    FOnBattlePhaseNativeEvent CharacterPhaseFinishedDelegate;
 
     // 실제 전투/Simulation의 BattleSequenceManager 시작 이벤트를 하나로 중계한다.
     FOnBattleActionStart BattleActionStartDelegate;
@@ -63,6 +64,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Battle|Phase")
     void NotifyPhaseUIFinished(EBattlePhase FinishedPhase);
 
+    void NotifyCharacterPhaseExecutionFinished(EBattlePhase FinishedPhase);
     void NotifyInteractivePhaseFinished(EBattlePhase FinishedPhase);
     void RestartCurrentExchangeCardSelection();
     void NotifyBattleCharacterDead();
@@ -88,7 +90,8 @@ private:
     void AdvanceExchange();
     void AdvanceFromPhase(EBattlePhase FinishedPhase);
     bool ShouldWaitForPhaseUI(EBattlePhase Phase) const;
-    bool ShouldWaitForExternalExecutionAfterUI(EBattlePhase Phase) const;
+    bool ShouldWaitForCharacterPhaseExecutionAfterUI(EBattlePhase Phase) const;
+    bool ShouldWaitForExternalExecutionAfterCharacterPhase(EBattlePhase Phase) const;
     bool RequestPhaseUI();
 
 protected:
@@ -105,7 +108,7 @@ protected:
     TObjectPtr<UBattleRuntimeContext> BattleRuntimeContext = nullptr;
 
     UPROPERTY(Transient)
-    TObjectPtr<UBattleRoundPhaseCoordinator> RoundPhaseCoordinator = nullptr;
+    TObjectPtr<UBattleCharacterPhaseCoordinator> CharacterPhaseCoordinator = nullptr;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
     EBattlePhase CurrentPhase = EBattlePhase::None;

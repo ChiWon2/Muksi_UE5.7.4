@@ -7,9 +7,6 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 
-
-
-
 void UWidget_DeckCardEntry::SetCardRowData(UDataTable* InCardDataTable, FName InCardRowName)
 {
 	CachedCardDataTable = InCardDataTable;
@@ -60,19 +57,8 @@ void UWidget_DeckCardEntry::RefreshCardData()
 		}
 		else
 		{
-			UE_LOG(
-				LogTemp,
-				Warning,
-				TEXT("UWidget_DeckCardEntry::RefreshCardData - CardTexture is null: %s"),
-				*GetNameSafe(CachedCardData.Get())
-			);
+			UE_LOG(LogTemp, Warning, TEXT("UWidget_DeckCardEntry::RefreshCardData - CardTexture is null: %s"), *GetNameSafe(CachedCardData.Get()));
 		}
 	}
-
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("UWidget_DeckCardEntry::RefreshCardData - Card Applied: %s"),
-		*CachedCardData->CardName.ToString()
-	);
+	UE_LOG(LogTemp, Log, TEXT("UWidget_DeckCardEntry::RefreshCardData - Card Applied: %s"),*CachedCardData->CardName.ToString());
 }

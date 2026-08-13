@@ -15,7 +15,6 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 {
     if (BattleManager)
     {
-        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
         BattleManager->BattleActionStartDelegate.RemoveAll(this);
     }
 
@@ -23,7 +22,6 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 
     if (BattleManager)
     {
-        BattleManager->ChangePhaseDelegate.AddUniqueDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
         BattleManager->BattleActionStartDelegate.AddUObject(this, &UMuksiStatusEffectComponent::NotifyBattleActionStart);
     }
 }
@@ -48,7 +46,6 @@ void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 
     if (BattleManager)
     {
-        BattleManager->ChangePhaseDelegate.RemoveDynamic(this, &UMuksiStatusEffectComponent::HandleBattlePhaseChanged);
         BattleManager->BattleActionStartDelegate.RemoveAll(this);
         BattleManager = nullptr;
     }
@@ -257,6 +254,9 @@ void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase
 {
     switch (NewPhase)
     {
+    case EBattlePhase::ReadyStart:
+    case EBattlePhase::ReadyEnd:
+        break;
     case EBattlePhase::ExchangeStart:
         HandleExchangeStart();
         break;
