@@ -41,9 +41,6 @@ protected:
 	TObjectPtr<ABattleGridManager> RuntimeSourceGridManager = nullptr;
 
 	UPROPERTY(Transient)
-	bool bWorldManagerRegistrationEnabled = true;
-
-	UPROPERTY(Transient)
 	bool bGenerateGridOnConstruction = true;
 
 	UPROPERTY(Transient)
@@ -93,7 +90,6 @@ public:
 public:
 	TArray<FBattleGridCell>& GetActiveGridCells();
 	const TArray<FBattleGridCell>& GetGridCells() const { return GridCells; }
-	void SetWorldManagerRegistrationEnabled(bool bEnabled) { bWorldManagerRegistrationEnabled = bEnabled; }
 	void SetGridGenerationEnabled(bool bEnabled) { bGenerateGridOnConstruction = bEnabled; }
 	bool InitializeRuntimeGridFromSource(ABattleGridManager* InSourceGridManager);
 	bool ReplaceGridActor(AActor* SourceActor, AActor* ReplacementActor);

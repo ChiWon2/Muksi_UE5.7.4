@@ -7,7 +7,6 @@
 #include "Muksi/Contents/Battle/Grid/Generator/BattleGridTileGeneratorComponent.h"
 #include "Muksi/Contents/Battle/Grid/Presentation/BattleGridIndicatorComponent.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
-#include "Muksi/Contents/MuksiWorldManagerSubsystem.h" 
 
 ABattleGridManager::ABattleGridManager()
 {
@@ -20,26 +19,10 @@ ABattleGridManager::ABattleGridManager()
 void ABattleGridManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-
-	if (bWorldManagerRegistrationEnabled)
-	{
-		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-		{
-			ManagerSubsystem->RegisterManager<ABattleGridManager>(this);
-		}
-	}
 }
 
 void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (bWorldManagerRegistrationEnabled)
-	{
-		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-		{
-			ManagerSubsystem->UnregisterManager<ABattleGridManager>(this);
-		}
-	}
 	RuntimeSourceGridManager = nullptr;
 	bRuntimeGridInstance = false;
 	Super::EndPlay(EndPlayReason);

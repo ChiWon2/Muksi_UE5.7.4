@@ -186,7 +186,6 @@ bool ABattleSimulationWorldManager::CreateSimulationExecutionEnvironment(ABattle
 		SourceGridManager = nullptr;
 		return false;
 	}
-	SimulationGridManager->SetWorldManagerRegistrationEnabled(false);
 	SimulationGridManager->SetGridGenerationEnabled(false);
 	UGameplayStatics::FinishSpawningActor(SimulationGridManager, SourceGridManager->GetActorTransform());
 	if (!SimulationGridManager->InitializeRuntimeGridFromSource(SourceGridManager))
@@ -212,7 +211,6 @@ bool ABattleSimulationWorldManager::CreateSimulationExecutionEnvironment(ABattle
 		SourceGridManager = nullptr;
 		return false;
 	}
-	SimulationSequenceManager->SetWorldManagerRegistrationEnabled(false);
 	UGameplayStatics::FinishSpawningActor(SimulationSequenceManager, FTransform::Identity);
 	SimulationSequenceManager->BattleGridManager = SimulationGridManager;
 	SimulationSequenceManager->BattleActionStartDelegate.AddUObject(this, &ABattleSimulationWorldManager::HandleSimulationBattleActionStart);

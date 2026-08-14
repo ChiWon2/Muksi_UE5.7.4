@@ -7,13 +7,13 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
-#include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 // ============================================================================
 // 생명주기
@@ -26,107 +26,47 @@ ABattleSequenceManager::ABattleSequenceManager()
 void ABattleSequenceManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (!bWorldManagerRegistrationEnabled)
-	{
-		return;
-	}
-
-	TargetingPresentationController = NewObject<UTargetingPresentationController>(this);
-	if (TargetingPresentationController)
-	{
-		TargetingPresentationController->Initialize(BattleGridManager);
-	}
-
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-	{
-		ManagerSubsystem->RegisterManager<ABattleSequenceManager>(this);
-	}
-
-	if (!TryBindBattleFlow())
-	{
-		BattleFlowBindingTimerHandle = GetWorldTimerManager().SetTimerForNextTick(
-			FTimerDelegate::CreateUObject(this, &ABattleSequenceManager::BindBattleFlowDeferred));
-	}
 }
 
 void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorldTimerManager().ClearTimer(BattleFlowBindingTimerHandle);
 	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
 
 	if (BattleManager)
 	{
-		BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
 		BattleActionStartDelegate.RemoveAll(BattleManager);
+		BattleManager->PhaseExecutionRequestedDelegate.RemoveDynamic(this, &ABattleSequenceManager::HandlePhaseExecutionRequested);
 	}
+	PhaseExecutionTask = nullptr;
 
 	ClearBattleActionPresentation();
 	ResetBattleActionSequence();
 	BattleManager = nullptr;
 	BattleRuntimeContext = nullptr;
 
-	if (bWorldManagerRegistrationEnabled)
-	{
-		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-		{
-			ManagerSubsystem->UnregisterManager<ABattleSequenceManager>(this);
-		}
-	}
-
 	Super::EndPlay(EndPlayReason);
 }
 
-bool ABattleSequenceManager::TryBindBattleFlow()
+bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager)
 {
-	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this);
-	if (!ManagerSubsystem)
-	{
+	if (!IsValid(InBattleManager) || !IsValid(InBattleRuntimeContext) || !IsValid(InBattleGridManager))
 		return false;
-	}
 
-	BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
+	BattleManager = InBattleManager;
+	BattleRuntimeContext = InBattleRuntimeContext;
+	BattleGridManager = InBattleGridManager;
+	BattleManager->PhaseExecutionRequestedDelegate.AddUniqueDynamic(this, &ABattleSequenceManager::HandlePhaseExecutionRequested);
 
-	if (!IsValid(BattleManager))
-	{
+	if (!TargetingPresentationController)
+		TargetingPresentationController = NewObject<UTargetingPresentationController>(this);
+
+	if (!TargetingPresentationController)
 		return false;
-	}
 
-	InitializeBattleRuntimeContext(BattleManager->GetBattleRuntimeContext());
-	if (!IsValid(BattleRuntimeContext))
-	{
-		return false;
-	}
+	TargetingPresentationController->Initialize(BattleGridManager);
 
-	if (!IsValid(BattleGridManager))
-	{
-		BattleGridManager = ManagerSubsystem->GetManager<ABattleGridManager>();
-	}
-
-	if (!IsValid(BattleGridManager))
-	{
-		return false;
-	}
-
-	if (TargetingPresentationController)
-	{
-		TargetingPresentationController->Initialize(BattleGridManager);
-	}
-
-	BattleManager->CharacterPhaseFinishedDelegate.RemoveAll(this);
-	BattleManager->CharacterPhaseFinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandleCharacterPhaseFinished);
-
-	BattleActionStartDelegate.RemoveAll(BattleManager);
 	BattleActionStartDelegate.AddUObject(BattleManager, &ABattleManager::NotifyBattleActionStart);
 	return true;
-}
-
-void ABattleSequenceManager::BindBattleFlowDeferred()
-{
-	if (!TryBindBattleFlow())
-	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleSequenceManager] Failed to bind Battle flow managers."));
-	}
 }
 
 void ABattleSequenceManager::InitializeBattleRuntimeContext(UBattleRuntimeContext* InBattleRuntimeContext)
@@ -134,14 +74,17 @@ void ABattleSequenceManager::InitializeBattleRuntimeContext(UBattleRuntimeContex
 	BattleRuntimeContext = InBattleRuntimeContext;
 }
 
-void ABattleSequenceManager::HandleCharacterPhaseFinished(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void ABattleSequenceManager::HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	(void)OldPhase;
+	if (NewPhase != EBattlePhase::BattleActionSequenceStart || !TaskContext) return;
+	PhaseExecutionTask = TaskContext->RegisterTask(this);
+	if (!PhaseExecutionTask) return;
+	ExecuteBattleActionSequence();
+}
 
-	if (NewPhase != EBattlePhase::BattleActionSequenceStart)
-	{
-		return;
-	}
+void ABattleSequenceManager::ExecuteBattleActionSequence()
+{
 
 	if (!IsValid(BattleRuntimeContext) && IsValid(BattleManager))
 	{
@@ -165,10 +108,14 @@ void ABattleSequenceManager::HandleCharacterPhaseFinished(EBattlePhase OldPhase,
 
 void ABattleSequenceManager::NotifyBattleActionSequenceCompleted()
 {
-	if (IsValid(BattleManager) && BattleManager->GetCurrentPhase() == EBattlePhase::BattleActionSequenceStart)
+	if (IsValid(BattleManager) && BattleManager->GetCurrentPhase() != EBattlePhase::BattleActionSequenceStart)
 	{
-		BattleManager->NotifyPhaseExecutionFinished();
+		PhaseExecutionTask = nullptr;
+		return;
 	}
+	UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
+	PhaseExecutionTask = nullptr;
+	if (CompletedTask) CompletedTask->Complete();
 }
 
 // ============================================================================

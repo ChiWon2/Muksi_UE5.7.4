@@ -3,7 +3,9 @@
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
 
+#include "Engine/World.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
@@ -35,15 +37,15 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	}
 
 	BattleManager = ManagerSubsystem->GetManager<ABattleManager>();
-	BattleTargetingManager = ManagerSubsystem->GetManager<ABattleTargetingManager>();
-	BattleSequenceManager = ManagerSubsystem->GetManager<ABattleSequenceManager>();
-	BattleSimulationManager = ManagerSubsystem->GetManager<ABattleSimulationManager>();
-
 	if (!BattleManager)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BattleManager is nullptr (Widget_BattleMainScreen.cpp)"));
 		return;
 	}
+
+	BattleTargetingManager = BattleManager->GetBattleTargetingManager();
+	BattleSequenceManager = BattleManager->GetBattleSequenceManager();
+	BattleSimulationManager = BattleManager->GetBattleSimulationManager();
 
 	if (!BattleTargetingManager)
 	{
@@ -58,8 +60,10 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	BindBattleSimulationManagerEvents();
 	BindHandWidgetEvents();
 
-	if (HandWidget)HandWidget->BattleMainScreen = this;
-	BattleManager->ReadyStart();
+	if (HandWidget)
+		HandWidget->BattleMainScreen = this;
+
+	BattleManager->StartBattleFlow();
 }
 
 void UWidget_BattleMainScreen::NativeDestruct()
@@ -101,7 +105,7 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 
 void UWidget_BattleMainScreen::SetPresentationCharacterData(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
 {
-	if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter)) 
+	if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter))
 		return;
 	if (HandWidget)
 		HandWidget->SetCharacterData(PlayerCharacter, EnemyCharacter);
@@ -114,11 +118,8 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 		return;
 	}
 
-	// 중복 바인딩 방지
-	HandWidget->OnEndTurnRequested.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
-	HandWidget->OnEndTurnRequested.AddDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
+	HandWidget->OnEndTurnRequested.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
 
-	HandWidget->OnEnemyCardRevealFinished.RemoveAll(this);
 	HandWidget->OnEnemyCardRevealFinished.AddUObject(this,&UWidget_BattleMainScreen::HandleEnemyCardRevealFinished);
 }
 
@@ -140,8 +141,7 @@ void UWidget_BattleMainScreen::BindBattleManagerEvents()
 		return;
 	}
 
-	BattleManager->PhaseUIDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandlePhaseUIRequested);
-	BattleManager->PhaseUIDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandlePhaseUIRequested);
+	BattleManager->PhaseUIRequestedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandlePhaseUIRequested);
 }
 
 void UWidget_BattleMainScreen::UnbindBattleManagerEvents()
@@ -151,7 +151,8 @@ void UWidget_BattleMainScreen::UnbindBattleManagerEvents()
 		return;
 	}
 
-	BattleManager->PhaseUIDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandlePhaseUIRequested);
+	BattleManager->PhaseUIRequestedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandlePhaseUIRequested);
+	PhaseUITask = nullptr;
 }
 
 void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
@@ -161,7 +162,6 @@ void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
 		return;
 	}
 
-	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested);
 }
 
@@ -177,48 +177,17 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 
 void UWidget_BattleMainScreen::BindBattleSimulationManagerEvents()
 {
-	if (!BattleSimulationManager) 
+	if (!BattleSimulationManager)
 		return;
 
-	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
-	BattleSimulationManager->SimulationTimeScaleChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
-
-	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
-	BattleSimulationManager->PlayerSimulationViewChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
-
-	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
-	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
-	
-	BattleSimulationManager->PresentationCharactersChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
-	BattleSimulationManager->PresentationCharactersChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
-	
-	BP_OnSimulationTimeScaleChanged(BattleSimulationManager->GetSimulationTimeScale());
-	BP_OnSimulationPlayerViewChanged(BattleSimulationManager->GetPlayerSimulationView());
-	BP_OnSimulationPlayerViewAvailabilityChanged(BattleSimulationManager->CanChangePlayerSimulationView());
+	BattleSimulationManager->PresentationCharactersChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);;
 }
 
 void UWidget_BattleMainScreen::UnbindBattleSimulationManagerEvents()
 {
 	if (!BattleSimulationManager) return;
-	BattleSimulationManager->SimulationTimeScaleChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged);
-	BattleSimulationManager->PlayerSimulationViewChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged);
-	BattleSimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged);
+
 	BattleSimulationManager->PresentationCharactersChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
-}
-
-void UWidget_BattleMainScreen::HandleSimulationTimeScaleChanged(float TimeScale)
-{
-	BP_OnSimulationTimeScaleChanged(TimeScale);
-}
-
-void UWidget_BattleMainScreen::HandleSimulationPlayerViewChanged(EBattlePlayerSimulationView View)
-{
-	BP_OnSimulationPlayerViewChanged(View);
-}
-
-void UWidget_BattleMainScreen::HandleSimulationPlayerViewAvailabilityChanged(bool bAvailable)
-{
-	BP_OnSimulationPlayerViewAvailabilityChanged(bAvailable);
 }
 
 void UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
@@ -246,18 +215,23 @@ void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAct
 	}
 }
 
-void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	(void)OldPhase;
+	PhaseUITask = nullptr;
+	if (NewPhase != EBattlePhase::CardReveal && TaskContext) 
+		PhaseUITask = TaskContext->RegisterTask(this);
 
 	switch (NewPhase)
 	{
 	case EBattlePhase::ReadyStart:
 		ReadyStart();
+		CompletePhaseUI(EBattlePhase::ReadyStart);
 		break;
 
 	case EBattlePhase::ReadyEnd:
 		ReadyEnd();
+		CompletePhaseUI(EBattlePhase::ReadyEnd);
 		break;
 
 	case EBattlePhase::BattleStart:
@@ -274,6 +248,11 @@ void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBa
 
 	case EBattlePhase::CardSelect:
 		StartExchangeSelectCard(BattleManager->GetCurrentExchange());
+		CompletePhaseUI(EBattlePhase::CardSelect);
+		break;
+
+	case EBattlePhase::Targeting:
+		CompletePhaseUI(EBattlePhase::Targeting);
 		break;
 
 	case EBattlePhase::CardReveal:
@@ -285,6 +264,7 @@ void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBa
 
 	case EBattlePhase::SimulationSequence:
 		FinishExchange(BattleManager->GetCurrentExchange());
+		CompletePhaseUI(EBattlePhase::SimulationSequence);
 		break;
 
 	case EBattlePhase::ExchangeEnd:
@@ -308,8 +288,19 @@ void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBa
 		break;
 
 	default:
+		CompletePhaseUI(NewPhase);
 		break;
 	}
+}
+
+void UWidget_BattleMainScreen::CompletePhaseUI(EBattlePhase FinishedPhase)
+{
+	if (!BattleManager || BattleManager->GetCurrentPhase() != FinishedPhase) 
+		return;
+	UBattlePhaseTask* CompletedTask = PhaseUITask;
+	PhaseUITask = nullptr;
+	if (CompletedTask) 
+		CompletedTask->Complete();
 }
 
 
@@ -458,7 +449,7 @@ void UWidget_BattleMainScreen::DisplayBattleStartUIFinish()
 
 	if (HandleBattleUIFinishCount <= 0)
 	{
-		BattleManager->NotifyPhaseUIFinished(EBattlePhase::BattleStart);
+		CompletePhaseUI(EBattlePhase::BattleStart);
 	}
 }
 
@@ -484,18 +475,18 @@ void UWidget_BattleMainScreen::DisplayBattleEndUIFinish()
 	HandleBattleUIFinishCount -= 1;
 	if (HandleBattleUIFinishCount <= 0)
 	{
-		BattleManager->NotifyPhaseUIFinished(EBattlePhase::BattleEnd);
+		CompletePhaseUI(EBattlePhase::BattleEnd);
 	}
 }
 
 void UWidget_BattleMainScreen::HandleBattleStartFinish()
 {
-	BattleManager->NotifyPhaseUIFinished(EBattlePhase::BattleStart);
+	CompletePhaseUI(EBattlePhase::BattleStart);
 }
 
 void UWidget_BattleMainScreen::HandleBattleEndFinish()
 {
-	BattleManager->NotifyPhaseUIFinished(EBattlePhase::BattleEnd);
+	CompletePhaseUI(EBattlePhase::BattleEnd);
 }
 
 //=========================================국 시작(Round)================================================================
@@ -533,7 +524,7 @@ void UWidget_BattleMainScreen::DisplayRoundStartUIFinish()
 
 	if (HandleRoundStartFinishCount <= 0)
 	{
-		BattleManager->NotifyPhaseUIFinished(EBattlePhase::RoundStart);
+		CompletePhaseUI(EBattlePhase::RoundStart);
 	}
 }
 
@@ -608,13 +599,13 @@ void UWidget_BattleMainScreen::DisplayRoundEndUIFinish()
 	HandleRoundEndFinishCount -= 1;
 	if (HandleRoundEndFinishCount <= 0)
 	{
-		BattleManager->NotifyPhaseUIFinished(EBattlePhase::RoundEnd);
+		CompletePhaseUI(EBattlePhase::RoundEnd);
 	}
 }
 
 void UWidget_BattleMainScreen::HandleRoundEndFinish()
 {
-	BattleManager->NotifyPhaseUIFinished(EBattlePhase::RoundEnd);
+	CompletePhaseUI(EBattlePhase::RoundEnd);
 }
 
 //------------------------------------------합 시작(Exchange)------------------------------------------------------------
@@ -653,7 +644,7 @@ void UWidget_BattleMainScreen::DisplayExchangeStartUIFinish()
 		return;
 	}
 
-	BattleManager->NotifyPhaseUIFinished(EBattlePhase::ExchangeStart);
+	CompletePhaseUI(EBattlePhase::ExchangeStart);
 }
 
 void UWidget_BattleMainScreen::StartExchangeSelectCard(int32 ExchangeIndex)
@@ -712,7 +703,7 @@ void UWidget_BattleMainScreen::DisplayExchangeEndUIFinish()
 	HandleExchangeCount -= 1;
 	if (HandleExchangeCount <= 0)
 	{
-		BattleManager->NotifyPhaseUIFinished(EBattlePhase::ExchangeEnd);
+		CompletePhaseUI(EBattlePhase::ExchangeEnd);
 	}
 }
 
@@ -723,7 +714,7 @@ void UWidget_BattleMainScreen::HandleExchangeEndFinish()
 	{
 		return;
 	}
-	BattleManager->NotifyPhaseUIFinished(EBattlePhase::ExchangeEnd);
+	CompletePhaseUI(EBattlePhase::ExchangeEnd);
 }
 
 void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
@@ -861,7 +852,7 @@ void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUIFinish()
 	BattleActionSequenceUIFinishCount -= 1;
 	if (BattleActionSequenceUIFinishCount <= 0)
 	{
-		BattleManager->NotifyPhaseUIFinished(EBattlePhase::BattleActionSequenceStart);
+		CompletePhaseUI(EBattlePhase::BattleActionSequenceStart);
 	}
 }
 
@@ -906,10 +897,8 @@ void UWidget_BattleMainScreen::DisplayBattleActionSequenceEndUIFinish()
 	BattleActionSequenceUIFinishCount -= 1;
 	if (BattleActionSequenceUIFinishCount <= 0)
 	{
-		BattleManager->NotifyPhaseUIFinished(EBattlePhase::BattleActionSequenceEnd);
+		CompletePhaseUI(EBattlePhase::BattleActionSequenceEnd);
 	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
-

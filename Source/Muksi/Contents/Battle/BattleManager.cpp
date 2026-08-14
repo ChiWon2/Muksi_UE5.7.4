@@ -1,464 +1,350 @@
 #include "Muksi/Contents/Battle/BattleManager.h"
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
+#include "Muksi/Contents/Battle/Flow/BattlePhasePipeline.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
-#include "Muksi/Contents/Battle/Flow/BattleCharacterPhaseCoordinator.h"
+#include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Contents/Battle/Setup/BattleSetupManager.h"
+#include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
+#include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
-
 
 ABattleManager::ABattleManager()
 {
-	PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = false;
 }
-
 
 void ABattleManager::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
+    BattleRuntimeContext = NewObject<UBattleRuntimeContext>(this);
 
-	BattleRuntimeContext = NewObject<UBattleRuntimeContext>(this);
-	if (BattleRuntimeContext)
-	{
-		BattleRuntimeContext->ResetBattle();
-		CharacterPhaseCoordinator = NewObject<UBattleCharacterPhaseCoordinator>(this);
-		if (!CharacterPhaseCoordinator || !CharacterPhaseCoordinator->Initialize(this))
-		{
-			UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize BattleCharacterPhaseCoordinator."));
-			CharacterPhaseCoordinator = nullptr;
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to create BattleRuntimeContext."));
-	}
+    if (BattleRuntimeContext) 
+        BattleRuntimeContext->ResetBattle();
 
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-	{
-		ManagerSubsystem->RegisterManager<ABattleManager>(this);
-	}
+    PhasePipeline = NewObject<UBattlePhasePipeline>(this);
+    if (!BattleRuntimeContext || !PhasePipeline || !PhasePipeline->Initialize(this))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize battle phase pipeline."));
+        PhasePipeline = nullptr;
+    }
+
+    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this)) 
+        ManagerSubsystem->RegisterManager<ABattleManager>(this);
 }
-
 
 void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (CharacterPhaseCoordinator)
-	{
-		CharacterPhaseCoordinator->Shutdown();
-		CharacterPhaseCoordinator = nullptr;
-	}
+    if (PhasePipeline) 
+        PhasePipeline->Shutdown();
 
-	BattleRuntimeContext = nullptr;
+    PhasePipeline = nullptr;
+    BattleRuntimeContext = nullptr;
+    bBattleFlowInitialized = false;
+    bBattleFlowStarted = false;
 
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
-	{
-		ManagerSubsystem->UnregisterManager<ABattleManager>(this);
-	}
+    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this)) 
+        ManagerSubsystem->UnregisterManager<ABattleManager>(this);
 
-	Super::EndPlay(EndPlayReason);
+    Super::EndPlay(EndPlayReason);
+}
+
+bool ABattleManager::InitializeBattleFlow()
+{
+    if (bBattleFlowInitialized)
+        return true;
+
+    if (!IsValid(BattleRuntimeContext) || !IsValid(PhasePipeline))
+        return false;
+
+    if (!IsValid(BattleSetupManager) || !IsValid(BattleGridManager) || !IsValid(BattleTargetingManager) || !IsValid(BattleSimulationManager) || !IsValid(BattleSequenceManager))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Required manager reference is missing. Setup=%s Grid=%s Targeting=%s Simulation=%s Sequence=%s"), *GetNameSafe(BattleSetupManager), *GetNameSafe(BattleGridManager), *GetNameSafe(BattleTargetingManager), *GetNameSafe(BattleSimulationManager), *GetNameSafe(BattleSequenceManager));
+        return false;
+    }
+
+    if (!BattleSetupManager->InitializeBattleFlow(this, BattleGridManager))
+        return false;
+
+    if (!BattleSimulationManager->InitializeBattleFlow(this, BattleRuntimeContext, BattleGridManager))
+        return false;
+
+    if (!BattleTargetingManager->InitializeBattleFlow(this, BattleRuntimeContext, BattleGridManager, BattleSimulationManager))
+        return false;
+
+    if (!BattleSequenceManager->InitializeBattleFlow(this, BattleRuntimeContext, BattleGridManager))
+        return false;
+
+    bBattleFlowInitialized = true;
+    return true;
+}
+
+void ABattleManager::StartBattleFlow()
+{
+    if (bBattleFlowStarted)
+        return;
+
+    if (!InitializeBattleFlow())
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize battle flow."));
+        return;
+    }
+
+    bBattleFlowStarted = true;
+    ReadyStart();
 }
 
 void ABattleManager::NotifyBattleActionStart(const FBattleAction& BattleAction)
 {
-	BattleActionStartDelegate.Broadcast(BattleAction);
+    BattleActionStartDelegate.Broadcast(BattleAction);
 }
 
 void ABattleManager::ReadyStart()
 {
-	bIsCharacterDead = false;
-	ChangePhase(EBattlePhase::ReadyStart);
+    bIsCharacterDead = false;
+    ChangePhase(EBattlePhase::ReadyStart);
 }
 
 void ABattleManager::ReadyEnd()
 {
-	ChangePhase(EBattlePhase::ReadyEnd);
+    ChangePhase(EBattlePhase::ReadyEnd);
 }
 
 void ABattleManager::BattleStart()
 {
-	CurrentRound = 0;
-	CurrentExchange = 0;
-	if (BattleRuntimeContext)
-	{
-		BattleRuntimeContext->ResetRound(CurrentRound);
-	}
-	ChangePhase(EBattlePhase::BattleStart);
-	NotifyPhaseExecutionFinished();
+    CurrentRound = 0;
+    CurrentExchange = 0;
+    if (BattleRuntimeContext) BattleRuntimeContext->ResetRound(CurrentRound);
+    ChangePhase(EBattlePhase::BattleStart);
 }
-
 
 void ABattleManager::BattleEnd()
 {
-	if (CurrentPhase == EBattlePhase::BattleEnd)
-	{
-		return;
-	}
-
-	ChangePhase(EBattlePhase::BattleEnd);
-	NotifyPhaseExecutionFinished();
+    if (CurrentPhase == EBattlePhase::BattleEnd) return;
+    ChangePhase(EBattlePhase::BattleEnd);
 }
+
 void ABattleManager::RoundStart()
 {
-	++CurrentRound;
-	CurrentExchange = 0;
-	if (BattleRuntimeContext)
-	{
-		BattleRuntimeContext->ResetRound(CurrentRound);
-	}
-	ChangePhase(EBattlePhase::RoundStart);
-	NotifyPhaseExecutionFinished();
-}
-
-void ABattleManager::NotifyBattleCharacterDead()
-{
-	if (bIsCharacterDead)
-	{
-		return;
-	}
-
-	bIsCharacterDead = true;
-	BattleEnd();
-}
-
-void ABattleManager::EndBattleLevel()
-{
-	UBattleEncounterSubsystem* EncounterSubsystem = UBattleEncounterSubsystem::Get(this);
-	if (!IsValid(EncounterSubsystem))
-	{
-		return;
-	}
-
-	FBattleResult BattleResult;
-	// TODO: 전투 종료 시 체력, 경험치 등 최종 전투 결과를 기록한다.
-	EncounterSubsystem->FinishBattleEncounter(BattleResult);
+    ++CurrentRound;
+    CurrentExchange = 0;
+    if (BattleRuntimeContext) BattleRuntimeContext->ResetRound(CurrentRound);
+    ChangePhase(EBattlePhase::RoundStart);
 }
 
 void ABattleManager::RoundEnd()
 {
-	ChangePhase(EBattlePhase::RoundEnd);
-	NotifyPhaseExecutionFinished();
+    ChangePhase(EBattlePhase::RoundEnd);
 }
-
-
-bool ABattleManager::ShouldEndBattle() const
-{
-	return bIsCharacterDead;
-}
-
 
 void ABattleManager::ExchangeStart()
 {
-	if (CurrentExchange < 0 || CurrentExchange >= MaxExchangeCount)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Invalid exchange start index: %d"), CurrentExchange);
-		return;
-	}
-
-	if (BattleRuntimeContext)
-	{
-		BattleRuntimeContext->SetCurrentExchange(CurrentExchange);
-	}
-
-	ChangePhase(EBattlePhase::ExchangeStart);
-	NotifyPhaseExecutionFinished();
+    if (CurrentExchange < 0 || CurrentExchange >= MaxExchangeCount)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Invalid exchange start index: %d"), CurrentExchange);
+        return;
+    }
+    if (BattleRuntimeContext) BattleRuntimeContext->SetCurrentExchange(CurrentExchange);
+    ChangePhase(EBattlePhase::ExchangeStart);
 }
-
 
 void ABattleManager::StartExchangeSelectCard()
 {
-	if (CurrentExchange < 0 || CurrentExchange >= MaxExchangeCount)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleManager] Invalid current exchange: %d"), CurrentExchange);
-		return;
-	}
-
-	ChangePhase(EBattlePhase::CardSelect);
-	RequestPhaseUI();
-}
-
-
-void ABattleManager::AdvanceExchange()
-{
-	if (CurrentExchange + 1 < MaxExchangeCount)
-	{
-		++CurrentExchange;
-		ExchangeStart();
-		return;
-	}
-	BattleActionSequenceStart();
+    if (CurrentExchange < 0 || CurrentExchange >= MaxExchangeCount)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Invalid current exchange: %d"), CurrentExchange);
+        return;
+    }
+    ChangePhase(EBattlePhase::CardSelect);
 }
 
 void ABattleManager::ExchangeEnd()
 {
-	ChangePhase(EBattlePhase::ExchangeEnd);
-	NotifyPhaseExecutionFinished();
+    ChangePhase(EBattlePhase::ExchangeEnd);
 }
-
 
 void ABattleManager::BattleActionSequenceStart()
 {
-	if (!BattleRuntimeContext || !BattleRuntimeContext->HasBattleActionSequenceActions())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Battle Action Sequence에 실행할 행동이 없습니다."));
-		BattleActionSequenceEnd();
-		return;
-	}
-
-	ChangePhase(EBattlePhase::BattleActionSequenceStart);
-	NotifyPhaseExecutionFinished();
+    if (!BattleRuntimeContext || !BattleRuntimeContext->HasBattleActionSequenceActions())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Battle Action Sequence에 실행할 행동이 없습니다."));
+        BattleActionSequenceEnd();
+        return;
+    }
+    ChangePhase(EBattlePhase::BattleActionSequenceStart);
 }
 
 void ABattleManager::BattleActionSequenceEnd()
 {
-	if (CurrentPhase == EBattlePhase::BattleActionSequenceEnd)
-	{
-		return;
-	}
-
-	ChangePhase(EBattlePhase::BattleActionSequenceEnd);
-	NotifyPhaseExecutionFinished();
+    if (CurrentPhase == EBattlePhase::BattleActionSequenceEnd) return;
+    ChangePhase(EBattlePhase::BattleActionSequenceEnd);
 }
 
-void ABattleManager::NotifyPhaseExecutionFinished()
+void ABattleManager::ChangePhase(EBattlePhase NewPhase)
 {
-	const EBattlePhase FinishedPhase = CurrentPhase;
+    if (CurrentPhase == NewPhase)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] You tried to change to the same phase."));
+        return;
+    }
 
-	// UI 완료 뒤 시작되는 외부 실행이 끝난 경우에는 UI를 다시 요청하지 않는다.
-	if (bCurrentPhaseUIFinished)
-	{
-		AdvanceFromPhase(FinishedPhase);
-		return;
-	}
+    if (!PhasePipeline)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Phase pipeline is unavailable."));
+        return;
+    }
 
-	const bool bRequestedUI = RequestPhaseUI();
-	if (!bRequestedUI)
-	{
-		bCurrentPhaseUIFinished = true;
-		PhaseUIFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
+    PreviousPhase = CurrentPhase;
+    CurrentPhase = NewPhase;
 
-		if (!ShouldWaitForCharacterPhaseExecutionAfterUI(FinishedPhase))
-		{
-			AdvanceFromPhase(FinishedPhase);
-		}
-		else if (!CharacterPhaseCoordinator)
-		{
-			NotifyCharacterPhaseExecutionFinished(FinishedPhase);
-		}
-		return;
-	}
-
-	if (!ShouldWaitForPhaseUI(FinishedPhase))
-	{
-		AdvanceFromPhase(FinishedPhase);
-	}
+    ExecutePhaseEntry();
 }
 
-
-void ABattleManager::NotifyPhaseUIFinished(EBattlePhase FinishedPhase)
+void ABattleManager::ExecutePhaseEntry()
 {
-	if (CurrentPhase != FinishedPhase)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Ignored stale phase UI completion. Current: %d, Finished: %d"), static_cast<int32>(CurrentPhase), static_cast<int32>(FinishedPhase));
-		return;
-	}
-
-	bCurrentPhaseUIFinished = true;
-	PhaseUIFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
-
-	if (!ShouldWaitForCharacterPhaseExecutionAfterUI(FinishedPhase))
-	{
-		AdvanceFromPhase(FinishedPhase);
-	}
-	else if (!CharacterPhaseCoordinator)
-	{
-		NotifyCharacterPhaseExecutionFinished(FinishedPhase);
-	}
+    PhasePipeline->ExecutePhaseEntry(PreviousPhase, CurrentPhase, FSimpleDelegate::CreateUObject(this, &ABattleManager::HandlePhaseEntryFinished, CurrentPhase));
 }
 
-void ABattleManager::NotifyCharacterPhaseExecutionFinished(EBattlePhase FinishedPhase)
+void ABattleManager::HandlePhaseEntryFinished(EBattlePhase FinishedPhase)
 {
-	if (CurrentPhase != FinishedPhase)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Ignored stale character phase completion. Current: %d, Finished: %d"), static_cast<int32>(CurrentPhase), static_cast<int32>(FinishedPhase));
-		return;
-	}
-
-	CharacterPhaseFinishedDelegate.Broadcast(PreviousPhase, CurrentPhase);
-
-	if (!ShouldWaitForExternalExecutionAfterCharacterPhase(FinishedPhase))
-	{
-		AdvanceFromPhase(FinishedPhase);
-	}
+    if (!IsCurrentPhaseCompletion(FinishedPhase, TEXT("Entry")))  
+        return;
+    ExecutePhaseUI();
 }
 
-void ABattleManager::NotifyInteractivePhaseFinished(EBattlePhase FinishedPhase)
+void ABattleManager::ExecutePhaseUI()
 {
-	if (CurrentPhase != FinishedPhase)
-	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[BattleManager] Ignored stale interactive phase completion. Current: %d, Finished: %d"),
-			static_cast<int32>(CurrentPhase),
-			static_cast<int32>(FinishedPhase));
-		return;
-	}
+    PhasePipeline->ExecutePhaseUI(PreviousPhase, CurrentPhase, FSimpleDelegate::CreateUObject(this, &ABattleManager::HandlePhaseUIFinished, CurrentPhase));
+}
 
-	AdvanceFromPhase(FinishedPhase);
+void ABattleManager::HandlePhaseUIFinished(EBattlePhase FinishedPhase)
+{
+    if (!IsCurrentPhaseCompletion(FinishedPhase, TEXT("UI"))) 
+        return;
+    ExecutePhasePrep();
+}
+
+void ABattleManager::ExecutePhasePrep()
+{
+    PhasePipeline->ExecutePhasePrep(PreviousPhase, CurrentPhase, FSimpleDelegate::CreateUObject(this, &ABattleManager::HandlePhasePrepFinished, CurrentPhase));
+}
+
+void ABattleManager::HandlePhasePrepFinished(EBattlePhase FinishedPhase)
+{
+    if (!IsCurrentPhaseCompletion(FinishedPhase, TEXT("Prep")))
+        return;
+    ExecutePhaseExecution();
+}
+
+void ABattleManager::ExecutePhaseExecution()
+{
+    PhasePipeline->ExecutePhaseExecution(PreviousPhase, CurrentPhase, FSimpleDelegate::CreateUObject(this, &ABattleManager::HandlePhaseExecutionFinished, CurrentPhase));
+}
+
+void ABattleManager::HandlePhaseExecutionFinished(EBattlePhase FinishedPhase)
+{
+    if (!IsCurrentPhaseCompletion(FinishedPhase, TEXT("Execution")))
+        return;
+    AdvanceFromPhase(FinishedPhase);
+}
+
+bool ABattleManager::IsCurrentPhaseCompletion(EBattlePhase FinishedPhase, const TCHAR* StageName) const
+{
+    if (CurrentPhase == FinishedPhase) 
+        return true;
+    UE_LOG(LogTemp, Warning, TEXT("[BattleManager] Ignored stale %s completion. Current=%d Finished=%d"), StageName, static_cast<int32>(CurrentPhase), static_cast<int32>(FinishedPhase));
+    return false;
+}
+
+void ABattleManager::NotifyBattleCharacterDead()
+{
+    if (bIsCharacterDead) return;
+    bIsCharacterDead = true;
+    BattleEnd();
+}
+
+void ABattleManager::EndBattleLevel()
+{
+    UBattleEncounterSubsystem* EncounterSubsystem = UBattleEncounterSubsystem::Get(this);
+    if (!IsValid(EncounterSubsystem)) 
+        return;
+    FBattleResult BattleResult;
+    EncounterSubsystem->FinishBattleEncounter(BattleResult);
+}
+
+bool ABattleManager::ShouldEndBattle() const
+{
+    return bIsCharacterDead;
+}
+
+void ABattleManager::AdvanceExchange()
+{
+    if (CurrentExchange + 1 < MaxExchangeCount)
+    {
+        ++CurrentExchange;
+        ExchangeStart();
+        return;
+    }
+    BattleActionSequenceStart();
 }
 
 void ABattleManager::RestartCurrentExchangeCardSelection()
 {
-	if (CurrentPhase != EBattlePhase::Targeting && CurrentPhase != EBattlePhase::CardReveal)
-	{
-		return;
-	}
-
-	ChangePhase(EBattlePhase::CardSelect);
-	RequestPhaseUI();
+    if (CurrentPhase != EBattlePhase::Targeting && CurrentPhase != EBattlePhase::CardReveal) return;
+    ChangePhase(EBattlePhase::CardSelect);
 }
-
 
 void ABattleManager::AdvanceFromPhase(EBattlePhase FinishedPhase)
 {
-	switch (FinishedPhase)
-	{
-	case EBattlePhase::ReadyStart:
-		ReadyEnd();
-		break;
-
-	case EBattlePhase::ReadyEnd:
-		BattleStart();
-		break;
-
-	case EBattlePhase::BattleStart:
-		RoundStart();
-		break;
-
-	case EBattlePhase::RoundStart:
-		ExchangeStart();
-		break;
-
-	case EBattlePhase::ExchangeStart:
-		StartExchangeSelectCard();
-		break;
-
-	case EBattlePhase::CardSelect:
-		ChangePhase(EBattlePhase::Targeting);
-		break;
-
-	case EBattlePhase::Targeting:
-		ChangePhase(EBattlePhase::CardReveal);
-		if (!RequestPhaseUI())
-		{
-			AdvanceFromPhase(EBattlePhase::CardReveal);
-		}
-		break;
-
-	case EBattlePhase::CardReveal:
-		ChangePhase(EBattlePhase::SimulationSequence);
-		break;
-
-	case EBattlePhase::SimulationSequence:
-		ExchangeEnd();
-		break;
-
-	case EBattlePhase::ExchangeEnd:
-		AdvanceExchange();
-		break;
-
-	case EBattlePhase::BattleActionSequenceStart:
-		BattleActionSequenceEnd();
-		break;
-
-	case EBattlePhase::BattleActionSequenceEnd:
-		RoundEnd();
-		break;
-
-	case EBattlePhase::RoundEnd:
-		if (ShouldEndBattle())
-		{
-			BattleEnd();
-		}
-		else
-		{
-			RoundStart();
-		}
-		break;
-
-	case EBattlePhase::BattleEnd:
-		EndBattleLevel();
-		break;
-
-	default:
-		break;
-	}
+    switch (FinishedPhase)
+    {
+    case EBattlePhase::ReadyStart:
+        ReadyEnd();
+        break;
+    case EBattlePhase::ReadyEnd:
+        BattleStart();
+        break;
+    case EBattlePhase::BattleStart:
+        RoundStart();
+        break;
+    case EBattlePhase::RoundStart:
+        ExchangeStart();
+        break;
+    case EBattlePhase::ExchangeStart:
+        StartExchangeSelectCard();
+        break;
+    case EBattlePhase::CardSelect:
+        ChangePhase(EBattlePhase::Targeting);
+        break;
+    case EBattlePhase::Targeting:
+        ChangePhase(EBattlePhase::CardReveal);
+        break;
+    case EBattlePhase::CardReveal:
+        ChangePhase(EBattlePhase::SimulationSequence);
+        break;
+    case EBattlePhase::SimulationSequence:
+        ExchangeEnd();
+        break;
+    case EBattlePhase::ExchangeEnd:
+        AdvanceExchange();
+        break;
+    case EBattlePhase::BattleActionSequenceStart:
+        BattleActionSequenceEnd();
+        break;
+    case EBattlePhase::BattleActionSequenceEnd:
+        RoundEnd();
+        break;
+    case EBattlePhase::RoundEnd:
+        if (ShouldEndBattle()) 
+            BattleEnd();
+        else 
+            RoundStart();
+        break;
+    case EBattlePhase::BattleEnd:
+        EndBattleLevel();
+        break;
+    default:
+        break;
+    }
 }
-
-
-bool ABattleManager::ShouldWaitForPhaseUI(EBattlePhase Phase) const
-{
-	switch (Phase)
-	{
-	case EBattlePhase::ReadyStart:
-	case EBattlePhase::ReadyEnd:
-	case EBattlePhase::SimulationSequence:
-		return false;
-
-	default:
-		return true;
-	}
-}
-
-
-bool ABattleManager::ShouldWaitForCharacterPhaseExecutionAfterUI(EBattlePhase Phase) const
-{
-	switch (Phase)
-	{
-	case EBattlePhase::BattleStart:
-	case EBattlePhase::RoundStart:
-	case EBattlePhase::ExchangeStart:
-	case EBattlePhase::ExchangeEnd:
-	case EBattlePhase::BattleActionSequenceStart:
-	case EBattlePhase::BattleActionSequenceEnd:
-	case EBattlePhase::RoundEnd:
-	case EBattlePhase::BattleEnd:
-		return true;
-
-	default:
-		return false;
-	}
-}
-
-bool ABattleManager::ShouldWaitForExternalExecutionAfterCharacterPhase(EBattlePhase Phase) const
-{
-	return Phase == EBattlePhase::RoundStart || Phase == EBattlePhase::BattleActionSequenceStart;
-}
-
-
-bool ABattleManager::RequestPhaseUI()
-{
-	if (!PhaseUIDelegate.IsBound())
-	{
-		return false;
-	}
-
-	PhaseUIDelegate.Broadcast(PreviousPhase, CurrentPhase);
-	return true;
-}
-
-
-
-void ABattleManager::ChangePhase(EBattlePhase NewPhase)
-{
-	if (CurrentPhase == NewPhase)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleManager]: You Try to Change Same Battle Phase!"));
-		return;
-	}
-
-	PreviousPhase = CurrentPhase;
-	CurrentPhase = NewPhase;
-	bCurrentPhaseUIFinished = false;
-
-	ChangePhaseDelegate.Broadcast(PreviousPhase, CurrentPhase);
-}
-
-

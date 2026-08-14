@@ -5,15 +5,19 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
-#include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Contents/Battle/Flow/BattleFlowDelegates.h"
 #include "BattleManager.generated.h"
 
-class UBattleCharacterPhaseCoordinator;
+class UBattlePhasePipeline;
+class UBattlePhaseTaskContext;
 class UBattleRuntimeContext;
+class ABattleGridManager;
+class ABattleSequenceManager;
+class ABattleSetupManager;
+class ABattleSimulationManager;
+class ABattleTargetingManager;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseChanged, EBattlePhase, OldPhase, EBattlePhase, NewPhase);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattlePhaseNativeEvent, EBattlePhase, EBattlePhase);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnBattlePhaseStageRequested, EBattlePhase, OldPhase, EBattlePhase, NewPhase, UBattlePhaseTaskContext*, TaskContext);
 
 UCLASS()
 class MUKSI_API ABattleManager : public AActor
@@ -23,23 +27,23 @@ class MUKSI_API ABattleManager : public AActor
 public:
     ABattleManager();
 
-
-
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-    UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-    FOnBattlePhaseChanged ChangePhaseDelegate;
+    UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
+    FOnBattlePhaseStageRequested PhaseEntryRequestedDelegate;
 
-    UPROPERTY(BlueprintAssignable, Category = "Battle|Event")
-    FOnBattlePhaseChanged PhaseUIDelegate;
+    UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
+    FOnBattlePhaseStageRequested PhaseUIRequestedDelegate;
 
-    FOnBattlePhaseNativeEvent PhaseUIFinishedDelegate;
-    FOnBattlePhaseNativeEvent CharacterPhaseFinishedDelegate;
+    UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
+    FOnBattlePhaseStageRequested PhasePrepRequestedDelegate;
 
-    // 실제 전투/Simulation의 BattleSequenceManager 시작 이벤트를 하나로 중계한다.
+    UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
+    FOnBattlePhaseStageRequested PhaseExecutionRequestedDelegate;
+
     FOnBattleActionStart BattleActionStartDelegate;
 
 public:
@@ -55,25 +59,47 @@ public:
     UFUNCTION(BlueprintPure, Category = "Battle|Runtime")
     UBattleRuntimeContext* GetBattleRuntimeContext() const { return BattleRuntimeContext; }
 
+    UFUNCTION(BlueprintPure, Category = "Battle|Managers")
+    ABattleGridManager* GetBattleGridManager() const { return BattleGridManager; }
+
+    UFUNCTION(BlueprintPure, Category = "Battle|Managers")
+    ABattleSetupManager* GetBattleSetupManager() const { return BattleSetupManager; }
+
+    UFUNCTION(BlueprintPure, Category = "Battle|Managers")
+    ABattleTargetingManager* GetBattleTargetingManager() const { return BattleTargetingManager; }
+
+    UFUNCTION(BlueprintPure, Category = "Battle|Managers")
+    ABattleSimulationManager* GetBattleSimulationManager() const { return BattleSimulationManager; }
+
+    UFUNCTION(BlueprintPure, Category = "Battle|Managers")
+    ABattleSequenceManager* GetBattleSequenceManager() const { return BattleSequenceManager; }
+
     EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
 
-
-    UFUNCTION(BlueprintCallable, Category = "Battle|Phase")
-    void NotifyPhaseExecutionFinished();
-
-    UFUNCTION(BlueprintCallable, Category = "Battle|Phase")
-    void NotifyPhaseUIFinished(EBattlePhase FinishedPhase);
-
-    void NotifyCharacterPhaseExecutionFinished(EBattlePhase FinishedPhase);
-    void NotifyInteractivePhaseFinished(EBattlePhase FinishedPhase);
     void RestartCurrentExchangeCardSelection();
     void NotifyBattleCharacterDead();
     void NotifyBattleActionStart(const FBattleAction& BattleAction);
-
-    void ReadyStart();
+    void StartBattleFlow();
 
 private:
+    bool InitializeBattleFlow();
     void ChangePhase(EBattlePhase NewPhase);
+
+    void ExecutePhaseEntry();    
+    void HandlePhaseEntryFinished(EBattlePhase FinishedPhase);
+
+    void ExecutePhaseUI();
+    void HandlePhaseUIFinished(EBattlePhase FinishedPhase);
+
+    void ExecutePhasePrep();
+    void HandlePhasePrepFinished(EBattlePhase FinishedPhase);
+    
+    void ExecutePhaseExecution();
+    void HandlePhaseExecutionFinished(EBattlePhase FinishedPhase);
+    
+    bool IsCurrentPhaseCompletion(EBattlePhase FinishedPhase, const TCHAR* StageName) const;
+
+    void ReadyStart();
     void ReadyEnd();
     void BattleStart();
     void BattleEnd();
@@ -84,15 +110,11 @@ private:
     void ExchangeEnd();
     void BattleActionSequenceStart();
     void BattleActionSequenceEnd();
-
     bool ShouldEndBattle() const;
     void EndBattleLevel();
+
     void AdvanceExchange();
     void AdvanceFromPhase(EBattlePhase FinishedPhase);
-    bool ShouldWaitForPhaseUI(EBattlePhase Phase) const;
-    bool ShouldWaitForCharacterPhaseExecutionAfterUI(EBattlePhase Phase) const;
-    bool ShouldWaitForExternalExecutionAfterCharacterPhase(EBattlePhase Phase) const;
-    bool RequestPhaseUI();
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
@@ -108,7 +130,22 @@ protected:
     TObjectPtr<UBattleRuntimeContext> BattleRuntimeContext = nullptr;
 
     UPROPERTY(Transient)
-    TObjectPtr<UBattleCharacterPhaseCoordinator> CharacterPhaseCoordinator = nullptr;
+    TObjectPtr<UBattlePhasePipeline> PhasePipeline = nullptr;
+
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<ABattleSetupManager> BattleSetupManager = nullptr;
+
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
+
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<ABattleTargetingManager> BattleTargetingManager = nullptr;
+
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<ABattleSimulationManager> BattleSimulationManager = nullptr;
+
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<ABattleSequenceManager> BattleSequenceManager = nullptr;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
     EBattlePhase CurrentPhase = EBattlePhase::None;
@@ -117,6 +154,6 @@ protected:
     EBattlePhase PreviousPhase = EBattlePhase::None;
 
     bool bIsCharacterDead = false;
-
-    bool bCurrentPhaseUIFinished = false;
+    bool bBattleFlowInitialized = false;
+    bool bBattleFlowStarted = false;
 };

@@ -6,19 +6,21 @@
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Flow/BattleFlowDelegates.h"
 #include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "BattleSequenceManager.generated.h"
 
 class ABattleGridManager;
 class ABattleManager;
 class UBattleRuntimeContext;
+class UBattlePhaseTask;
+class UBattlePhaseTaskContext;
 class UBattleExecutionRunner;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 class UBattleSequenceExecutionEnvironment;
 class UTargetingPresentationController;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleActionStart, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveCardRevealRequested, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
 DECLARE_MULTICAST_DELEGATE(FOnBattleActionFinished);
@@ -33,14 +35,12 @@ class MUKSI_API ABattleSequenceManager : public AActor
 
 public:
 	ABattleSequenceManager();
+	bool InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager);
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	bool bWorldManagerRegistrationEnabled = true;
 public:
-	void SetWorldManagerRegistrationEnabled(bool bEnabled) { bWorldManagerRegistrationEnabled = bEnabled; }
-
 	// 단일 BattleAction Sequence가 실제 실행을 시작하는 순간 발생한다.
 	// Simulation / BattleActionSequence 모두 StartSequenceWithRequest()를 통과하므로 공통 발생 지점이다.
 	FOnBattleActionStart BattleActionStartDelegate;
@@ -117,6 +117,8 @@ private:
 	bool bBattleActionCompletionPending = false;
 	bool bStartingQueuedBattleAction = false;
 	bool bWaitingForDeceiveCardReveal = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UBattlePhaseTask> PhaseExecutionTask = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
@@ -127,12 +129,11 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UTargetingPresentationController> TargetingPresentationController = nullptr;
 
-	FTimerHandle BattleFlowBindingTimerHandle;
-
 private:
-	bool TryBindBattleFlow();
-	void BindBattleFlowDeferred();
-	void HandleCharacterPhaseFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
+	UFUNCTION()
+	void HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
+
+	void ExecuteBattleActionSequence();
 	void NotifyBattleActionSequenceCompleted();
 	void RefreshBattleActionTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);
 	void ClearBattleActionPresentation();

@@ -8,10 +8,12 @@
 class ABattleCharacterBase;
 class ABattleManager;
 class UBattleAsyncStepRunner;
+class UBattlePhaseTask;
+class UBattlePhaseTaskContext;
 
 /**
  * 캐릭터의 Passive와 StatusEffect를 정해진 순서로 실행한다.
- * Phase UI가 완료된 뒤 Player Passive, Enemy Passive, Player StatusEffect, Enemy StatusEffect 순서로 실행한다.
+ * Phase Prep 요청을 받으면 Player Passive, Enemy Passive, Player StatusEffect, Enemy StatusEffect 순서로 실행한다.
  */
 UCLASS()
 class MUKSI_API UBattleCharacterPhaseCoordinator : public UObject
@@ -26,15 +28,16 @@ protected:
     virtual void BeginDestroy() override;
 
 private:
-    void HandlePhaseUIFinished(EBattlePhase OldPhase, EBattlePhase NewPhase);
+    UFUNCTION()
+    void HandlePhasePrepRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
-    bool RequiresSequentialExecution(EBattlePhase Phase) const;
-    bool RequiresManualCompletion(EBattlePhase Phase) const;
+    bool HandlesPhasePrep(EBattlePhase Phase) const;
+    bool UsesSequentialRoundExecution(EBattlePhase Phase) const;
     void BeginCharacterPhaseExecution(EBattlePhase OldPhase, EBattlePhase NewPhase);
     void ExecutePassiveStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
     void ExecuteStatusEffectStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
     void FinishCharacterPhaseExecution(EBattlePhase FinishedPhase);
-    void NotifyCharacterPhaseFinishedIfCurrent(EBattlePhase FinishedPhase);
+    void CompletePhasePrepIfCurrent(EBattlePhase FinishedPhase);
     void CancelCharacterPhaseExecution();
 
 private:
@@ -45,4 +48,6 @@ private:
     TObjectPtr<UBattleAsyncStepRunner> StepRunner = nullptr;
 
     EBattlePhase ExecutingPhase = EBattlePhase::None;
+    UPROPERTY(Transient)
+    TObjectPtr<UBattlePhaseTask> PhasePrepTask = nullptr;
 };
