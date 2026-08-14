@@ -14,4 +14,5 @@ enum class EMuksiBattleMoveType : uint8
 	Jump UMETA(DisplayName = "Jump"),
 
 	GroundPath UMETA(DisplayName = "Ground Path")
+	
 };
