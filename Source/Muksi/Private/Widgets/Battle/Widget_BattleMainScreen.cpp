@@ -219,6 +219,7 @@ void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBa
 {
 	(void)OldPhase;
 	PhaseUITask = nullptr;
+	
 	if (NewPhase != EBattlePhase::CardReveal && TaskContext) 
 		PhaseUITask = TaskContext->RegisterTask(this);
 
@@ -498,7 +499,6 @@ void UWidget_BattleMainScreen::RoundStart()
 	HandWidget->RemoveSelectedCardsData();
 	// Round 단위로 한 번만 핸드와 기존 선택 카드 표시를 초기화한다.
 	SetBattleCardToHand();
-	HandWidget->ClearEnemySelectCard();
 
 	DisplayRoundStartUI();
 }
@@ -735,9 +735,7 @@ void UWidget_BattleMainScreen::HandleEnemyCardRevealFinished(int32 ExchangeIndex
 void UWidget_BattleMainScreen::SetBattleCardToHand()
 {
 	UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
-	ABattleCharacterBase* PlayerBattleCharacter = BattleRuntimeContext
-		? BattleRuntimeContext->GetPlayerCharacter()
-		: nullptr;
+	ABattleCharacterBase* PlayerBattleCharacter = BattleRuntimeContext ? BattleRuntimeContext->GetPlayerCharacter() : nullptr;
 
 	if (!PlayerBattleCharacter)
 	{
@@ -745,9 +743,7 @@ void UWidget_BattleMainScreen::SetBattleCardToHand()
 	}
 	// Deck data and hand widget instances have different lifetimes.
 	// On the first round the deck is already populated, but the hand widget has no card instances yet.
-	const bool bNeedsNewHand =
-		!HandWidget->HasHandCards() ||
-		PlayerBattleCharacter->GetCurrentBattleCardCount() == 0;
+	const bool bNeedsNewHand = !HandWidget->HasHandCards() || PlayerBattleCharacter->GetCurrentBattleCardCount() == 0;
 
 	if (bNeedsNewHand)
 	{

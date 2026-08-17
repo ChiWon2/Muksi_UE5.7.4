@@ -318,16 +318,19 @@ bool ABattleSimulationManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
 void ABattleSimulationManager::HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	(void)OldPhase;
-	if ((NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::SimulationSequence) || !TaskContext) return;
+	if ((NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::SimulationSequence) || !TaskContext) 
+		return;
 	PhaseExecutionTask = TaskContext->RegisterTask(this);
-	if (!PhaseExecutionTask) return;
-	if (NewPhase == EBattlePhase::RoundStart) ExecuteRoundStart();
-	if (NewPhase == EBattlePhase::SimulationSequence) ExecuteSimulationSequence();
+	if (!PhaseExecutionTask) 
+		return;
+	if (NewPhase == EBattlePhase::RoundStart) 
+		ExecuteRoundStart();
+	if (NewPhase == EBattlePhase::SimulationSequence) 
+		ExecuteSimulationSequence();
 }
 
 void ABattleSimulationManager::ExecuteRoundStart()
 {
-
 	if (IsSimulationRunning())
 	{
 		CompletePhaseExecution(EBattlePhase::RoundStart);
@@ -340,8 +343,7 @@ void ABattleSimulationManager::ExecuteRoundStart()
 		CompletePhaseExecution(EBattlePhase::RoundStart);
 		return;
 	}
-
-	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ABattleSimulationManager::CompletePhaseExecution, EBattlePhase::RoundStart));
+	CompletePhaseExecution(EBattlePhase::RoundStart);
 }
 
 void ABattleSimulationManager::ExecuteSimulationSequence()
@@ -406,7 +408,8 @@ bool ABattleSimulationManager::ValidateActualExchangeAction(const FBattleAction&
 
 bool ABattleSimulationManager::InitializeRoundSimulation()
 {
-	if (!IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager)) return false;
+	if (!IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager)) 
+		return false;
 	TArray<ABattleCharacterBase*> SourceCharacters;
 	SourceCharacters.Add(BattleRuntimeContext->GetPlayerCharacter());
 	SourceCharacters.Add(BattleRuntimeContext->GetEnemyCharacter());
@@ -458,13 +461,16 @@ void ABattleSimulationManager::CompletePhaseExecution(EBattlePhase FinishedPhase
 	}
 	UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
 	PhaseExecutionTask = nullptr;
-	if (CompletedTask) CompletedTask->Complete();
+	if (CompletedTask) 
+		CompletedTask->Complete();
 }
 
 bool ABattleSimulationManager::ResetSimulationWorldsFromActualBattle(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	if (!IsValid(BattleRuntimeContext) || !IsValid(BattleManager) || !IsValid(InSourceGridManager)) return false;
-	if (!EnsureSimulationWorldManagers()) return false;
+	if (!IsValid(BattleRuntimeContext) || !IsValid(BattleManager) || !IsValid(InSourceGridManager)) 
+		return false;
+	if (!EnsureSimulationWorldManagers()) 
+		return false;
 	RestoreSourceCharacters();
 	DestroySimulationPostProcess();
 	RestoreSimulationTimeScale();

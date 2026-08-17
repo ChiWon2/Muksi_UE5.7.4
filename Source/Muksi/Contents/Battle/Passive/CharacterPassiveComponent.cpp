@@ -1,19 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
-
 #include "CharacterPassive.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
-// Sets default values for this component's properties
 UCharacterPassiveComponent::UCharacterPassiveComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
@@ -24,15 +15,13 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 
 	OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
 
-	if (!IsValid(OwnerCharacter) ||
-		PassiveClasses.Num() == 0)
+	if (!IsValid(OwnerCharacter) || PassiveClasses.Num() == 0)
 	{
 		UE_LOG(LogTemp, Error, TEXT("PassiveClasses is num = 0 CharacterPassiveComponent.cpp"));
 		return;
 	}
 
-	for (const TSubclassOf<UCharacterPassive>& PassiveClass
-		: PassiveClasses)
+	for (const TSubclassOf<UCharacterPassive>& PassiveClass : PassiveClasses)
 	{
 		if (!PassiveClass)
 		{
@@ -49,7 +38,7 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 		{
 			continue;
 		}
-		NewPassive->InitializePassive(OwnerCharacter);
+		NewPassive->InitializePassive(OwnerCharacter, this);
 		NewPassive->BindingEvent(BattleManager);
 		ActivePassives.Add(NewPassive);
 	}
@@ -60,15 +49,19 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 
 void UCharacterPassiveComponent::CopyRuntimeStateFrom(const UCharacterPassiveComponent& SourceComponent)
 {
-	FinishRoundPhaseExecution();
+	FinishExecution();
 	OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
 	ActivePassives.Reset();
 	for (UCharacterPassive* SourcePassive : SourceComponent.ActivePassives)
 	{
-		if (!IsValid(SourcePassive)) continue;
+		if (!IsValid(SourcePassive)) 
+			continue;
 		UCharacterPassive* NewPassive = NewObject<UCharacterPassive>(this, SourcePassive->GetClass());
-		if (!IsValid(NewPassive)) continue;
-		NewPassive->CopyRuntimeStateFrom(*SourcePassive, OwnerCharacter);
+		if (!IsValid(NewPassive)) 
+			continue;
+		
+		NewPassive->CopyRuntimeStateFrom(*SourcePassive, OwnerCharacter, this);
+		
 		ActivePassives.Add(NewPassive);
 	}
 }
@@ -78,94 +71,86 @@ void UCharacterPassiveComponent::NotifyBattleActionStart(const FBattleAction& Ba
 	const TArray<TObjectPtr<UCharacterPassive>> PassivesSnapshot = ActivePassives;
 	for (UCharacterPassive* Passive : PassivesSnapshot)
 	{
-		if (IsValid(Passive)) Passive->NotifyBattleActionStart(BattleAction);
+		if (IsValid(Passive)) 
+			Passive->NotifyBattleActionStart(BattleAction);
 	}
 }
 
-void UCharacterPassiveComponent::NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void UCharacterPassiveComponent::ExecuteSequentially(EBattlePhase OldPhase,EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate, bool bInAllowDeferredCompletion)
 {
-	const TArray<TObjectPtr<UCharacterPassive>> PassivesSnapshot = ActivePassives;
-	for (UCharacterPassive* Passive : PassivesSnapshot)
+	if (bExecuting)
 	{
-		if (IsValid(Passive)) Passive->NotifyBattlePhaseChanged(OldPhase, NewPhase);
-	}
-}
-
-void UCharacterPassiveComponent::ExecuteRoundPhaseSequentially(
-	EBattlePhase NewPhase,
-	FSimpleDelegate CompletionDelegate)
-{
-	if (bExecutingRoundPhase)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[CharacterPassiveComponent] Round phase execution is already active."));
+		UE_LOG(LogTemp, Warning, TEXT("[CharacterPassiveComponent] Execution is already active."));
 		CompletionDelegate.ExecuteIfBound();
 		return;
 	}
 
-	if (NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::RoundEnd)
-	{
-		CompletionDelegate.ExecuteIfBound();
-		return;
-	}
-
-	bExecutingRoundPhase = true;
-	ExecutingRoundPhase = NewPhase;
-	RoundPhaseExecutionQueue = ActivePassives;
-	RoundPhaseExecutionIndex = 0;
-	RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
-	ExecuteNextRoundPhasePassive();
+	bExecuting = true;
+	ExecutingOldPhase = OldPhase;
+	ExecutingNewPhase = NewPhase;
+	ExecutionQueue = ActivePassives;
+	ExecutionIndex = 0;
+	bAllowDeferredCompletion = bInAllowDeferredCompletion;
+	ExecutionCompletionDelegate = MoveTemp(CompletionDelegate);
+	ExecuteNextPassive();
 }
 
 void UCharacterPassiveComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	FinishRoundPhaseExecution();
+	FinishExecution();
 	Super::EndPlay(EndPlayReason);
 }
 
-void UCharacterPassiveComponent::ExecuteNextRoundPhasePassive()
+void UCharacterPassiveComponent::ExecuteNextPassive()
 {
-	if (!bExecutingRoundPhase)
+	if (!bExecuting)
 	{
 		return;
 	}
 
-	while (RoundPhaseExecutionQueue.IsValidIndex(RoundPhaseExecutionIndex))
+	while (ExecutionQueue.IsValidIndex(ExecutionIndex))
 	{
-		UCharacterPassive* Passive = RoundPhaseExecutionQueue[RoundPhaseExecutionIndex++];
+		UCharacterPassive* Passive = ExecutionQueue[ExecutionIndex++];
 		if (!IsValid(Passive))
 		{
 			continue;
 		}
 
-		Passive->ExecuteRoundPhase(
-			ExecutingRoundPhase,
-			FSimpleDelegate::CreateUObject(
-				this,
-				&UCharacterPassiveComponent::HandleRoundPhasePassiveFinished));
+		ExecutingPassive = Passive;
+		Passive->Execute(ExecutingOldPhase, ExecutingNewPhase, bAllowDeferredCompletion);
 		return;
 	}
 
-	FinishRoundPhaseExecution();
+	FinishExecution();
 }
 
-void UCharacterPassiveComponent::HandleRoundPhasePassiveFinished()
+void UCharacterPassiveComponent::NotifyPassiveExecutionFinished(UCharacterPassive* FinishedPassive)
 {
-	ExecuteNextRoundPhasePassive();
-}
-
-void UCharacterPassiveComponent::FinishRoundPhaseExecution()
-{
-	if (!bExecutingRoundPhase)
+	if (!bExecuting || FinishedPassive != ExecutingPassive)
 	{
 		return;
 	}
 
-	bExecutingRoundPhase = false;
-	ExecutingRoundPhase = EBattlePhase::None;
-	RoundPhaseExecutionIndex = INDEX_NONE;
-	RoundPhaseExecutionQueue.Reset();
+	ExecutingPassive = nullptr;
+	ExecuteNextPassive();
+}
 
-	FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
-	RoundPhaseCompletionDelegate.Unbind();
+void UCharacterPassiveComponent::FinishExecution()
+{
+	if (!bExecuting)
+	{
+		return;
+	}
+
+	bExecuting = false;
+	ExecutingOldPhase = EBattlePhase::None;
+	ExecutingNewPhase = EBattlePhase::None;
+	ExecutingPassive = nullptr;
+	ExecutionIndex = INDEX_NONE;
+	ExecutionQueue.Reset();
+	bAllowDeferredCompletion = true;
+
+	FSimpleDelegate CompletionDelegate = MoveTemp(ExecutionCompletionDelegate);
+	ExecutionCompletionDelegate.Unbind();
 	CompletionDelegate.ExecuteIfBound();
 }

@@ -82,8 +82,8 @@ void ABattleSimulationWorldManager::NotifyBattlePhaseChanged(EBattlePhase OldPha
 	for (ABattleSimulationCharacter* SimulationCharacter : SimulationCharacterOrder)
 	{
 		if (!IsValid(SimulationCharacter)) continue;
-		if (UCharacterPassiveComponent* PassiveComponent = SimulationCharacter->GetPassiveComponent()) PassiveComponent->NotifyBattlePhaseChanged(OldPhase, NewPhase);
-		if (UMuksiStatusEffectComponent* StatusEffectComponent = SimulationCharacter->GetStatusEffectComponent()) StatusEffectComponent->NotifyBattlePhaseChanged(OldPhase, NewPhase);
+		if (UCharacterPassiveComponent* PassiveComponent = SimulationCharacter->GetPassiveComponent()) PassiveComponent->ExecuteSequentially(OldPhase, NewPhase, FSimpleDelegate(), false);
+		if (UMuksiStatusEffectComponent* StatusEffectComponent = SimulationCharacter->GetStatusEffectComponent()) StatusEffectComponent->ExecuteSequentially(OldPhase, NewPhase, FSimpleDelegate(), false);
 	}
 }
 

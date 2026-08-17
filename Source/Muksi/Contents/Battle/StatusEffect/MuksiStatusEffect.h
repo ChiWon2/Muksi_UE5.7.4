@@ -29,22 +29,18 @@ protected:
     UPROPERTY()
     int32 RemainingDuration = 1;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "StatusEffect|Execution")
-    bool bWaitForManualRoundPhaseCompletion = false;
-
 private:
-    FSimpleDelegate RoundPhaseCompletionDelegate;
-    bool bRoundPhaseExecutionActive = false;
+    bool bExecutionActive = false;
 
 public:
     virtual void BeginDestroy() override;
     virtual void Initialize(AActor* InOwnerActor,UMuksiStatusEffectComponent* InOwnerComponent,FName InEffectID,int32 InStackCount,int32 InDuration);
     virtual void CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor, UMuksiStatusEffectComponent* InOwnerComponent);
 
-    void ExecuteRoundPhase(EBattlePhase Phase, FSimpleDelegate CompletionDelegate);
+    void Execute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion);
 
     UFUNCTION(BlueprintCallable, Category = "StatusEffect|Execution")
-    void NotifyRoundPhaseExecutionFinished();
+    void CompleteExecution();
 
 public:
     virtual void OnApplied();
@@ -62,6 +58,9 @@ public:
 
     virtual void OnExchangeEnd();
     virtual void OnRoundEnd();
+
+protected:
+    virtual void HandleExecute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion);
 
 public:
 

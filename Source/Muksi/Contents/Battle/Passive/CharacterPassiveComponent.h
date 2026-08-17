@@ -23,19 +23,20 @@ public:
 	auto InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager) -> void;
 	void CopyRuntimeStateFrom(const UCharacterPassiveComponent& SourceComponent);
 	void NotifyBattleActionStart(const FBattleAction& BattleAction);
-	void NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
 	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives(){return ActivePassives;};
 
-	void ExecuteRoundPhaseSequentially(EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate);
+	void ExecuteSequentially(EBattlePhase OldPhase, EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate, bool bAllowDeferredCompletion = true);
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-	void ExecuteNextRoundPhasePassive();
-	void HandleRoundPhasePassiveFinished();
-	void FinishRoundPhaseExecution();
+	friend class UCharacterPassive;
+
+	void ExecuteNextPassive();
+	void NotifyPassiveExecutionFinished(UCharacterPassive* FinishedPassive);
+	void FinishExecution();
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleCharacterBase> OwnerCharacter = nullptr;
@@ -44,10 +45,15 @@ private:
 	TArray<TObjectPtr<UCharacterPassive>> ActivePassives;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UCharacterPassive>> RoundPhaseExecutionQueue;
+	TArray<TObjectPtr<UCharacterPassive>> ExecutionQueue;
 
-	FSimpleDelegate RoundPhaseCompletionDelegate;
-	EBattlePhase ExecutingRoundPhase = EBattlePhase::None;
-	int32 RoundPhaseExecutionIndex = INDEX_NONE;
-	bool bExecutingRoundPhase = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UCharacterPassive> ExecutingPassive = nullptr;
+
+	FSimpleDelegate ExecutionCompletionDelegate;
+	EBattlePhase ExecutingOldPhase = EBattlePhase::None;
+	EBattlePhase ExecutingNewPhase = EBattlePhase::None;
+	int32 ExecutionIndex = INDEX_NONE;
+	bool bAllowDeferredCompletion = true;
+	bool bExecuting = false;
 };

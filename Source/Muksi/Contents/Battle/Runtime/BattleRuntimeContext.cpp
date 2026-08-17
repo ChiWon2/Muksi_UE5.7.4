@@ -23,9 +23,7 @@ void UBattleRuntimeContext::ResetRound(const int32 InRound)
 	BattleActionSequenceQueue.Empty();
 }
 
-void UBattleRuntimeContext::SetBattleCharacters(
-	ABattleCharacter_Player* InPlayerCharacter,
-	ABattleCharacter_Enemy* InEnemyCharacter)
+void UBattleRuntimeContext::SetBattleCharacters(ABattleCharacter_Player* InPlayerCharacter, ABattleCharacter_Enemy* InEnemyCharacter)
 {
 	PlayerCharacter = InPlayerCharacter;
 	EnemyCharacter = InEnemyCharacter;

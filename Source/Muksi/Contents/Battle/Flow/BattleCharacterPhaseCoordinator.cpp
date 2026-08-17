@@ -2,14 +2,13 @@
 
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Flow/BattleAsyncStepRunner.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
-#include "TimerManager.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 
 bool UBattleCharacterPhaseCoordinator::Initialize(ABattleManager* InBattleManager)
 {
@@ -29,7 +28,6 @@ bool UBattleCharacterPhaseCoordinator::Initialize(ABattleManager* InBattleManage
         return false;
     }
 
-    BattleManager->PhasePrepRequestedDelegate.RemoveDynamic(this, &UBattleCharacterPhaseCoordinator::HandlePhasePrepRequested);
     BattleManager->PhasePrepRequestedDelegate.AddUniqueDynamic(this, &UBattleCharacterPhaseCoordinator::HandlePhasePrepRequested);
 
     return true;
@@ -37,8 +35,13 @@ bool UBattleCharacterPhaseCoordinator::Initialize(ABattleManager* InBattleManage
 
 void UBattleCharacterPhaseCoordinator::Shutdown()
 {
-    if (BattleManager) BattleManager->PhasePrepRequestedDelegate.RemoveDynamic(this, &UBattleCharacterPhaseCoordinator::HandlePhasePrepRequested);
+    if (BattleManager)
+    {
+        BattleManager->PhasePrepRequestedDelegate.RemoveDynamic(this, &UBattleCharacterPhaseCoordinator::HandlePhasePrepRequested);
+    }
+
     CancelCharacterPhaseExecution();
+
     StepRunner = nullptr;
     BattleManager = nullptr;
 }
@@ -49,12 +52,25 @@ void UBattleCharacterPhaseCoordinator::BeginDestroy()
     Super::BeginDestroy();
 }
 
-void UBattleCharacterPhaseCoordinator::HandlePhasePrepRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
+void UBattleCharacterPhaseCoordinator::HandlePhasePrepRequested(EBattlePhase OldPhase,EBattlePhase NewPhase,UBattlePhaseTaskContext* TaskContext)
 {
-    if (!HandlesPhasePrep(NewPhase) || !TaskContext) return;
-    if (StepRunner && StepRunner->IsRunning()) CancelCharacterPhaseExecution();
+    if (!HandlesPhasePrep(NewPhase) || !TaskContext)
+    {
+        return;
+    }
+
+    if (StepRunner && StepRunner->IsRunning())
+    {
+        CancelCharacterPhaseExecution();
+    }
+
     PhasePrepTask = TaskContext->RegisterTask(this);
-    if (!PhasePrepTask) return;
+
+    if (!PhasePrepTask)
+    {
+        return;
+    }
+
     BeginCharacterPhaseExecution(OldPhase, NewPhase);
 }
 
@@ -71,29 +87,19 @@ bool UBattleCharacterPhaseCoordinator::HandlesPhasePrep(EBattlePhase Phase) cons
     case EBattlePhase::RoundEnd:
     case EBattlePhase::BattleEnd:
         return true;
+
     default:
         return false;
     }
 }
 
-bool UBattleCharacterPhaseCoordinator::UsesSequentialRoundExecution(EBattlePhase Phase) const
-{
-    return Phase == EBattlePhase::RoundStart || Phase == EBattlePhase::RoundEnd;
-}
-
-void UBattleCharacterPhaseCoordinator::BeginCharacterPhaseExecution(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void UBattleCharacterPhaseCoordinator::BeginCharacterPhaseExecution(EBattlePhase OldPhase,EBattlePhase NewPhase)
 {
     if (!StepRunner)
     {
         UE_LOG(LogTemp, Error, TEXT("[BattleCharacterPhaseCoordinator] StepRunner is not initialized."));
         FinishCharacterPhaseExecution(NewPhase);
         return;
-    }
-
-    if (StepRunner->IsRunning())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[BattleCharacterPhaseCoordinator] Interrupted character phase execution. Previous=%d, New=%d"), static_cast<int32>(ExecutingPhase), static_cast<int32>(NewPhase));
-        CancelCharacterPhaseExecution();
     }
 
     UBattleRuntimeContext* RuntimeContext = BattleManager ? BattleManager->GetBattleRuntimeContext() : nullptr;
@@ -107,91 +113,80 @@ void UBattleCharacterPhaseCoordinator::BeginCharacterPhaseExecution(EBattlePhase
 
     const TWeakObjectPtr<ABattleCharacterBase> PlayerCharacter = RuntimeContext->GetPlayerCharacter();
     const TWeakObjectPtr<ABattleCharacterBase> EnemyCharacter = RuntimeContext->GetEnemyCharacter();
+
     TArray<FBattleAsyncStep> Steps;
     Steps.Reserve(4);
-    Steps.Add([this, PlayerCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
-    {
-        ExecutePassiveStep(PlayerCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
-    });
-
-    Steps.Add([this, EnemyCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
-    {
-        ExecutePassiveStep(EnemyCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
-    });
 
     Steps.Add([this, PlayerCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
-    {
-        ExecuteStatusEffectStep(PlayerCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
-    });
+        {
+            ExecutePassiveStep(PlayerCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
+        });
 
     Steps.Add([this, EnemyCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
-    {
-        ExecuteStatusEffectStep(EnemyCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
-    });
+        {
+            ExecutePassiveStep(EnemyCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
+        });
 
-    ExecutingPhase = NewPhase;
-    StepRunner->Start(MoveTemp(Steps), FSimpleDelegate::CreateUObject(this, &UBattleCharacterPhaseCoordinator::FinishCharacterPhaseExecution, NewPhase));
+    Steps.Add([this, PlayerCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
+        {
+            ExecuteStatusEffectStep(PlayerCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
+        });
+
+    Steps.Add([this, EnemyCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
+        {
+            ExecuteStatusEffectStep(EnemyCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
+        });
+
+    const bool bStarted = StepRunner->Start(MoveTemp(Steps), FSimpleDelegate::CreateUObject(this,&UBattleCharacterPhaseCoordinator::FinishCharacterPhaseExecution,NewPhase));
+
+    if (!bStarted)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleCharacterPhaseCoordinator] Failed to start character phase execution."));
+        FinishCharacterPhaseExecution(NewPhase);
+    }
 }
 
-void UBattleCharacterPhaseCoordinator::ExecutePassiveStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const
+void UBattleCharacterPhaseCoordinator::ExecutePassiveStep( ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const
 {
-    if (Character && Character->GetPassiveComponent())
-    {
-        if (UsesSequentialRoundExecution(NewPhase))
-        {
-            Character->GetPassiveComponent()->ExecuteRoundPhaseSequentially(NewPhase, CompletionDelegate);
-            return;
-        }
+    UCharacterPassiveComponent* PassiveComponent = Character ? Character->GetPassiveComponent() : nullptr;
 
-        Character->GetPassiveComponent()->NotifyBattlePhaseChanged(OldPhase, NewPhase);
+    if (!PassiveComponent)
+    {
         CompletionDelegate.ExecuteIfBound();
         return;
     }
 
-    CompletionDelegate.ExecuteIfBound();
+    PassiveComponent->ExecuteSequentially(OldPhase, NewPhase, CompletionDelegate);
 }
 
-void UBattleCharacterPhaseCoordinator::ExecuteStatusEffectStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const
+void UBattleCharacterPhaseCoordinator::ExecuteStatusEffectStep(ABattleCharacterBase* Character,EBattlePhase OldPhase,EBattlePhase NewPhase,const FSimpleDelegate& CompletionDelegate) const
 {
-    if (Character && Character->GetStatusEffectComponent())
-    {
-        if (UsesSequentialRoundExecution(NewPhase))
-        {
-            Character->GetStatusEffectComponent()->ExecuteRoundPhaseSequentially(NewPhase, CompletionDelegate);
-            return;
-        }
+    UMuksiStatusEffectComponent* StatusEffectComponent = Character ? Character->GetStatusEffectComponent() : nullptr;
 
-        Character->GetStatusEffectComponent()->NotifyBattlePhaseChanged(OldPhase, NewPhase);
+    if (!StatusEffectComponent)
+    {
         CompletionDelegate.ExecuteIfBound();
         return;
     }
 
-    CompletionDelegate.ExecuteIfBound();
+    StatusEffectComponent->ExecuteSequentially(OldPhase, NewPhase, CompletionDelegate);
 }
 
 void UBattleCharacterPhaseCoordinator::FinishCharacterPhaseExecution(EBattlePhase FinishedPhase)
 {
-    if (ExecutingPhase == FinishedPhase) ExecutingPhase = EBattlePhase::None;
-
     if (!BattleManager || BattleManager->GetCurrentPhase() != FinishedPhase)
     {
         PhasePrepTask = nullptr;
         return;
     }
 
-    BattleManager->GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UBattleCharacterPhaseCoordinator::CompletePhasePrepIfCurrent, FinishedPhase));
-}
-
-void UBattleCharacterPhaseCoordinator::CompletePhasePrepIfCurrent(EBattlePhase FinishedPhase)
-{
-    if (!BattleManager || BattleManager->GetCurrentPhase() != FinishedPhase)
-    {
-        PhasePrepTask = nullptr;
-        return;
-    }
     UBattlePhaseTask* CompletedTask = PhasePrepTask;
     PhasePrepTask = nullptr;
-    if (CompletedTask) CompletedTask->Complete();
+
+    if (CompletedTask)
+    {
+        CompletedTask->Complete();
+    }
 }
 
 void UBattleCharacterPhaseCoordinator::CancelCharacterPhaseExecution()
@@ -200,7 +195,5 @@ void UBattleCharacterPhaseCoordinator::CancelCharacterPhaseExecution()
     {
         StepRunner->Cancel();
     }
-
-    ExecutingPhase = EBattlePhase::None;
     PhasePrepTask = nullptr;
 }

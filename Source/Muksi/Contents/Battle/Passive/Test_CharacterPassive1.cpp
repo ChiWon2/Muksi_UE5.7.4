@@ -14,9 +14,7 @@ UTest_CharacterPassive1::UTest_CharacterPassive1()
 	Passive2();
 }
 
-void UTest_CharacterPassive1::HandleBattlePhaseChanged(
-	EBattlePhase OldPhase,
-	EBattlePhase NewPhase)
+void UTest_CharacterPassive1::HandleBattlePhaseChanged(EBattlePhase OldPhase,EBattlePhase NewPhase)
 {
 	Super::HandleBattlePhaseChanged(OldPhase, NewPhase);
 

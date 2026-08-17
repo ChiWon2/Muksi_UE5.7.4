@@ -9,6 +9,7 @@
 
 class ABattleCharacterBase;
 class ABattleManager;
+class UCharacterPassiveComponent;
 class UMuksiBattleCardDataAsset;
 struct FBattleAction;
 
@@ -45,11 +46,7 @@ struct MUKSI_API FPassiveTextLine
 	TArray<FText> Text;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
-	FOnPassiveActive,
-	UTexture2D*, CharacterPortrait,
-	FText, CharacterName
-);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPassiveActive, UTexture2D*, CharacterPortrait, FText, CharacterName);
 
 UCLASS(Abstract, Blueprintable)
 class MUKSI_API UCharacterPassive : public UObject
@@ -59,17 +56,15 @@ class MUKSI_API UCharacterPassive : public UObject
 public:
 	virtual void BeginDestroy() override;
 
-	virtual void InitializePassive(ABattleCharacterBase* InOwner);
-	virtual void CopyRuntimeStateFrom(const UCharacterPassive& SourcePassive, ABattleCharacterBase* InOwner);
+	virtual void InitializePassive(ABattleCharacterBase* InOwner, UCharacterPassiveComponent* InOwnerComponent);
+	virtual void CopyRuntimeStateFrom(const UCharacterPassive& SourcePassive, ABattleCharacterBase* InOwner, UCharacterPassiveComponent* InOwnerComponent);
 
 	virtual void BindingEvent(ABattleManager* BattleManager);
 	void NotifyBattleActionStart(const FBattleAction& BattleAction);
-	void NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
-
-	void ExecuteRoundPhase(EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate);
+	void Execute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion);
 
 	UFUNCTION(BlueprintCallable, Category = "Passive|Execution")
-	void NotifyRoundPhaseExecutionFinished();
+	void CompleteExecution();
 
 	ABattleCharacterBase* GetOwnerCharacter() const
 	{
@@ -98,62 +93,34 @@ protected:
 	// 개별 Passive가 필요한 Attacker/Owner 조건을 직접 판단한다.
 	virtual void HandleBattleActionStart(const FBattleAction&) {}
 
-	virtual void HandleBattlePhaseChanged(
-		EBattlePhase OldPhase,
-		EBattlePhase NewPhase);
+	virtual void HandleExecution(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion);
+	virtual void HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Passive")
 	TObjectPtr<ABattleCharacterBase> OwnerCharacter = nullptr;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UCharacterPassiveComponent> OwnerComponent = nullptr;
+
+	UPROPERTY(Transient)
 	TObjectPtr<ABattleManager> CachedBattleManager = nullptr;
 
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Passive"
-	)
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Passive")
 	TObjectPtr<UTexture2D> PassiveImage;
 
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Passive"
-	)
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Passive")
 	FText PassiveName;
 
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Passive",
-		meta = (MultiLine = true)
-	)
-
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Passive",meta = (MultiLine = true))
 	TArray<FPassiveTextLine>PassiveDescriptions;
 
 
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Passive"
-	)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Passive" )
 	int32 Priority = 0;
 
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Passive"
-	)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Passive")
 	bool bEnabled = true;
 
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Passive|Execution"
-	)
-	bool bWaitForManualRoundPhaseCompletion = false;
-
 private:
-	FSimpleDelegate RoundPhaseCompletionDelegate;
-	bool bRoundPhaseExecutionActive = false;
+	bool bExecutionActive = false;
 };

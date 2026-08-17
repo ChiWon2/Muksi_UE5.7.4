@@ -4,7 +4,7 @@
 
 void UMuksiStatusEffect::BeginDestroy()
 {
-    NotifyRoundPhaseExecutionFinished();
+    CompleteExecution();
     Super::BeginDestroy();
 }
 
@@ -21,61 +21,68 @@ void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,UMuksiStatusEffectCompo
 
 void UMuksiStatusEffect::CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor, UMuksiStatusEffectComponent* InOwnerComponent)
 {
-    NotifyRoundPhaseExecutionFinished();
+    CompleteExecution();
     OwnerActor = InOwnerActor;
     OwnerComponent = InOwnerComponent;
     EffectID = SourceEffect.EffectID;
     CurrentStack = SourceEffect.CurrentStack;
     RemainingDuration = SourceEffect.RemainingDuration;
-    bWaitForManualRoundPhaseCompletion = SourceEffect.bWaitForManualRoundPhaseCompletion;
 }
 
-void UMuksiStatusEffect::ExecuteRoundPhase(
-    EBattlePhase Phase,
-    FSimpleDelegate CompletionDelegate)
+void UMuksiStatusEffect::Execute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion)
 {
-    if (bRoundPhaseExecutionActive)
+    if (bExecutionActive)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffect] Round phase execution is already active."));
-        CompletionDelegate.ExecuteIfBound();
+        UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffect] Execution is already active."));
+        CompleteExecution();
         return;
     }
 
-    if (Phase != EBattlePhase::RoundStart && Phase != EBattlePhase::RoundEnd)
-    {
-        CompletionDelegate.ExecuteIfBound();
-        return;
-    }
+    bExecutionActive = true;
+    HandleExecute(OldPhase, NewPhase, bAllowDeferredCompletion);
+}
 
-    bRoundPhaseExecutionActive = true;
-    RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
+void UMuksiStatusEffect::HandleExecute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion)
+{
+    static_cast<void>(OldPhase);
+    static_cast<void>(bAllowDeferredCompletion);
 
-    if (Phase == EBattlePhase::RoundStart)
+    switch (NewPhase)
     {
+    case EBattlePhase::RoundStart:
         OnRoundStart();
-    }
-    else
-    {
+        break;
+    case EBattlePhase::ExchangeStart:
+        OnExchangeStart();
+        break;
+    case EBattlePhase::BattleActionSequenceStart:
+        OnBattleActionSequenceStart();
+        break;
+    case EBattlePhase::BattleActionSequenceEnd:
+        OnBattleActionSequenceEnd();
+        break;
+    case EBattlePhase::ExchangeEnd:
+        OnExchangeEnd();
+        break;
+    case EBattlePhase::RoundEnd:
         OnRoundEnd();
+        break;
+    default:
+        break;
     }
 
-    if (!bWaitForManualRoundPhaseCompletion)
-    {
-        NotifyRoundPhaseExecutionFinished();
-    }
+    CompleteExecution();
 }
 
-void UMuksiStatusEffect::NotifyRoundPhaseExecutionFinished()
+void UMuksiStatusEffect::CompleteExecution()
 {
-    if (!bRoundPhaseExecutionActive)
+    if (!bExecutionActive)
     {
         return;
     }
 
-    bRoundPhaseExecutionActive = false;
-    FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
-    RoundPhaseCompletionDelegate.Unbind();
-    CompletionDelegate.ExecuteIfBound();
+    bExecutionActive = false;
+    if (IsValid(OwnerComponent)) OwnerComponent->NotifyStatusEffectExecutionFinished(this);
 }
 
 void UMuksiStatusEffect::OnApplied()
@@ -90,7 +97,7 @@ void UMuksiStatusEffect::OnReapplied(int32 AddedStack,int32 AddedDuration)
 {
     AddStack(AddedStack);
 
-    RemainingDuration =FMath::Max(RemainingDuration,AddedDuration);
+    RemainingDuration = FMath::Max(RemainingDuration , AddedDuration);
 }
 
 void UMuksiStatusEffect::OnRoundStart()

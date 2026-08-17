@@ -28,7 +28,7 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 
 void UMuksiStatusEffectComponent::CopyRuntimeStateFrom(const UMuksiStatusEffectComponent& SourceComponent)
 {
-    FinishRoundPhaseExecution();
+    FinishExecution();
     ActiveEffects.Reset();
     for (UMuksiStatusEffect* SourceEffect : SourceComponent.ActiveEffects)
     {
@@ -42,7 +42,7 @@ void UMuksiStatusEffectComponent::CopyRuntimeStateFrom(const UMuksiStatusEffectC
 
 void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    FinishRoundPhaseExecution();
+    FinishExecution();
 
     if (BattleManager)
     {
@@ -129,7 +129,7 @@ UMuksiStatusEffect* UMuksiStatusEffectComponent::SubtractStatusEffect(FName Effe
     return Effect;
 }
 
-void UMuksiStatusEffectComponent::RemoveStatusEffect(FName EffectID)
+void UMuksiStatusEffectComponent::RemoveStatusEffectByID(FName EffectID)
 {
     UMuksiStatusEffect* Effect =  FindEffectByID(EffectID);
     if (Effect == nullptr)
@@ -150,8 +150,6 @@ void UMuksiStatusEffectComponent::RemoveStatusEffect(UMuksiStatusEffect* Effect)
 
     OnStatusEffectsChanged.Broadcast();
 }
-
-
 
 UMuksiStatusEffect* UMuksiStatusEffectComponent::FindEffectByID(FName EffectID) const
 {
@@ -215,17 +213,6 @@ void UMuksiStatusEffectComponent::RemoveExpiredEffects()
     }
 }
 
-#define PROCESS_STATUS_EFFECT_EVENT(FuncName) \
-for (UMuksiStatusEffect* Effect : ActiveEffects) \
-{ \
-    if (Effect) \
-    { \
-        Effect->FuncName(); \
-    } \
-} \
-RemoveExpiredEffects();
-
-
 void UMuksiStatusEffectComponent::NotifyBattleActionStart(const FBattleAction& BattleAction)
 {
     if (GetOwner() != BattleAction.Attacker)
@@ -245,134 +232,78 @@ void UMuksiStatusEffectComponent::NotifyBattleActionStart(const FBattleAction& B
     RemoveExpiredEffects();
 }
 
-void UMuksiStatusEffectComponent::NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void UMuksiStatusEffectComponent::ExecuteSequentially(EBattlePhase OldPhase, EBattlePhase NewPhase,FSimpleDelegate CompletionDelegate, bool bInAllowDeferredCompletion)
 {
-    HandleBattlePhaseChanged(OldPhase, NewPhase);
-}
-
-void UMuksiStatusEffectComponent::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
-{
-    switch (NewPhase)
+    if (bExecuting)
     {
-    case EBattlePhase::ReadyStart:
-    case EBattlePhase::ReadyEnd:
-        break;
-    case EBattlePhase::ExchangeStart:
-        HandleExchangeStart();
-        break;
-
-    case EBattlePhase::BattleActionSequenceStart:
-        HandleBattleActionSequenceStart();
-        break;
-
-    case EBattlePhase::BattleActionSequenceEnd:
-        HandleBattleActionSequenceEnd();
-        break;
-
-    case EBattlePhase::ExchangeEnd:
-        HandleExchangeEnd();
-        break;
-
-    default:
-        break;
-    }
-}
-
-void UMuksiStatusEffectComponent::HandleExchangeStart()
-{
-    PROCESS_STATUS_EFFECT_EVENT(OnExchangeStart)
-}
-
-void UMuksiStatusEffectComponent::HandleBattleActionSequenceStart()
-{
-    PROCESS_STATUS_EFFECT_EVENT(OnBattleActionSequenceStart)
-}
-
-void UMuksiStatusEffectComponent::HandleBattleActionSequenceEnd()
-{
-    PROCESS_STATUS_EFFECT_EVENT(OnBattleActionSequenceEnd)
-}
-
-void UMuksiStatusEffectComponent::HandleExchangeEnd()
-{
-    PROCESS_STATUS_EFFECT_EVENT(OnExchangeEnd)
-}
-
-
-void UMuksiStatusEffectComponent::ExecuteRoundPhaseSequentially(
-    EBattlePhase Phase,
-    FSimpleDelegate CompletionDelegate)
-{
-    if (bExecutingRoundPhase)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffectComponent] Round phase execution is already active."));
+        UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffectComponent] Execution is already active."));
         CompletionDelegate.ExecuteIfBound();
         return;
     }
 
-    if (Phase != EBattlePhase::RoundStart && Phase != EBattlePhase::RoundEnd)
-    {
-        CompletionDelegate.ExecuteIfBound();
-        return;
-    }
-
-    bExecutingRoundPhase = true;
-    ExecutingRoundPhase = Phase;
-    RoundPhaseExecutionQueue = ActiveEffects;
-    RoundPhaseExecutionIndex = 0;
-    RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
-    ExecuteNextRoundPhaseStatusEffect();
+    bExecuting = true;
+    ExecutingOldPhase = OldPhase;
+    ExecutingNewPhase = NewPhase;
+    ExecutionQueue = ActiveEffects;
+    ExecutionIndex = 0;
+    bAllowDeferredCompletion = bInAllowDeferredCompletion;
+    ExecutionCompletionDelegate = MoveTemp(CompletionDelegate);
+    ExecuteNextStatusEffect();
 }
 
-void UMuksiStatusEffectComponent::ExecuteNextRoundPhaseStatusEffect()
+void UMuksiStatusEffectComponent::ExecuteNextStatusEffect()
 {
-    if (!bExecutingRoundPhase)
+    if (!bExecuting)
     {
         return;
     }
 
-    while (RoundPhaseExecutionQueue.IsValidIndex(RoundPhaseExecutionIndex))
+    while (ExecutionQueue.IsValidIndex(ExecutionIndex))
     {
-        UMuksiStatusEffect* Effect = RoundPhaseExecutionQueue[RoundPhaseExecutionIndex++];
+        UMuksiStatusEffect* Effect = ExecutionQueue[ExecutionIndex++];
         if (!IsValid(Effect))
         {
             continue;
         }
 
-        Effect->ExecuteRoundPhase(
-            ExecutingRoundPhase,
-            FSimpleDelegate::CreateUObject(
-                this,
-                &UMuksiStatusEffectComponent::HandleRoundPhaseStatusEffectFinished));
+        ExecutingStatusEffect = Effect;
+        Effect->Execute(ExecutingOldPhase, ExecutingNewPhase, bAllowDeferredCompletion);
         return;
     }
 
     RemoveExpiredEffects();
-    FinishRoundPhaseExecution();
+    FinishExecution();
 }
 
-void UMuksiStatusEffectComponent::HandleRoundPhaseStatusEffectFinished()
+void UMuksiStatusEffectComponent::NotifyStatusEffectExecutionFinished(UMuksiStatusEffect* FinishedStatusEffect)
 {
-    ExecuteNextRoundPhaseStatusEffect();
+	if (!bExecuting || FinishedStatusEffect != ExecutingStatusEffect)
+	{
+		return;
+	}
+
+	ExecutingStatusEffect = nullptr;
+    ExecuteNextStatusEffect();
 }
 
-void UMuksiStatusEffectComponent::FinishRoundPhaseExecution()
+void UMuksiStatusEffectComponent::FinishExecution()
 {
-    if (!bExecutingRoundPhase)
+    if (!bExecuting)
     {
         return;
     }
 
-    bExecutingRoundPhase = false;
-    ExecutingRoundPhase = EBattlePhase::None;
-    RoundPhaseExecutionIndex = INDEX_NONE;
-    RoundPhaseExecutionQueue.Reset();
+    bExecuting = false;
+    ExecutingOldPhase = EBattlePhase::None;
+    ExecutingNewPhase = EBattlePhase::None;
+	ExecutingStatusEffect = nullptr;
+    ExecutionIndex = INDEX_NONE;
+    ExecutionQueue.Reset();
+    bAllowDeferredCompletion = true;
 
-    FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
-    RoundPhaseCompletionDelegate.Unbind();
+    FSimpleDelegate CompletionDelegate = MoveTemp(ExecutionCompletionDelegate);
+    ExecutionCompletionDelegate.Unbind();
     CompletionDelegate.ExecuteIfBound();
 }
-
-#undef PROCESS_STATUS_EFFECT_EVENT
 
 
