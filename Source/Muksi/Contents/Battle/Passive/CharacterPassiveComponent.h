@@ -7,11 +7,8 @@
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "CharacterPassiveComponent.generated.h"
 
-class ABattleManager;
-class UMuksiCharacterDataAsset;
 class ABattleCharacterBase;
 class UCharacterPassive;
-struct FBattleAction;
 
 UCLASS(ClassGroup = (Muksi), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UCharacterPassiveComponent : public UActorComponent
@@ -20,9 +17,8 @@ class MUKSI_API UCharacterPassiveComponent : public UActorComponent
 public:
 	UCharacterPassiveComponent();
 
-	auto InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager) -> void;
-	void CopyRuntimeStateFrom(const UCharacterPassiveComponent& SourceComponent);
-	void NotifyBattleActionStart(const FBattleAction& BattleAction);
+	void InitializePassives(const TArray<TSubclassOf<UCharacterPassive>>& PassiveClasses);
+	static bool CanExecutePhase(EBattlePhase Phase);
 
 	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives(){return ActivePassives;};
 

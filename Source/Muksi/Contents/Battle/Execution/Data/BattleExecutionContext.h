@@ -14,7 +14,7 @@ class UMuksiBattleCardDataAsset;
 
 struct FBattleExecutionContext;
 
-DECLARE_DELEGATE_TwoParams(FRequestRuntimeExecutionChain, const TArray<FBattleExecutionEntry>&, const FBattleExecutionContext&);
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FRequestRuntimeExecutionChain, const TArray<FBattleExecutionEntry>&, const FBattleExecutionContext&, FSimpleDelegate);
 
 USTRUCT(BlueprintType)
 struct FBattleExecutionContext
@@ -51,13 +51,15 @@ struct FBattleExecutionContext
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<ABattleCharacterBase> ExecutionTarget = nullptr;
 
-	//런타임 결과에 따라 동적으로 발생하는 Execution을 Manager에 전달하는 통로이다.
-	//HitReaction같은 경우, 데미지 정보 등을 담고있는 Execution에 반응하는 Execution이기 때문에 이렇게 동작시킨다.
+	UPROPERTY(BlueprintReadOnly)
+	int32 NestedChainDepth = 0;
+
+	//런타임 결과에 따라 동적으로 발생하는 자식 Chain을 현재 Runner에 전달하는 통로이다.
 	FRequestRuntimeExecutionChain RequestRuntimeExecutionChain;
 
 	bool IsValidContext() const
 	{
-		return Attacker != nullptr && Card != nullptr;
+		return Attacker != nullptr;
 	}
 
 	bool HasValidEnvironment() const;

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "BattleCardEffectTypes.generated.h"
 
 class ABattleCharacterBase;
@@ -61,6 +62,9 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
+
+	UPROPERTY()
+	EBattleExecutionMode ExecutionMode = EBattleExecutionMode::Sequence;
 
 };
 

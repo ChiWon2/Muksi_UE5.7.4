@@ -57,7 +57,6 @@ void UWidget_BattleMainScreen::NativeConstruct()
 
 	BindBattleManagerEvents();
 	BindBattleSequenceManagerEvents();
-	BindBattleSimulationManagerEvents();
 	BindHandWidgetEvents();
 
 	if (HandWidget)
@@ -70,7 +69,6 @@ void UWidget_BattleMainScreen::NativeDestruct()
 {
 	UnbindBattleManagerEvents();
 	UnbindBattleSequenceManagerEvents();
-	UnbindBattleSimulationManagerEvents();
 	UnbindHandWidgetEvents();
 
 	if (BattleTargetingManager)
@@ -100,15 +98,8 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 	checkf(IsValid(Enemy), TEXT("EnemyCharacter is null"));
 
 	ActivePassiveWidget->SetData(Player, Enemy);
-	SetPresentationCharacterData(Player, Enemy);
-}
-
-void UWidget_BattleMainScreen::SetPresentationCharacterData(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
-{
-	if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter))
-		return;
 	if (HandWidget)
-		HandWidget->SetCharacterData(PlayerCharacter, EnemyCharacter);
+		HandWidget->SetCharacterData(Player, Enemy);
 }
 
 void UWidget_BattleMainScreen::BindHandWidgetEvents()
@@ -173,26 +164,6 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 	}
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
-}
-
-void UWidget_BattleMainScreen::BindBattleSimulationManagerEvents()
-{
-	if (!BattleSimulationManager)
-		return;
-
-	BattleSimulationManager->PresentationCharactersChangedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);;
-}
-
-void UWidget_BattleMainScreen::UnbindBattleSimulationManagerEvents()
-{
-	if (!BattleSimulationManager) return;
-
-	BattleSimulationManager->PresentationCharactersChangedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged);
-}
-
-void UWidget_BattleMainScreen::HandleSimulationPresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
-{
-	SetPresentationCharacterData(PlayerCharacter, EnemyCharacter);
 }
 
 void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction)

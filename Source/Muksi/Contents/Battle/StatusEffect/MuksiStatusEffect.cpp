@@ -1,17 +1,11 @@
 #include "MuksiStatusEffect.h"
 
-#include "MuksiStatusEffectComponent.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 
-void UMuksiStatusEffect::BeginDestroy()
-{
-    CompleteExecution();
-    Super::BeginDestroy();
-}
-
-void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,UMuksiStatusEffectComponent* InOwnerComponent,FName InEffectID,int32 InStackCount,int32 InDuration)
+void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,FName InEffectID,int32 InStackCount,int32 InDuration)
 {
     OwnerActor = InOwnerActor;
-    OwnerComponent = InOwnerComponent;
 
     EffectID = InEffectID;
 
@@ -19,70 +13,39 @@ void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,UMuksiStatusEffectCompo
     RemainingDuration = FMath::Max(1, InDuration);
 }
 
-void UMuksiStatusEffect::CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor, UMuksiStatusEffectComponent* InOwnerComponent)
+void UMuksiStatusEffect::CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor)
 {
-    CompleteExecution();
     OwnerActor = InOwnerActor;
-    OwnerComponent = InOwnerComponent;
     EffectID = SourceEffect.EffectID;
     CurrentStack = SourceEffect.CurrentStack;
     RemainingDuration = SourceEffect.RemainingDuration;
 }
 
-void UMuksiStatusEffect::Execute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion)
+void UMuksiStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions)
 {
-    if (bExecutionActive)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffect] Execution is already active."));
-        CompleteExecution();
-        return;
-    }
-
-    bExecutionActive = true;
-    HandleExecute(OldPhase, NewPhase, bAllowDeferredCompletion);
+	static_cast<void>(OldPhase);
+	static_cast<void>(NewPhase);
+	static_cast<void>(OutExecutions);
 }
 
-void UMuksiStatusEffect::HandleExecute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion)
+void UMuksiStatusEffect::BuildBattleActionStartExecutions(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutions)
 {
-    static_cast<void>(OldPhase);
-    static_cast<void>(bAllowDeferredCompletion);
-
-    switch (NewPhase)
-    {
-    case EBattlePhase::RoundStart:
-        OnRoundStart();
-        break;
-    case EBattlePhase::ExchangeStart:
-        OnExchangeStart();
-        break;
-    case EBattlePhase::BattleActionSequenceStart:
-        OnBattleActionSequenceStart();
-        break;
-    case EBattlePhase::BattleActionSequenceEnd:
-        OnBattleActionSequenceEnd();
-        break;
-    case EBattlePhase::ExchangeEnd:
-        OnExchangeEnd();
-        break;
-    case EBattlePhase::RoundEnd:
-        OnRoundEnd();
-        break;
-    default:
-        break;
-    }
-
-    CompleteExecution();
+	static_cast<void>(BattleAction);
+	static_cast<void>(OutExecutions);
 }
 
-void UMuksiStatusEffect::CompleteExecution()
+void UMuksiStatusEffect::BuildHitDealtExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions)
 {
-    if (!bExecutionActive)
-    {
-        return;
-    }
+	static_cast<void>(Context);
+	static_cast<void>(Damage);
+	static_cast<void>(OutExecutions);
+}
 
-    bExecutionActive = false;
-    if (IsValid(OwnerComponent)) OwnerComponent->NotifyStatusEffectExecutionFinished(this);
+void UMuksiStatusEffect::BuildHitReceivedExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions)
+{
+	static_cast<void>(Context);
+	static_cast<void>(Damage);
+	static_cast<void>(OutExecutions);
 }
 
 void UMuksiStatusEffect::OnApplied()
@@ -100,35 +63,6 @@ void UMuksiStatusEffect::OnReapplied(int32 AddedStack,int32 AddedDuration)
     RemainingDuration = FMath::Max(RemainingDuration , AddedDuration);
 }
 
-void UMuksiStatusEffect::OnRoundStart()
-{
-}
-
-void UMuksiStatusEffect::OnExchangeStart()
-{
-}
-
-void UMuksiStatusEffect::OnBattleActionSequenceStart()
-{
-}
-
-void UMuksiStatusEffect::OnBattleActionStart(const FBattleAction& BattleAction)
-{
-    static_cast<void>(BattleAction);
-}
-
-void UMuksiStatusEffect::OnBattleActionSequenceEnd()
-{
-}
-
-void UMuksiStatusEffect::OnExchangeEnd()
-{
-}
-
-void UMuksiStatusEffect::OnRoundEnd()
-{
-}
-
 bool UMuksiStatusEffect::IsExpired() const
 {
     return RemainingDuration <= 0 || CurrentStack <= 0;
@@ -144,22 +78,7 @@ void UMuksiStatusEffect::ConsumeStack(int32 Amount)
     CurrentStack = FMath::Max(0, CurrentStack - Amount);
 }
 
-void UMuksiStatusEffect::SetStack(int32 NewStack)
-{
-    CurrentStack = FMath::Max(0, NewStack);
-}
-
-void UMuksiStatusEffect::AddDuration(int32 Amount)
-{
-    RemainingDuration += Amount;
-}
-
 void UMuksiStatusEffect::ConsumeDuration(int32 Amount)
 {
     RemainingDuration = FMath::Max(0, RemainingDuration - Amount);
-}
-
-void UMuksiStatusEffect::SetDuration(int32 NewDuration)
-{
-    RemainingDuration = FMath::Max(0, NewDuration);
 }

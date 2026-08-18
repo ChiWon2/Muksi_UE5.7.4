@@ -114,18 +114,21 @@ void UBattleCharacterPhaseCoordinator::BeginCharacterPhaseExecution(EBattlePhase
     const TWeakObjectPtr<ABattleCharacterBase> PlayerCharacter = RuntimeContext->GetPlayerCharacter();
     const TWeakObjectPtr<ABattleCharacterBase> EnemyCharacter = RuntimeContext->GetEnemyCharacter();
 
-    TArray<FBattleAsyncStep> Steps;
-    Steps.Reserve(4);
+	TArray<FBattleAsyncStep> Steps;
+	Steps.Reserve(4);
 
-    Steps.Add([this, PlayerCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
-        {
-            ExecutePassiveStep(PlayerCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
-        });
+	if (UCharacterPassiveComponent::CanExecutePhase(NewPhase))
+	{
+		Steps.Add([this, PlayerCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
+			{
+				ExecutePassiveStep(PlayerCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
+			});
 
-    Steps.Add([this, EnemyCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
-        {
-            ExecutePassiveStep(EnemyCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
-        });
+		Steps.Add([this, EnemyCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
+			{
+				ExecutePassiveStep(EnemyCharacter.Get(), OldPhase, NewPhase, CompletionDelegate);
+			});
+	}
 
     Steps.Add([this, PlayerCharacter, OldPhase, NewPhase](const FSimpleDelegate& CompletionDelegate)
         {

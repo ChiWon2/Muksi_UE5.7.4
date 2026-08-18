@@ -8,6 +8,11 @@
 
 void UApplyStatusEffectCardEffect::ExecuteEffect(const FBattleCardEffectContext& Context)
 {
+	if (Context.ExecutionMode != EBattleExecutionMode::Sequence)
+	{
+		return;
+	}
+
 	ABattleCharacterBase* Character = nullptr;
 
 	switch (EffectTarget)

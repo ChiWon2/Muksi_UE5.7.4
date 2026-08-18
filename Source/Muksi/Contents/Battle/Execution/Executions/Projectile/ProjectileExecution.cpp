@@ -89,27 +89,30 @@ void UProjectileExecution::HandleProjectileFinished(bool bInterrupted)
 {
 	ActiveProjectile = nullptr;
 
-	if (!bInterrupted && PendingHitTarget)
+	if (!bInterrupted && PendingHitTarget && RequestOnHitExecutionChain())
 	{
-		RequestOnHitExecutionChain();
+		return;
 	}
 
 	CompleteExecution();
 }
 
-void UProjectileExecution::RequestOnHitExecutionChain()
+bool UProjectileExecution::RequestOnHitExecutionChain()
 {
 	const FProjectileExecutionData* ProjectileData = CachedContext.GetExecutionData<FProjectileExecutionData>();
 
 	if (!ProjectileData || ProjectileData->OnHitExecutionChain.IsEmpty() || !CachedContext.CanRequestRuntimeExecutionChain())
 	{
-		return;
+		return false;
 	}
 
 	FBattleExecutionContext RuntimeContext = CachedContext;
 	RuntimeContext.ExecutionTarget = PendingHitTarget;
 
-	CachedContext.RequestRuntimeExecutionChain.Execute(ProjectileData->OnHitExecutionChain, RuntimeContext);
+	return CachedContext.RequestRuntimeExecutionChain.Execute(
+		ProjectileData->OnHitExecutionChain,
+		RuntimeContext,
+		FSimpleDelegate::CreateUObject(this, &UProjectileExecution::CompleteExecution));
 }
 
 void UProjectileExecution::CompleteExecution()

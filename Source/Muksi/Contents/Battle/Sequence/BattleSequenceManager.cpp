@@ -11,6 +11,7 @@
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
@@ -515,7 +516,18 @@ void ABattleSequenceManager::StartMainExecutionChain()
 		return;
 	}
 
-	StartExecutionRunner(CurrentExecutionCard->MainExecutions, MakeExecutionContext(NAME_None));
+	TArray<FBattleExecutionEntry> MainExecutions;
+
+	if (CurrentExecutionMode == EBattleExecutionMode::Sequence && CurrentAction.Attacker)
+	{
+		if (UMuksiStatusEffectComponent* StatusEffectComponent = CurrentAction.Attacker->GetStatusEffectComponent())
+		{
+			StatusEffectComponent->AppendBattleActionStartExecutions(CurrentAction, MainExecutions);
+		}
+	}
+
+	MainExecutions.Append(CurrentExecutionCard->MainExecutions);
+	StartExecutionRunner(MainExecutions, MakeExecutionContext(NAME_None));
 }
 
 void ABattleSequenceManager::HandleBattleExecutionNotify(FName NotifyKey)
@@ -576,11 +588,6 @@ void ABattleSequenceManager::StartExecutionRunner(const TArray<FBattleExecutionE
 	ExecutionRunner->Run(ExecutionEntries, Context, OnEntryStarted, OnEntryFinished, OnFinished);
 }
 
-void ABattleSequenceManager::HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context)
-{
-	StartExecutionRunner(ExecutionEntries, Context);
-}
-
 FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName NotifyKey)
 {
 	FBattleExecutionContext Context;
@@ -592,7 +599,6 @@ FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName Notif
 	Context.ResolvedTargeting = CurrentResolvedTargeting;
 	Context.BattleGridManager = BattleGridManager;
 	Context.NotifyKey = NotifyKey;
-	Context.RequestRuntimeExecutionChain.BindUObject(this, &ABattleSequenceManager::HandleRuntimeExecutionChainRequested);
 
 	return Context;
 }

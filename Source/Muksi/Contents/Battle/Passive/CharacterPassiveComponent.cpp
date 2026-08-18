@@ -4,20 +4,17 @@
 
 UCharacterPassiveComponent::UCharacterPassiveComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
-
-
-void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCharacterPassive>> PassiveClasses, ABattleManager* BattleManager)
+void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCharacterPassive>>& PassiveClasses)
 {
 	ActivePassives.Empty();
-
 	OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
 
-	if (!IsValid(OwnerCharacter) || PassiveClasses.Num() == 0)
+	if (!IsValid(OwnerCharacter))
 	{
-		UE_LOG(LogTemp, Error, TEXT("PassiveClasses is num = 0 CharacterPassiveComponent.cpp"));
+		UE_LOG(LogTemp, Error, TEXT("[CharacterPassiveComponent] OwnerCharacter is invalid."));
 		return;
 	}
 
@@ -39,45 +36,33 @@ void UCharacterPassiveComponent::InitializePassives(const TArray<TSubclassOf<UCh
 			continue;
 		}
 		NewPassive->InitializePassive(OwnerCharacter, this);
-		NewPassive->BindingEvent(BattleManager);
 		ActivePassives.Add(NewPassive);
 	}
 }
 
-
-
-
-void UCharacterPassiveComponent::CopyRuntimeStateFrom(const UCharacterPassiveComponent& SourceComponent)
+bool UCharacterPassiveComponent::CanExecutePhase(EBattlePhase Phase)
 {
-	FinishExecution();
-	OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
-	ActivePassives.Reset();
-	for (UCharacterPassive* SourcePassive : SourceComponent.ActivePassives)
+	switch (Phase)
 	{
-		if (!IsValid(SourcePassive)) 
-			continue;
-		UCharacterPassive* NewPassive = NewObject<UCharacterPassive>(this, SourcePassive->GetClass());
-		if (!IsValid(NewPassive)) 
-			continue;
-		
-		NewPassive->CopyRuntimeStateFrom(*SourcePassive, OwnerCharacter, this);
-		
-		ActivePassives.Add(NewPassive);
-	}
-}
+	case EBattlePhase::BattleStart:
+	case EBattlePhase::RoundStart:
+	case EBattlePhase::RoundEnd:
+	case EBattlePhase::BattleEnd:
+		return true;
 
-void UCharacterPassiveComponent::NotifyBattleActionStart(const FBattleAction& BattleAction)
-{
-	const TArray<TObjectPtr<UCharacterPassive>> PassivesSnapshot = ActivePassives;
-	for (UCharacterPassive* Passive : PassivesSnapshot)
-	{
-		if (IsValid(Passive)) 
-			Passive->NotifyBattleActionStart(BattleAction);
+	default:
+		return false;
 	}
 }
 
 void UCharacterPassiveComponent::ExecuteSequentially(EBattlePhase OldPhase,EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate, bool bInAllowDeferredCompletion)
 {
+	if (!CanExecutePhase(NewPhase))
+	{
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
 	if (bExecuting)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[CharacterPassiveComponent] Execution is already active."));

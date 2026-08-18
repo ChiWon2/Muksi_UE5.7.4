@@ -3,20 +3,11 @@
 
 #include "Muksi/Contents/Battle/Passive/CharacterPassive.h"
 
-#include "Muksi/Contents/Battle/BattleManager.h"
-#include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
 
 void UCharacterPassive::BeginDestroy()
 {
 	CompleteExecution();
-
-	if (CachedBattleManager)
-	{
-		CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
-		CachedBattleManager = nullptr;
-	}
-
 	Super::BeginDestroy();
 }
 
@@ -25,37 +16,6 @@ void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner, UCharac
 	OwnerCharacter = InOwner;
 	OwnerComponent = InOwnerComponent;
 }
-
-void UCharacterPassive::CopyRuntimeStateFrom(const UCharacterPassive& SourcePassive, ABattleCharacterBase* InOwner, UCharacterPassiveComponent* InOwnerComponent)
-{
-	CompleteExecution();
-	if (CachedBattleManager) CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
-	CachedBattleManager = nullptr;
-	OwnerCharacter = InOwner;
-	OwnerComponent = InOwnerComponent;
-	Priority = SourcePassive.Priority;
-	bEnabled = SourcePassive.bEnabled;
-}
-
-void UCharacterPassive::BindingEvent(ABattleManager* BattleManager)
-{
-	if (CachedBattleManager)
-	{
-		CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
-	}
-
-	CachedBattleManager = BattleManager;
-	if (CachedBattleManager)
-	{
-		CachedBattleManager->BattleActionStartDelegate.AddUObject(this, &UCharacterPassive::HandleBattleActionStart);
-	}
-}
-
-void UCharacterPassive::NotifyBattleActionStart(const FBattleAction& BattleAction)
-{
-	HandleBattleActionStart(BattleAction);
-}
-
 void UCharacterPassive::Execute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion)
 {
 	if (bExecutionActive)

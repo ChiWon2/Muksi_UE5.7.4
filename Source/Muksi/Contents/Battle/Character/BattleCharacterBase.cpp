@@ -121,7 +121,7 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 	}
 	UE_LOG(LogTemp, Error, TEXT("CharacterData CharacterPassives %d"), CharacterData.CharacterPassives.Num());
 	StatusEffectComponent->Initialize(BattleManager);
-	PassiveComponent->InitializePassives(CharacterData.CharacterPassives, BattleManager);
+	PassiveComponent->InitializePassives(CharacterData.CharacterPassives);
 	
 	InitializeBattleStats();
 }
@@ -141,12 +141,16 @@ void ABattleCharacterBase::InitializeBattleStats()
 	BattleStatComponent->InitializeStats(BattleStats);
 }
 
-void ABattleCharacterBase::CopyBattleStateFrom(const ABattleCharacterBase& SourceCharacter)
+void ABattleCharacterBase::CopySimulationStateFrom(const ABattleCharacterBase& SourceCharacter)
 {
-	CharacterData = SourceCharacter.CharacterData;
+	CharacterData = FCharacterData();
+	CharacterData.CurrentPosition = SourceCharacter.CharacterData.CurrentPosition;
+	CharacterData.CharacterAsset = SourceCharacter.CharacterData.CharacterAsset;
+	CharacterData.MaxHP = SourceCharacter.CharacterData.MaxHP;
+	CharacterData.AttackValue = SourceCharacter.CharacterData.AttackValue;
+	CharacterData.DefenseValue = SourceCharacter.CharacterData.DefenseValue;
+	CharacterData.CharacterSpeed = SourceCharacter.CharacterData.CharacterSpeed;
 	if (BattleStatComponent && SourceCharacter.BattleStatComponent) BattleStatComponent->CopyRuntimeStateFrom(*SourceCharacter.BattleStatComponent);
-	if (StatusEffectComponent && SourceCharacter.StatusEffectComponent) StatusEffectComponent->CopyRuntimeStateFrom(*SourceCharacter.StatusEffectComponent);
-	if (PassiveComponent && SourceCharacter.PassiveComponent) PassiveComponent->CopyRuntimeStateFrom(*SourceCharacter.PassiveComponent);
 }
 
 void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)

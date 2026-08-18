@@ -10,5 +10,5 @@ class MUKSI_API UPoisonStatusEffect : public UMuksiStatusEffect
     GENERATED_BODY()
 
 public:
-    virtual void OnRoundStart() override;
+    virtual void BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions) override;
 };

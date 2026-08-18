@@ -132,7 +132,7 @@ public:
 	
 protected:
 	void InitializeBattleStats();
-	void CopyBattleStateFrom(const ABattleCharacterBase& SourceCharacter);
+	void CopySimulationStateFrom(const ABattleCharacterBase& SourceCharacter);
 
 	FCharacterData CharacterData;
 	

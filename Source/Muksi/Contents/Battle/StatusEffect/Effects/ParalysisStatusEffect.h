@@ -10,6 +10,5 @@ class MUKSI_API UParalysisStatusEffect : public UMuksiStatusEffect
     GENERATED_BODY()
 
 public:
-    virtual void OnRoundStart() override;
-    virtual void OnRoundEnd() override;
+    virtual void BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions) override;
 };
