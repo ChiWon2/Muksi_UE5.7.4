@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "Widget_BattleMainScreen.generated.h"
 
+class UBattleStatusHUDWidget;
 class UWidget_CharacterData;
 class UHandWidget;
 class UInkLineWidget;
@@ -16,6 +17,8 @@ class UPassiveActivePopupWidget;
 class UMuksiBattleCardDataAsset;
 class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
+class UBattlePipelineWidget;
+class UExchangeControlWidget;
 
 
 class ABattleCharacterBase;
@@ -61,6 +64,15 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UPassiveActivePopupWidget* ActivePassiveWidget;
+	
+	UPROPERTY(meta = (BindWidget))
+	UBattleStatusHUDWidget* StatusHUDWidget;
+	
+	UPROPERTY(meta = (BindWidget))
+	UBattlePipelineWidget* BattlePipelineWidget;
+	
+	UPROPERTY(meta = (BindWidget))
+	UExchangeControlWidget* ExchangeControlWidget;
 
 	//***** Bound Widgets ****
 private:
@@ -88,6 +100,13 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void UnbindHandWidgetEvents();
+	
+	UFUNCTION(BlueprintCallable)
+	void BindBattlePipelineWidgetEvents();
+	
+	UFUNCTION(BlueprintCallable)
+	void UnbindBattlePipelineWidgetEvents();
+
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
 	bool SetSimulationPlayerView(EBattlePlayerSimulationView View);

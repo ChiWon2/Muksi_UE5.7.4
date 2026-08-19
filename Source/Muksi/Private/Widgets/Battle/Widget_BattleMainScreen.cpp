@@ -22,7 +22,11 @@
 
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Widgets/Battle/ExchangeControl/ExchangeControlWidget.h"
+#include "Muksi/Widgets/Battle/ExchangeSlot/ExchangeSlotPanelWidget.h"
 #include "Muksi/Widgets/Battle/Passive/PassiveActivePopupWidget.h"
+#include "Muksi/Widgets/Battle/PipeLine/BattlePipelineWidget.h"
+#include "Muksi/Widgets/Battle/StatusHUD/BattleStatusHUDWidget.h"
 
 
 void UWidget_BattleMainScreen::NativeConstruct()
@@ -58,6 +62,7 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	BindBattleManagerEvents();
 	BindBattleSequenceManagerEvents();
 	BindBattleSimulationManagerEvents();
+	BindBattlePipelineWidgetEvents();
 	BindHandWidgetEvents();
 
 	if (HandWidget)
@@ -71,6 +76,7 @@ void UWidget_BattleMainScreen::NativeDestruct()
 	UnbindBattleManagerEvents();
 	UnbindBattleSequenceManagerEvents();
 	UnbindBattleSimulationManagerEvents();
+	UnbindBattlePipelineWidgetEvents();
 	UnbindHandWidgetEvents();
 
 	if (BattleTargetingManager)
@@ -107,8 +113,9 @@ void UWidget_BattleMainScreen::SetPresentationCharacterData(ABattleCharacterBase
 {
 	if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter))
 		return;
-	if (HandWidget)
-		HandWidget->SetCharacterData(PlayerCharacter, EnemyCharacter);
+	
+	//일단 HandWidget말고 BattleStatusHUDWidget으로 넘기기
+	StatusHUDWidget->SetCharacterData(PlayerCharacter, EnemyCharacter);
 }
 
 void UWidget_BattleMainScreen::BindHandWidgetEvents()
@@ -117,10 +124,15 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 	{
 		return;
 	}
-
-	HandWidget->OnEndTurnRequested.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
-
-	HandWidget->OnEnemyCardRevealFinished.AddUObject(this,&UWidget_BattleMainScreen::HandleEnemyCardRevealFinished);
+	HandWidget->OnPlayerCardReturned.RemoveAll(this);
+	HandWidget->OnPlayerCardReturned.AddUObject(this, &UWidget_BattleMainScreen::NotifyPlayerCardUnequipped);
+	if (UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget())
+	{
+		ExchangePanel->OnEnemyCardRevealFinished.AddUObject(this, &UWidget_BattleMainScreen::HandleEnemyCardRevealFinished);
+	}
+	
+	//아래 카드 선택 버튼은 나중에 따로 빼기 
+	ExchangeControlWidget->OnEndTurnRequested.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
 }
 
 void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
@@ -129,9 +141,27 @@ void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
 	{
 		return;
 	}
+	HandWidget->OnPlayerCardReturned.RemoveAll(this);
+	if (UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget())
+	{
+		ExchangePanel->OnEnemyCardRevealFinished.RemoveAll(this);
+	}
+	
+	//아래 카드 선택 버튼은 나중에 따로 빼기
+	ExchangeControlWidget->OnEndTurnRequested.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
+}
 
-	HandWidget->OnEndTurnRequested.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
-	HandWidget->OnEnemyCardRevealFinished.RemoveAll(this);
+void UWidget_BattleMainScreen::BindBattlePipelineWidgetEvents()
+{
+	BattlePipelineWidget->OnPresentationFinished.AddUObject(
+		this,
+		&UWidget_BattleMainScreen::HandlePipelineUIFinish
+	);
+}
+
+void UWidget_BattleMainScreen::UnbindBattlePipelineWidgetEvents()
+{
+	BattlePipelineWidget->OnPresentationFinished.RemoveAll(this);
 }
 
 void UWidget_BattleMainScreen::BindBattleManagerEvents()
@@ -434,7 +464,7 @@ void UWidget_BattleMainScreen::DisplayBattleStartUI()
 	//전투 시작 UI 표시
 
 	//InkLine 호출
-	HandWidget->DisplayInkLine(BattleStartText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(BattleStartText, TurnTime);
 	HandleBattleUIFinishCount += 1;
 
 	//뭐 다른 UI 표시 있으면 추가하고
@@ -463,7 +493,7 @@ void UWidget_BattleMainScreen::DisplayBattleEndUI()
 	//전투 종료 UI 표시
 
 	//Pipeline UI 표시
-	HandWidget->DisplayInkLine(BattleEndText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(BattleEndText, TurnTime);
 	HandleBattleUIFinishCount += 1;
 
 	//일단 그냥 넘기기
@@ -511,7 +541,7 @@ void UWidget_BattleMainScreen::DisplayRoundStartUI()
 	FString ResultText = FString::Printf(TEXT("%d %s"), BattleManager->GetCurrentRound(), *RoundStartText);
 
 	HandleRoundStartFinishCount += 1;
-	HandWidget->DisplayInkLine(ResultText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(ResultText, TurnTime);
 
 	//뭐 다른 UI 표시 있으면 추가하고
 	//HandleBattleStartFinishCount += 1 한 다음
@@ -590,7 +620,7 @@ void UWidget_BattleMainScreen::DisplayRoundEndUI()
 	//국 종료 UI 표시
 	FString ResultText = FString::Printf(TEXT("%d %s"), BattleManager->GetCurrentRound(), *RoundEndText);
 
-	HandWidget->DisplayInkLine(ResultText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(ResultText, TurnTime);
 	HandleRoundEndFinishCount += 1;
 }
 
@@ -617,7 +647,7 @@ void UWidget_BattleMainScreen::ExchangeStart()
 	}
 
 	// 턴 종료 버튼 활성화
-	HandWidget->ShowTurnEndButton(true);
+	ExchangeControlWidget->ShowSelectButton(true);
 	HandleExchangeCount = 0;
 	DisplayExchangeStartUI();
 }
@@ -627,7 +657,7 @@ void UWidget_BattleMainScreen::DisplayExchangeStartUI()
 	//합 시작 UI 표시
 
 	//InkLine 호출
-	HandWidget->DisplayInkLine(ExchangeStartText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(ExchangeStartText, TurnTime);
 	HandleExchangeCount += 1;
 
 	//뭐 다른 UI 표시 있으면 추가하고
@@ -668,7 +698,7 @@ void UWidget_BattleMainScreen::StartExchangeSelectCard(int32 ExchangeIndex)
 	HandleExchangeCount = 0;
 	//Pipeline UI 표시
 	FString ResultText = FString::Printf(TEXT("%d %s"), ExchangeNumber, *ExchangeCountText);
-	HandWidget->DisplayInkLineEnabled(ResultText, TurnTime);
+	BattlePipelineWidget->DisplayInkLineEnabled(ResultText, TurnTime);
 }
 
 void UWidget_BattleMainScreen::FinishExchange(int32 ExchangeIndex)
@@ -685,7 +715,7 @@ void UWidget_BattleMainScreen::ExchangeEnd()
 {
 	HandleExchangeCount = 0;
 	// 턴 종료 버튼 비활성화
-	HandWidget->ShowTurnEndButton(false);
+	ExchangeControlWidget->ShowSelectButton(false);
 	DisplayExchangeEndUI();
 }
 
@@ -695,7 +725,7 @@ void UWidget_BattleMainScreen::DisplayExchangeEndUI()
 
 	//InkLine 표시
 	HandleExchangeCount += 1;
-	HandWidget->DisplayInkLine(ExchangeEndText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(ExchangeEndText, TurnTime);
 }
 
 void UWidget_BattleMainScreen::DisplayExchangeEndUIFinish()
@@ -719,7 +749,20 @@ void UWidget_BattleMainScreen::HandleExchangeEndFinish()
 
 void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 {
-	HandWidget->EnableExchangeSlot(Index, bActive);
+	if (!HandWidget)
+	{
+		return;
+	}
+
+	UExchangeSlotPanelWidget* ExchangePanel =
+		HandWidget->GetExchangeSlotPanelWidget();
+
+	if (!ExchangePanel)
+	{
+		return;
+	}
+
+	ExchangePanel->EnableExchangeSlot(Index, bActive);
 }
 
 void UWidget_BattleMainScreen::HandleEnemyCardRevealFinished(int32 ExchangeIndex)
@@ -748,7 +791,7 @@ void UWidget_BattleMainScreen::SetBattleCardToHand()
 	const bool bNeedsNewHand =
 		!HandWidget->HasHandCards() ||
 		PlayerBattleCharacter->GetCurrentBattleCardCount() == 0;
-
+	
 	if (bNeedsNewHand)
 	{
 		PlayerBattleCharacter->RefillBattleDeckIfEmpty();
@@ -759,7 +802,6 @@ void UWidget_BattleMainScreen::SetBattleCardToHand()
 		// Existing hand cards return from the lower resting position.
 		HandWidget->VisibleHandCards();
 	}
-
 	HandWidget->HitActiveHandCards(true);
 }
 
@@ -773,22 +815,35 @@ void UWidget_BattleMainScreen::HandleEnemyCardSelectionReady(
 	UMuksiBattleCardDataAsset* EnemyCard,
 	int32 ExchangeIndex)
 {
-	if (!GetWorld() || !BattleManager || !BattleTargetingManager || !HandWidget
-		|| ExchangeIndex != BattleManager->GetCurrentExchange() || !EnemyCard)
+	if (!GetWorld()
+		|| !BattleManager
+		|| !BattleTargetingManager
+		|| !HandWidget
+		|| ExchangeIndex != BattleManager->GetCurrentExchange()
+		|| !EnemyCard)
 	{
 		return;
 	}
 
-	HandWidget->PlaceEnemySelectCard(EnemyCard, ExchangeIndex);
+	UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget();
 
-	// Enemy targeting preview가 최소 한 프레임 렌더된 뒤 완료를 전달한다.
-	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+	if (!ExchangePanel)
 	{
-		if (BattleTargetingManager)
+		return;
+	}
+
+	ExchangePanel->PlaceEnemySelectCard(EnemyCard, ExchangeIndex);
+
+	GetWorld()->GetTimerManager().SetTimerForNextTick(
+		FTimerDelegate::CreateWeakLambda(this, [this]()
 		{
-			BattleTargetingManager->NotifyEnemyCardSelectionUIFinished();
-		}
-	}));
+			if (BattleTargetingManager)
+			{
+				BattleTargetingManager
+					->NotifyEnemyCardSelectionUIFinished();
+			}
+		})
+	);
 }
 
 void UWidget_BattleMainScreen::HandleCardSelect()
@@ -802,10 +857,16 @@ void UWidget_BattleMainScreen::SelectCardDataSend()const
 	{
 		return;
 	}
+	
+	UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget();
+	if (!ExchangePanel)
+	{
+		return;
+	}
 
 	const int32 ExchangeNumber = BattleManager->GetCurrentExchange() + 1;
 
-	if (UMuksiBattleCardDataAsset* CardDataAsset = HandWidget->GetExchangeDataIndex_Player(ExchangeNumber))
+	if (UMuksiBattleCardDataAsset* CardDataAsset = ExchangePanel->GetExchangeDataIndex_Player(ExchangeNumber))
 	{
 		BattleTargetingManager->RequestPlayerCardSelection(CardDataAsset);
 	}
@@ -818,7 +879,13 @@ bool UWidget_BattleMainScreen::RevealEnemySelectedCard(int32 ExchangeIndex)
 		return false;
 	}
 
-	return HandWidget->EnemySelectedBattleCardFlip(ExchangeIndex, true);
+	UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget();
+	if (!ExchangePanel)
+	{
+		return false;
+	}
+	
+	return ExchangePanel->EnemySelectedBattleCardFlip(ExchangeIndex, true);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -840,7 +907,7 @@ void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUI()
 
 	//InkLine 호출
 	BattleActionSequenceUIFinishCount += 1;
-	HandWidget->DisplayInkLine(BattleActionSequenceStartText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(BattleActionSequenceStartText, TurnTime);
 
 	//뭐 다른 UI 표시 있으면 추가하고
 	//HandleBattleStartFinishCount += 1 한 다음
@@ -889,7 +956,7 @@ void UWidget_BattleMainScreen::BattleActionSequenceEnd()
 void UWidget_BattleMainScreen::DisplayBattleActionSequenceEndUI()
 {
 	BattleActionSequenceUIFinishCount += 1;
-	HandWidget->DisplayInkLine(BattleActionSequenceEndText, TurnTime);
+	BattlePipelineWidget->DisplayInkLine(BattleActionSequenceEndText, TurnTime);
 }
 
 void UWidget_BattleMainScreen::DisplayBattleActionSequenceEndUIFinish()

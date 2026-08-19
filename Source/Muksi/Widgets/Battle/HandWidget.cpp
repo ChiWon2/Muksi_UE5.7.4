@@ -3,39 +3,29 @@
 
 #include "Muksi/Widgets/Battle/HandWidget.h"
 
-#include "CommonButtonBase.h"
 #include "Widget_CardEquipSlot.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Muksi/Widgets/Components/InkLineWidget.h"
 #include "TimerManager.h"
 
 
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
-#include "MuksiDebugHelper.h"
-#include "Status/CharacterStatusWidget.h"
-#include "Widgets/Battle/Widget_BattleMainScreen.h"
+#include "ExchangeSlot/ExchangeSlotPanelWidget.h"
+#include "ExchangeSlot/ExchangeSlotTypes.h"
 
 
-FWidgetCard::FWidgetCard()
-{
-
-}
 
 void UHandWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	Debug::Print(TEXT("Battle Manager Settings"));
-
-	BindSelectButton();
-
-	//SpawnDefaultHandCards();
-
-	InitializeExchangeSlots();
+	if (ExchangeSlotPanelWidget)
+	{
+		ExchangeSlotPanelWidget->OnCardReturnRequested.RemoveAll(this);
+		ExchangeSlotPanelWidget->OnCardReturnRequested.AddUObject(this, &UHandWidget::HandleCardReturnRequested);
+	}
 }
 
 void UHandWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -57,71 +47,12 @@ void UHandWidget::NativeDestruct()
 	{
 		World->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
 	}
-
-	UnbindSelectButton();
-
-	for (UWidget_BattleCardBase* CardWidget : EnemySelectedBattleCards)
-	{
-		if (CardWidget)
-		{
-			CardWidget->OnCardFlipFinished.RemoveAll(this);
-		}
-	}
-
-	PendingEnemyCardRevealIndex = INDEX_NONE;
+	if (ExchangeSlotPanelWidget){ExchangeSlotPanelWidget->OnCardReturnRequested.RemoveAll(this);}
 
 	ClearHandCards();
 	Super::NativeDestruct();
 }
 
-void UHandWidget::SpawnDefaultHandCards()
-{
-	//ClearHandCards();
-	CreateTestHandCards(5);
-	RequestOrganizeCards(DefaultCardSpacing);
-}
-
-void UHandWidget::CreateTestHandCards(int32 InCount)
-{
-	if (!BattleCardClass || !HandCanvas)
-	{
-		return;
-	}
-
-	for (int32 i = 0; i < InCount; ++i)
-	{
-		UWidget_BattleCardBase* Widget_BattleCard = CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
-
-		if (!Widget_BattleCard)
-		{
-			continue;
-		}
-
-		Widget_BattleCard->SetOwningHandWidget(this);
-
-		if (UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(Widget_BattleCard))
-		{
-
-			CanvasSlot->SetAutoSize(true);
-
-			// 화면 기준 아래 중앙
-			CanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
-
-			// 카드 자신의 기준점을 아래 중앙으로
-			CanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
-
-			CanvasSlot->SetPosition(FVector2D(0.f, -50.f)); // 아래 중앙에서 살짝 위
-			CanvasSlot->SetZOrder(i);
-		}
-
-		FWidgetCard WidgetCard;
-		WidgetCard.Cards = Widget_BattleCard;
-		WidgetCard.ZIndex = i;
-
-		CardsStructArray.Add(WidgetCard);
-		BattleCards.Add(Widget_BattleCard);
-	}
-}
 
 void UHandWidget::RequestOrganizeCards(float OffsetX)
 {
@@ -362,11 +293,7 @@ void UHandWidget::OrganizeCards(float OffsetX)
 	}*/
 }
 
-void UHandWidget::CreateCardMore()
-{
-	CreateTestHandCards(5);
-	RequestOrganizeCards(DefaultCardSpacing);
-}
+
 
 void UHandWidget::ClearHandCards()
 {
@@ -451,689 +378,146 @@ const FGeometry& UHandWidget::GetHandCanvasGeometry() const
 	return HandCanvas->GetCachedGeometry();
 }
 
-UWidget_CardEquipSlot* UHandWidget::GetEquipSlot() const
-{
-	return nullptr;
-}
-
 void UHandWidget::RemoveBattleCards(UWidget_BattleCardBase* InCard)
 {
 	BattleCards.Remove(InCard);
 }
 
-void UHandWidget::OnClickedTurnEndButton()
-{
-	Debug::Print(TEXT("Clicked Turn end button (HandWidget.cpp)"));
-}
-
-
 
 UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const
 {
-
-	if (!Card)
+	if (!ExchangeSlotPanelWidget)
 	{
 		return nullptr;
 	}
 
-	for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
-	{
-
-		if (!EquipSlot)
-		{
-			continue;
-		}
-
-		if (EquipSlot->IsCardOverlappingSlot(Card))
-		{
-			if (!EquipSlot->CheckEmptySlot())
-			{
-				return nullptr;
-			}
-
-			return EquipSlot;
-		}
-	}
-	return nullptr;
+	return ExchangeSlotPanelWidget->FindOverlappedEquipSlot(Card);
 }
 
-bool UHandWidget::EnemySelectedBattleCardFlip(int32 InIndex, bool bFront)
+void UHandWidget::HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget)
 {
-	if (!EnemySelectedBattleCards.IsValidIndex(InIndex) || !EnemySelectedBattleCards[InIndex])
-	{
-		UE_LOG(LogTemp, Warning, TEXT("EnemySelectedBattleCardFlip failed: invalid exchange index %d"), InIndex);
-		return false;
-	}
-
-	UWidget_BattleCardBase* CardWidget = EnemySelectedBattleCards[InIndex];
-
-	if (!bFront)
-	{
-		CardWidget->PlayCardFlipToBack();
-		return true;
-	}
-
-	PendingEnemyCardRevealIndex = InIndex;
-	CardWidget->OnCardFlipFinished.RemoveAll(this);
-	CardWidget->OnCardFlipFinished.AddUObject(this, &UHandWidget::HandleEnemySelectedCardFlipFinished);
-	CardWidget->PlayCardFlipToFront();
-	return true;
-}
-
-void UHandWidget::HandleEnemySelectedCardFlipFinished(UWidget_BattleCardBase* CardWidget)
-{
-	if (PendingEnemyCardRevealIndex == INDEX_NONE)
-	{
-		return;
-	}
-
-	if (!EnemySelectedBattleCards.IsValidIndex(PendingEnemyCardRevealIndex))
-	{
-		PendingEnemyCardRevealIndex = INDEX_NONE;
-		return;
-	}
-
-	if (EnemySelectedBattleCards[PendingEnemyCardRevealIndex] != CardWidget)
-	{
-		return;
-	}
-
-	const int32 FinishedExchangeIndex = PendingEnemyCardRevealIndex;
-	PendingEnemyCardRevealIndex = INDEX_NONE;
-	CardWidget->OnCardFlipFinished.RemoveAll(this);
-	OnEnemyCardRevealFinished.Broadcast(FinishedExchangeIndex);
-}
-
-void UHandWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount)
-{
-	if (!SelectCard || !EnemyExchangeSlots.IsValidIndex(ExchangeCount) || !EnemyExchangeSlots[ExchangeCount])
-	{
-		UE_LOG(LogTemp, Warning, TEXT("PlaceEnemySelectCard failed: invalid exchange index %d"), ExchangeCount);
-		return;
-	}
-
-	UWidget_BattleCardBase* CardWidget = CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
-
 	if (!CardWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed (HandWidget.cpp)"));
 		return;
 	}
-	CardWidget->SetCardData_(SelectCard, false);
 
-	CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-	EnemyExchangeSlots[ExchangeCount]->SetVisibility(ESlateVisibility::Visible);
-	EnemyExchangeSlots[ExchangeCount]->EquipCard_Enemy(CardWidget);
+	CardWidget->SetCardRenderAngle(0.0f);
+	CardWidget->SetVisibility(ESlateVisibility::Visible);
 
-	//TODO CardWidget 뒤집는 애니메이션
-	//EnemySelectCardVerticalBox->AddChildToVerticalBox(CardWidget);
-	EnemySelectedBattleCards.SetNum(EnemyExchangeSlots.Num());
-	EnemySelectedBattleCards[ExchangeCount] = CardWidget;
+	PlaceCardInHand(CardWidget);
+
+	OrganizeCards(GetDefaultCardSpacing());
+	OnPlayerCardReturned.Broadcast();
 }
+
 
 void UHandWidget::ClearEnemySelectCard()
 {
-	//임시로 Vertical Box 사용
-	//EnemySelectCardVerticalBox->ClearChildren();
-
-
-	/*for (UWidget_CardEquipSlot* EquipSlot : EnemyExchangeSlots)
+	
+	if (!ExchangeSlotPanelWidget)
 	{
-		EquipSlot->ForceClearSlot();
+		return;
 	}
-	EnemySelectedBattleCards.Empty();*/
-
-	for (UWidget_CardEquipSlot* EquipSlot : EnemyExchangeSlots)
+	for (const FReleasedExchangeCard& Released
+	: ExchangeSlotPanelWidget->ReleaseEnemyCards())
 	{
-		UWidget_BattleCardBase* CardWidget = EquipSlot->GetEquipSlot();
-		if (!CardWidget)
-		{
-			EquipSlot->ForceClearSlot();
-			continue;
-		}
-		ForceLayoutPrepass();
-		const FGeometry& CardGeometry = CardWidget->GetCachedGeometry();
-
-		const FVector2D CardAbsoluteBottomCenter = CardGeometry.LocalToAbsolute(FVector2D(CardGeometry.GetLocalSize().X * 0.5f, CardGeometry.GetLocalSize().Y));
-
-
-		EquipSlot->ForceClearSlot();
-		CardWidget->RemoveFromParent();
-
-		/*
-		 * HandCanvas의 직접 자식으로 다시 추가
-		 */
-		UCanvasPanelSlot* CardCanvasSlot = HandCanvas->AddChildToCanvas(CardWidget);
-
-		if (!CardCanvasSlot)
-		{
-			return;
-		}
-
-		CardCanvasSlot->SetAutoSize(true);
-
-		// 핸드 카드 좌표계와 동일하게 통일
-		CardCanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
-
-		CardCanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
-
-		const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
-
-		/*
-		 * 카드의 기존 절대 위치를 HandCanvas 로컬 좌표로 변환
-		 */
-		const FVector2D CardLocalPosition = HandGeometry.AbsoluteToLocal(CardAbsoluteBottomCenter);
-
-		/*
-		 * 카드 Anchor가 HandCanvas 아래 중앙이므로
-		 * Anchor 기준 좌표로 다시 변환
-		 */
-		const FVector2D HandBottomCenter(HandGeometry.GetLocalSize().X * 0.5f, HandGeometry.GetLocalSize().Y);
-
-		const FVector2D CardAnchorOffset = CardLocalPosition - HandBottomCenter;
-
-		CardCanvasSlot->SetPosition(CardAnchorOffset);
-		CardCanvasSlot->SetZOrder(10000);
-
-		CardWidget->SetOwningHandWidget(this);
-		CardWidget->SetCardRenderAngle(0.0f);
-
-
-		if (!CardRemovePoint_Enemy)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CardRemovePoint_Enemy is null"));
-			return;
-		}
-
-		ForceLayoutPrepass();
-
-		const FGeometry& RemovePointGeometry = CardRemovePoint_Enemy->GetCachedGeometry();
-
-		// 제거 지점 중앙의 절대 좌표
-		const FVector2D RemoveAbsolutePosition = RemovePointGeometry.LocalToAbsolute(RemovePointGeometry.GetLocalSize() * 0.5f);
-
-		// 제거 지점 절대 좌표를 HandCanvas 로컬 좌표로 변환
-		const FVector2D RemoveLocalPosition = HandGeometry.AbsoluteToLocal(RemoveAbsolutePosition);
-
-		// 카드의 Anchor가 HandCanvas 아래 중앙이므로
-		// HandCanvas 아래 중앙 기준 오프셋으로 변환
-		const FVector2D RemoveAnchorOffset = RemoveLocalPosition - HandBottomCenter;
-
-		// 제거 위치로 이동
-		CardWidget->MoveToCanvasPosition(RemoveAnchorOffset);
-		RemoveCardArray.Add(CardWidget);
+		MoveCardToRemovePoint(
+			Released.CardWidget,
+			Released.AbsoluteBottomCenter,
+			CardRemovePoint_Enemy
+		);
 	}
-
-	EnemySelectedBattleCards.Empty();
 }
 
 void UHandWidget::ClearPlayerSelectCard()
 {
-	for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
-	{
-		UWidget_BattleCardBase* CardWidget = EquipSlot->GetEquipSlot();
-		if (!CardWidget)
-		{
-			EquipSlot->ForceClearSlot();
-			continue;
-		}
-		ForceLayoutPrepass();
-		const FGeometry& CardGeometry = CardWidget->GetCachedGeometry();
-
-		const FVector2D CardAbsoluteBottomCenter = CardGeometry.LocalToAbsolute(FVector2D(CardGeometry.GetLocalSize().X * 0.5f, CardGeometry.GetLocalSize().Y));
-
-
-		EquipSlot->ForceClearSlot();
-		CardWidget->RemoveFromParent();
-
-		/*
-		 * HandCanvas의 직접 자식으로 다시 추가
-		 */
-		UCanvasPanelSlot* CardCanvasSlot = HandCanvas->AddChildToCanvas(CardWidget);
-
-		if (!CardCanvasSlot)
-		{
-			return;
-		}
-
-		CardCanvasSlot->SetAutoSize(true);
-
-		// 핸드 카드 좌표계와 동일하게 통일
-		CardCanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
-
-		CardCanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
-
-		const FGeometry& HandGeometry = HandCanvas->GetCachedGeometry();
-
-		/*
-		 * 카드의 기존 절대 위치를 HandCanvas 로컬 좌표로 변환
-		 */
-		const FVector2D CardLocalPosition = HandGeometry.AbsoluteToLocal(CardAbsoluteBottomCenter);
-
-		/*
-		 * 카드 Anchor가 HandCanvas 아래 중앙이므로
-		 * Anchor 기준 좌표로 다시 변환
-		 */
-		const FVector2D HandBottomCenter(HandGeometry.GetLocalSize().X * 0.5f, HandGeometry.GetLocalSize().Y);
-
-		const FVector2D CardAnchorOffset = CardLocalPosition - HandBottomCenter;
-
-		CardCanvasSlot->SetPosition(CardAnchorOffset);
-		CardCanvasSlot->SetZOrder(10000);
-
-		CardWidget->SetOwningHandWidget(this);
-		CardWidget->SetCardRenderAngle(0.0f);
-
-
-		if (!CardRemovePoint_Player)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CardRemovePoint_Player is null"));
-			return;
-		}
-
-		ForceLayoutPrepass();
-
-		const FGeometry& RemovePointGeometry = CardRemovePoint_Player->GetCachedGeometry();
-
-		// 제거 지점 중앙의 절대 좌표
-		const FVector2D RemoveAbsolutePosition = RemovePointGeometry.LocalToAbsolute(RemovePointGeometry.GetLocalSize() * 0.5f);
-
-		// 제거 지점 절대 좌표를 HandCanvas 로컬 좌표로 변환
-		const FVector2D RemoveLocalPosition = HandGeometry.AbsoluteToLocal(RemoveAbsolutePosition);
-
-		// 카드의 Anchor가 HandCanvas 아래 중앙이므로
-		// HandCanvas 아래 중앙 기준 오프셋으로 변환
-		const FVector2D RemoveAnchorOffset = RemoveLocalPosition - HandBottomCenter;
-
-		// 제거 위치로 이동
-		CardWidget->MoveToCanvasPosition(RemoveAnchorOffset);
-		RemoveCardArray.Add(CardWidget);
-	}
-}
-
-
-void UHandWidget::ShowTurnEndButton(bool bShow)
-{
-	//기존
-
-
-	//바뀐 버튼
-	if (!Button_Select)
+	
+	
+	if (!ExchangeSlotPanelWidget)
 	{
 		return;
 	}
-
-	Button_Select->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-
-	Button_Select->SetIsEnabled(bShow);
-
-}
-
-FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber_Player(int32 InIndex)
-{
-	const int32 SlotIndex = InIndex - 1;
-
-	if (!ExchangeSlots.IsValidIndex(SlotIndex))
+	for (const FReleasedExchangeCard& Released
+	: ExchangeSlotPanelWidget->ReleasePlayerCards())
 	{
-		return FCardEquipSlotData();
-	}
-
-	if (!ExchangeSlots[SlotIndex])
-	{
-		return FCardEquipSlotData();
-	}
-
-	return ExchangeSlots[SlotIndex]->GetSlotData();
-}
-
-FCardEquipSlotData UHandWidget::GetSlotDataByExchangeNumber_Enemy(int32 InIndex)
-{
-	const int32 SlotIndex = InIndex - 1;
-
-	if (!EnemyExchangeSlots.IsValidIndex(SlotIndex))
-	{
-		return FCardEquipSlotData();
-	}
-
-	if (!EnemyExchangeSlots[SlotIndex])
-	{
-		return FCardEquipSlotData();
-	}
-
-	return EnemyExchangeSlots[SlotIndex]->GetSlotData();
-}
-
-UMuksiBattleCardDataAsset* UHandWidget::GetExchangeDataIndex_Player(int32 InIndex)
-{
-	FCardEquipSlotData Data = GetSlotDataByExchangeNumber_Player(InIndex);
-	return Data.CardData;
-}
-
-UMuksiBattleCardDataAsset* UHandWidget::GetExchangeDataIndex_Enemy(int32 InIndex)
-{
-	FCardEquipSlotData Data = GetSlotDataByExchangeNumber_Enemy(InIndex);
-	return Data.CardData;
-}
-
-void UHandWidget::ConfirmExchangeInput(int32 InIndex)
-{
-	if (InIndex >= 3)
-	{
-		for (UWidget_CardEquipSlot* EquipSlot : ExchangeSlots)
-		{
-			if (!EquipSlot)
-			{
-				continue;
-			}
-
-			EquipSlot->ConfirmSlot();
-			EquipSlot->SetSlotEnabled(false);
-			EquipSlot->SetSlotHighlighted(false);
-			EquipSlot->SetSlotConfirmed(false);
-		}
-	}
-	else
-	{
-		UWidget_CardEquipSlot* EquipSlot = GetSlotByExchangeNumber(InIndex);
-
-		if (!EquipSlot)
-		{
-			return;
-		}
-		EquipSlot->ConfirmSlot();
-		EquipSlot->SetSlotEnabled(false);
-		EquipSlot->SetSlotHighlighted(false);
-		EquipSlot->SetSlotConfirmed(true);
-
-
-		UWidget_CardEquipSlot* EquipSlot_ = GetSlotByExchangeNumber(InIndex + 1);
-
-		if (!EquipSlot_)
-		{
-			return;
-		}
-		//EquipSlot_->ConfirmSlot();
-		UE_LOG(LogTemp, Log, TEXT("Confirmed Equip slot"));
-		EquipSlot_->SetSlotEnabled(true);
-		EquipSlot_->SetSlotHighlighted(true);
-		EquipSlot_->SetSlotConfirmed(false);
-	}
-
-	/*EquipSlot->ConfirmSlot();
-	EquipSlot->SetSlotEnabled(false);
-	EquipSlot->SetSlotHighlighted(false);
-	EquipSlot->SetSlotConfirmed(true);*/
-}
-
-void UHandWidget::StartExchangeInput(int32 ExchangeNumber)
-{
-	const int32 ActiveSlotIndex = ExchangeNumber - 1;
-
-	for (int32 i = 0; i < ExchangeSlots.Num(); i++)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Test"));
-		UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[i];
-
-		if (!EquipSlot)
-		{
-			continue;
-		}
-
-		const bool bActive = (i == ActiveSlotIndex);
-
-		/*EquipSlot->SetSlotEnabled(bActive);
-		EquipSlot->SetSlotHighlighted(bActive);*/
+		MoveCardToRemovePoint(
+			Released.CardWidget,
+			Released.AbsoluteBottomCenter,
+			CardRemovePoint_Player
+		);
 	}
 }
 
-void UHandWidget::InitializeExchangeSlots()
-{
-	ExchangeSlots.Empty();
-
-	ExchangeSlots.Add(CardEquipSlot_1);
-	ExchangeSlots.Add(CardEquipSlot_2);
-	ExchangeSlots.Add(CardEquipSlot_3);
-
-	for (int32 i = 0; i < ExchangeSlots.Num(); i++)
-	{
-		UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[i];
-
-		if (!EquipSlot)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("ExchangeSlots[%d] is null"), i);
-			continue;
-		}
-
-		const int32 SlotIndex = i;
-		const int32 ExchangeNumber = i + 1;
-
-		EquipSlot->bPlayerSlot = true;
-
-		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
-		EquipSlot->ClearSlot();
-		EquipSlot->SetSlotEnabled(false);
-		EquipSlot->SetSlotHighlighted(false);
-		EquipSlot->SetSlotConfirmed(false);
-		EquipSlot->OwningHandWidget = this;
-	}
-
-	EnemyExchangeSlots.Empty();
-	EnemySelectedBattleCards.Empty();
-
-	EnemyExchangeSlots.Add(EnemyCardEquipSlot_1);
-	EnemyExchangeSlots.Add(EnemyCardEquipSlot_2);
-	EnemyExchangeSlots.Add(EnemyCardEquipSlot_3);
-
-	for (int32 i = 0; i < EnemyExchangeSlots.Num(); i++)
-	{
-		UWidget_CardEquipSlot* EquipSlot = EnemyExchangeSlots[i];
-
-		if (!EquipSlot)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("EnemyExchangeSlots[%d] is null"), i);
-			continue;
-		}
-
-		const int32 SlotIndex = i;
-		const int32 ExchangeNumber = i + 1;
-
-		EquipSlot->bPlayerSlot = false;
-
-		EquipSlot->SetSlotInfo(SlotIndex, ExchangeNumber);
-		EquipSlot->ClearSlot();
-		EquipSlot->SetSlotEnabled(false);
-		EquipSlot->SetSlotHighlighted(false);
-		EquipSlot->SetSlotConfirmed(false);
-		EquipSlot->OwningHandWidget = this;
-	}
-}
-
-void UHandWidget::EnableExchangeSlots(int32 InIndex)
-{
-	const int32 ActiveSlotIndex = InIndex - 1;
-
-	if (!ExchangeSlots.IsValidIndex(ActiveSlotIndex))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput failed: invalid ExchangeNumber %d"), InIndex);
-		return;
-	}
-
-	for (int32 i = 0; i < ExchangeSlots.Num(); i++)
-	{
-		UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[i];
-
-		if (!EquipSlot)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput skipped: ExchangeSlots[%d] is null"), i);
-			continue;
-		}
-
-		const bool bActive = (i == ActiveSlotIndex);
-
-		EquipSlot->SetSlotEnabled(bActive);
-		EquipSlot->SetSlotHighlighted(bActive);
-
-		// 이미 확정된 슬롯은 다시 활성화하지 않으려면 이 부분은 상황에 따라 조절
-		if (bActive)
-		{
-			EquipSlot->SetSlotConfirmed(false);
-		}
-	}
-
-	//UE_LOG(LogTemp, Log, TEXT("StartExchangeInput: ExchangeNumber=%d, ActiveSlotIndex=%d"), ExchangeNumber, ActiveSlotIndex);
-}
-
-void UHandWidget::EnableExchangeSlot(int32 InIndex, bool bActive)
-{
-	const int32 ActiveSlotIndex = InIndex - 1;
-	UE_LOG(LogTemp, Error, TEXT("EnabledExchange Slot Test (HandWidget.cpp)"));
-
-	if (!ExchangeSlots.IsValidIndex(ActiveSlotIndex))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput failed: invalid ExchangeNumber %d"), InIndex);
-		return;
-	}
-
-	UWidget_CardEquipSlot* EquipSlot = ExchangeSlots[ActiveSlotIndex];
-	if (!EquipSlot)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("StartExchangeInput skipped: ExchangeSlots[%d] is null"), ActiveSlotIndex);
-		return;
-	}
-
-	EquipSlot->SetSlotEnabled(bActive);
-	EquipSlot->SetSlotHighlighted(bActive);
-}
 
 void UHandWidget::ClearTimerHandler()
 {
 	GetWorld()->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
 }
 
-void UHandWidget::BindSelectButton()
+void UHandWidget::MoveCardToRemovePoint(UWidget_BattleCardBase* CardWidget, const FVector2D& StartAbsolutePosition,
+	UWidget* RemovePoint)
 {
-	if (!Button_Select)
+	if (!CardWidget || !HandCanvas || !RemovePoint)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SelectButton is null (HandWidget.cpp)"));
 		return;
 	}
 
-	// 중복 바인딩 방지
-	Button_Select->OnClicked().RemoveAll(this);
-	//Button_TurnEnd->OnClicked().RemoveAll(this);
+	UCanvasPanelSlot* CardCanvasSlot =
+		HandCanvas->AddChildToCanvas(CardWidget);
 
-	Button_Select->OnClicked().AddUObject(this, &UHandWidget::HandleEndTurnButtonClicked);
-
-}
-
-void UHandWidget::UnbindSelectButton()
-{
-	Button_Select->OnClicked().RemoveAll(this);
-}
-
-void UHandWidget::HandleEndTurnButtonClicked()
-{
-	UE_LOG(LogTemp, Log, TEXT("HandWidget: EndTurnButton clicked"));
-
-	OnEndTurnRequested.Broadcast();
-}
-
-UWidget_CardEquipSlot* UHandWidget::GetSlotByExchangeNumber(int32 ExchangeNumber) const
-{
-	const int32 SlotIndex = ExchangeNumber - 1;
-
-	if (!ExchangeSlots.IsValidIndex(SlotIndex))
+	if (!CardCanvasSlot)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Invalid ExchangeNumber: %d"), ExchangeNumber);
-		return nullptr;
-	}
-
-	return ExchangeSlots[SlotIndex];
-}
-
-void UHandWidget::DisplayInkLine(FString InText, float Time)
-{
-	if (!InkLineWidget)
-	{
-		UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)"));
 		return;
 	}
 
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
+	CardCanvasSlot->SetAutoSize(true);
+	CardCanvasSlot->SetAnchors(
+		FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
+	CardCanvasSlot->SetAlignment(
+		FVector2D(0.5f, 1.0f));
 
-		World->GetTimerManager().SetTimer(BattleMainScreen->InkLineTimerHandle, this, &UHandWidget::DisplayInkLinebActive, Time, false);
-	}
+	ForceLayoutPrepass();
 
-	InkLineWidget->SetVisibility(ESlateVisibility::Visible);
-	InkLineWidget->SetInkText(FText::FromString(InText));
-	InkLineWidget->PlayInkLine();
-}
+	const FGeometry& HandGeometry =
+		HandCanvas->GetCachedGeometry();
 
-void UHandWidget::DisplayInkLinebActive()
-{
-	UE_LOG(LogTemp, Error, TEXT("DisplayInkLinebActiveTEst (HandWidget.cpp)"));
-	InkLineWidget->SetVisibility(ESlateVisibility::Hidden);
-	BattleMainScreen->HandlePipelineUIFinish();
-}
+	const FVector2D HandBottomCenter(
+		HandGeometry.GetLocalSize().X * 0.5f,
+		HandGeometry.GetLocalSize().Y
+	);
 
-void UHandWidget::DisplayInkLineEnabled(FString InText, float Time)
-{
-	if (!InkLineWidget)
-	{
-		UE_LOG(LogTemp, Error, TEXT("InkLineWidget is nullptr (HandWidget.cpp)"));
-		return;
-	}
+	// ExchangeSlot에 있었던 기존 화면 위치
+	const FVector2D StartLocalPosition =
+		HandGeometry.AbsoluteToLocal(
+			StartAbsolutePosition);
 
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(BattleMainScreen->InkLineTimerHandle);
+	const FVector2D StartAnchorOffset =
+		StartLocalPosition - HandBottomCenter;
 
-		World->GetTimerManager().SetTimer(BattleMainScreen->InkLineTimerHandle, this, &UHandWidget::DisplayInkLineDisabled, Time, false);
-	}
-	UE_LOG(LogTemp, Error, TEXT("DisplayInkLine Enabled %s"), *InText);
-	InkLineWidget->SetVisibility(ESlateVisibility::Visible);
-	InkLineWidget->SetInkText(FText::FromString(InText));
-	InkLineWidget->PlayInkLine();
-}
+	CardCanvasSlot->SetPosition(StartAnchorOffset);
+	CardCanvasSlot->SetZOrder(10000);
 
-void UHandWidget::DisplayInkLineDisabled()
-{
-	InkLineWidget->SetVisibility(ESlateVisibility::Hidden);
-}
+	CardWidget->SetOwningHandWidget(this);
+	CardWidget->SetCardRenderAngle(0.0f);
 
-void UHandWidget::BuildHandFromCharacter(TArray<UMuksiBattleCardDataAsset*> BattleCardAssets)
-{
-	if (BattleCardAssets.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BuildHandFromCharacterData failed: CharacterData is null"));
-		return;
-	}
+	const FGeometry& RemovePointGeometry =
+		RemovePoint->GetCachedGeometry();
 
-	ClearHandCards();
+	const FVector2D RemoveAbsolutePosition =
+		RemovePointGeometry.LocalToAbsolute(
+			RemovePointGeometry.GetLocalSize() * 0.5f);
 
-	for (UMuksiBattleCardDataAsset* CardData : BattleCardAssets)
-	{
-		if (!CardData)
-		{
-			continue;
-		}
+	const FVector2D RemoveLocalPosition =
+		HandGeometry.AbsoluteToLocal(
+			RemoveAbsolutePosition);
 
-		AddCardToHand(CardData);
-	}
+	const FVector2D RemoveAnchorOffset =
+		RemoveLocalPosition - HandBottomCenter;
 
-	RequestOrganizeCards(DefaultCardSpacing);
+	CardWidget->MoveToCanvasPosition(
+		RemoveAnchorOffset);
 
-	/*UE_LOG(
-		LogTemp,
-		Log,
-		TEXT("BuildHandFromCharacterData: %s / CardCount=%d"),
-		*GetNameSafe(CharacterData),
-		BattleCards.Num()
-	);	*/
-
-
+	RemoveCardArray.Add(CardWidget);
 }
 
 void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
@@ -1316,15 +700,3 @@ void UHandWidget::RemoveSelectedCardsData()
 	RemoveCardArray.Empty();
 }
 
-void UHandWidget::SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
-{
-	if (CharacterStatusWidget_Player)
-	{
-		CharacterStatusWidget_Player->SetData(Player);
-	}
-
-	if (CharacterStatusWidget_Enemy)
-	{
-		CharacterStatusWidget_Enemy->SetData(Enemy);
-	}
-}

@@ -3,37 +3,37 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "HandWidget.h"
 #include "Blueprint/UserWidget.h"
+#include "ExchangeSlot/ExchangeSlotPanelWidget.h"
 #include "Widget_CardEquipSlot.generated.h"
 
 class UMuksiBattleCardDataAsset;
 class UBorder;
 class UWidget_BattleCardBase;
-class UHandWidget;
 class UOverlay;
 
 /**
  * 
  */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCardUnequipRequested, UWidget_CardEquipSlot*);
 UCLASS()
 class MUKSI_API UWidget_CardEquipSlot : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	FOnCardUnequipRequested OnCardUnequipRequested;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	
 	bool IsPointInsideSlot(const FVector2D& ScreenPosition) const;
 
 	// 카드 위젯 자체를 슬롯에 장착
-	bool EquipCard(UWidget_BattleCardBase* InCard);
-	bool EquipCard_Enemy(UWidget_BattleCardBase* InCard);
+	bool EquipCard(UWidget_BattleCardBase* InCard);//이거 지울거임
+	bool EquipCard_Enemy(UWidget_BattleCardBase* InCard);//이거 지울거임
+	
+	UWidget_BattleCardBase* ReleaseCard();
 	
 	UWidget_BattleCardBase* GetEquipSlot(){return EquippedCard;}
-
-	UFUNCTION(BlueprintPure)
-	FVector2D GetSlotCenterInHandCanvas(UHandWidget* InHandWidget) const;
-
+	
 	UFUNCTION(BlueprintPure)
 	FVector2D GetSlotSize() const;
 
@@ -93,8 +93,7 @@ public:
 
 protected:
 	void RefreshSlotVisual();
-	
-	bool UnequipCard(UHandWidget* HandWidget);
+
 
 protected:
 	//***** BindWidget *****
@@ -117,7 +116,4 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	bool bHighlighted = false;
 	
-public:
-	UPROPERTY()
-	TObjectPtr<UHandWidget> OwningHandWidget = nullptr;
 };
