@@ -5,27 +5,19 @@
 
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 #include "Components/Border.h"
-#include "Components/CanvasPanelSlot.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
-#include "WorldPartition/ContentBundle/ContentBundleLog.h"
-#include "Muksi/Widgets/Battle/HandWidget.h"
-#include "Widgets/Battle/Widget_BattleMainScreen.h"
 
 
 FReply UWidget_CardEquipSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		UE_LOG(LogTemp, Log, TEXT("EquipSlot clicked"));
-		
-		if (bSlotEnabled && bPlayerSlot)
+		if (bSlotEnabled && bPlayerSlot && EquippedCard)
 		{
-			// 장착 카드가 있으면 핸드로 되돌리기
-			UnequipCard(OwningHandWidget);
-
+			OnCardUnequipRequested.Broadcast(this);
 			return FReply::Handled();
-		}	
+		}
 	}
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
@@ -131,21 +123,32 @@ bool UWidget_CardEquipSlot::EquipCard_Enemy(UWidget_BattleCardBase* InCard)
 	return true;
 }
 
-
-FVector2D UWidget_CardEquipSlot::GetSlotCenterInHandCanvas(UHandWidget* InHandWidget) const
+UWidget_BattleCardBase* UWidget_CardEquipSlot::ReleaseCard()
 {
-	if (!InHandWidget){return FVector2D::ZeroVector;}
-	
-	const FGeometry& SlotGeometry = GetCachedGeometry();
-	
-	const FVector2D SlotLocalCenter = SlotGeometry.GetLocalSize() * 0.5f;
-	
-	const FVector2D SlotAbsoluteCenter = SlotGeometry.LocalToAbsolute(SlotLocalCenter);
-	
-	const FGeometry& HandCanvasGeometry = InHandWidget->GetHandCanvasGeometry();
-	
-	return HandCanvasGeometry.AbsoluteToLocal(SlotAbsoluteCenter);
+	if (!EquippedCard)
+	{
+		return nullptr;
+	}
+
+	UWidget_BattleCardBase* CardToReturn = EquippedCard;
+
+	EquippedCard = nullptr;
+
+	SlotData.CardData = nullptr;
+	SlotData.SourceCharacter = nullptr;
+	SlotData.bConfirmed = false;
+
+	bHighlighted = false;
+
+	CardToReturn->RemoveFromParent();
+
+	RefreshSlotVisual();
+
+	return CardToReturn;
 }
+
+
+
 
 
 FVector2D UWidget_CardEquipSlot::GetSlotSize() const
@@ -362,32 +365,32 @@ void UWidget_CardEquipSlot::RefreshSlotVisual()
 	}
 }
 
-bool UWidget_CardEquipSlot::UnequipCard(UHandWidget* HandWidget)
+/*bool UWidget_CardEquipSlot::UnequipCard(UHandWidget* HandWidget)
 {
-	if (!EquippedCard || !HandWidget)
+	if (!HandWidget)
 	{
 		return false;
 	}
 
-	UWidget_BattleCardBase* CardToReturn = EquippedCard;
+	UWidget_BattleCardBase* CardToReturn = ReleaseCard();
 
-	EquippedCard = nullptr;
-	SlotData.CardData = nullptr;
-	SlotData.SourceCharacter = nullptr;
-	SlotData.bConfirmed = false;
-	bHighlighted = false;
+	if (!CardToReturn)
+	{
+		return false;
+	}
 
 	CardToReturn->SetCardRenderAngle(0.0f);
 	CardToReturn->SetVisibility(ESlateVisibility::Visible);
-	HandWidget->PlaceCardInHand(CardToReturn);
-	HandWidget->OrganizeCards(HandWidget->GetDefaultCardSpacing());
 
-	// 슬롯 데이터 정리와 함께 TargetingManager의 플레이어 Targeting 상태도 취소한다.
+	HandWidget->PlaceCardInHand(CardToReturn);
+	HandWidget->OrganizeCards(
+		HandWidget->GetDefaultCardSpacing()
+	);
+
 	if (HandWidget->BattleMainScreen)
 	{
 		HandWidget->BattleMainScreen->NotifyPlayerCardUnequipped();
 	}
 
-	RefreshSlotVisual();
 	return true;
-}
+}*/

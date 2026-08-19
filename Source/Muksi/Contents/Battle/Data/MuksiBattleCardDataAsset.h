@@ -82,9 +82,7 @@ public:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	TArray<FText> CardEffectsDescription;
-public:
-	void TriggerCardEffects(EBattleCardEffectTrigger InTrigger, const FBattleCardEffectContext& Context);
-	void TriggerDamageCardEffects(EBattleCardEffectTrigger InTrigger, const FBattleDamageContext& DamageContext);
+
 	
 	
 };

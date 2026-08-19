@@ -6,7 +6,6 @@
 #include "CommonTextBlock.h"
 #include "HandWidget.h"
 #include "Widget_CardEquipSlot.h"
-#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
@@ -371,8 +370,7 @@ void UWidget_BattleCardBase::PlayDrawToHandAnimation(float InDelay)
 	}
 
 	// 최종 카드 위치에서 SpawnPoint까지의 차이
-	DrawStartTranslation =
-		SpawnPosition - FinalCardPosition;
+	DrawStartTranslation = SpawnPosition - FinalCardPosition;
 
 	SetRenderTranslation(DrawStartTranslation);
 	SetRenderOpacity(0.0f);
