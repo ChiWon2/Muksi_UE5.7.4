@@ -3,7 +3,6 @@
 
 #include "Muksi/Contents/Battle/Passive/Test_RemoveHealth.h"
 
-#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 UTest_RemoveHealth::UTest_RemoveHealth()
@@ -13,18 +12,12 @@ UTest_RemoveHealth::UTest_RemoveHealth()
 	Passive1();
 }
 
-void UTest_RemoveHealth::BindingEvent(ABattleManager* BattleManager)
-{
-	Super::BindingEvent(BattleManager);
-	UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding "));
-}
-
 void UTest_RemoveHealth::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
 {
 	Super::HandleBattlePhaseChanged(OldPhase, NewPhase);
 	switch (NewPhase)
 	{
-	case EBattlePhase::ExchangeStart:
+	case EBattlePhase::RoundStart:
 		Passive1_();
 		break;
 	default:
@@ -34,7 +27,7 @@ void UTest_RemoveHealth::HandleBattlePhaseChanged(EBattlePhase OldPhase, EBattle
 
 void UTest_RemoveHealth::Passive1()
 {
-	FText PassiveDescription1 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">합 시작 시</> 체력을 2 감소합니다."));
+	FText PassiveDescription1 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">국 시작 시</> 체력을 2 감소합니다."));
 	FText PassiveDescription2 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">국 종료 시</> <Effect id=\"Bleed\">출혈</> 2 부여")); 
 	
 	FPassiveTextLine PassiveLine;

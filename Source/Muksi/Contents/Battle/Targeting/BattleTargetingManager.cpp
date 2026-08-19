@@ -82,9 +82,11 @@ bool ABattleTargetingManager::InitializeBattleFlow(ABattleManager* InBattleManag
 
 void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
-    if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext) return;
+    if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext) 
+        return;
     UBattlePhaseTask* Task = TaskContext->RegisterTask(this);
-    if (!Task) return;
+    if (!Task) 
+        return;
     if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager) || !IsValid(BattleSimulationManager))
     {
         UE_LOG(LogTemp, Error, TEXT("[BattleTargetingManager] Failed to resolve phase entry dependencies."));
@@ -169,6 +171,7 @@ void ABattleTargetingManager::ResetCurrentExchangeTargeting()
 {
     GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
     GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
+    
     ClearSelectionAndRevealPreviews();
     PendingPlayerCard = nullptr;
     bPlayerCardSelectionFinished = false;
@@ -320,9 +323,7 @@ void ABattleTargetingManager::RequestCancelPlayerTargeting()
     CancelPlayerCardTargeting();
 }
 
-bool ABattleTargetingManager::RequestUpdatePlayerTargeting(
-    const FHitResult& HitResult,
-    bool bHasHitResult)
+bool ABattleTargetingManager::RequestUpdatePlayerTargeting(const FHitResult& HitResult, bool bHasHitResult)
 {
     if (!IsPlayerCardTargeting())
     {

@@ -20,7 +20,7 @@ public:
 
 private:
 	void HandleProjectileFinished(bool bInterrupted);
-	void RequestOnHitExecutionChain();
+	bool RequestOnHitExecutionChain();
 	void CompleteExecution();
 
 private:

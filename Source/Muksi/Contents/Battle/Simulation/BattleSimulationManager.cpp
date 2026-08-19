@@ -19,11 +19,6 @@ ABattleSimulationManager::ABattleSimulationManager()
 	SimulationPostProcessVolumeClass = ABattleSimulationPostProcessVolume::StaticClass();
 }
 
-void ABattleSimulationManager::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (BattleManager)
@@ -36,18 +31,16 @@ void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	StopSimulation();
 	DestroySimulationWorldManagers();
 	BattleGridManager = nullptr;
-	BattleRuntimeContext = nullptr;
 	BattleManager = nullptr;
 	Super::EndPlay(EndPlayReason);
 }
 
-bool ABattleSimulationManager::InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager)
+bool ABattleSimulationManager::InitializeBattleFlow(ABattleManager* InBattleManager, ABattleGridManager* InBattleGridManager)
 {
-	if (!IsValid(InBattleManager) || !IsValid(InBattleRuntimeContext) || !IsValid(InBattleGridManager))
+	if (!IsValid(InBattleManager) || !IsValid(InBattleManager->GetBattleRuntimeContext()) || !IsValid(InBattleGridManager))
 		return false;
 
 	BattleManager = InBattleManager;
-	BattleRuntimeContext = InBattleRuntimeContext;
 	BattleGridManager = InBattleGridManager;
 	MaxExchangeCount = BattleManager->GetMaxExchangeCount();
 	BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleSimulationManager::HandlePhaseEntryRequested);
@@ -57,9 +50,10 @@ bool ABattleSimulationManager::InitializeBattleFlow(ABattleManager* InBattleMana
 
 bool ABattleSimulationManager::IsSimulationRunning() const
 {
-	if (IsValid(ADWorldManager) && ADWorldManager->IsSimulationRunning()) return true;
-	if (IsValid(DDWorldManager) && DDWorldManager->IsSimulationRunning()) return true;
-	if (IsValid(DAWorldManager) && DAWorldManager->IsSimulationRunning()) return true;
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
+	{
+		if (IsValid(WorldManager) && WorldManager->IsSimulationRunning()) return true;
+	}
 	return false;
 }
 
@@ -117,9 +111,10 @@ ABattleGridManager* ABattleSimulationManager::GetPlayerTargetingSimulationGridMa
 ABattleCharacterBase* ABattleSimulationManager::GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const
 {
 	if (!IsValid(SimulationCharacter)) return nullptr;
-	if (IsValid(ADWorldManager) && ADWorldManager->GetSimulationCharacter(SimulationCharacter->GetSourceCharacter()) == SimulationCharacter) return SimulationCharacter->GetSourceCharacter();
-	if (IsValid(DDWorldManager) && DDWorldManager->GetSimulationCharacter(SimulationCharacter->GetSourceCharacter()) == SimulationCharacter) return SimulationCharacter->GetSourceCharacter();
-	if (IsValid(DAWorldManager) && DAWorldManager->GetSimulationCharacter(SimulationCharacter->GetSourceCharacter()) == SimulationCharacter) return SimulationCharacter->GetSourceCharacter();
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
+	{
+		if (IsValid(WorldManager) && WorldManager->GetSimulationCharacter(SimulationCharacter->GetSourceCharacter()) == SimulationCharacter) return SimulationCharacter->GetSourceCharacter();
+	}
 	return nullptr;
 }
 
@@ -133,9 +128,11 @@ bool ABattleSimulationManager::EnsureSimulationWorldManagers()
 
 bool ABattleSimulationManager::EnsureSimulationWorldManager(TObjectPtr<ABattleSimulationWorldManager>& InOutWorldManager)
 {
-	if (IsValid(InOutWorldManager)) return true;
+	if (IsValid(InOutWorldManager)) 
+		return true;
 	UWorld* World = GetWorld();
-	if (!World) return false;
+	if (!World) 
+		return false;
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = this;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -167,14 +164,24 @@ void ABattleSimulationManager::DestroySimulationWorldManagers()
 	DestroySimulationWorldManager(DAWorldManager);
 }
 
-ABattleSimulationWorldManager* ABattleSimulationManager::ResolveSimulationWorldManager(EBattleSimulationWorldType WorldType) const
+TArray<ABattleSimulationWorldManager*> ABattleSimulationManager::GetSimulationWorldManagers() const
 {
-	switch (WorldType)
+	return { ADWorldManager.Get(), DDWorldManager.Get(), DAWorldManager.Get() };
+}
+
+void ABattleSimulationManager::HideSimulationWorlds()
+{
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
 	{
-	case EBattleSimulationWorldType::PlayerActualEnemyDeceived: return ADWorldManager.Get();
-	case EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived: return DDWorldManager.Get();
-	case EBattleSimulationWorldType::PlayerDeceivedEnemyActual: return DAWorldManager.Get();
-	default: return nullptr;
+		if (IsValid(WorldManager)) WorldManager->SetWorldVisible(false);
+	}
+}
+
+void ABattleSimulationManager::StopSimulationWorlds()
+{
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
+	{
+		if (IsValid(WorldManager)) WorldManager->StopSimulation();
 	}
 }
 
@@ -231,9 +238,10 @@ void ABattleSimulationManager::SetPlayerSimulationViewChangeLocked(bool bLocked)
 
 void ABattleSimulationManager::BroadcastPresentationCharacters()
 {
-	if (!IsValid(BattleRuntimeContext)) return;
-	ABattleCharacterBase* SourcePlayerCharacter = BattleRuntimeContext->GetPlayerCharacter();
-	ABattleCharacterBase* SourceEnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (!IsValid(RuntimeContext)) return;
+	ABattleCharacterBase* SourcePlayerCharacter = RuntimeContext->GetPlayerCharacter();
+	ABattleCharacterBase* SourceEnemyCharacter = RuntimeContext->GetEnemyCharacter();
 	ABattleCharacterBase* PresentationPlayerCharacter = GetPresentationCharacter(SourcePlayerCharacter);
 	ABattleCharacterBase* PresentationEnemyCharacter = GetPresentationCharacter(SourceEnemyCharacter);
 	if (!IsValid(PresentationPlayerCharacter) || !IsValid(PresentationEnemyCharacter)) return;
@@ -248,41 +256,41 @@ void ABattleSimulationManager::RefreshFastForwardForPrimarySimulationWorld()
 	StartSimulationFastForward();
 }
 
-void ABattleSimulationManager::NotifySimulationWorldPhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
-{
-	if (NewPhase != EBattlePhase::ExchangeStart && NewPhase != EBattlePhase::ExchangeEnd) return;
-	if (IsValid(ADWorldManager)) ADWorldManager->NotifyBattlePhaseChanged(OldPhase, NewPhase);
-	if (IsValid(DDWorldManager)) DDWorldManager->NotifyBattlePhaseChanged(OldPhase, NewPhase);
-	if (IsValid(DAWorldManager)) DAWorldManager->NotifyBattlePhaseChanged(OldPhase, NewPhase);
-}
-
 void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext) return;
 	UBattlePhaseTask* Task = TaskContext->RegisterTask(this);
 	if (!Task) return;
-	if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager))
+	if (!IsValid(BattleManager) || !IsValid(BattleManager->GetBattleRuntimeContext()) || !IsValid(BattleGridManager))
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to resolve phase entry dependencies."));
 		Task->Complete();
 		return;
 	}
 
-	if (NewPhase == EBattlePhase::Targeting) SetPlayerSimulationViewInternal(EBattlePlayerSimulationView::ActualSelf);
-	if (NewPhase == EBattlePhase::Targeting) SetPlayerSimulationViewChangeLocked(true);
-	if (OldPhase == EBattlePhase::Targeting && NewPhase != EBattlePhase::Targeting) SetPlayerSimulationViewChangeLocked(false);
-	NotifySimulationWorldPhaseChanged(OldPhase, NewPhase);
+	UpdateSimulationViewForPhaseTransition(OldPhase, NewPhase);
+	ExecutePhaseEntryOperation(NewPhase);
+	Task->Complete();
+}
+
+void ABattleSimulationManager::UpdateSimulationViewForPhaseTransition(EBattlePhase OldPhase, EBattlePhase NewPhase)
+{
+	if (NewPhase == EBattlePhase::Targeting)
+	{
+		SetPlayerSimulationViewInternal(EBattlePlayerSimulationView::ActualSelf);
+		SetPlayerSimulationViewChangeLocked(true);
+		return;
+	}
+
+	if (OldPhase == EBattlePhase::Targeting) SetPlayerSimulationViewChangeLocked(false);
+}
+
+void ABattleSimulationManager::ExecutePhaseEntryOperation(EBattlePhase NewPhase)
+{
 	switch (NewPhase)
 	{
 	case EBattlePhase::CardReveal:
-		if (!PrepareCurrentExchangeSimulation())
-		{
-			UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to prepare exchange simulation."));
-			GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
-			{
-				if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::CardReveal) BattleManager->RestartCurrentExchangeCardSelection();
-			}));
-		}
+		PrepareExchangeOrRestartCardSelection();
 		break;
 	case EBattlePhase::ExchangeEnd:
 	case EBattlePhase::BattleActionSequenceStart:
@@ -295,7 +303,17 @@ void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, 
 	default:
 		break;
 	}
-	Task->Complete();
+}
+
+void ABattleSimulationManager::PrepareExchangeOrRestartCardSelection()
+{
+	if (PrepareCurrentExchangeSimulation()) return;
+
+	UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to prepare exchange simulation."));
+	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::CardReveal) BattleManager->RestartCurrentExchangeCardSelection();
+	}));
 }
 
 bool ABattleSimulationManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
@@ -321,27 +339,28 @@ void ABattleSimulationManager::HandlePhaseExecutionRequested(EBattlePhase OldPha
 	if ((NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::SimulationSequence) || !TaskContext) return;
 	PhaseExecutionTask = TaskContext->RegisterTask(this);
 	if (!PhaseExecutionTask) return;
-	if (NewPhase == EBattlePhase::RoundStart) ExecuteRoundStart();
-	if (NewPhase == EBattlePhase::SimulationSequence) ExecuteSimulationSequence();
+
+	switch (NewPhase)
+	{
+	case EBattlePhase::RoundStart:
+		ExecuteRoundStart();
+		break;
+	case EBattlePhase::SimulationSequence:
+		ExecuteSimulationSequence();
+		break;
+	default:
+		break;
+	}
 }
 
 void ABattleSimulationManager::ExecuteRoundStart()
 {
-
-	if (IsSimulationRunning())
-	{
-		CompletePhaseExecution(EBattlePhase::RoundStart);
-		return;
-	}
-
-	if (!InitializeRoundSimulation())
+	if (!IsSimulationRunning() && !InitializeRoundSimulation())
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to initialize round simulation."));
-		CompletePhaseExecution(EBattlePhase::RoundStart);
-		return;
 	}
 
-	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ABattleSimulationManager::CompletePhaseExecution, EBattlePhase::RoundStart));
+	CompletePhaseExecution(EBattlePhase::RoundStart);
 }
 
 void ABattleSimulationManager::ExecuteSimulationSequence()
@@ -365,83 +384,166 @@ void ABattleSimulationManager::HandleSimulationWorldExchangeFinished(ABattleSimu
 	if (FinishedExchangeIndex != ExchangeCompletionBarrierIndex) return;
 	(void)bSimulationCompleted;
 	(void)FinishedExchange;
+
 	FinishedWorldTypesForCurrentExchange.Add(WorldManager->GetWorldPolicy().WorldType);
 	if (WorldManager == GetPlayerPresentationWorldManager()) SyncWorldSnapshot();
 	RefreshFastForwardForPrimarySimulationWorld();
 	if (!IsExchangeCompletionBarrierSatisfied()) return;
+
+	FinalizeCurrentExchangeSimulation(FinishedExchangeIndex);
+}
+
+void ABattleSimulationManager::FinalizeCurrentExchangeSimulation(int32 FinishedExchangeIndex)
+{
 	StopSimulationFastForward();
-	if (!CommitActualExchangeActions(FinishedExchangeIndex)) UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to commit AA actual exchange actions. Exchange=%d"), FinishedExchangeIndex);
-	const bool bAllSimulationCompleted = AreAllSimulationWorldsCompleted();
-	if (bAllSimulationCompleted) SetPlayerSimulationViewAvailable(false);
-	if (bAllSimulationCompleted) RestoreSourceCharacters();
-	if (bAllSimulationCompleted) DestroySimulationPostProcess();
-	if (bAllSimulationCompleted) RestoreSimulationTimeScale();
+	if (!CommitActualExchangeActions(FinishedExchangeIndex))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to commit AA actual exchange actions. Exchange=%d"), FinishedExchangeIndex);
+	}
+
+	if (AreAllSimulationWorldsCompleted()) ExitSimulationPresentation(false);
+
 	NotifySimulationPhaseFinished(FinishedExchangeIndex);
-	FinishedWorldTypesForCurrentExchange.Empty();
-	ExchangeCompletionBarrierIndex = INDEX_NONE;
+	ClearExchangeCompletionBarrier();
 }
 
 bool ABattleSimulationManager::CommitActualExchangeActions(int32 ExchangeIndex)
 {
-	// Simulation 결과는 Commit하지 않고 BattleRuntimeContext의 AA 원본 Action만 최종 Queue에 보낸다.
-	if (!BattleRuntimeContext) return false;
-	const FBattleAction* PlayerAction = BattleRuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
-	const FBattleAction* EnemyAction = BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
+	// Simulation 결과는 Commit하지 않고 AA 원본 Action만 최종 Queue에 보낸다.
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (!IsValid(RuntimeContext)) return false;
+	const FBattleAction* PlayerAction = RuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
+	const FBattleAction* EnemyAction = RuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
 	if (!PlayerAction || !EnemyAction) return false;
 	if (!ValidateActualExchangeAction(*PlayerAction, ExchangeIndex, true)) return false;
 	if (!ValidateActualExchangeAction(*EnemyAction, ExchangeIndex, false)) return false;
-	BattleRuntimeContext->AppendBattleActionSequenceAction(*PlayerAction);
-	BattleRuntimeContext->AppendBattleActionSequenceAction(*EnemyAction);
+	RuntimeContext->AppendBattleActionSequenceAction(*PlayerAction);
+	RuntimeContext->AppendBattleActionSequenceAction(*EnemyAction);
 	return true;
 }
 
 bool ABattleSimulationManager::ValidateActualExchangeAction(const FBattleAction& Action, int32 ExchangeIndex, bool bExpectedPlayerAction) const
 {
-	if (!BattleRuntimeContext || Action.ExchangeIndex != ExchangeIndex || Action.bPlayerAction != bExpectedPlayerAction) return false;
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (!IsValid(RuntimeContext) || Action.ExchangeIndex != ExchangeIndex || Action.bPlayerAction != bExpectedPlayerAction) return false;
 	if (!IsValid(Action.Attacker) || !IsValid(Action.Card)) return false;
-	ABattleCharacterBase* ExpectedAttacker = bExpectedPlayerAction ? static_cast<ABattleCharacterBase*>(BattleRuntimeContext->GetPlayerCharacter()) : static_cast<ABattleCharacterBase*>(BattleRuntimeContext->GetEnemyCharacter());
+	ABattleCharacterBase* ExpectedAttacker = bExpectedPlayerAction ? static_cast<ABattleCharacterBase*>(RuntimeContext->GetPlayerCharacter()) : static_cast<ABattleCharacterBase*>(RuntimeContext->GetEnemyCharacter());
 	if (Action.Attacker != ExpectedAttacker) return false;
 	return true;
 }
 
 bool ABattleSimulationManager::InitializeRoundSimulation()
 {
-	if (!IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager)) return false;
-	TArray<ABattleCharacterBase*> SourceCharacters;
-	SourceCharacters.Add(BattleRuntimeContext->GetPlayerCharacter());
-	SourceCharacters.Add(BattleRuntimeContext->GetEnemyCharacter());
-	return ResetSimulationWorldsFromActualBattle(BattleGridManager, SourceCharacters);
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (!IsValid(RuntimeContext) || !IsValid(BattleGridManager)) 
+		return false;
+	if (!EnsureSimulationWorldManagers()) 
+		return false;
+
+	const TArray<ABattleCharacterBase*> SourceCharacters = { RuntimeContext->GetPlayerCharacter(), RuntimeContext->GetEnemyCharacter() };
+	ResetRoundSimulationState();
+
+	if (!InitializeSimulationWorldsFromAA(BattleGridManager, SourceCharacters)) return false;
+	if (EnterSimulationPresentation(SourceCharacters)) return true;
+
+	StopSimulation();
+	return false;
+}
+
+void ABattleSimulationManager::ResetRoundSimulationState()
+{
+	RestoreSourceCharacters();
+	DestroySimulationPostProcess();
+	RestoreSimulationTimeScale();
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (IsValid(RuntimeContext)) RuntimeContext->ClearBattleActionSequenceQueue();
+	ClearExchangeCompletionBarrier();
+	SetPlayerSimulationViewAvailable(false);
+	PlayerSimulationView = EBattlePlayerSimulationView::ActualSelf;
+	HideSimulationWorlds();
+}
+
+bool ABattleSimulationManager::InitializeSimulationWorldsFromAA(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+{
+	if (!InitializeSimulationWorldFromAA(ADWorldManager.Get(), EBattleSimulationWorldType::PlayerActualEnemyDeceived, InSourceGridManager, SourceCharacters)) return false;
+	if (!InitializeSimulationWorldFromAA(DDWorldManager.Get(), EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived, InSourceGridManager, SourceCharacters)) return false;
+	if (!InitializeSimulationWorldFromAA(DAWorldManager.Get(), EBattleSimulationWorldType::PlayerDeceivedEnemyActual, InSourceGridManager, SourceCharacters)) return false;
+	return true;
+}
+
+bool ABattleSimulationManager::InitializeSimulationWorldFromAA(ABattleSimulationWorldManager* WorldManager, EBattleSimulationWorldType WorldType, ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+{
+	if (!IsValid(WorldManager))
+		return false;
+	const FBattleSimulationWorldPolicy Policy = FBattleSimulationWorldPolicy::Make(WorldType);
+	if (!WorldManager->InitializeWorld(Policy, BattleManager, MaxExchangeCount, SimulationCharacterClass, PlayerSimulationMaterial.Get(), EnemySimulationMaterial.Get())) 
+		return false;
+	return WorldManager->ResetFromActualBattleState(InSourceGridManager, SourceCharacters);
+}
+
+bool ABattleSimulationManager::EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters)
+{
+	if (!CreateSimulationPostProcess()) 
+		return false;
+
+	HideSourceCharacters(SourceCharacters);
+	
+	SetPlayerSimulationViewAvailable(true);
+
+	PlayerSimulationViewChangedDelegate.Broadcast(PlayerSimulationView);
+	
+	CaptureSimulationTimeScaleBaseline();
+	
+	SetSimulationTimeScale(1.0f);
+	
+	SyncWorldSnapshot();
+	
+	return true;
+}
+
+void ABattleSimulationManager::ExitSimulationPresentation(bool bClearRuntimePreview)
+{
+	SetPlayerSimulationViewAvailable(false);
+	if (bClearRuntimePreview) ClearRuntimeSimulationPreview();
+	RestoreSourceCharacters();
+	DestroySimulationPostProcess();
+	RestoreSimulationTimeScale();
 }
 
 bool ABattleSimulationManager::PrepareCurrentExchangeSimulation()
 {
-	if (!IsSimulationRunning() || !IsValid(BattleRuntimeContext)) return false;
-	const int32 ExchangeIndex = BattleRuntimeContext->GetCurrentExchange();
-	const FBattleAction* PlayerAction = BattleRuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
-	const FBattleAction* EnemyAction = BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (!IsSimulationRunning() || !IsValid(RuntimeContext)) return false;
+	const int32 ExchangeIndex = RuntimeContext->GetCurrentExchange();
+	const FBattleAction* PlayerAction = RuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
+	const FBattleAction* EnemyAction = RuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
 	if (!PlayerAction || !EnemyAction) return false;
-	if (!IsValid(ADWorldManager) || !ADWorldManager->PrepareExchange(ExchangeIndex, *PlayerAction, *EnemyAction)) return false;
-	if (!IsValid(DDWorldManager) || !DDWorldManager->PrepareExchange(ExchangeIndex, *PlayerAction, *EnemyAction)) return false;
-	if (!IsValid(DAWorldManager) || !DAWorldManager->PrepareExchange(ExchangeIndex, *PlayerAction, *EnemyAction)) return false;
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
+	{
+		if (!IsValid(WorldManager) || !WorldManager->PrepareExchange(ExchangeIndex, *PlayerAction, *EnemyAction)) return false;
+	}
 	SyncWorldSnapshot();
 	return true;
 }
 
 bool ABattleSimulationManager::StartCurrentExchangeSimulation()
 {
-	if (!BattleManager || !BattleRuntimeContext || BattleManager->GetCurrentPhase() != EBattlePhase::SimulationSequence) return false;
-	const int32 ExchangeIndex = BattleRuntimeContext->GetCurrentExchange();
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (!IsValid(RuntimeContext) || BattleManager->GetCurrentPhase() != EBattlePhase::SimulationSequence) return false;
+	const int32 ExchangeIndex = RuntimeContext->GetCurrentExchange();
 	ResetExchangeCompletionBarrier(ExchangeIndex);
-	if (!IsValid(ADWorldManager) || !ADWorldManager->ExecuteCurrentExchange()) return false;
-	if (!IsValid(DDWorldManager) || !DDWorldManager->ExecuteCurrentExchange()) return false;
-	if (!IsValid(DAWorldManager) || !DAWorldManager->ExecuteCurrentExchange()) return false;
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
+	{
+		if (!IsValid(WorldManager) || !WorldManager->ExecuteCurrentExchange()) return false;
+	}
 	SyncWorldSnapshot();
 	return true;
 }
 
 void ABattleSimulationManager::NotifySimulationPhaseFinished(int32 FinishedExchangeIndex)
 {
-	if (!BattleManager || !BattleRuntimeContext || BattleManager->GetCurrentPhase() != EBattlePhase::SimulationSequence || BattleRuntimeContext->GetCurrentExchange() != FinishedExchangeIndex)
+	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager) ? BattleManager->GetBattleRuntimeContext() : nullptr;
+	if (!IsValid(RuntimeContext) || BattleManager->GetCurrentPhase() != EBattlePhase::SimulationSequence || RuntimeContext->GetCurrentExchange() != FinishedExchangeIndex)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleSimulationManager] Ignored stale simulation completion. Finished=%d"), FinishedExchangeIndex);
 		return;
@@ -458,61 +560,15 @@ void ABattleSimulationManager::CompletePhaseExecution(EBattlePhase FinishedPhase
 	}
 	UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
 	PhaseExecutionTask = nullptr;
-	if (CompletedTask) CompletedTask->Complete();
-}
-
-bool ABattleSimulationManager::ResetSimulationWorldsFromActualBattle(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
-{
-	if (!IsValid(BattleRuntimeContext) || !IsValid(BattleManager) || !IsValid(InSourceGridManager)) return false;
-	if (!EnsureSimulationWorldManagers()) return false;
-	RestoreSourceCharacters();
-	DestroySimulationPostProcess();
-	RestoreSimulationTimeScale();
-	BattleRuntimeContext->ClearBattleActionSequenceQueue();
-	FinishedWorldTypesForCurrentExchange.Empty();
-	ExchangeCompletionBarrierIndex = INDEX_NONE;
-	SetPlayerSimulationViewAvailable(false);
-	PlayerSimulationView = EBattlePlayerSimulationView::ActualSelf;
-	ADWorldManager->SetWorldVisible(false);
-	DDWorldManager->SetWorldVisible(false);
-	DAWorldManager->SetWorldVisible(false);
-	if (!InitializeSimulationWorldFromActualBattle(ADWorldManager.Get(), EBattleSimulationWorldType::PlayerActualEnemyDeceived, InSourceGridManager, SourceCharacters)) return false;
-	if (!InitializeSimulationWorldFromActualBattle(DDWorldManager.Get(), EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived, InSourceGridManager, SourceCharacters)) return false;
-	if (!InitializeSimulationWorldFromActualBattle(DAWorldManager.Get(), EBattleSimulationWorldType::PlayerDeceivedEnemyActual, InSourceGridManager, SourceCharacters)) return false;
-	if (!CreateSimulationPostProcess())
-	{
-		StopSimulation();
-		return false;
-	}
-	HideSourceCharacters(SourceCharacters);
-	SetPlayerSimulationViewAvailable(true);
-	PlayerSimulationViewChangedDelegate.Broadcast(PlayerSimulationView);
-	CaptureSimulationTimeScaleBaseline();
-	SetSimulationTimeScale(1.0f);
-	SyncWorldSnapshot();
-	return true;
-}
-
-bool ABattleSimulationManager::InitializeSimulationWorldFromActualBattle(ABattleSimulationWorldManager* WorldManager, EBattleSimulationWorldType WorldType, ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
-{
-	if (!IsValid(WorldManager)) return false;
-	const FBattleSimulationWorldPolicy Policy = FBattleSimulationWorldPolicy::Make(WorldType);
-	if (!WorldManager->InitializeWorld(Policy, BattleManager, MaxExchangeCount, SimulationCharacterClass, PlayerSimulationMaterial.Get(), EnemySimulationMaterial.Get())) return false;
-	return WorldManager->ResetFromActualBattleState(InSourceGridManager, SourceCharacters);
+	if (CompletedTask) 
+		CompletedTask->Complete();
 }
 
 void ABattleSimulationManager::StopSimulation()
 {
-	SetPlayerSimulationViewAvailable(false);
-	ClearRuntimeSimulationPreview();
-	RestoreSourceCharacters();
-	DestroySimulationPostProcess();
-	RestoreSimulationTimeScale();
-	if (IsValid(ADWorldManager)) ADWorldManager->StopSimulation();
-	if (IsValid(DDWorldManager)) DDWorldManager->StopSimulation();
-	if (IsValid(DAWorldManager)) DAWorldManager->StopSimulation();
-	FinishedWorldTypesForCurrentExchange.Empty();
-	ExchangeCompletionBarrierIndex = INDEX_NONE;
+	ExitSimulationPresentation(true);
+	StopSimulationWorlds();
+	ClearExchangeCompletionBarrier();
 	SyncWorldSnapshot();
 	if (!IsValid(ADWorldManager))
 	{
@@ -580,9 +636,10 @@ void ABattleSimulationManager::RestoreSourceCharacters()
 
 void ABattleSimulationManager::ClearRuntimeSimulationPreview()
 {
-	if (IsValid(ADWorldManager)) ADWorldManager->ClearRuntimeSimulationPreview();
-	if (IsValid(DDWorldManager)) DDWorldManager->ClearRuntimeSimulationPreview();
-	if (IsValid(DAWorldManager)) DAWorldManager->ClearRuntimeSimulationPreview();
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
+	{
+		if (IsValid(WorldManager)) WorldManager->ClearRuntimeSimulationPreview();
+	}
 }
 
 void ABattleSimulationManager::SyncWorldSnapshot()
@@ -639,6 +696,12 @@ void ABattleSimulationManager::ResetExchangeCompletionBarrier(int32 ExchangeInde
 	ExchangeCompletionBarrierIndex = ExchangeIndex;
 }
 
+void ABattleSimulationManager::ClearExchangeCompletionBarrier()
+{
+	FinishedWorldTypesForCurrentExchange.Empty();
+	ExchangeCompletionBarrierIndex = INDEX_NONE;
+}
+
 bool ABattleSimulationManager::IsExchangeCompletionBarrierSatisfied() const
 {
 	return FinishedWorldTypesForCurrentExchange.Contains(EBattleSimulationWorldType::PlayerActualEnemyDeceived) && FinishedWorldTypesForCurrentExchange.Contains(EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived) && FinishedWorldTypesForCurrentExchange.Contains(EBattleSimulationWorldType::PlayerDeceivedEnemyActual);
@@ -646,8 +709,9 @@ bool ABattleSimulationManager::IsExchangeCompletionBarrierSatisfied() const
 
 bool ABattleSimulationManager::AreAllSimulationWorldsCompleted() const
 {
-	if (!IsValid(ADWorldManager) || ADWorldManager->GetSimulationState() != EBattleSimulationState::Completed) return false;
-	if (!IsValid(DDWorldManager) || DDWorldManager->GetSimulationState() != EBattleSimulationState::Completed) return false;
-	if (!IsValid(DAWorldManager) || DAWorldManager->GetSimulationState() != EBattleSimulationState::Completed) return false;
+	for (ABattleSimulationWorldManager* WorldManager : GetSimulationWorldManagers())
+	{
+		if (!IsValid(WorldManager) || WorldManager->GetSimulationState() != EBattleSimulationState::Completed) return false;
+	}
 	return true;
 }

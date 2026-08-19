@@ -9,11 +9,9 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
-#include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
-#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
@@ -33,20 +31,27 @@ void ABattleSimulationWorldManager::EndPlay(const EEndPlayReason::Type EndPlayRe
 
 bool ABattleSimulationWorldManager::InitializeWorld(const FBattleSimulationWorldPolicy& InWorldPolicy, ABattleManager* InBattleManager, int32 InMaxExchangeCount, TSubclassOf<ABattleSimulationCharacter> InSimulationCharacterClass, UMaterialInterface* InPlayerSimulationMaterial, UMaterialInterface* InEnemySimulationMaterial)
 {
-	if (!InWorldPolicy.UsesSimulationRuntime() || !IsValid(InBattleManager) || !InSimulationCharacterClass) return false;
+	if (!InWorldPolicy.UsesSimulationRuntime() || !IsValid(InBattleManager) || !InSimulationCharacterClass) 
+		return false;
+
 	WorldPolicy = InWorldPolicy;
 	BattleManager = InBattleManager;
 	MaxExchangeCount = InMaxExchangeCount;
 	SimulationCharacterClass = InSimulationCharacterClass;
 	PlayerSimulationMaterial = InPlayerSimulationMaterial;
 	EnemySimulationMaterial = InEnemySimulationMaterial;
-	if (!SimulationTargetingPresentationController) SimulationTargetingPresentationController = NewObject<UTargetingPresentationController>(this);
+
+	if (!SimulationTargetingPresentationController) 
+		SimulationTargetingPresentationController = NewObject<UTargetingPresentationController>(this);
+
 	return IsValid(SimulationTargetingPresentationController);
 }
 
 bool ABattleSimulationWorldManager::ResetFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	if (!IsValid(BattleManager)) return false;
+	if (!IsValid(BattleManager)) 
+		return false;
+
 	ResetSimulationRuntime();
 	SetSimulationState(EBattleSimulationState::Starting);
 	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(InSourceGridManager))
@@ -63,28 +68,21 @@ bool ABattleSimulationWorldManager::ResetFromActualBattleState(ABattleGridManage
 void ABattleSimulationWorldManager::SetWorldVisible(bool bVisible)
 {
 	const bool bWasWorldVisible = bWorldVisible;
+
 	if (!bVisible && bWasWorldVisible) ClearRuntimeSimulationPreview();
 	if (!bVisible && bWasWorldVisible && SimulationGridManager) SimulationGridManager->AllClearGridHovered();
 	if (!bVisible && bWasWorldVisible && SimulationGridManager) SimulationGridManager->AllClearExchangeIndicator();
 	bWorldVisible = bVisible;
+
 	if (SimulationGridManager) SimulationGridManager->SetTilePresentationEnabled(bWorldVisible);
+
 	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
 	{
 		if (IsValid(Pair.Value)) Pair.Value->SetActorHiddenInGame(!bWorldVisible);
 	}
+
 	if (SimulationGridManager) SimulationGridManager->SetActorHiddenInGame(!bWorldVisible);
 	if (bWorldVisible && bHasCachedPresentation) RefreshSimulationTargetingPresentation(CachedPresentationAction, CachedPresentationResolvedTargeting);
-}
-
-void ABattleSimulationWorldManager::NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
-{
-	if (NewPhase != EBattlePhase::ExchangeStart && NewPhase != EBattlePhase::ExchangeEnd) return;
-	for (ABattleSimulationCharacter* SimulationCharacter : SimulationCharacterOrder)
-	{
-		if (!IsValid(SimulationCharacter)) continue;
-		if (UCharacterPassiveComponent* PassiveComponent = SimulationCharacter->GetPassiveComponent()) PassiveComponent->NotifyBattlePhaseChanged(OldPhase, NewPhase);
-		if (UMuksiStatusEffectComponent* StatusEffectComponent = SimulationCharacter->GetStatusEffectComponent()) StatusEffectComponent->NotifyBattlePhaseChanged(OldPhase, NewPhase);
-	}
 }
 
 bool ABattleSimulationWorldManager::PrepareExchange(int32 ExchangeIndex, const FBattleAction& PlayerAction, const FBattleAction& EnemyAction)
@@ -213,7 +211,6 @@ bool ABattleSimulationWorldManager::CreateSimulationExecutionEnvironment(ABattle
 	}
 	UGameplayStatics::FinishSpawningActor(SimulationSequenceManager, FTransform::Identity);
 	SimulationSequenceManager->BattleGridManager = SimulationGridManager;
-	SimulationSequenceManager->BattleActionStartDelegate.AddUObject(this, &ABattleSimulationWorldManager::HandleSimulationBattleActionStart);
 	SimulationSequenceManager->OnSequenceFinished.AddUObject(this, &ABattleSimulationWorldManager::HandleSimulationSequenceFinished);
 	SimulationSequenceManager->OnExecutionEntryStarted.AddUObject(this, &ABattleSimulationWorldManager::HandleSimulationExecutionStarted);
 	SimulationTargetingPresentationController->Initialize(SimulationGridManager);
@@ -271,19 +268,6 @@ void ABattleSimulationWorldManager::HandleSimulationActionFinished()
 	if (!SimulationGridManager) return;
 	SimulationGridManager->AllClearGridHovered();
 	SimulationGridManager->AllClearExchangeIndicator();
-}
-
-void ABattleSimulationWorldManager::HandleSimulationBattleActionStart(const FBattleAction& BattleAction)
-{
-	FBattleAction WorldBattleAction = BattleAction;
-	UMuksiBattleCardDataAsset* ExecutionOverride = GetExecutionOverride(WorldBattleAction, WorldPolicy.GetKnowledge(WorldBattleAction.bPlayerAction));
-	if (IsValid(ExecutionOverride)) WorldBattleAction.Card = ExecutionOverride;
-	for (ABattleSimulationCharacter* SimulationCharacter : SimulationCharacterOrder)
-	{
-		if (!IsValid(SimulationCharacter)) continue;
-		if (UCharacterPassiveComponent* PassiveComponent = SimulationCharacter->GetPassiveComponent()) PassiveComponent->NotifyBattleActionStart(WorldBattleAction);
-		if (UMuksiStatusEffectComponent* StatusEffectComponent = SimulationCharacter->GetStatusEffectComponent()) StatusEffectComponent->NotifyBattleActionStart(WorldBattleAction);
-	}
 }
 
 void ABattleSimulationWorldManager::RefreshSimulationTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting)
@@ -390,7 +374,6 @@ void ABattleSimulationWorldManager::DestroySimulationRuntime()
 	{
 		SimulationSequenceManager->OnSequenceFinished.RemoveAll(this);
 		SimulationSequenceManager->OnExecutionEntryStarted.RemoveAll(this);
-		SimulationSequenceManager->BattleActionStartDelegate.RemoveAll(this);
 		SimulationSequenceManager->Destroy();
 		SimulationSequenceManager = nullptr;
 	}

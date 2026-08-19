@@ -3,107 +3,60 @@
 
 #include "Muksi/Contents/Battle/Passive/CharacterPassive.h"
 
-#include "Muksi/Contents/Battle/BattleManager.h"
-#include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
 
 void UCharacterPassive::BeginDestroy()
 {
-	NotifyRoundPhaseExecutionFinished();
-
-	if (CachedBattleManager)
-	{
-		CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
-		CachedBattleManager = nullptr;
-	}
-
+	CompleteExecution();
 	Super::BeginDestroy();
 }
 
-void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner)
+void UCharacterPassive::InitializePassive(ABattleCharacterBase* InOwner, UCharacterPassiveComponent* InOwnerComponent)
 {
 	OwnerCharacter = InOwner;
+	OwnerComponent = InOwnerComponent;
 }
-
-void UCharacterPassive::CopyRuntimeStateFrom(const UCharacterPassive& SourcePassive, ABattleCharacterBase* InOwner)
+void UCharacterPassive::Execute(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion)
 {
-	NotifyRoundPhaseExecutionFinished();
-	if (CachedBattleManager) CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
-	CachedBattleManager = nullptr;
-	OwnerCharacter = InOwner;
-	Priority = SourcePassive.Priority;
-	bEnabled = SourcePassive.bEnabled;
-	bWaitForManualRoundPhaseCompletion = SourcePassive.bWaitForManualRoundPhaseCompletion;
-}
-
-void UCharacterPassive::BindingEvent(ABattleManager* BattleManager)
-{
-	if (CachedBattleManager)
+	if (bExecutionActive)
 	{
-		CachedBattleManager->BattleActionStartDelegate.RemoveAll(this);
+		UE_LOG(LogTemp, Warning, TEXT("[CharacterPassive] Execution is already active."));
+		CompleteExecution();
+		return;
 	}
 
-	CachedBattleManager = BattleManager;
-	if (CachedBattleManager)
+	if (!bEnabled)
 	{
-		CachedBattleManager->BattleActionStartDelegate.AddUObject(this, &UCharacterPassive::HandleBattleActionStart);
+		if (IsValid(OwnerComponent)) 
+			OwnerComponent->NotifyPassiveExecutionFinished(this);
+		return;
 	}
+
+	bExecutionActive = true;
+	HandleExecution(OldPhase, NewPhase, bAllowDeferredCompletion);
 }
 
-void UCharacterPassive::NotifyBattleActionStart(const FBattleAction& BattleAction)
+void UCharacterPassive::CompleteExecution()
 {
-	HandleBattleActionStart(BattleAction);
+	if (!bExecutionActive)
+	{
+		return;
+	}
+
+	bExecutionActive = false;
+	if (IsValid(OwnerComponent)) OwnerComponent->NotifyPassiveExecutionFinished(this);
 }
 
-void UCharacterPassive::NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase)
+void UCharacterPassive::HandleExecution(EBattlePhase OldPhase, EBattlePhase NewPhase, bool bAllowDeferredCompletion)
 {
-	if (!bEnabled || NewPhase == EBattlePhase::RoundStart || NewPhase == EBattlePhase::RoundEnd) return;
+	static_cast<void>(bAllowDeferredCompletion);
 	HandleBattlePhaseChanged(OldPhase, NewPhase);
+	CompleteExecution();
 }
 
-void UCharacterPassive::ExecuteRoundPhase(
-	EBattlePhase NewPhase,
-	FSimpleDelegate CompletionDelegate)
+void UCharacterPassive::HandleBattlePhaseChanged(EBattlePhase OldPhase,EBattlePhase NewPhase)
 {
-	if (bRoundPhaseExecutionActive)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[CharacterPassive] Round phase execution is already active."));
-		CompletionDelegate.ExecuteIfBound();
-		return;
-	}
-
-	if (!bEnabled || (NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::RoundEnd))
-	{
-		CompletionDelegate.ExecuteIfBound();
-		return;
-	}
-
-	bRoundPhaseExecutionActive = true;
-	RoundPhaseCompletionDelegate = MoveTemp(CompletionDelegate);
-	HandleBattlePhaseChanged(EBattlePhase::None, NewPhase);
-
-	if (!bWaitForManualRoundPhaseCompletion)
-	{
-		NotifyRoundPhaseExecutionFinished();
-	}
-}
-
-void UCharacterPassive::NotifyRoundPhaseExecutionFinished()
-{
-	if (!bRoundPhaseExecutionActive)
-	{
-		return;
-	}
-
-	bRoundPhaseExecutionActive = false;
-	FSimpleDelegate CompletionDelegate = MoveTemp(RoundPhaseCompletionDelegate);
-	RoundPhaseCompletionDelegate.Unbind();
-	CompletionDelegate.ExecuteIfBound();
-}
-
-void UCharacterPassive::HandleBattlePhaseChanged(
-	EBattlePhase OldPhase,
-	EBattlePhase NewPhase)
-{
+	// Override this function to handle battle phase changes.
 	static_cast<void>(OldPhase);
 	static_cast<void>(NewPhase);
 }

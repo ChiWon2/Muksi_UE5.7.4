@@ -23,8 +23,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSimulationWorldStateChanged, ABatt
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleSimulationWorldExchangeFinished, ABattleSimulationWorldManager*, int32, bool, const FBattleSimulationExchange&);
 
 /**
- * Simulation 세계 하나의 Runtime을 소유한다.
- * Character 복제, 독립 Grid Runtime, Sequence 실행, Exchange 상태를 이 객체 내부에 격리한다.
+ * AD / DD / DA 중 할당받은 Simulation World 하나의 Runtime을 소유한다.
+ * AA 상태에서 Character와 Grid를 복제하고 해당 World 정책으로 Targeting과 Sequence를 실행한다.
+ * 다른 Simulation World의 생성, 표시 전환, 동시 완료 집계와 AA Action Commit에는 관여하지 않는다.
  */
 UCLASS()
 class MUKSI_API ABattleSimulationWorldManager : public AActor
@@ -45,7 +46,6 @@ public:
 	void StopSimulation();
 	void ClearRuntimeSimulationPreview();
 	void SetWorldVisible(bool bVisible);
-	void NotifyBattlePhaseChanged(EBattlePhase OldPhase, EBattlePhase NewPhase);
 
 	bool IsSimulationRunning() const;
 	bool IsWorldVisible() const { return bWorldVisible; }
@@ -71,7 +71,6 @@ private:
 	bool BuildSimulationSequenceRequest(const FBattleSimulationActionPlan& ActionPlan, FBattleSequenceRequest& OutRequest) const;
 	void HandleSimulationActionStarted(const FBattleAction& Action);
 	void HandleSimulationActionFinished();
-	void HandleSimulationBattleActionStart(const FBattleAction& BattleAction);
 	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
 	void HandleSimulationSequenceFinished();
 	void RefreshSimulationTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);

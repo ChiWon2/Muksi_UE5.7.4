@@ -21,7 +21,7 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 	}
 
 	SourceCharacter = const_cast<ABattleCharacterBase*>(InSourceCharacter);
-	CopyBattleStateFrom(*InSourceCharacter);
+	CopySimulationStateFrom(*InSourceCharacter);
 	SetActorTransform(InSourceCharacter->GetActorTransform());
 
 	USkeletalMeshComponent* SourceMeshComponent = InSourceCharacter->GetMeshComponent();

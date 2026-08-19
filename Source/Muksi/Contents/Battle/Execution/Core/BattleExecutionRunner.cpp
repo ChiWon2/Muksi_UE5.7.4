@@ -4,11 +4,14 @@ void UBattleExecutionRunner::Run(const TArray<FBattleExecutionEntry>& InExecutio
 {
 	ExecutionEntries = InExecutionEntries;
 	CachedContext = Context;
+	CachedContext.RequestRuntimeExecutionChain.BindUObject(this, &UBattleExecutionRunner::HandleRuntimeExecutionChainRequested);
 	CurrentExecutionContext = FBattleExecutionContext();
 	CachedOnEntryStarted = OnEntryStarted;
 	CachedOnEntryFinished = OnEntryFinished;
 	CachedOnFinished = OnFinished;
 	CurrentExecution = nullptr;
+	ActiveNestedExecutionRunners.Reset();
+	NestedRunnerCompletionDelegates.Reset();
 	CurrentExecutionIndex = INDEX_NONE;
 	bWaitingForCurrentExecution = false;
 	bRunnerFinished = false;
@@ -32,7 +35,7 @@ void UBattleExecutionRunner::ExecuteNextExecution()
 
 	if (!ExecutionEntries.IsValidIndex(CurrentExecutionIndex))
 	{
-		FinishRunner();
+		TryFinishRunner();
 		return;
 	}
 
@@ -83,6 +86,63 @@ void UBattleExecutionRunner::HandleCurrentExecutionFinished()
 	ExecuteNextExecution();
 }
 
+bool UBattleExecutionRunner::HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate)
+{
+	if (bRunnerFinished || !bWaitingForCurrentExecution || InExecutionEntries.IsEmpty())
+	{
+		return false;
+	}
+
+	if (Context.NestedChainDepth >= MaxNestedChainDepth)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleExecutionRunner] Max nested Chain depth reached. Depth=%d"), Context.NestedChainDepth);
+		return false;
+	}
+
+	UBattleExecutionRunner* NestedRunner = NewObject<UBattleExecutionRunner>(this);
+	if (!NestedRunner)
+	{
+		return false;
+	}
+
+	FBattleExecutionContext NestedContext = Context;
+	NestedContext.NestedChainDepth = Context.NestedChainDepth + 1;
+
+	ActiveNestedExecutionRunners.Add(NestedRunner);
+	NestedRunnerCompletionDelegates.Add(NestedRunner, MoveTemp(CompletionDelegate));
+
+	FBattleExecutionRunnerFinished OnFinished;
+	OnFinished.BindUObject(this, &UBattleExecutionRunner::HandleNestedExecutionRunnerFinished);
+	NestedRunner->Run(InExecutionEntries, NestedContext, CachedOnEntryStarted, CachedOnEntryFinished, OnFinished);
+	return true;
+}
+
+void UBattleExecutionRunner::HandleNestedExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
+{
+	if (bRunnerFinished || !FinishedRunner || ActiveNestedExecutionRunners.RemoveSingle(FinishedRunner) == 0)
+	{
+		return;
+	}
+
+	FSimpleDelegate CompletionDelegate;
+	if (FSimpleDelegate* FoundDelegate = NestedRunnerCompletionDelegates.Find(FinishedRunner))
+	{
+		CompletionDelegate = MoveTemp(*FoundDelegate);
+		NestedRunnerCompletionDelegates.Remove(FinishedRunner);
+	}
+
+	CompletionDelegate.ExecuteIfBound();
+	TryFinishRunner();
+}
+
+void UBattleExecutionRunner::TryFinishRunner()
+{
+	if (!bRunnerFinished && !bWaitingForCurrentExecution && ActiveNestedExecutionRunners.IsEmpty() && !ExecutionEntries.IsValidIndex(CurrentExecutionIndex))
+	{
+		FinishRunner();
+	}
+}
+
 void UBattleExecutionRunner::FinishRunner()
 {
 	if (bRunnerFinished)
@@ -94,6 +154,8 @@ void UBattleExecutionRunner::FinishRunner()
 	bWaitingForCurrentExecution = false;
 	CurrentExecution = nullptr;
 	ExecutionEntries.Empty();
+	ActiveNestedExecutionRunners.Empty();
+	NestedRunnerCompletionDelegates.Empty();
 	CachedContext = FBattleExecutionContext();
 	CurrentExecutionContext = FBattleExecutionContext();
 	CurrentExecutionIndex = INDEX_NONE;

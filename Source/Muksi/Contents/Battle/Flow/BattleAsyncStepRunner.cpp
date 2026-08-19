@@ -15,7 +15,7 @@ bool UBattleAsyncStepRunner::Start(TArray<FBattleAsyncStep>&& InSteps, FSimpleDe
     bRunning = true;
     ExecuteNextStep();
     return true;
-}
+} 
 
 void UBattleAsyncStepRunner::Cancel()
 {

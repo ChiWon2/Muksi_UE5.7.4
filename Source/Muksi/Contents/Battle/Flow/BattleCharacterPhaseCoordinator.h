@@ -28,26 +28,24 @@ protected:
     virtual void BeginDestroy() override;
 
 private:
-    UFUNCTION()
-    void HandlePhasePrepRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
-
-    bool HandlesPhasePrep(EBattlePhase Phase) const;
-    bool UsesSequentialRoundExecution(EBattlePhase Phase) const;
-    void BeginCharacterPhaseExecution(EBattlePhase OldPhase, EBattlePhase NewPhase);
-    void ExecutePassiveStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
-    void ExecuteStatusEffectStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
-    void FinishCharacterPhaseExecution(EBattlePhase FinishedPhase);
-    void CompletePhasePrepIfCurrent(EBattlePhase FinishedPhase);
-    void CancelCharacterPhaseExecution();
-
-private:
     UPROPERTY(Transient)
     TObjectPtr<ABattleManager> BattleManager = nullptr;
 
     UPROPERTY(Transient)
+    TObjectPtr<UBattlePhaseTask> PhasePrepTask = nullptr;
+
+    UPROPERTY(Transient)
     TObjectPtr<UBattleAsyncStepRunner> StepRunner = nullptr;
 
-    EBattlePhase ExecutingPhase = EBattlePhase::None;
-    UPROPERTY(Transient)
-    TObjectPtr<UBattlePhaseTask> PhasePrepTask = nullptr;
+private:
+    bool HandlesPhasePrep(EBattlePhase Phase) const;
+    UFUNCTION()
+    void HandlePhasePrepRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
+
+    void BeginCharacterPhaseExecution(EBattlePhase OldPhase, EBattlePhase NewPhase);
+    void ExecutePassiveStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
+    void ExecuteStatusEffectStep(ABattleCharacterBase* Character, EBattlePhase OldPhase, EBattlePhase NewPhase, const FSimpleDelegate& CompletionDelegate) const;
+    void FinishCharacterPhaseExecution(EBattlePhase FinishedPhase);
+    void CancelCharacterPhaseExecution();
+
 };

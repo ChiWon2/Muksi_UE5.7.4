@@ -1,59 +1,45 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Muksi/Contents/Battle/StatusEffect/Effects/SaeMaekStatusEffect.h"
 
-#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
-#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
-#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectIDs.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
+#include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
+#include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-void USaeMaekStatusEffect::OnRoundStart()
+void USaeMaekStatusEffect::BuildBattleActionStartExecutions(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutions)
 {
-	if (!IsValid(OwnerComponent))
-	{
-		SetStack(0);
-		return;
-	}
-
-	const int32 ParalysisStack = GetCurrentStack();
-
-	if (ParalysisStack > 0)
-	{
-		OwnerComponent->AddStatusEffect(
-			MuksiStatusEffectIDs::Paralysis,
-			ParalysisStack,
-			1
-		);
-	}
-	
-}
-
-void USaeMaekStatusEffect::OnRoundEnd()
-{
-	SetStack(GetCurrentStack() - 1);
-}
-
-void USaeMaekStatusEffect::OnBattleActionStart(const FBattleAction& BattleAction)
-{
-	//여긴 Bleed랑 똑같이 BattleAction보고 해당 카드 타입이 공격카드이면 위력만큼 체력 감소
-	//일단 카드 타입은 넘어가기
-	ABattleCharacterBase* OwnerCharacter = Cast<ABattleCharacterBase>(OwnerActor);
-	if (!IsValid(OwnerCharacter))
-	{
-		return;
-	}
-	UBattleStatComponent* StatComponent =
-		OwnerCharacter->GetBattleStatComponent();
-
-	if (!IsValid(StatComponent))
+	if (!BattleAction.Card || BattleAction.Card->CardTypeInfo.CardType != EMuksiBattleCardType::Attack || GetCurrentStack() <= 0)
 	{
 		return;
 	}
 
-	const int32 BleedDamage = GetCurrentStack();
+	FBattleExecutionEntry DamageEntry;
+	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
+	DamageEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
 
-	StatComponent->ApplyDamage(
-		static_cast<float>(BleedDamage)
-	);
+	FDamageExecutionData DamageData;
+	DamageData.TargetPolicy = EDamageExecutionTargetPolicy::Attacker;
+	DamageData.DamageValue = GetCurrentStack();
+	DamageData.bTriggerHitReaction = true;
+	DamageData.bTriggerStatusEffectReactions = true;
+	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
+
+	OutExecutions.Add(MoveTemp(DamageEntry));
+
+	FBattleExecutionEntry SubtractEntry;
+	SubtractEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
+	SubtractEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
+
+	FStatusEffectExecutionData SubtractData;
+	SubtractData.Operation = EStatusEffectExecutionOperation::Subtract;
+	SubtractData.EffectID = GetEffectID();
+	SubtractData.StackCount = 1;
+	SubtractEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(SubtractData);
+
+	OutExecutions.Add(MoveTemp(SubtractEntry));
 }

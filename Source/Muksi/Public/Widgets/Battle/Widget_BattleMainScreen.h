@@ -118,18 +118,12 @@ protected:
 	void UnbindBattleManagerEvents();
 	void BindBattleSequenceManagerEvents();
 	void UnbindBattleSequenceManagerEvents();
-	void BindBattleSimulationManagerEvents();
-	void UnbindBattleSimulationManagerEvents();
 
 	UFUNCTION()
 	void HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
 	void CompletePhaseUI(EBattlePhase FinishedPhase);
 
-	UFUNCTION()
-	void HandleSimulationPresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter);
-
-	void SetPresentationCharacterData(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter);
 	void HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction);
 
 	//====================================Ready<준비>===================================================================

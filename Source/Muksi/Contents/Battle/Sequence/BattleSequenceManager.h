@@ -146,7 +146,6 @@ private:
 	void StartMainExecutionChain();
 	void StartNotifyExecutionChains(FName NotifyKey);
 	void StartExecutionRunner(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
-	void HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
 
 	UFUNCTION()
 	void HandleBattleExecutionNotify(FName NotifyKey);

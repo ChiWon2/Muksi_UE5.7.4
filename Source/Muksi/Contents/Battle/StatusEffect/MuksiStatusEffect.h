@@ -5,8 +5,9 @@
 #include "UObject/Object.h"
 #include "MuksiStatusEffect.generated.h"
 
-class UMuksiStatusEffectComponent;
 struct FBattleAction;
+struct FBattleExecutionContext;
+struct FBattleExecutionEntry;
 
 UCLASS(Abstract, BlueprintType)
 class MUKSI_API UMuksiStatusEffect : public UObject
@@ -18,9 +19,6 @@ protected:
     TObjectPtr<AActor> OwnerActor;
 
     UPROPERTY()
-    TObjectPtr<UMuksiStatusEffectComponent> OwnerComponent;
-
-    UPROPERTY()
     FName EffectID = NAME_None;
 
     UPROPERTY()
@@ -29,39 +27,21 @@ protected:
     UPROPERTY()
     int32 RemainingDuration = 1;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "StatusEffect|Execution")
-    bool bWaitForManualRoundPhaseCompletion = false;
-
-private:
-    FSimpleDelegate RoundPhaseCompletionDelegate;
-    bool bRoundPhaseExecutionActive = false;
-
 public:
-    virtual void BeginDestroy() override;
-    virtual void Initialize(AActor* InOwnerActor,UMuksiStatusEffectComponent* InOwnerComponent,FName InEffectID,int32 InStackCount,int32 InDuration);
-    virtual void CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor, UMuksiStatusEffectComponent* InOwnerComponent);
-
-    void ExecuteRoundPhase(EBattlePhase Phase, FSimpleDelegate CompletionDelegate);
-
-    UFUNCTION(BlueprintCallable, Category = "StatusEffect|Execution")
-    void NotifyRoundPhaseExecutionFinished();
+    void Initialize(AActor* InOwnerActor,FName InEffectID,int32 InStackCount,int32 InDuration);
+    void CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor);
 
 public:
     virtual void OnApplied();
     virtual void OnRemoved();
 
     virtual void OnReapplied(int32 AddedStack,int32 AddedDuration);
+
 public:
-
-    virtual void OnRoundStart();
-    virtual void OnExchangeStart();
-
-    virtual void OnBattleActionSequenceStart();
-    virtual void OnBattleActionStart(const FBattleAction& BattleAction);
-    virtual void OnBattleActionSequenceEnd();
-
-    virtual void OnExchangeEnd();
-    virtual void OnRoundEnd();
+	virtual void BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions);
+	virtual void BuildBattleActionStartExecutions(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutions);
+	virtual void BuildHitDealtExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions);
+	virtual void BuildHitReceivedExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions);
 
 public:
 
@@ -73,15 +53,7 @@ public:
 
     void ConsumeStack(int32 Amount = 1);
 
-    void SetStack(int32 NewStack);
-
-public:
-
-    void AddDuration(int32 Amount);
-
     void ConsumeDuration(int32 Amount = 1);
-
-    void SetDuration(int32 NewDuration);
 
 public:
     FORCEINLINE

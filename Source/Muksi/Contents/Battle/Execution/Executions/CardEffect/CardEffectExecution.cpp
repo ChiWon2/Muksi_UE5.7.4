@@ -48,6 +48,7 @@ void UCardEffectExecution::Execute(const FBattleExecutionContext& Context, FBatt
 		EffectContext.User = Context.Attacker;
 		EffectContext.Target = TargetCharacter;
 		EffectContext.Card = Context.Card;
+		EffectContext.ExecutionMode = Context.ExecutionMode;
 
 		EffectData->CardEffect->Execute(
 			EffectContext

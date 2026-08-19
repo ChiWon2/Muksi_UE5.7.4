@@ -4,14 +4,28 @@
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "DamageExecutionData.generated.h"
 
+UENUM(BlueprintType)
+enum class EDamageExecutionTargetPolicy : uint8
+{
+	ResolvedTargeting,
+	ExecutionTarget,
+	Attacker
+};
+
 USTRUCT(BlueprintType)
 struct FDamageExecutionData : public FBattleExecutionData
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
+	EDamageExecutionTargetPolicy TargetPolicy = EDamageExecutionTargetPolicy::ResolvedTargeting;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage", meta = (ClampMin = "0"))
 	int32 DamageValue = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
 	bool bTriggerHitReaction = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
+	bool bTriggerStatusEffectReactions = true;
 };

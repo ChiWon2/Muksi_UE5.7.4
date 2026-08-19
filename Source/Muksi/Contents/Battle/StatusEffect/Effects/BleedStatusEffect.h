@@ -15,7 +15,6 @@ class MUKSI_API UBleedStatusEffect : public UMuksiStatusEffect
 	GENERATED_BODY()
 	
 public:
-	virtual void OnBattleActionStart(const FBattleAction& BattleAction) override;
-	virtual void OnRoundEnd() override;
+	virtual void BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions) override;
 	
 };

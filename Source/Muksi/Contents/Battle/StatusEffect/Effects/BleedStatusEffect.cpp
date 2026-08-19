@@ -3,45 +3,40 @@
 
 #include "Muksi/Contents/Battle/StatusEffect/Effects/BleedStatusEffect.h"
 
-#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
+#include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
+#include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-
-void UBleedStatusEffect::OnBattleActionStart(const FBattleAction& BattleAction)
+void UBleedStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions)
 {
-	//BattleAction에서 공격 카드 타입 확인하는건 패스
-	ABattleCharacterBase* OwnerCharacter = Cast<ABattleCharacterBase>(OwnerActor);
-	if (!IsValid(OwnerCharacter))
-	{
-		return;
-	}
-	UBattleStatComponent* StatComponent =
-		OwnerCharacter->GetBattleStatComponent();
+	static_cast<void>(OldPhase);
 
-	if (!IsValid(StatComponent))
+	if (NewPhase != EBattlePhase::RoundStart || GetCurrentStack() <= 0)
 	{
 		return;
 	}
 
-	const int32 BleedDamage = GetCurrentStack();
+	FBattleExecutionEntry DamageEntry;
+	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
+	DamageEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
 
-	StatComponent->ApplyDamage(
-		static_cast<float>(BleedDamage)
-	);
-}
+	FDamageExecutionData DamageData;
+	DamageData.TargetPolicy = EDamageExecutionTargetPolicy::ExecutionTarget;
+	DamageData.DamageValue = GetCurrentStack();
+	DamageData.bTriggerHitReaction = true;
+	DamageData.bTriggerStatusEffectReactions = false;
+	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
+	OutExecutions.Add(MoveTemp(DamageEntry));
 
-void UBleedStatusEffect::OnRoundEnd()
-{
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("[Bleed] RoundEnd | Removed")
-	);
+	FBattleExecutionEntry RemoveEntry;
+	RemoveEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
+	RemoveEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
 
-	/*
-	 * 일반 출혈은 국 소모 시 전부 사라진다.
-	 * Stack이 0이 되면 StatusEffectComponent가
-	 * RemoveExpiredEffects()에서 제거한다.
-	 */
-	SetStack(0);
+	FStatusEffectExecutionData RemoveData;
+	RemoveData.Operation = EStatusEffectExecutionOperation::Remove;
+	RemoveData.EffectID = GetEffectID();
+	RemoveEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(RemoveData);
+	OutExecutions.Add(MoveTemp(RemoveEntry));
 }

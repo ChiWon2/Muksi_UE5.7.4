@@ -23,6 +23,9 @@ public:
 private:
 	void ExecuteNextExecution();
 	void HandleCurrentExecutionFinished();
+	bool HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate);
+	void HandleNestedExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
+	void TryFinishRunner();
 	void FinishRunner();
 	bool ShouldExecuteEntry(const FBattleExecutionEntry& Entry) const;
 
@@ -33,8 +36,12 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UBattleExecution> CurrentExecution = nullptr;
 
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UBattleExecutionRunner>> ActiveNestedExecutionRunners;
+
 	FBattleExecutionContext CachedContext;
 	FBattleExecutionContext CurrentExecutionContext;
+	TMap<UBattleExecutionRunner*, FSimpleDelegate> NestedRunnerCompletionDelegates;
 	FBattleExecutionEntryStarted CachedOnEntryStarted;
 	FBattleExecutionEntryFinished CachedOnEntryFinished;
 	FBattleExecutionRunnerFinished CachedOnFinished;
@@ -42,4 +49,5 @@ private:
 	int32 CurrentExecutionIndex = INDEX_NONE;
 	bool bWaitingForCurrentExecution = false;
 	bool bRunnerFinished = false;
+	static constexpr int32 MaxNestedChainDepth = 16;
 };
