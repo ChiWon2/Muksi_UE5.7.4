@@ -9,7 +9,6 @@
 
 class ABattleCharacterBase;
 class ABattleGridManager;
-class ABattleManager;
 class ABattleSequenceManager;
 class ABattleSimulationCharacter;
 class ABattleSimulationWorldManager;
@@ -19,12 +18,11 @@ class UTargetingPresentationController;
 struct FBattleSequenceRequest;
 struct FBattleExecutionEntry;
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSimulationWorldStateChanged, ABattleSimulationWorldManager*, EBattleSimulationState);
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleSimulationWorldExchangeFinished, ABattleSimulationWorldManager*, int32, bool, const FBattleSimulationExchange&);
 
 /**
- * AD / DD / DA 중 할당받은 Simulation World 하나의 Runtime을 소유한다.
- * AA 상태에서 Character와 Grid를 복제하고 해당 World 정책으로 Targeting과 Sequence를 실행한다.
+ * AD / DD / DA 중 할당받은 Simulation World 하나의 Persistent Runtime을 소유한다.
+ * BattleStart에 Character와 Grid 및 Sequence를 생성하고 RoundStart에 AA 상태를 복사해 재사용한다.
  * 다른 Simulation World의 생성, 표시 전환, 동시 완료 집계와 AA Action Commit에는 관여하지 않는다.
  */
 UCLASS()
@@ -39,7 +37,8 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	bool InitializeWorld(const FBattleSimulationWorldPolicy& InWorldPolicy, ABattleManager* InBattleManager, int32 InMaxExchangeCount, TSubclassOf<ABattleSimulationCharacter> InSimulationCharacterClass, UMaterialInterface* InPlayerSimulationMaterial, UMaterialInterface* InEnemySimulationMaterial);
+	bool InitializeWorld(const FBattleSimulationWorldPolicy& InWorldPolicy, TSubclassOf<ABattleSimulationCharacter> InSimulationCharacterClass, UMaterialInterface* InPlayerSimulationMaterial, UMaterialInterface* InEnemySimulationMaterial);
+	bool PrepareSimulationRuntime(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool ResetFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool PrepareExchange(int32 ExchangeIndex, const FBattleAction& PlayerAction, const FBattleAction& EnemyAction);
 	bool ExecuteCurrentExchange();
@@ -48,6 +47,7 @@ public:
 	void SetWorldVisible(bool bVisible);
 
 	bool IsSimulationRunning() const;
+	bool IsSimulationRuntimeReady() const;
 	bool IsWorldVisible() const { return bWorldVisible; }
 	EBattleSimulationState GetSimulationState() const { return SimulationState; }
 	const FBattleSimulationExchange& GetCurrentExchange() const { return CurrentExchange; }
@@ -55,9 +55,7 @@ public:
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
 	ABattleGridManager* GetSimulationGridManager() const { return SimulationGridManager; }
-	ABattleGridManager* GetSourceGridManager() const { return SourceGridManager; }
 
-	FOnBattleSimulationWorldStateChanged StateChangedDelegate;
 	FOnBattleSimulationWorldExchangeFinished ExchangeFinishedDelegate;
 
 private:
@@ -66,11 +64,12 @@ private:
 	UMuksiBattleCardDataAsset* GetExecutionOverride(const FBattleAction& Action, EBattleSimulationKnowledge Knowledge) const;
 	bool CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool CreateSimulationExecutionEnvironment(ABattleGridManager* InSourceGridManager);
+	bool CanReuseSimulationRuntime(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters) const;
+	bool ResetSimulationRuntimeFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool TryExecuteCurrentExchange();
 	bool ExecuteSimulationAction(const FBattleSimulationActionPlan& ActionPlan);
 	bool BuildSimulationSequenceRequest(const FBattleSimulationActionPlan& ActionPlan, FBattleSequenceRequest& OutRequest) const;
-	void HandleSimulationActionStarted(const FBattleAction& Action);
-	void HandleSimulationActionFinished();
+	void ClearSimulationActionPresentation();
 	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
 	void HandleSimulationSequenceFinished();
 	void RefreshSimulationTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);
@@ -79,6 +78,7 @@ private:
 	void DestroySimulationRuntime();
 	void ResetSimulationRuntime();
 	void SetSimulationState(EBattleSimulationState NewState);
+	int32 GetMaxExchangeCount() const;
 
 private:
 	UPROPERTY(Transient)
@@ -91,9 +91,6 @@ private:
 	FBattleSimulationExchange CurrentExchange;
 
 	UPROPERTY(Transient)
-	int32 MaxExchangeCount = 3;
-
-	UPROPERTY(Transient)
 	TSubclassOf<ABattleSimulationCharacter> SimulationCharacterClass;
 
 	UPROPERTY(Transient)
@@ -101,12 +98,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInterface> EnemySimulationMaterial = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleManager> BattleManager = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleGridManager> SourceGridManager = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> SimulationGridManager = nullptr;
@@ -119,9 +110,6 @@ private:
 
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> SimulationCharacterMap;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<ABattleSimulationCharacter>> SimulationCharacterOrder;
 
 	UPROPERTY(Transient)
 	FBattleAction CachedPresentationAction;

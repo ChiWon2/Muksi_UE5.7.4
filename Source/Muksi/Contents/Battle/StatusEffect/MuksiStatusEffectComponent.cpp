@@ -32,6 +32,14 @@ void UMuksiStatusEffectComponent::CopyRuntimeStateFrom(const UMuksiStatusEffectC
     }
 }
 
+void UMuksiStatusEffectComponent::ResetRuntimeState()
+{
+	FinishExecution();
+	const bool bHadActiveEffects = !ActiveEffects.IsEmpty();
+	ActiveEffects.Reset();
+	if (bHadActiveEffects) OnStatusEffectsChanged.Broadcast();
+}
+
 void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     FinishExecution();
@@ -162,7 +170,7 @@ int32 UMuksiStatusEffectComponent::GetEffectStackCount(FName EffectID) const
     {
         return 0;
     }
-    
+
     for (UMuksiStatusEffect* Effect : ActiveEffects)
     {
         if (Effect && Effect->GetEffectID() == EffectID)

@@ -67,7 +67,7 @@ bool ABattleManager::InitializeBattleFlow()
     if (!BattleSetupManager->InitializeBattleFlow(this, BattleGridManager))
         return false;
 
-    if (!BattleSimulationManager->InitializeBattleFlow(this, BattleGridManager))
+    if (!BattleSimulationManager->InitializeBattleFlow(this))
         return false;
 
     if (!BattleTargetingManager->InitializeBattleFlow(this, BattleRuntimeContext, BattleGridManager, BattleSimulationManager))

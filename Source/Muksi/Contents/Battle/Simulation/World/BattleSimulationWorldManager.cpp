@@ -10,6 +10,7 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
+#include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
@@ -25,38 +26,54 @@ ABattleSimulationWorldManager::ABattleSimulationWorldManager()
 void ABattleSimulationWorldManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	DestroySimulationRuntime();
-	BattleManager = nullptr;
 	Super::EndPlay(EndPlayReason);
 }
 
-bool ABattleSimulationWorldManager::InitializeWorld(const FBattleSimulationWorldPolicy& InWorldPolicy, ABattleManager* InBattleManager, int32 InMaxExchangeCount, TSubclassOf<ABattleSimulationCharacter> InSimulationCharacterClass, UMaterialInterface* InPlayerSimulationMaterial, UMaterialInterface* InEnemySimulationMaterial)
+bool ABattleSimulationWorldManager::InitializeWorld(const FBattleSimulationWorldPolicy& InWorldPolicy, TSubclassOf<ABattleSimulationCharacter> InSimulationCharacterClass, UMaterialInterface* InPlayerSimulationMaterial, UMaterialInterface* InEnemySimulationMaterial)
 {
-	if (!InWorldPolicy.UsesSimulationRuntime() || !IsValid(InBattleManager) || !InSimulationCharacterClass) 
+	if (!InWorldPolicy.UsesSimulationRuntime() || !InSimulationCharacterClass)
 		return false;
 
 	WorldPolicy = InWorldPolicy;
-	BattleManager = InBattleManager;
-	MaxExchangeCount = InMaxExchangeCount;
 	SimulationCharacterClass = InSimulationCharacterClass;
 	PlayerSimulationMaterial = InPlayerSimulationMaterial;
 	EnemySimulationMaterial = InEnemySimulationMaterial;
 
-	if (!SimulationTargetingPresentationController) 
+	if (!SimulationTargetingPresentationController)
 		SimulationTargetingPresentationController = NewObject<UTargetingPresentationController>(this);
 
 	return IsValid(SimulationTargetingPresentationController);
 }
 
-bool ABattleSimulationWorldManager::ResetFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+bool ABattleSimulationWorldManager::PrepareSimulationRuntime(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	if (!IsValid(BattleManager)) 
-		return false;
+	if (!IsValid(SourceGridManager) || SourceCharacters.IsEmpty()) return false;
+	if (IsSimulationRuntimeReady()) return true;
 
-	ResetSimulationRuntime();
-	SetSimulationState(EBattleSimulationState::Starting);
-	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(InSourceGridManager))
+	DestroySimulationRuntime();
+	if (!CreateSimulationCharacters(SourceCharacters) || !CreateSimulationExecutionEnvironment(SourceGridManager))
 	{
 		ResetSimulationRuntime();
+		return false;
+	}
+
+	CurrentExchange.Reset(INDEX_NONE);
+	SetWorldVisible(false);
+	SetSimulationState(EBattleSimulationState::Idle);
+	return true;
+}
+
+bool ABattleSimulationWorldManager::ResetFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+{
+	if (!IsValid(InSourceGridManager) || SourceCharacters.IsEmpty() || !IsSimulationRuntimeReady())
+		return false;
+	if (SimulationSequenceManager && SimulationSequenceManager->IsSequenceRunning())
+		return false;
+
+	SetSimulationState(EBattleSimulationState::Starting);
+	if (!CanReuseSimulationRuntime(InSourceGridManager, SourceCharacters) || !ResetSimulationRuntimeFromActualBattleState(InSourceGridManager, SourceCharacters))
+	{
+		SetSimulationState(EBattleSimulationState::Idle);
 		return false;
 	}
 	CurrentExchange.Reset(0);
@@ -119,6 +136,11 @@ bool ABattleSimulationWorldManager::IsSimulationRunning() const
 	return SimulationState != EBattleSimulationState::Idle && SimulationState != EBattleSimulationState::Completed;
 }
 
+bool ABattleSimulationWorldManager::IsSimulationRuntimeReady() const
+{
+	return IsValid(SimulationGridManager) && IsValid(SimulationSequenceManager) && !SimulationCharacterMap.IsEmpty();
+}
+
 ABattleSimulationCharacter* ABattleSimulationWorldManager::GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const
 {
 	if (!IsValid(SourceCharacter)) return nullptr;
@@ -168,7 +190,6 @@ bool ABattleSimulationWorldManager::CreateSimulationCharacters(const TArray<ABat
 		UMaterialInterface* TeamMaterial = SourceCharacter->IsA<ABattleCharacter_Player>() ? PlayerSimulationMaterial.Get() : EnemySimulationMaterial.Get();
 		SimulationCharacter->InitializeFromCharacter(SourceCharacter, TeamMaterial);
 		SimulationCharacterMap.Add(SourceCharacter, SimulationCharacter);
-		SimulationCharacterOrder.Add(SimulationCharacter);
 	}
 	return SimulationCharacterMap.Num() == SourceCharacters.Num();
 }
@@ -177,20 +198,17 @@ bool ABattleSimulationWorldManager::CreateSimulationExecutionEnvironment(ABattle
 {
 	UWorld* World = GetWorld();
 	if (!World || !IsValid(InSourceGridManager)) return false;
-	SourceGridManager = InSourceGridManager;
-	SimulationGridManager = World->SpawnActorDeferred<ABattleGridManager>(ABattleGridManager::StaticClass(), SourceGridManager->GetActorTransform(), this);
+	SimulationGridManager = World->SpawnActorDeferred<ABattleGridManager>(ABattleGridManager::StaticClass(), InSourceGridManager->GetActorTransform(), this);
 	if (!SimulationGridManager)
 	{
-		SourceGridManager = nullptr;
 		return false;
 	}
 	SimulationGridManager->SetGridGenerationEnabled(false);
-	UGameplayStatics::FinishSpawningActor(SimulationGridManager, SourceGridManager->GetActorTransform());
-	if (!SimulationGridManager->InitializeRuntimeGridFromSource(SourceGridManager))
+	UGameplayStatics::FinishSpawningActor(SimulationGridManager, InSourceGridManager->GetActorTransform());
+	if (!SimulationGridManager->InitializeRuntimeGridFromSource(InSourceGridManager))
 	{
 		SimulationGridManager->Destroy();
 		SimulationGridManager = nullptr;
-		SourceGridManager = nullptr;
 		return false;
 	}
 	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
@@ -198,7 +216,6 @@ bool ABattleSimulationWorldManager::CreateSimulationExecutionEnvironment(ABattle
 		if (SimulationGridManager->ReplaceGridActor(Pair.Key.Get(), Pair.Value.Get())) continue;
 		SimulationGridManager->Destroy();
 		SimulationGridManager = nullptr;
-		SourceGridManager = nullptr;
 		return false;
 	}
 	SimulationSequenceManager = World->SpawnActorDeferred<ABattleSequenceManager>(ABattleSequenceManager::StaticClass(), FTransform::Identity, this);
@@ -206,7 +223,6 @@ bool ABattleSimulationWorldManager::CreateSimulationExecutionEnvironment(ABattle
 	{
 		SimulationGridManager->Destroy();
 		SimulationGridManager = nullptr;
-		SourceGridManager = nullptr;
 		return false;
 	}
 	UGameplayStatics::FinishSpawningActor(SimulationSequenceManager, FTransform::Identity);
@@ -214,6 +230,38 @@ bool ABattleSimulationWorldManager::CreateSimulationExecutionEnvironment(ABattle
 	SimulationSequenceManager->OnSequenceFinished.AddUObject(this, &ABattleSimulationWorldManager::HandleSimulationSequenceFinished);
 	SimulationSequenceManager->OnExecutionEntryStarted.AddUObject(this, &ABattleSimulationWorldManager::HandleSimulationExecutionStarted);
 	SimulationTargetingPresentationController->Initialize(SimulationGridManager);
+	return true;
+}
+
+bool ABattleSimulationWorldManager::CanReuseSimulationRuntime(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters) const
+{
+	if (!IsValid(InSourceGridManager) || !IsValid(SimulationGridManager) || !IsValid(SimulationSequenceManager)) return false;
+	if (SimulationSequenceManager->IsSequenceRunning() || SimulationCharacterMap.Num() != SourceCharacters.Num()) return false;
+	for (ABattleCharacterBase* SourceCharacter : SourceCharacters)
+	{
+		const TObjectPtr<ABattleSimulationCharacter>* SimulationCharacter = SimulationCharacterMap.Find(SourceCharacter);
+		if (!IsValid(SourceCharacter) || !SimulationCharacter || !IsValid(SimulationCharacter->Get())) return false;
+	}
+	return true;
+}
+
+bool ABattleSimulationWorldManager::ResetSimulationRuntimeFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+{
+	bHasCachedPresentation = false;
+	CachedPresentationAction = FBattleAction();
+	CachedPresentationResolvedTargeting = FResolvedTargeting();
+	ClearRuntimeSimulationPreview();
+	if (!SimulationGridManager->InitializeRuntimeGridFromSource(InSourceGridManager)) return false;
+	for (ABattleCharacterBase* SourceCharacter : SourceCharacters)
+	{
+		ABattleSimulationCharacter* SimulationCharacter = GetSimulationCharacter(SourceCharacter);
+		if (!IsValid(SimulationCharacter)) return false;
+		UMaterialInterface* TeamMaterial = SourceCharacter->IsA<ABattleCharacter_Player>() ? PlayerSimulationMaterial.Get() : EnemySimulationMaterial.Get();
+		SimulationCharacter->InitializeFromCharacter(SourceCharacter, TeamMaterial);
+		if (!SimulationGridManager->ReplaceGridActor(SourceCharacter, SimulationCharacter)) return false;
+	}
+	SimulationGridManager->AllClearGridHovered();
+	SimulationGridManager->AllClearExchangeIndicator();
 	return true;
 }
 
@@ -231,9 +279,9 @@ bool ABattleSimulationWorldManager::ExecuteSimulationAction(const FBattleSimulat
 	if (!SimulationSequenceManager) return false;
 	FBattleSequenceRequest Request;
 	if (!BuildSimulationSequenceRequest(ActionPlan, Request)) return false;
-	HandleSimulationActionStarted(ActionPlan.SequenceAction);
+	ClearSimulationActionPresentation();
 	if (SimulationSequenceManager->StartSequenceWithRequest(Request)) return true;
-	HandleSimulationActionFinished();
+	ClearSimulationActionPresentation();
 	return false;
 }
 
@@ -249,18 +297,7 @@ bool ABattleSimulationWorldManager::BuildSimulationSequenceRequest(const FBattle
 	return true;
 }
 
-void ABattleSimulationWorldManager::HandleSimulationActionStarted(const FBattleAction& Action)
-{
-	(void)Action;
-	bHasCachedPresentation = false;
-	if (!bWorldVisible) return;
-	ClearRuntimeSimulationPreview();
-	if (!SimulationGridManager) return;
-	SimulationGridManager->AllClearGridHovered();
-	SimulationGridManager->AllClearExchangeIndicator();
-}
-
-void ABattleSimulationWorldManager::HandleSimulationActionFinished()
+void ABattleSimulationWorldManager::ClearSimulationActionPresentation()
 {
 	bHasCachedPresentation = false;
 	if (!bWorldVisible) return;
@@ -334,7 +371,7 @@ void ABattleSimulationWorldManager::HandleSimulationExecutionStarted(const FBatt
 
 void ABattleSimulationWorldManager::HandleSimulationSequenceFinished()
 {
-	HandleSimulationActionFinished();
+	ClearSimulationActionPresentation();
 	if (SimulationState == EBattleSimulationState::ExecutingFirstAction)
 	{
 		SetSimulationState(EBattleSimulationState::ExecutingSecondAction);
@@ -350,7 +387,7 @@ void ABattleSimulationWorldManager::FinishCurrentExchange()
 	const FBattleSimulationExchange FinishedExchange = CurrentExchange;
 	const int32 FinishedExchangeIndex = FinishedExchange.ExchangeIndex;
 	const int32 NextExchangeIndex = FinishedExchangeIndex + 1;
-	const bool bSimulationCompleted = NextExchangeIndex >= MaxExchangeCount;
+	const bool bSimulationCompleted = NextExchangeIndex >= GetMaxExchangeCount();
 	if (bSimulationCompleted)
 	{
 		SetSimulationState(EBattleSimulationState::FinishingSimulation);
@@ -382,13 +419,11 @@ void ABattleSimulationWorldManager::DestroySimulationRuntime()
 		SimulationGridManager->Destroy();
 		SimulationGridManager = nullptr;
 	}
-	SourceGridManager = nullptr;
 	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
 	{
 		if (IsValid(Pair.Value)) Pair.Value->Destroy();
 	}
 	SimulationCharacterMap.Empty();
-	SimulationCharacterOrder.Empty();
 }
 
 void ABattleSimulationWorldManager::ResetSimulationRuntime()
@@ -402,5 +437,11 @@ void ABattleSimulationWorldManager::SetSimulationState(EBattleSimulationState Ne
 {
 	if (SimulationState == NewState) return;
 	SimulationState = NewState;
-	StateChangedDelegate.Broadcast(this, SimulationState);
+}
+
+int32 ABattleSimulationWorldManager::GetMaxExchangeCount() const
+{
+	const ABattleSimulationManager* SimulationManager = Cast<ABattleSimulationManager>(GetOwner());
+	const ABattleManager* OwningBattleManager = IsValid(SimulationManager) ? SimulationManager->GetBattleManager() : nullptr;
+	return IsValid(OwningBattleManager) ? OwningBattleManager->GetMaxExchangeCount() : 0;
 }

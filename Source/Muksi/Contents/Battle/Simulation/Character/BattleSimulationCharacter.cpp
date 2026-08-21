@@ -1,10 +1,12 @@
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 
+#include "Animation/AnimInstance.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Materials/MaterialInterface.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 
 ABattleSimulationCharacter::ABattleSimulationCharacter()
 {
@@ -19,6 +21,9 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 	{
 		return;
 	}
+	if (BattleMovementComponent) BattleMovementComponent->StopMovement(false);
+	if (MeshComponent && MeshComponent->GetAnimInstance()) MeshComponent->GetAnimInstance()->Montage_Stop(0.0f);
+	if (StatusEffectComponent) StatusEffectComponent->ResetRuntimeState();
 
 	SourceCharacter = const_cast<ABattleCharacterBase*>(InSourceCharacter);
 	CopySimulationStateFrom(*InSourceCharacter);
