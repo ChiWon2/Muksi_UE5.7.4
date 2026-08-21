@@ -6,7 +6,6 @@
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
-#include "Muksi/Contents/Battle/Flow/BattleFlowDelegates.h"
 #include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "BattleSequenceManager.generated.h"
 
@@ -23,10 +22,7 @@ class UTargetingPresentationController;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveCardRevealRequested, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
-DECLARE_MULTICAST_DELEGATE(FOnBattleActionFinished);
-DECLARE_MULTICAST_DELEGATE(FOnBattleActionSequenceFinished);
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleExecutionEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FResolvedTargeting&);
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleExecutionEntryFinished, const FBattleAction&, const FBattleExecutionEntry&, int32, const FResolvedTargeting&);
 
 UCLASS()
 class MUKSI_API ABattleSequenceManager : public AActor
@@ -41,24 +37,13 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	// 단일 BattleAction Sequence가 실제 실행을 시작하는 순간 발생한다.
-	// Simulation / BattleActionSequence 모두 StartSequenceWithRequest()를 통과하므로 공통 발생 지점이다.
-	FOnBattleActionStart BattleActionStartDelegate;
-
 	// 실제 BattleActionQueue에서 변초 Action 실행 직전에 Reveal UI를 요청한다.
 	FOnDeceiveCardRevealRequested DeceiveCardRevealRequestedDelegate;
 
 	// 단일 Action의 Execution Chain 완료 이벤트. Simulation에서도 기존대로 사용한다.
 	FOnBattleSequenceFinished OnSequenceFinished;
 
-	// Queue의 개별 Battle Action 완료 이벤트.
-	FOnBattleActionFinished OnBattleActionFinished;
-
-	// 정렬된 전체 Battle Action Queue 완료 이벤트.
-	FOnBattleActionSequenceFinished OnBattleActionSequenceFinished;
-
 	FOnBattleExecutionEntryStarted OnExecutionEntryStarted;
-	FOnBattleExecutionEntryFinished OnExecutionEntryFinished;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
 	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
@@ -153,7 +138,6 @@ private:
 	FBattleExecutionContext MakeExecutionContext(FName NotifyKey);
 
 	void HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext);
-	void HandleExecutionEntryFinished(const FBattleExecutionEntry& Entry, int32 EntryIndex, const FBattleExecutionContext& ExecutionContext);
 	void HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
 	void TryFinishSequence();
 	void FinishSequence();

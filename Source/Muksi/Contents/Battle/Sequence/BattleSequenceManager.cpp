@@ -35,7 +35,6 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (BattleManager)
 	{
-		BattleActionStartDelegate.RemoveAll(BattleManager);
 		BattleManager->PhaseExecutionRequestedDelegate.RemoveDynamic(this, &ABattleSequenceManager::HandlePhaseExecutionRequested);
 	}
 	PhaseExecutionTask = nullptr;
@@ -66,7 +65,6 @@ bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InBattleManage
 
 	TargetingPresentationController->Initialize(BattleGridManager);
 
-	BattleActionStartDelegate.AddUObject(BattleManager, &ABattleManager::NotifyBattleActionStart);
 	return true;
 }
 
@@ -164,7 +162,7 @@ bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceReque
 		return false;
 	}
 
-	BattleActionStartDelegate.Broadcast(CurrentAction);
+	if (BattleManager) BattleManager->NotifyBattleActionStart(CurrentAction);
 	StartMainExecutionChain();
 	return true;
 }
@@ -301,7 +299,6 @@ void ABattleSequenceManager::HandleCurrentBattleActionFinished()
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Battle Action Finished. Index=%d"), CurrentBattleActionIndex);
 	ClearBattleActionPresentation();
-	OnBattleActionFinished.Broadcast();
 	FinishCurrentBattleAction();
 }
 
@@ -336,7 +333,6 @@ void ABattleSequenceManager::FinishBattleActionSequence()
 	UE_LOG(LogTemp, Log, TEXT("[BattleSequenceManager] Battle Action Sequence Finished."));
 	ClearBattleActionPresentation();
 	ResetBattleActionSequence();
-	OnBattleActionSequenceFinished.Broadcast();
 	NotifyBattleActionSequenceCompleted();
 }
 
@@ -579,13 +575,10 @@ void ABattleSequenceManager::StartExecutionRunner(const TArray<FBattleExecutionE
 	FBattleExecutionEntryStarted OnEntryStarted;
 	OnEntryStarted.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryStarted);
 
-	FBattleExecutionEntryFinished OnEntryFinished;
-	OnEntryFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryFinished);
-
 	FBattleExecutionRunnerFinished OnFinished;
 	OnFinished.BindUObject(this, &ABattleSequenceManager::HandleExecutionRunnerFinished);
 
-	ExecutionRunner->Run(ExecutionEntries, Context, OnEntryStarted, OnEntryFinished, OnFinished);
+	ExecutionRunner->Run(ExecutionEntries, Context, OnEntryStarted, FBattleExecutionEntryFinished(), OnFinished);
 }
 
 FBattleExecutionContext ABattleSequenceManager::MakeExecutionContext(FName NotifyKey)
@@ -638,19 +631,6 @@ void ABattleSequenceManager::HandleExecutionEntryStarted(
 	}
 
 	OnExecutionEntryStarted.Broadcast(CurrentAction, Entry, EntryIndex, CurrentResolvedTargeting);
-}
-
-void ABattleSequenceManager::HandleExecutionEntryFinished(
-	const FBattleExecutionEntry& Entry,
-	int32 EntryIndex,
-	const FBattleExecutionContext& ExecutionContext)
-{
-	if (!bSequenceRunning)
-	{
-		return;
-	}
-
-	OnExecutionEntryFinished.Broadcast(CurrentAction, Entry, EntryIndex, ExecutionContext.ResolvedTargeting);
 }
 
 void ABattleSequenceManager::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
