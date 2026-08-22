@@ -20,4 +20,5 @@ public:
 private:
 	ABattleGridManager* ResolveGridManager();
 	UPROPERTY(Transient) TObjectPtr<ABattleGridManager> GridManager;
+	UPROPERTY(Transient) TArray<FHexOffsetCoord> HoveredCoords;
 };

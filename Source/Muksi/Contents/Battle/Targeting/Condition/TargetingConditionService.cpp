@@ -15,6 +15,7 @@ bool UTargetingConditionService::Evaluate(const FTargetingCondNode& Conditions, 
     Context->SourceCharacter = Request.SourceCharacter;
     Context->TargetCharacter = Request.TargetCharacter;
     Context->GridManager = Request.GridManager;
+    Context->GridWorldType = Request.GridWorldType;
     Context->OriginCoord = Request.OriginCoord;
     Context->CandidateCoord = Request.CandidateCoord;
     Context->ResolvedCoord = Request.ResolvedCoord;

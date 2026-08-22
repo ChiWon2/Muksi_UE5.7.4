@@ -14,6 +14,7 @@ class MUKSI_API UTileSelection : public UTargetSelection
 public:
 	virtual void EvaluateCandidate(
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& CandidateCoord,
 		const FInstancedStruct& SelectionData,

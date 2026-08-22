@@ -23,8 +23,7 @@ void ABattleGridManager::BeginPlay()
 
 void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	RuntimeSourceGridManager = nullptr;
-	bRuntimeGridInstance = false;
+	GridStates.Reset();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -32,10 +31,7 @@ void ABattleGridManager::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	if (bGenerateGridOnConstruction)
-	{
-		GenerateGrid();
-	}
+	GenerateGrid();
 }
 
 bool ABattleGridManager::IsValidCoord(const FHexOffsetCoord& Coord) const
@@ -44,31 +40,27 @@ bool ABattleGridManager::IsValidCoord(const FHexOffsetCoord& Coord) const
 	return Coord.X >= 0 && Coord.X < Layout.GridWidth && Coord.Y >= 0 && Coord.Y < Layout.GridHeight;
 }
 
-ABattleGridTile* ABattleGridManager::GetTileActorByCoord(const FHexOffsetCoord& Coord)
+ABattleGridTile* ABattleGridManager::GetTileActorByCoord(const FHexOffsetCoord& Coord) const
 {
-	FBattleGridCell* Cell = GetCellByCoord(Coord);
+	const FBattleGridCell* Cell = GetCellByCoord(EBattleSimulationWorldType::PlayerActualEnemyActual, Coord);
 	return Cell ? Cell->TileActor.Get() : nullptr;
 }
 
 const FBattleGridLayoutSettings& ABattleGridManager::GetLayoutSettings() const
 {
-	if (IsValid(RuntimeSourceGridManager))
-	{
-		return RuntimeSourceGridManager->GetLayoutSettings();
-	}
 	check(BattleGridGeneratorComponent);
 	return BattleGridGeneratorComponent->GetLayoutSettings();
 }
 
 //Test Hex Cell Dir Cal
-void ABattleGridManager::PlaceCharacter(ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& Coord)
+void ABattleGridManager::PlaceCharacter(EBattleSimulationWorldType WorldType, ABattleCharacterBase* CharacterBase, const FHexOffsetCoord& Coord)
 {
 	if (!CharacterBase)
 	{
 		return;
 	}
 
-	const FBattleGridCell* Cell = GetCellByCoord(Coord);
+	const FBattleGridCell* Cell = GetCellByCoord(WorldType, Coord);
 
 	if (!Cell || !Cell->TileActor)
 	{
@@ -79,33 +71,28 @@ void ABattleGridManager::PlaceCharacter(ABattleCharacterBase* CharacterBase, con
 
 	CharacterBase->SetActorTransform(Cell->TileActor->GetCharacterSpawnTransform());
 	CharacterBase->SetCharacterPosition(Coord);
-	SetOccupied(Coord, CharacterBase);
+	SetOccupied(WorldType, Coord, CharacterBase);
 }
 
 void ABattleGridManager::GenerateGrid()
 {
-	if (IsRuntimeGridInstance())
-	{
-		return;
-	}
 	if (BattleGridGeneratorComponent)
 	{
 		BattleGridGeneratorComponent->GenerateTiles();
+	}
+	for (auto It = GridStates.CreateIterator(); It; ++It)
+	{
+		if (It.Key() != EBattleSimulationWorldType::PlayerActualEnemyActual) It.RemoveCurrent();
 	}
 }
 
 void ABattleGridManager::ClearGrid()
 {
-	if (IsRuntimeGridInstance())
-	{
-		GridCells.Reset();
-		TargetGridArray.Reset();
-		return;
-	}
 	if (BattleGridGeneratorComponent)
 	{
 		BattleGridGeneratorComponent->ClearTiles();
 	}
+	GridStates.Reset();
 }
 
 int32 ABattleGridManager::CoordToIndex(const FHexOffsetCoord& Coord) const
@@ -131,8 +118,9 @@ bool ABattleGridManager::GetPresentationWorldLocationByCoord(const FHexOffsetCoo
 	OutWorldLocation = FVector::ZeroVector;
 	if (!IsValidCoord(Coord)) return false;
 	const int32 Index = CoordToIndex(Coord);
-	if (!GridCells.IsValidIndex(Index)) return false;
-	OutWorldLocation = GridCells[Index].WorldLocation;
+	const TArray<FBattleGridCell>& ActualCells = GetGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual);
+	if (!ActualCells.IsValidIndex(Index)) return false;
+	OutWorldLocation = ActualCells[Index].WorldLocation;
 	return true;
 }
 
@@ -187,16 +175,24 @@ float ABattleGridManager::GetWorldRadiusByGridRange(int32 GridRange, bool bInclu
 	return WorldRadius;
 }
 
-FBattleGridCell* ABattleGridManager::GetCellByCoord(const FHexOffsetCoord& Coord)
+const FBattleGridCell* ABattleGridManager::GetCellByCoord(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord) const
 {
 	if (!IsValidCoord(Coord))
 	{
 		return nullptr;
 	}
 
-	TArray<FBattleGridCell>& ActiveCells = GetActiveGridCells();
+	const TArray<FBattleGridCell>& Cells = GetGridCells(WorldType);
 	const int32 Index = CoordToIndex(Coord);
-	return ActiveCells.IsValidIndex(Index) ? &ActiveCells[Index] : nullptr;
+	return Cells.IsValidIndex(Index) ? &Cells[Index] : nullptr;
+}
+
+FBattleGridCell* ABattleGridManager::GetMutableCellByCoord(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord)
+{
+	if (!IsValidCoord(Coord)) return nullptr;
+	TArray<FBattleGridCell>& Cells = GetMutableGridCells(WorldType);
+	const int32 Index = CoordToIndex(Coord);
+	return Cells.IsValidIndex(Index) ? &Cells[Index] : nullptr;
 }
 
 TArray<FHexOffsetCoord> ABattleGridManager::GetHexNeighbors(const FHexOffsetCoord& Coord) const
@@ -223,7 +219,7 @@ TArray<FHexOffsetCoord> ABattleGridManager::GetHexNeighbors(const FHexOffsetCoor
 	return Neighbors;
 }
 
-TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(const FHexOffsetCoord& StartCoord, int32 MoveRange)
+TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& StartCoord, int32 MoveRange)
 {
 	TArray<FHexOffsetCoord> Result;
 
@@ -271,7 +267,7 @@ TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(const FHexOffsetCoo
 				continue;
 			}
 
-			FBattleGridCell* NextCell = GetCellByCoord(NextCoord);
+			const FBattleGridCell* NextCell = GetCellByCoord(WorldType, NextCoord);
 
 			if (!NextCell)
 			{
@@ -296,21 +292,21 @@ TArray<FHexOffsetCoord> ABattleGridManager::GetMovableCoords(const FHexOffsetCoo
 	return Result;
 }
 
-bool ABattleGridManager::SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor)
+bool ABattleGridManager::SetOccupied(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord, AActor* Actor)
 {
 	if (!IsValid(Actor))
 	{
 		return false;
 	}
 
-	FBattleGridCell* DestinationCell = GetCellByCoord(Coord);
+	FBattleGridCell* DestinationCell = GetMutableCellByCoord(WorldType, Coord);
 	if (!DestinationCell || !DestinationCell->bWalkable || DestinationCell->bOccupied)
 	{
 		return false;
 	}
 
 	// 같은 Actor가 이미 다른 셀에 있다면 기존 점유를 해제한다.
-	for (FBattleGridCell& Cell : GetActiveGridCells())
+	for (FBattleGridCell& Cell : GetMutableGridCells(WorldType))
 	{
 		if (Cell.OccupyingActor == Actor)
 		{
@@ -325,9 +321,9 @@ bool ABattleGridManager::SetOccupied(const FHexOffsetCoord& Coord, AActor* Actor
 	return true;
 }
 
-bool ABattleGridManager::ClearOccupied(const FHexOffsetCoord& Coord)
+bool ABattleGridManager::ClearOccupied(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord)
 {
-	FBattleGridCell* Cell = GetCellByCoord(Coord);
+	FBattleGridCell* Cell = GetMutableCellByCoord(WorldType, Coord);
 	if (!Cell)
 	{
 		return false;
@@ -349,8 +345,8 @@ FBattleGridMoveResult ABattleGridManager::ExecuteGridMove(const FBattleGridMoveR
 		return Result;
 	}
 
-	FBattleGridCell* FromCell = GetCellByCoord(Request.FromCoord);
-	FBattleGridCell* ToCell = GetCellByCoord(Request.ToCoord);
+	FBattleGridCell* FromCell = GetMutableCellByCoord(Request.WorldType, Request.FromCoord);
+	FBattleGridCell* ToCell = GetMutableCellByCoord(Request.WorldType, Request.ToCoord);
 	if (!FromCell || !ToCell || FromCell->OccupyingActor != Character || !ToCell->bWalkable || ToCell->bOccupied)
 	{
 		return Result;
@@ -372,21 +368,22 @@ FBattleGridMoveResult ABattleGridManager::ExecuteGridMove(const FBattleGridMoveR
 	return Result;
 }
 
-bool ABattleGridManager::MoveCharacterOnGrid(ABattleCharacterBase* Character, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord, bool bSnapActorToGrid)
+bool ABattleGridManager::MoveCharacterOnGrid(EBattleSimulationWorldType WorldType, ABattleCharacterBase* Character, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord, bool bSnapActorToGrid)
 {
 	FBattleGridMoveRequest Request;
 	Request.Character = Character;
+	Request.WorldType = WorldType;
 	Request.FromCoord = FromCoord;
 	Request.ToCoord = ToCoord;
 	Request.bSnapActorToGrid = bSnapActorToGrid;
 	return ExecuteGridMove(Request).bSucceeded;
 }
 
-bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord)
+bool ABattleGridManager::MoveActorOnGrid(EBattleSimulationWorldType WorldType, AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord)
 {
 	if (ABattleCharacterBase* Character = Cast<ABattleCharacterBase>(Actor))
 	{
-		return MoveCharacterOnGrid(Character, FromCoord, ToCoord, true);
+		return MoveCharacterOnGrid(WorldType, Character, FromCoord, ToCoord, true);
 	}
 
 	if (!IsValid(Actor) || FromCoord == ToCoord)
@@ -394,8 +391,8 @@ bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& F
 		return false;
 	}
 
-	FBattleGridCell* FromCell = GetCellByCoord(FromCoord);
-	FBattleGridCell* ToCell = GetCellByCoord(ToCoord);
+	FBattleGridCell* FromCell = GetMutableCellByCoord(WorldType, FromCoord);
+	FBattleGridCell* ToCell = GetMutableCellByCoord(WorldType, ToCoord);
 
 	if (!FromCell || !ToCell)
 	{
@@ -417,7 +414,7 @@ bool ABattleGridManager::MoveActorOnGrid(AActor* Actor, const FHexOffsetCoord& F
 
 FTransform ABattleGridManager::GetTransformToPosition(const FHexOffsetCoord& InPosition)
 {
-	const FBattleGridCell* Cell = GetCellByCoord(InPosition);
+	const FBattleGridCell* Cell = GetCellByCoord(EBattleSimulationWorldType::PlayerActualEnemyActual, InPosition);
 
 	if (!Cell || !Cell->TileActor)
 	{
@@ -467,41 +464,56 @@ void ABattleGridManager::AllClearExchangeIndicator()
 }
 
 
-TArray<FBattleGridCell>& ABattleGridManager::GetActiveGridCells()
+const TArray<FBattleGridCell>& ABattleGridManager::GetGridCells(EBattleSimulationWorldType WorldType) const
 {
-	return GridCells;
+	if (const FBattleGridState* State = GridStates.Find(WorldType)) return State->Cells;
+	static const TArray<FBattleGridCell> EmptyCells;
+	return EmptyCells;
 }
 
-bool ABattleGridManager::InitializeRuntimeGridFromSource(ABattleGridManager* InSourceGridManager)
+TArray<FBattleGridCell>& ABattleGridManager::GetMutableGridCells(EBattleSimulationWorldType WorldType)
 {
-	if (!IsValid(InSourceGridManager) || InSourceGridManager == this)
-	{
-		return false;
-	}
-	RuntimeSourceGridManager = InSourceGridManager;
-	bRuntimeGridInstance = true;
-	bTilePresentationEnabled = false;
-	GridCells = InSourceGridManager->GridCells;
-	TargetGridArray.Reset();
-	SetActorTransform(InSourceGridManager->GetActorTransform());
-	return !GridCells.IsEmpty();
+	return GridStates.FindOrAdd(WorldType).Cells;
 }
 
-bool ABattleGridManager::ReplaceGridActor(AActor* SourceActor, AActor* ReplacementActor)
+bool ABattleGridManager::HasWorldState(EBattleSimulationWorldType WorldType) const
 {
-	if (!IsRuntimeGridInstance() || !IsValid(SourceActor) || !IsValid(ReplacementActor))
+	const FBattleGridState* State = GridStates.Find(WorldType);
+	return State && !State->Cells.IsEmpty();
+}
+
+bool ABattleGridManager::InitializeWorldStateFromActual(EBattleSimulationWorldType WorldType, const TArray<AActor*>& SourceActors, const TArray<AActor*>& ReplacementActors)
+{
+	if (WorldType == EBattleSimulationWorldType::PlayerActualEnemyActual || SourceActors.Num() != ReplacementActors.Num()) return false;
+	const FBattleGridState* ActualState = GridStates.Find(EBattleSimulationWorldType::PlayerActualEnemyActual);
+	if (!ActualState || ActualState->Cells.IsEmpty()) return false;
+
+	FBattleGridState RuntimeState;
+	RuntimeState.Cells = ActualState->Cells;
+
+	for (int32 ActorIndex = 0; ActorIndex < SourceActors.Num(); ++ActorIndex)
 	{
-		return false;
-	}
-	for (FBattleGridCell& Cell : GridCells)
-	{
-		if (Cell.OccupyingActor != SourceActor)
+		AActor* SourceActor = SourceActors[ActorIndex];
+		AActor* ReplacementActor = ReplacementActors[ActorIndex];
+		if (!IsValid(SourceActor) || !IsValid(ReplacementActor)) return false;
+		bool bReplaced = false;
+		for (FBattleGridCell& Cell : RuntimeState.Cells)
 		{
-			continue;
+			if (Cell.OccupyingActor != SourceActor) continue;
+			Cell.OccupyingActor = ReplacementActor;
+			Cell.bOccupied = true;
+			bReplaced = true;
+			break;
 		}
-		Cell.OccupyingActor = ReplacementActor;
-		Cell.bOccupied = true;
-		return true;
+		if (!bReplaced) return false;
 	}
-	return false;
+
+	GridStates.Add(WorldType, MoveTemp(RuntimeState));
+	return true;
+}
+
+void ABattleGridManager::RemoveWorldState(EBattleSimulationWorldType WorldType)
+{
+	if (WorldType == EBattleSimulationWorldType::PlayerActualEnemyActual) return;
+	GridStates.Remove(WorldType);
 }

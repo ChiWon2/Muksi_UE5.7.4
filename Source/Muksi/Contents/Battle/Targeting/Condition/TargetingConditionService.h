@@ -4,6 +4,7 @@
 #include "Muksi/Contents/Battle/Targeting/Condition/Tree/TargetingCondNode.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Targeting/Condition/Context/TargetingConditionContext.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "TargetingConditionService.generated.h"
 
 class ABattleCharacterBase;
@@ -17,6 +18,7 @@ struct FTargetingConditionRequest
     TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
     TObjectPtr<ABattleCharacterBase> TargetCharacter = nullptr;
     TObjectPtr<ABattleGridManager> GridManager = nullptr;
+    EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
     FHexOffsetCoord OriginCoord;
     FHexOffsetCoord CandidateCoord;
     FHexOffsetCoord ResolvedCoord;

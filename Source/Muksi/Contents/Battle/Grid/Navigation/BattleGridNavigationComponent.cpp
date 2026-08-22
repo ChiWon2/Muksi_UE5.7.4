@@ -30,7 +30,7 @@ void UBattleGridNavigationComponent::CacheGridManager()
 	}
 }
 
-bool UBattleGridNavigationComponent::IsCellAvailable(const FHexOffsetCoord& Coord, const AActor* IgnoredActor) const
+bool UBattleGridNavigationComponent::IsCellAvailable(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord, const AActor* IgnoredActor) const
 {
 	if (!GridManager)
 	{
@@ -42,7 +42,7 @@ bool UBattleGridNavigationComponent::IsCellAvailable(const FHexOffsetCoord& Coor
 		return false;
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(WorldType, Coord);
 
 	if (!Cell)
 	{
@@ -67,14 +67,14 @@ bool UBattleGridNavigationComponent::IsCellAvailable(const FHexOffsetCoord& Coor
 	return false;
 }
 
-float UBattleGridNavigationComponent::GetCellMovementCost(const FHexOffsetCoord& Coord) const
+float UBattleGridNavigationComponent::GetCellMovementCost(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord) const
 {
 	if (!GridManager)
 	{
 		return TNumericLimits<float>::Max();
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(WorldType, Coord);
 
 	if (!Cell)
 	{
@@ -113,7 +113,7 @@ float UBattleGridNavigationComponent::CalculateHexDistance(const FHexOffsetCoord
 	return static_cast<float>(Distance);
 }
 
-bool UBattleGridNavigationComponent::FindGroundPath(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, TArray<FHexOffsetCoord>& OutPath, const AActor* MovingActor) const
+bool UBattleGridNavigationComponent::FindGroundPath(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, TArray<FHexOffsetCoord>& OutPath, const AActor* MovingActor) const
 {
 	OutPath.Empty();
 
@@ -140,7 +140,7 @@ bool UBattleGridNavigationComponent::FindGroundPath(const FHexOffsetCoord& Start
 		return true;
 	}
 
-	if (!IsCellAvailable(DestinationCoord, MovingActor))
+	if (!IsCellAvailable(WorldType, DestinationCoord, MovingActor))
 	{
 		UE_LOG(LogTemp, Log, TEXT("[BattleGridNavigationComponent] Destination is not available: (%d, %d)"), DestinationCoord.X, DestinationCoord.Y);
 		return false;
@@ -193,12 +193,12 @@ bool UBattleGridNavigationComponent::FindGroundPath(const FHexOffsetCoord& Start
 				continue;
 			}
 
-			if (!IsCellAvailable(NeighborCoord, MovingActor))
+			if (!IsCellAvailable(WorldType, NeighborCoord, MovingActor))
 			{
 				continue;
 			}
 
-			const float MovementCost = GetCellMovementCost(NeighborCoord);
+			const float MovementCost = GetCellMovementCost(WorldType, NeighborCoord);
 
 			if (MovementCost >= TNumericLimits<float>::Max())
 			{
@@ -343,7 +343,7 @@ bool UBattleGridNavigationComponent::GetGridWorldLocation(const FHexOffsetCoord&
 		return false;
 	}
 
-	const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
+	const FBattleGridCell* Cell = GridManager->GetCellByCoord(EBattleSimulationWorldType::PlayerActualEnemyActual, Coord);
 
 	if (!Cell)
 	{

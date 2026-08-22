@@ -13,6 +13,7 @@ void UMoveExecution::Execute(const FBattleExecutionContext& Context, FBattleExec
 
 	MovingCharacter = Context.Attacker.Get();
 	GridManager = Context.BattleGridManager.Get();
+	GridWorldType = Context.GridWorldType;
 
 	const FMoveExecutionData* MoveData = Context.GetExecutionData<FMoveExecutionData>();
 
@@ -83,7 +84,7 @@ bool UMoveExecution::ValidateDestination() const
 		return false;
 	}
 
-	return NavigationComponent->IsCellAvailable(DestinationCoord, MovingCharacter.Get());
+	return NavigationComponent->IsCellAvailable(GridWorldType, DestinationCoord, MovingCharacter.Get());
 }
 
 void UMoveExecution::StartTeleportMovement()
@@ -122,7 +123,7 @@ void UMoveExecution::StartGroundPathMovement()
 {
 	TArray<FHexOffsetCoord> GridPath;
 
-	if (!NavigationComponent->FindGroundPath(StartCoord, DestinationCoord, GridPath, MovingCharacter.Get()))
+	if (!NavigationComponent->FindGroundPath(GridWorldType, StartCoord, DestinationCoord, GridPath, MovingCharacter.Get()))
 	{
 		FinishMoveExecution(true);
 		return;
@@ -181,13 +182,14 @@ bool UMoveExecution::CommitGridMovement()
 		return false;
 	}
 
-	if (!NavigationComponent->IsCellAvailable(DestinationCoord, MovingCharacter.Get()))
+	if (!NavigationComponent->IsCellAvailable(GridWorldType, DestinationCoord, MovingCharacter.Get()))
 	{
 		return false;
 	}
 
 	// Grid 점유와 CharacterData.CurrentPosition을 원자적으로 갱신한다.
 	return GridManager->MoveCharacterOnGrid(
+		GridWorldType,
 		MovingCharacter.Get(),
 		StartCoord,
 		DestinationCoord,
@@ -247,6 +249,7 @@ void UMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
 	CachedMoveData = FMoveExecutionData();
 	StartCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 	DestinationCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+	GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 	bHasMoveData = false;
 
 	FinishExecution(CachedOnFinished);

@@ -5,6 +5,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleExecutionContext.generated.h"
 
 class ABattleCharacterBase;
@@ -43,6 +44,9 @@ struct FBattleExecutionContext
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
 	UPROPERTY(BlueprintReadOnly)
 	FName NotifyKey = NAME_None;

@@ -14,11 +14,8 @@ class ABattleManager;
 class UBattleRuntimeContext;
 class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
-class UBattleExecutionRunner;
-class UMuksiBattleAnimationComponent;
-class UMuksiBattleCardDataAsset;
-class UBattleSequenceExecutionEnvironment;
 class UTargetingPresentationController;
+class UBattleActionExecutor;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveCardRevealRequested, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
@@ -55,7 +52,7 @@ public:
 	bool StartSequenceWithRequest(const FBattleSequenceRequest& Request);
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
-	bool IsSequenceRunning() const { return bSequenceRunning; }
+	bool IsSequenceRunning() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
 	bool StartBattleActionSequence(const TArray<FBattleAction>& InActions);
@@ -72,27 +69,6 @@ public:
 	void InitializeBattleRuntimeContext(UBattleRuntimeContext* InBattleRuntimeContext);
 
 private:
-	UPROPERTY(Transient)
-	FBattleAction CurrentAction;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMuksiBattleCardDataAsset> CurrentExecutionCard = nullptr;
-
-	UPROPERTY(Transient)
-	FResolvedTargeting CurrentResolvedTargeting;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UBattleExecutionRunner>> ActiveExecutionRunners;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UBattleSequenceExecutionEnvironment> ExecutionEnvironment = nullptr;
-
-	bool bSequenceRunning = false;
-	EBattleExecutionMode CurrentExecutionMode = EBattleExecutionMode::Sequence;
-
 	UPROPERTY(Transient)
 	TArray<FBattleAction> BattleActionQueue;
 
@@ -114,6 +90,9 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UTargetingPresentationController> TargetingPresentationController = nullptr;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleActionExecutor> ActionExecutor = nullptr;
+
 private:
 	UFUNCTION()
 	void HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
@@ -123,24 +102,8 @@ private:
 	void RefreshBattleActionTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);
 	void ClearBattleActionPresentation();
 
-	bool ValidateRequest(const FBattleSequenceRequest& Request) const;
-	bool InitializeExecutionEnvironment();
-	bool BindAttackerNotify();
-	void UnbindAttackerNotify();
-
-	void StartMainExecutionChain();
-	void StartNotifyExecutionChains(FName NotifyKey);
-	void StartExecutionRunner(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context);
-
-	UFUNCTION()
-	void HandleBattleExecutionNotify(FName NotifyKey);
-
-	FBattleExecutionContext MakeExecutionContext(FName NotifyKey);
-
-	void HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext);
-	void HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
-	void TryFinishSequence();
-	void FinishSequence();
+	void HandleActionExecutorEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
+	void HandleActionExecutorFinished();
 
 	void SortBattleActionQueue();
 	void StartCurrentBattleAction();

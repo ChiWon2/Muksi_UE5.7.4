@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleGridMoveTypes.generated.h"
 
 class ABattleCharacterBase;
@@ -19,6 +20,9 @@ USTRUCT(BlueprintType)
 struct FBattleGridMoveRequest
 {
 	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	EBattleSimulationWorldType WorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
 	UPROPERTY(BlueprintReadWrite)
 	TObjectPtr<ABattleCharacterBase> Character = nullptr;

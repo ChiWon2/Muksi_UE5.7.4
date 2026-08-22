@@ -3,7 +3,7 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Point/PointPatternData.h"
 
-void UPointPattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
+void UPointPattern::ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
 	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(GridManager, PatternData);
 

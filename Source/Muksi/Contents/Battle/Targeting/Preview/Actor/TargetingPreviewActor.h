@@ -5,6 +5,7 @@
 #include "GameFramework/Actor.h"
 
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingGridPreviewMode.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
 #include "TargetingPreviewActor.generated.h"
 
@@ -27,7 +28,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	void Initialize(ABattleGridManager* InGridManager);
+	void Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType);
 	void SetSelectionGridCoords(const TArray<FHexOffsetCoord>& InCoords);
 	void SetPathGridCoords(const TArray<FHexOffsetCoord>& InCoords);
 	void SetAreaGridCoords(const TArray<FHexOffsetCoord>& InCoords);
@@ -76,6 +77,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
+	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
 	TArray<FHexOffsetCoord> SelectionGridCoords;
 	TArray<FHexOffsetCoord> PathGridCoords;

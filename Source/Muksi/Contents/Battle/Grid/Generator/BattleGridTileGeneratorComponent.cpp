@@ -31,7 +31,7 @@ bool UBattleGridTileGeneratorComponent::GenerateTiles()
 	}
 
 	GenerateTilesInternal();
-	return !GridManager->GridCells.IsEmpty();
+	return !GridManager->GetGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual).IsEmpty();
 }
 
 void UBattleGridTileGeneratorComponent::ClearTiles()
@@ -102,7 +102,7 @@ void UBattleGridTileGeneratorComponent::GenerateTilesInternal()
 			NewCell.TileActor = SpawnedTile;
 		}
 
-		GridManager->GridCells.Add(NewCell);
+		GridManager->GetMutableGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual).Add(NewCell);
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Battle Grid generated: %d x %d"), LayoutSettings.GridWidth, LayoutSettings.GridHeight);
@@ -115,7 +115,7 @@ void UBattleGridTileGeneratorComponent::ClearTilesInternal()
 		return;
 	}
 
-	for (FBattleGridCell& Cell : GridManager->GridCells)
+	for (FBattleGridCell& Cell : GridManager->GetMutableGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual))
 	{
 		if (IsValid(Cell.TileActor))
 		{
@@ -123,6 +123,5 @@ void UBattleGridTileGeneratorComponent::ClearTilesInternal()
 		}
 	}
 
-	GridManager->GridCells.Empty();
-	GridManager->TargetGridArray.Empty();
+	GridManager->GetMutableGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual).Empty();
 }

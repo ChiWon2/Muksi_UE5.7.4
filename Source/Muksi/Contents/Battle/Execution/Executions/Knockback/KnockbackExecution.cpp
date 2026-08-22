@@ -11,6 +11,7 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 {
 	CachedOnFinished = MoveTemp(OnFinished);
 	CachedGridManager = Context.BattleGridManager;
+	GridWorldType = Context.GridWorldType;
 	KnockbackTarget = Context.ExecutionTarget;
 	StartCoord = FHexOffsetCoord();
 	DestinationCoord = FHexOffsetCoord();
@@ -60,7 +61,7 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 			break;
 		}
 
-		if (!NavigationComponent->IsCellAvailable(NextCoord, KnockbackTarget))
+		if (!NavigationComponent->IsCellAvailable(GridWorldType, NextCoord, KnockbackTarget))
 		{
 			break;
 		}
@@ -111,7 +112,7 @@ bool UKnockbackExecution::FindActorGridCoord(ABattleGridManager* GridManager, co
 		for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
 		{
 			const FHexOffsetCoord Coord(X, Y);
-			FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
+			const FBattleGridCell* Cell = GridManager->GetCellByCoord(GridWorldType, Coord);
 
 			if (Cell && Cell->OccupyingActor == Actor)
 			{
@@ -195,6 +196,7 @@ void UKnockbackExecution::HandleMovementFinished(bool bInterrupted)
 
 	// 이동 완료 시점에 점유/논리 좌표/월드 Transform을 한 번에 확정한다.
 	if (!CachedGridManager->MoveCharacterOnGrid(
+		GridWorldType,
 		KnockbackTarget,
 		StartCoord,
 		DestinationCoord,
@@ -219,6 +221,7 @@ void UKnockbackExecution::CompleteExecution()
 	KnockbackTarget = nullptr;
 	StartCoord = FHexOffsetCoord();
 	DestinationCoord = FHexOffsetCoord();
+	GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
 	FinishExecution(CachedOnFinished);
 }

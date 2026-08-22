@@ -7,6 +7,7 @@
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingConfirmResult.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
 #include "BattleTargetingSession.generated.h"
 
@@ -36,7 +37,7 @@ protected:
 	virtual void BeginDestroy() override;
 
 public:
-	bool StartSession(ABattleCharacterBase* InSourceCharacter, ABattleGridManager* InGridManager, const FTargetingCardData& InCardTargetingData, bool bEnablePreview = true);
+	bool StartSession(ABattleCharacterBase* InSourceCharacter, ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType, const FTargetingCardData& InCardTargetingData, bool bEnablePreview = true);
 	bool UpdateCandidateCoord(const FHexOffsetCoord& CandidateCoord);
 	void UpdateAimWorldLocation(const FVector& InAimWorldLocation, bool bInHasAimLocation = true);
 	ETargetingConfirmResult ConfirmStep();
@@ -52,6 +53,7 @@ public:
 	bool ShowResolvedPreview(
 		ABattleCharacterBase* InSourceCharacter,
 		ABattleGridManager* InGridManager,
+		EBattleSimulationWorldType InGridWorldType,
 		const FTargetingCardData& InCardTargetingData,
 		const FResolvedTargeting& InResolvedTargeting,
 		int32 StepIndex,
@@ -79,6 +81,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
+	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
 	FTargetingCardData CardTargetingData;
 	int32 CurrentStepIndex = INDEX_NONE;

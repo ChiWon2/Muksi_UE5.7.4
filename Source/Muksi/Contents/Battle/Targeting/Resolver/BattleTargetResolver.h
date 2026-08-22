@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
 class ABattleCharacterBase;
 class ABattleGridManager;
@@ -13,11 +14,12 @@ struct FTargetingStepResult;
 class MUKSI_API FBattleTargetResolver
 {
 public:
-	static bool ResolveAction(const FBattleAction& Action, ABattleGridManager* GridManager, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
-	static bool ResolveActionThroughStep(const FBattleAction& Action, ABattleGridManager* GridManager, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
+	static bool ResolveAction(const FBattleAction& Action, ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
+	static bool ResolveActionThroughStep(const FBattleAction& Action, ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
 	static bool ResolveIntent(
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		const FTargetingCardData& TargetingData,
 		const FTargetingIntent& TargetingIntent,
 		FResolvedTargeting& OutResolvedTargeting
@@ -36,6 +38,7 @@ private:
 		const FTargetingStepCardData& StepData,
 		const FHexOffsetCoord& OriginCoord,
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		FHexOffsetCoord& OutDesiredCoord
 	);
 
@@ -46,6 +49,7 @@ private:
 		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		FHexOffsetCoord& OutResolvedCoord
 	);
 
@@ -56,6 +60,7 @@ private:
 		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		FTargetingStepResult& OutStepResult
 	);
 
@@ -65,7 +70,8 @@ private:
 		int32 Direction,
 		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
-		ABattleGridManager* GridManager
+		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType
 	);
 
 	static bool FindLastValidCoord(
@@ -75,6 +81,7 @@ private:
 		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		FHexOffsetCoord& OutResolvedCoord
 	);
 
@@ -85,12 +92,14 @@ private:
 		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		FHexOffsetCoord& OutResolvedCoord
 	);
 
 	static FHexOffsetCoord ResolveCubeLineCoord(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& EndCoord, int32 LinePointIndex, int32 LinePointCount);
 	static bool ApplyFinalPattern(
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		const FTargetingCardData& TargetingData,
 		FResolvedTargeting& InOutResolvedTargeting
 	);

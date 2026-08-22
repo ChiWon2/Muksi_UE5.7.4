@@ -28,11 +28,6 @@ void UBattleGridIndicatorComponent::SetHovered(const TArray<FHexOffsetCoord>& Co
 		return;
 	}
 
-	if (!GridManager->IsTilePresentationEnabled())
-	{
-		return;
-	}
-
 	ClearHovered();
 
 	for (const FHexOffsetCoord& Coord : Coords)
@@ -44,7 +39,7 @@ void UBattleGridIndicatorComponent::SetHovered(const TArray<FHexOffsetCoord>& Co
 			continue;
 		}
 
-		GridManager->TargetGridArray.AddUnique(Coord);
+		HoveredCoords.AddUnique(Coord);
 		Tile->SetTargetIndicatorVisible(true);
 	}
 }
@@ -56,12 +51,7 @@ void UBattleGridIndicatorComponent::ClearHovered()
 		return;
 	}
 
-	if (!GridManager->IsTilePresentationEnabled())
-	{
-		return;
-	}
-
-	for (const FHexOffsetCoord& Coord : GridManager->TargetGridArray)
+	for (const FHexOffsetCoord& Coord : HoveredCoords)
 	{
 		ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
 
@@ -71,7 +61,7 @@ void UBattleGridIndicatorComponent::ClearHovered()
 		}
 	}
 
-	GridManager->TargetGridArray.Empty();
+	HoveredCoords.Empty();
 }
 
 void UBattleGridIndicatorComponent::ClearAllHovered()
@@ -81,12 +71,7 @@ void UBattleGridIndicatorComponent::ClearAllHovered()
 		return;
 	}
 
-	if (!GridManager->IsTilePresentationEnabled())
-	{
-		return;
-	}
-
-	for (FBattleGridCell& Cell : GridManager->GridCells)
+	for (const FBattleGridCell& Cell : GridManager->GetGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual))
 	{
 		if (Cell.TileActor)
 		{
@@ -94,17 +79,12 @@ void UBattleGridIndicatorComponent::ClearAllHovered()
 		}
 	}
 
-	GridManager->TargetGridArray.Empty();
+	HoveredCoords.Empty();
 }
 
 void UBattleGridIndicatorComponent::SetExchange(const FBattleCardTypeInfoData& CardTypeInfo, const TArray<FHexOffsetCoord>& Coords, bool bEnemy)
 {
 	if (!ResolveGridManager())
-	{
-		return;
-	}
-
-	if (!GridManager->IsTilePresentationEnabled())
 	{
 		return;
 	}
@@ -127,12 +107,7 @@ void UBattleGridIndicatorComponent::ClearExchange()
 		return;
 	}
 
-	if (!GridManager->IsTilePresentationEnabled())
-	{
-		return;
-	}
-
-	for (FBattleGridCell& Cell : GridManager->GridCells)
+	for (const FBattleGridCell& Cell : GridManager->GetGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual))
 	{
 		if (Cell.TileActor)
 		{

@@ -1,14 +1,33 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
 #include "UObject/Object.h"
 #include "BattleSimulationPresentationController.generated.h"
 
 class ABattleCharacterBase;
+class ABattleGridManager;
 class ABattleSimulationManager;
 class ABattleSimulationPostProcessVolume;
-class ABattleSimulationWorldManager;
+class UBattleSimulationWorldRuntime;
+class UTargetingPresentationController;
+struct FHexOffsetCoord;
+struct FTargetingStepCardData;
+
+USTRUCT()
+struct FBattleSimulationPresentationState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	FBattleAction Action;
+
+	UPROPERTY(Transient)
+	FResolvedTargeting ResolvedTargeting;
+
+};
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSimulationPresentationTimeScaleChanged, float);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSimulationPresentationViewChanged, EBattlePlayerSimulationView);
@@ -21,7 +40,7 @@ class MUKSI_API UBattleSimulationPresentationController : public UObject
 	GENERATED_BODY()
 
 public:
-	bool Initialize(ABattleSimulationManager* InSimulationManager, ABattleSimulationWorldManager* InADWorldManager, ABattleSimulationWorldManager* InDDWorldManager, ABattleSimulationWorldManager* InDAWorldManager, bool bInEnablePostProcess, TSubclassOf<ABattleSimulationPostProcessVolume> InPostProcessVolumeClass, float InFastForwardTimeScale);
+	bool Initialize(ABattleSimulationManager* InSimulationManager);
 	void Shutdown();
 
 	EBattlePlayerSimulationView GetPlayerSimulationView() const { return PlayerSimulationView; }
@@ -36,13 +55,15 @@ public:
 	void SetPlayerSimulationViewAvailable(bool bAvailable);
 	void SetPlayerSimulationViewChangeLocked(bool bLocked);
 
-	ABattleSimulationWorldManager* GetPlayerPresentationWorldManager() const;
-	ABattleSimulationWorldManager* GetPlayerTargetingWorldManager() const;
+	UBattleSimulationWorldRuntime* GetPlayerPresentationWorldRuntime() const;
+	UBattleSimulationWorldRuntime* GetPlayerTargetingWorldRuntime() const;
 	ABattleCharacterBase* GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
 	bool EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void ExitSimulationPresentation(bool bClearRuntimePreview);
 	void ClearRuntimeSimulationPreview();
+	void PresentSimulationExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FResolvedTargeting& ResolvedTargeting);
+	void ClearSimulationExecutionPresentation(UBattleSimulationWorldRuntime* WorldRuntime);
 
 	void StartSimulationFastForward();
 	void StopSimulationFastForward();
@@ -54,6 +75,12 @@ public:
 
 private:
 	void ApplyPlayerSimulationView();
+	void RefreshSimulationExecutionPresentation(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPresentationState& PresentationState);
+	void ClearDisplayedExecutionPresentation();
+	void PresentSimulationStep(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FResolvedTargeting& StepResolvedTargeting, TArray<FHexOffsetCoord>& OutIndicatorCoords);
+	ABattleGridManager* GetGridManager() const;
+	ABattleCharacterBase* ResolveRuntimeAttacker(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action) const;
+	bool ResolveSimulationStepTargeting(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPresentationState& PresentationState, int32 StepIndex, FResolvedTargeting& OutResolvedTargeting) const;
 	void BroadcastPresentationCharacters();
 	bool CreateSimulationPostProcess();
 	void DestroySimulationPostProcess();
@@ -68,13 +95,10 @@ private:
 	TObjectPtr<ABattleSimulationManager> SimulationManager = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleSimulationWorldManager> ADWorldManager = nullptr;
+	TObjectPtr<UTargetingPresentationController> TargetingPresentationController = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleSimulationWorldManager> DDWorldManager = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleSimulationWorldManager> DAWorldManager = nullptr;
+	TMap<EBattleSimulationWorldType, FBattleSimulationPresentationState> PresentationStates;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSimulationPostProcessVolume> SimulationPostProcessVolume = nullptr;
@@ -82,13 +106,9 @@ private:
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
-	UPROPERTY(Transient)
-	TSubclassOf<ABattleSimulationPostProcessVolume> SimulationPostProcessVolumeClass;
 	EBattlePlayerSimulationView PlayerSimulationView = EBattlePlayerSimulationView::ActualSelf;
-	float FastForwardSimulationTimeScale = 3.0f;
 	float CurrentSimulationTimeScale = 1.0f;
 	float CapturedGlobalTimeDilation = 1.0f;
-	bool bEnableSimulationPostProcess = false;
 	bool bPlayerSimulationViewAvailable = false;
 	bool bPlayerSimulationViewChangeLocked = false;
 	bool bHasCapturedGlobalTimeDilation = false;

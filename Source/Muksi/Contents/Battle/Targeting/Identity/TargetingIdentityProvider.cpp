@@ -23,7 +23,7 @@ FName FTargetingCharacterIdentity::GetCharacterKey(const ABattleCharacterBase* C
 	return Character->GetFName();
 }
 
-ABattleCharacterBase* FTargetingCharacterIdentity::FindCharacterByKey(ABattleGridManager* GridManager, FName CharacterKey)
+ABattleCharacterBase* FTargetingCharacterIdentity::FindCharacterByKey(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, FName CharacterKey)
 {
 	if (!IsValid(GridManager) || CharacterKey.IsNone())
 	{
@@ -34,7 +34,7 @@ ABattleCharacterBase* FTargetingCharacterIdentity::FindCharacterByKey(ABattleGri
 	{
 		for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
 		{
-			const FBattleGridCell* Cell = GridManager->GetCellByCoord(FHexOffsetCoord(X, Y));
+			const FBattleGridCell* Cell = GridManager->GetCellByCoord(WorldType, FHexOffsetCoord(X, Y));
 
 			if (!Cell || !Cell->OccupyingActor)
 			{

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "Components/ActorComponent.h"
 #include "BattleGridNavigationComponent.generated.h"
 
@@ -22,15 +23,15 @@ protected:
 public:
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	bool IsCellAvailable(const FHexOffsetCoord& Coord, const AActor* IgnoredActor = nullptr) const;
+	bool IsCellAvailable(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord, const AActor* IgnoredActor = nullptr) const;
 
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid|Navigation")
-	bool FindGroundPath(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, TArray<FHexOffsetCoord>& OutPath, const AActor* MovingActor = nullptr) const;
+	bool FindGroundPath(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& DestinationCoord, TArray<FHexOffsetCoord>& OutPath, const AActor* MovingActor = nullptr) const;
 
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")
-	float GetCellMovementCost(const FHexOffsetCoord& Coord) const;
+	float GetCellMovementCost(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord) const;
 
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Grid|Navigation")

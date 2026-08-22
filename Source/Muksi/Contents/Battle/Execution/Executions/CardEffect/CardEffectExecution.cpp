@@ -26,7 +26,7 @@ void UCardEffectExecution::Execute(const FBattleExecutionContext& Context, FBatt
 		 Context.ResolvedTargeting.AffectedCoords)
 	{
 		const FBattleGridCell* Cell =
-			Context.BattleGridManager->GetCellByCoord(Coord);
+			Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Coord);
 
 		if (!Cell || !Cell->OccupyingActor)
 		{

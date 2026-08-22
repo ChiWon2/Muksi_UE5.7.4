@@ -4,7 +4,7 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Straight/StraightPatternData.h"
 
-void UStraightPattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
+void UStraightPattern::ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
 	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(GridManager, PatternData);
 
@@ -32,7 +32,7 @@ void UStraightPattern::ApplyPattern(ABattleGridManager* GridManager, const FInst
 
 		AddPathCoord(InOutResult, CurrentCoord);
 
-		const FBattleGridCell* Cell = GridManager->GetCellByCoord(CurrentCoord);
+		const FBattleGridCell* Cell = GridManager->GetCellByCoord(WorldType, CurrentCoord);
 
 		if (!Cell || !Cell->OccupyingActor)
 		{

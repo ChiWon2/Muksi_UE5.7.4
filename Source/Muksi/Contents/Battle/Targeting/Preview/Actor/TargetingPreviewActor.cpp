@@ -63,9 +63,10 @@ void ATargetingPreviewActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ATargetingPreviewActor::Initialize(ABattleGridManager* InGridManager)
+void ATargetingPreviewActor::Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType)
 {
 	GridManager = InGridManager;
+	GridWorldType = InGridWorldType;
 	LoadPreviewAssets();
 	ClearAllPreview();
 	ApplyPreviewStyle();
@@ -254,7 +255,7 @@ void ATargetingPreviewActor::RebuildGridPreview()
 
 	for (const FHexOffsetCoord& Coord : PreviewCoords)
 	{
-		const FBattleGridCell* Cell = GridManager->GetCellByCoord(Coord);
+		const FBattleGridCell* Cell = GridManager->GetCellByCoord(GridWorldType, Coord);
 
 		if (!Cell)
 		{

@@ -43,6 +43,7 @@ bool FCond_TargetingPathReachable::Evaluate(
 
     TArray<FHexOffsetCoord> Path;
     if (Navigation->FindGroundPath(
+        Context->GridWorldType,
         Context->OriginCoord,
         EvaluatedCoord,
         Path,
@@ -65,6 +66,7 @@ bool FCond_TargetingPathReachable::Evaluate(
 
         if (Neighbor == Context->OriginCoord ||
             Navigation->FindGroundPath(
+                Context->GridWorldType,
                 Context->OriginCoord,
                 Neighbor,
                 Path,

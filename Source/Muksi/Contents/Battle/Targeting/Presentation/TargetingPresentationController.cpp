@@ -13,6 +13,7 @@ void UTargetingPresentationController::Initialize(ABattleGridManager* InGridMana
 
 bool UTargetingPresentationController::AddResolvedStepPreview(
 	ABattleCharacterBase* SourceCharacter,
+	EBattleSimulationWorldType GridWorldType,
 	const FTargetingCardData& CardData,
 	const FResolvedTargeting& ResolvedTargeting,
 	int32 StepIndex,
@@ -28,6 +29,7 @@ bool UTargetingPresentationController::AddResolvedStepPreview(
 	if (!PreviewSession || !PreviewSession->ShowResolvedPreview(
 		SourceCharacter,
 		GridManager.Get(),
+		GridWorldType,
 		CardData,
 		ResolvedTargeting,
 		StepIndex,

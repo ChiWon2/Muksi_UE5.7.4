@@ -1,5 +1,6 @@
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 
+
 void UBattleExecutionRunner::Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished)
 {
 	ExecutionEntries = InExecutionEntries;

@@ -282,6 +282,7 @@ bool ABattleTargetingManager::StartPendingPlayerTargeting()
     if (!PlayerTargetingSession || !PlayerTargetingSession->StartSession(
         PlayerTargetingActor,
         RuntimeGridManager,
+        ResolveRuntimeGridWorldType(),
         PendingPlayerCard->TargetingData,
         true))
     {
@@ -583,6 +584,7 @@ bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
     if (!EnemyTargetingSession || !EnemyTargetingSession->StartSession(
         EnemyTargetingActor,
         RuntimeGridManager,
+        ResolveRuntimeGridWorldType(),
         SelectedCard->TargetingData,
         false))
     {
@@ -739,6 +741,7 @@ void ABattleTargetingManager::NotifyEnemyCardRevealUIFinished(int32 ExchangeInde
             {
                 TargetingPresentationController->AddResolvedStepPreview(
                     ResolveRuntimeCharacter(EnemyAction->Attacker),
+                    ResolveRuntimeGridWorldType(),
                     EnemyAction->Card->TargetingData,
                     StepResolvedTargeting,
                     StepIndex,
@@ -834,9 +837,16 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
 
 ABattleGridManager* ABattleTargetingManager::ResolveRuntimeGridManager() const
 {
-    if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return BattleGridManager.Get();
-    ABattleGridManager* SimulationGridManager = BattleSimulationManager->GetPlayerTargetingSimulationGridManager();
-    return IsValid(SimulationGridManager) ? SimulationGridManager : BattleGridManager.Get();
+    // 모든 WorldType은 하나의 GridManager가 소유한다.
+    // 런타임/시뮬레이션의 차이는 ResolveRuntimeGridWorldType()으로만 구분한다.
+    return BattleGridManager.Get();
+}
+
+EBattleSimulationWorldType ABattleTargetingManager::ResolveRuntimeGridWorldType() const
+{
+    return IsValid(BattleSimulationManager) && BattleSimulationManager->IsSimulationRunning()
+        ? EBattleSimulationWorldType::PlayerActualEnemyDeceived
+        : EBattleSimulationWorldType::PlayerActualEnemyActual;
 }
 
 ABattleCharacterBase* ABattleTargetingManager::ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const
@@ -864,7 +874,7 @@ bool ABattleTargetingManager::ResolveActionTargetingForCurrentGrid(
     FBattleAction RuntimeAction = Action;
     RuntimeAction.Attacker = ResolveRuntimeCharacter(Action.Attacker);
 
-    return FBattleTargetResolver::ResolveAction(RuntimeAction, ResolveRuntimeGridManager(), OutResolvedTargeting);
+    return FBattleTargetResolver::ResolveAction(RuntimeAction, ResolveRuntimeGridManager(), ResolveRuntimeGridWorldType(), OutResolvedTargeting);
 }
 
 bool ABattleTargetingManager::ResolveActionTargetingThroughStepForCurrentGrid(
@@ -878,6 +888,7 @@ bool ABattleTargetingManager::ResolveActionTargetingThroughStepForCurrentGrid(
     return FBattleTargetResolver::ResolveActionThroughStep(
         RuntimeAction,
         ResolveRuntimeGridManager(),
+        ResolveRuntimeGridWorldType(),
         LastStepIndex,
         OutResolvedTargeting);
 }
