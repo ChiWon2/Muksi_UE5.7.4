@@ -4,7 +4,6 @@
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
-#include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "BattleActionExecutor.generated.h"
 
 class ABattleGridManager;
@@ -24,7 +23,7 @@ class MUKSI_API UBattleActionExecutor : public UObject
 
 public:
 	bool Initialize(ABattleManager* InBattleManager, ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType);
-	bool ExecuteAction(const FBattleSequenceRequest& Request);
+	bool ExecuteAction(const FBattleAction& Action);
 	void Stop();
 	bool IsRunning() const { return bRunning; }
 
@@ -32,7 +31,8 @@ public:
 	FOnBattleActionExecutorEntryStarted EntryStartedDelegate;
 
 private:
-	bool ValidateRequest(const FBattleSequenceRequest& Request) const;
+	bool ValidateAction(const FBattleAction& Action) const;
+	UMuksiBattleCardDataAsset* ResolveExecutionCard(const FBattleAction& Action) const;
 	bool InitializeExecutionEnvironment();
 	bool BindAttackerNotify();
 	void UnbindAttackerNotify();

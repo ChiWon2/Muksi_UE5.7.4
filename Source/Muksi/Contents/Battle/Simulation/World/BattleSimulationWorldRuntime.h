@@ -2,8 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
-#include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleSimulationWorldRuntime.generated.h"
 
@@ -12,7 +12,6 @@ class ABattleGridManager;
 class ABattleSimulationCharacter;
 class ABattleSimulationManager;
 class UBattleSimulationWorldRuntime;
-class UMuksiBattleCardDataAsset;
 class UBattleActionExecutor;
 struct FBattleExecutionEntry;
 struct FResolvedTargeting;
@@ -42,7 +41,6 @@ public:
 	bool IsSimulationRunning() const;
 	bool IsSimulationRuntimeReady() const;
 	EBattleSimulationState GetSimulationState() const { return SimulationState; }
-	int32 GetCurrentExchangeIndex() const { return CurrentExchangeIndex; }
 	EBattleSimulationWorldType GetWorldType() const { return WorldType; }
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
@@ -53,15 +51,14 @@ protected:
 	virtual void BeginDestroy() override;
 
 private:
-	UMuksiBattleCardDataAsset* GetExecutionOverride(const FBattleAction& Action) const;
 	bool CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool CreateSimulationExecutionEnvironment(ABattleGridManager* InSourceGridManager);
 	bool RebuildWorldGridState(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool CanReuseSimulationRuntime(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters) const;
 	bool ResetSimulationRuntimeFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool TryExecuteCurrentExchange();
-	bool BuildSimulationSequenceRequest(const FBattleAction& Action, FBattleSequenceRequest& OutRequest) const;
-	bool ExecuteSimulationAction(const FBattleSequenceRequest& Request);
+	bool BuildSimulationAction(const FBattleAction& Action, FBattleAction& OutAction) const;
+	bool ExecuteSimulationAction(const FBattleAction& Action);
 	void ClearSimulationActionPresentation();
 	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
 	void HandleSimulationSequenceFinished();
@@ -82,13 +79,10 @@ private:
 	EBattleSimulationState SimulationState = EBattleSimulationState::Idle;
 
 	UPROPERTY(Transient)
-	int32 CurrentExchangeIndex = INDEX_NONE;
+	FBattleAction PreparedPlayerAction;
 
 	UPROPERTY(Transient)
-	FBattleSequenceRequest PlayerActionRequest;
-
-	UPROPERTY(Transient)
-	FBattleSequenceRequest EnemyActionRequest;
+	FBattleAction PreparedEnemyAction;
 
 	// 별도 GridManager를 소유하지 않고 BattleManager의 공용 Grid를 참조한다.
 	UPROPERTY(Transient)

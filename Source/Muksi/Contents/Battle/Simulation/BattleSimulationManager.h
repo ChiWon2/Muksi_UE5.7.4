@@ -39,6 +39,8 @@ public:
 	ABattleSimulationManager();
 	bool InitializeBattleFlow(ABattleManager* InBattleManager);
 	ABattleManager* GetBattleManager() const { return BattleManager.Get(); }
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Presentation")
+	UBattleSimulationPresentationController* GetPresentationController() const { return PresentationController.Get(); }
 	TSubclassOf<ABattleSimulationCharacter> GetSimulationCharacterClass() const { return SimulationCharacterClass; }
 	UMaterialInterface* GetPlayerSimulationMaterial() const { return PlayerSimulationMaterial.Get(); }
 	UMaterialInterface* GetEnemySimulationMaterial() const { return EnemySimulationMaterial.Get(); }
@@ -58,28 +60,10 @@ public:
 	EBattleSimulationState GetSimulationState() const;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
-	int32 GetCurrentExchangeIndex() const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	bool IsSimulationRunning() const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Time")
-	float GetSimulationTimeScale() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|Time")
 	FOnSimulationTimeScaleChanged SimulationTimeScaleChangedDelegate;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	EBattlePlayerSimulationView GetPlayerSimulationView() const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	bool CanChangePlayerSimulationView() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool SetPlayerSimulationView(EBattlePlayerSimulationView NewView);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool TogglePlayerSimulationView();
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
 	FOnPlayerSimulationViewChanged PlayerSimulationViewChangedDelegate;
@@ -89,18 +73,6 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
 	FOnSimulationPresentationCharactersChanged PresentationCharactersChangedDelegate;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	ABattleCharacterBase* GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
-	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Targeting")
-	ABattleSimulationCharacter* GetPlayerTargetingSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
-	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
 
 private:
 	UFUNCTION()
@@ -137,10 +109,6 @@ private:
 	bool EnsurePresentationController();
 
 	bool IsManagedSimulationRuntime(const UBattleSimulationWorldRuntime* WorldRuntime) const;
-	void HandlePresentationTimeScaleChanged(float TimeScale);
-	void HandlePresentationViewChanged(EBattlePlayerSimulationView View);
-	void HandlePresentationAvailabilityChanged(bool bAvailable);
-	void HandlePresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter);
 
 	void HandleSimulationWorldExchangeFinished(UBattleSimulationWorldRuntime* WorldRuntime, int32 FinishedExchangeIndex);
 	void FinalizeCurrentExchangeSimulation(int32 FinishedExchangeIndex);

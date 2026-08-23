@@ -9,7 +9,6 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
-#include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
@@ -54,12 +53,6 @@ EBattleSimulationState ABattleSimulationManager::GetSimulationState() const
 	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationState() : EBattleSimulationState::Idle;
 }
 
-int32 ABattleSimulationManager::GetCurrentExchangeIndex() const
-{
-	UBattleSimulationWorldRuntime* WorldRuntime = PresentationController ? PresentationController->GetPlayerPresentationWorldRuntime() : nullptr;
-	return IsValid(WorldRuntime) ? WorldRuntime->GetCurrentExchangeIndex() : INDEX_NONE;
-}
-
 bool ABattleSimulationManager::IsSimulationRunning() const
 {
 	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
@@ -67,59 +60,6 @@ bool ABattleSimulationManager::IsSimulationRunning() const
 		if (IsValid(WorldRuntime) && WorldRuntime->IsSimulationRunning()) return true;
 	}
 	return false;
-}
-
-float ABattleSimulationManager::GetSimulationTimeScale() const
-{
-	return PresentationController ? PresentationController->GetSimulationTimeScale() : 1.0f;
-}
-
-EBattlePlayerSimulationView ABattleSimulationManager::GetPlayerSimulationView() const
-{
-	return PresentationController ? PresentationController->GetPlayerSimulationView() : EBattlePlayerSimulationView::ActualSelf;
-}
-
-bool ABattleSimulationManager::CanChangePlayerSimulationView() const
-{
-	return PresentationController && PresentationController->CanChangePlayerSimulationView();
-}
-
-bool ABattleSimulationManager::SetPlayerSimulationView(EBattlePlayerSimulationView NewView)
-{
-	return PresentationController && PresentationController->SetPlayerSimulationView(NewView);
-}
-
-bool ABattleSimulationManager::TogglePlayerSimulationView()
-{
-	return PresentationController && PresentationController->TogglePlayerSimulationView();
-}
-
-ABattleCharacterBase* ABattleSimulationManager::GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const
-{
-	return PresentationController ? PresentationController->GetPresentationCharacter(SourceCharacter) : const_cast<ABattleCharacterBase*>(SourceCharacter);
-}
-
-ABattleSimulationCharacter* ABattleSimulationManager::GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const
-{
-	UBattleSimulationWorldRuntime* WorldRuntime = PresentationController ? PresentationController->GetPlayerPresentationWorldRuntime() : nullptr;
-	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
-}
-
-ABattleSimulationCharacter* ABattleSimulationManager::GetPlayerTargetingSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const
-{
-	UBattleSimulationWorldRuntime* WorldRuntime = PresentationController ? PresentationController->GetPlayerTargetingWorldRuntime() : nullptr;
-	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
-}
-
-ABattleCharacterBase* ABattleSimulationManager::GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const
-{
-	if (!IsValid(SimulationCharacter)) return nullptr;
-	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
-	{
-		if (IsValid(WorldRuntime) && WorldRuntime->GetSimulationCharacter(SimulationCharacter->GetSourceCharacter()) == SimulationCharacter) 
-			return SimulationCharacter->GetSourceCharacter();
-	}
-	return nullptr;
 }
 
 UBattleSimulationWorldRuntime* ABattleSimulationManager::GetSimulationWorldRuntime(EBattleSimulationWorldType WorldType) const
@@ -213,26 +153,6 @@ void ABattleSimulationManager::StopSimulationWorlds()
 bool ABattleSimulationManager::IsManagedSimulationRuntime(const UBattleSimulationWorldRuntime* WorldRuntime) const
 {
 	return WorldRuntime == ADWorldRuntime.Get() || WorldRuntime == DDWorldRuntime.Get() || WorldRuntime == DAWorldRuntime.Get();
-}
-
-void ABattleSimulationManager::HandlePresentationTimeScaleChanged(float TimeScale)
-{
-	SimulationTimeScaleChangedDelegate.Broadcast(TimeScale);
-}
-
-void ABattleSimulationManager::HandlePresentationViewChanged(EBattlePlayerSimulationView View)
-{
-	PlayerSimulationViewChangedDelegate.Broadcast(View);
-}
-
-void ABattleSimulationManager::HandlePresentationAvailabilityChanged(bool bAvailable)
-{
-	PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(bAvailable);
-}
-
-void ABattleSimulationManager::HandlePresentationCharactersChanged(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter)
-{
-	PresentationCharactersChangedDelegate.Broadcast(PlayerCharacter, EnemyCharacter);
 }
 
 void ABattleSimulationManager::PresentSimulationExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FResolvedTargeting& ResolvedTargeting)
@@ -483,10 +403,6 @@ bool ABattleSimulationManager::EnsurePresentationController()
 		return false;
 	}
 
-	PresentationController->TimeScaleChangedDelegate.AddUObject(this, &ABattleSimulationManager::HandlePresentationTimeScaleChanged);
-	PresentationController->ViewChangedDelegate.AddUObject(this, &ABattleSimulationManager::HandlePresentationViewChanged);
-	PresentationController->AvailabilityChangedDelegate.AddUObject(this, &ABattleSimulationManager::HandlePresentationAvailabilityChanged);
-	PresentationController->PresentationCharactersChangedDelegate.AddUObject(this, &ABattleSimulationManager::HandlePresentationCharactersChanged);
 	return true;
 }
 

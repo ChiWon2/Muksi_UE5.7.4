@@ -24,9 +24,8 @@ void UBattleSimulationWorldRuntime::Shutdown()
 	ExchangeFinishedDelegate.Clear();
 	DestroySimulationRuntime();
 	SimulationManager = nullptr;
-	CurrentExchangeIndex = INDEX_NONE;
-	PlayerActionRequest = FBattleSequenceRequest();
-	EnemyActionRequest = FBattleSequenceRequest();
+	PreparedPlayerAction = FBattleAction();
+	PreparedEnemyAction = FBattleAction();
 	SetSimulationState(EBattleSimulationState::Idle);
 }
 
@@ -46,9 +45,8 @@ bool UBattleSimulationWorldRuntime::PrepareSimulationRuntime(ABattleGridManager*
 		ResetSimulationRuntime();
 		return false;
 	}
-	CurrentExchangeIndex = INDEX_NONE;
-	PlayerActionRequest = FBattleSequenceRequest();
-	EnemyActionRequest = FBattleSequenceRequest();
+	PreparedPlayerAction = FBattleAction();
+	PreparedEnemyAction = FBattleAction();
 	SetCharactersVisible(false);
 	SetSimulationState(EBattleSimulationState::Idle);
 	return true;
@@ -63,9 +61,8 @@ bool UBattleSimulationWorldRuntime::ResetFromActualBattleState(ABattleGridManage
 		SetSimulationState(EBattleSimulationState::Idle);
 		return false;
 	}
-	CurrentExchangeIndex = 0;
-	PlayerActionRequest = FBattleSequenceRequest();
-	EnemyActionRequest = FBattleSequenceRequest();
+	PreparedPlayerAction = FBattleAction();
+	PreparedEnemyAction = FBattleAction();
 	SetSimulationState(EBattleSimulationState::Ready);
 	return true;
 }
@@ -87,13 +84,12 @@ bool UBattleSimulationWorldRuntime::PrepareExchange(int32 ExchangeIndex, const F
 	FBattleAction PreparedEnemyAction = EnemyAction;
 	PreparedEnemyAction.ExchangeIndex = ExchangeIndex;
 	PreparedEnemyAction.bPlayerAction = false;
-	FBattleSequenceRequest NewPlayerRequest;
-	FBattleSequenceRequest NewEnemyRequest;
-	if (!BuildSimulationSequenceRequest(PreparedPlayerAction, NewPlayerRequest)) return false;
-	if (!BuildSimulationSequenceRequest(PreparedEnemyAction, NewEnemyRequest)) return false;
-	CurrentExchangeIndex = ExchangeIndex;
-	PlayerActionRequest = MoveTemp(NewPlayerRequest);
-	EnemyActionRequest = MoveTemp(NewEnemyRequest);
+	FBattleAction NewPlayerAction;
+	FBattleAction NewEnemyAction;
+	if (!BuildSimulationAction(PreparedPlayerAction, NewPlayerAction)) return false;
+	if (!BuildSimulationAction(PreparedEnemyAction, NewEnemyAction)) return false;
+	this->PreparedPlayerAction = MoveTemp(NewPlayerAction);
+	this->PreparedEnemyAction = MoveTemp(NewEnemyAction);
 	SetSimulationState(EBattleSimulationState::Prepared);
 	return true;
 }
@@ -108,9 +104,8 @@ void UBattleSimulationWorldRuntime::StopSimulation()
 {
 	ClearSimulationActionPresentation();
 	DestroySimulationRuntime();
-	CurrentExchangeIndex = INDEX_NONE;
-	PlayerActionRequest = FBattleSequenceRequest();
-	EnemyActionRequest = FBattleSequenceRequest();
+	PreparedPlayerAction = FBattleAction();
+	PreparedEnemyAction = FBattleAction();
 	SetSimulationState(EBattleSimulationState::Completed);
 }
 
@@ -134,13 +129,6 @@ ABattleSimulationCharacter* UBattleSimulationWorldRuntime::GetSimulationCharacte
 ABattleCharacterBase* UBattleSimulationWorldRuntime::GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const
 {
 	return IsValid(SimulationCharacter) ? SimulationCharacter->GetSourceCharacter() : nullptr;
-}
-
-UMuksiBattleCardDataAsset* UBattleSimulationWorldRuntime::GetExecutionOverride(const FBattleAction& Action) const
-{
-	if (BattleSimulationWorld::UsesActualCard(WorldType, Action.bPlayerAction) || !IsValid(Action.Card.Get())) return nullptr;
-	UMuksiBattleCardDataAsset* DeceivedCard = Action.Card->GetDeceivedCard();
-	return IsValid(DeceivedCard) ? DeceivedCard : nullptr;
 }
 
 bool UBattleSimulationWorldRuntime::CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters)
@@ -222,28 +210,26 @@ bool UBattleSimulationWorldRuntime::ResetSimulationRuntimeFromActualBattleState(
 
 bool UBattleSimulationWorldRuntime::TryExecuteCurrentExchange()
 {
-	const bool bPlayerFirst = PlayerActionRequest.Action.Speed >= EnemyActionRequest.Action.Speed;
-	const FBattleSequenceRequest& FirstRequest = bPlayerFirst ? PlayerActionRequest : EnemyActionRequest;
+	const bool bPlayerFirst = PreparedPlayerAction.Speed >= PreparedEnemyAction.Speed;
+	const FBattleAction& FirstAction = bPlayerFirst ? PreparedPlayerAction : PreparedEnemyAction;
 	SetSimulationState(EBattleSimulationState::ExecutingFirstAction);
-	return ExecuteSimulationAction(FirstRequest);
+	return ExecuteSimulationAction(FirstAction);
 }
 
-bool UBattleSimulationWorldRuntime::BuildSimulationSequenceRequest(const FBattleAction& Action, FBattleSequenceRequest& OutRequest) const
+bool UBattleSimulationWorldRuntime::BuildSimulationAction(const FBattleAction& Action, FBattleAction& OutAction) const
 {
 	ABattleSimulationCharacter* SimulationAttacker = GetSimulationCharacter(Action.Attacker.Get());
 	if (!IsValid(SimulationAttacker) || !IsValid(Action.Card.Get())) return false;
-	OutRequest.Action = Action;
-	OutRequest.Action.Attacker = SimulationAttacker;
-	OutRequest.ExecutionMode = EBattleExecutionMode::Simulation;
-	OutRequest.ExecutionCardOverride = GetExecutionOverride(Action);
-	return IsValid(OutRequest.GetExecutionCard());
+	OutAction = Action;
+	OutAction.Attacker = SimulationAttacker;
+	return true;
 }
 
-bool UBattleSimulationWorldRuntime::ExecuteSimulationAction(const FBattleSequenceRequest& Request)
+bool UBattleSimulationWorldRuntime::ExecuteSimulationAction(const FBattleAction& Action)
 {
 	if (!ActionExecutor) return false;
 	ClearSimulationActionPresentation();
-	return ActionExecutor->ExecuteAction(Request);
+	return ActionExecutor->ExecuteAction(Action);
 }
 
 void UBattleSimulationWorldRuntime::ClearSimulationActionPresentation()
@@ -263,10 +249,10 @@ void UBattleSimulationWorldRuntime::HandleSimulationSequenceFinished()
 	ClearSimulationActionPresentation();
 	if (SimulationState == EBattleSimulationState::ExecutingFirstAction)
 	{
-		const bool bPlayerFirst = PlayerActionRequest.Action.Speed >= EnemyActionRequest.Action.Speed;
-		const FBattleSequenceRequest& SecondRequest = bPlayerFirst ? EnemyActionRequest : PlayerActionRequest;
+		const bool bPlayerFirst = PreparedPlayerAction.Speed >= PreparedEnemyAction.Speed;
+		const FBattleAction& SecondAction = bPlayerFirst ? PreparedEnemyAction : PreparedPlayerAction;
 		SetSimulationState(EBattleSimulationState::ExecutingSecondAction);
-		if (!ExecuteSimulationAction(SecondRequest)) StopSimulation();
+		if (!ExecuteSimulationAction(SecondAction)) StopSimulation();
 		return;
 	}
 	if (SimulationState == EBattleSimulationState::ExecutingSecondAction) FinishCurrentExchange();
@@ -274,12 +260,11 @@ void UBattleSimulationWorldRuntime::HandleSimulationSequenceFinished()
 
 void UBattleSimulationWorldRuntime::FinishCurrentExchange()
 {
-	const int32 FinishedExchangeIndex = CurrentExchangeIndex;
+	const int32 FinishedExchangeIndex = PreparedPlayerAction.ExchangeIndex;
 	const int32 NextExchangeIndex = FinishedExchangeIndex + 1;
 	const bool bSimulationCompleted = NextExchangeIndex >= GetMaxExchangeCount();
-	PlayerActionRequest = FBattleSequenceRequest();
-	EnemyActionRequest = FBattleSequenceRequest();
-	CurrentExchangeIndex = bSimulationCompleted ? FinishedExchangeIndex : NextExchangeIndex;
+	PreparedPlayerAction = FBattleAction();
+	PreparedEnemyAction = FBattleAction();
 	SetSimulationState(bSimulationCompleted ? EBattleSimulationState::Completed : EBattleSimulationState::Ready);
 	ExchangeFinishedDelegate.Broadcast(this, FinishedExchangeIndex);
 }
@@ -309,9 +294,8 @@ void UBattleSimulationWorldRuntime::DestroySimulationRuntime()
 void UBattleSimulationWorldRuntime::ResetSimulationRuntime()
 {
 	DestroySimulationRuntime();
-	CurrentExchangeIndex = INDEX_NONE;
-	PlayerActionRequest = FBattleSequenceRequest();
-	EnemyActionRequest = FBattleSequenceRequest();
+	PreparedPlayerAction = FBattleAction();
+	PreparedEnemyAction = FBattleAction();
 	SetSimulationState(EBattleSimulationState::Idle);
 }
 

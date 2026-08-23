@@ -83,16 +83,8 @@ void ABattleSequenceManager::NotifyBattleActionSequenceCompleted()
 
 bool ABattleSequenceManager::StartSequence(const FBattleAction& Action)
 {
-	FBattleSequenceRequest Request;
-	Request.Action = Action;
-	Request.ExecutionMode = EBattleExecutionMode::Sequence;
-	return StartSequenceWithRequest(Request);
-}
-
-bool ABattleSequenceManager::StartSequenceWithRequest(const FBattleSequenceRequest& Request)
-{
 	if (!ActionExecutor || (bBattleActionSequenceRunning && !bStartingQueuedBattleAction)) return false;
-	return ActionExecutor->ExecuteAction(Request);
+	return ActionExecutor->ExecuteAction(Action);
 }
 
 bool ABattleSequenceManager::IsSequenceRunning() const { return ActionExecutor && ActionExecutor->IsRunning(); }

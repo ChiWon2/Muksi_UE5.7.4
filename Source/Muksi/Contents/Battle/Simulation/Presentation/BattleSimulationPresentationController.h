@@ -29,12 +29,7 @@ struct FBattleSimulationPresentationState
 
 };
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSimulationPresentationTimeScaleChanged, float);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSimulationPresentationViewChanged, EBattlePlayerSimulationView);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSimulationPresentationAvailabilityChanged, bool);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSimulationPresentationCharactersChanged, ABattleCharacterBase*, ABattleCharacterBase*);
-
-UCLASS()
+UCLASS(BlueprintType)
 class MUKSI_API UBattleSimulationPresentationController : public UObject
 {
 	GENERATED_BODY()
@@ -43,20 +38,25 @@ public:
 	bool Initialize(ABattleSimulationManager* InSimulationManager);
 	void Shutdown();
 
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
 	EBattlePlayerSimulationView GetPlayerSimulationView() const { return PlayerSimulationView; }
 	bool IsPlayerSimulationViewAvailable() const { return bPlayerSimulationViewAvailable; }
 	bool IsPlayerSimulationViewChangeLocked() const { return bPlayerSimulationViewChangeLocked; }
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
 	bool CanChangePlayerSimulationView() const { return bPlayerSimulationViewAvailable && !bPlayerSimulationViewChangeLocked; }
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Time")
 	float GetSimulationTimeScale() const { return CurrentSimulationTimeScale; }
 
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
 	bool SetPlayerSimulationView(EBattlePlayerSimulationView NewView);
+	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
 	bool TogglePlayerSimulationView();
 	void SetPlayerSimulationViewInternal(EBattlePlayerSimulationView NewView);
 	void SetPlayerSimulationViewAvailable(bool bAvailable);
 	void SetPlayerSimulationViewChangeLocked(bool bLocked);
 
 	UBattleSimulationWorldRuntime* GetPlayerPresentationWorldRuntime() const;
-	UBattleSimulationWorldRuntime* GetPlayerTargetingWorldRuntime() const;
+	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
 	ABattleCharacterBase* GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
 	bool EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters);
@@ -67,11 +67,6 @@ public:
 
 	void StartSimulationFastForward();
 	void StopSimulationFastForward();
-
-	FOnBattleSimulationPresentationTimeScaleChanged TimeScaleChangedDelegate;
-	FOnBattleSimulationPresentationViewChanged ViewChangedDelegate;
-	FOnBattleSimulationPresentationAvailabilityChanged AvailabilityChangedDelegate;
-	FOnBattleSimulationPresentationCharactersChanged PresentationCharactersChangedDelegate;
 
 private:
 	void ApplyPlayerSimulationView();

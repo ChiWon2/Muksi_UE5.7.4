@@ -32,10 +32,6 @@ bool UBattleSimulationPresentationController::Initialize(ABattleSimulationManage
 void UBattleSimulationPresentationController::Shutdown()
 {
 	ExitSimulationPresentation(true);
-	TimeScaleChangedDelegate.Clear();
-	ViewChangedDelegate.Clear();
-	AvailabilityChangedDelegate.Clear();
-	PresentationCharactersChangedDelegate.Clear();
 	PresentationStates.Empty();
 	TargetingPresentationController = nullptr;
 	SimulationManager = nullptr;
@@ -60,7 +56,7 @@ void UBattleSimulationPresentationController::SetPlayerSimulationViewInternal(EB
 	PlayerSimulationView = NewView;
 	ApplyPlayerSimulationView();
 	BroadcastPresentationCharacters();
-	ViewChangedDelegate.Broadcast(PlayerSimulationView);
+	if (IsValid(SimulationManager.Get())) SimulationManager->PlayerSimulationViewChangedDelegate.Broadcast(PlayerSimulationView);
 }
 
 void UBattleSimulationPresentationController::SetPlayerSimulationViewAvailable(bool bAvailable)
@@ -70,14 +66,14 @@ void UBattleSimulationPresentationController::SetPlayerSimulationViewAvailable(b
 	bPlayerSimulationViewAvailable = bAvailable;
 	ApplyPlayerSimulationView();
 	BroadcastPresentationCharacters();
-	AvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
+	if (IsValid(SimulationManager.Get())) SimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
 }
 
 void UBattleSimulationPresentationController::SetPlayerSimulationViewChangeLocked(bool bLocked)
 {
 	if (bPlayerSimulationViewChangeLocked == bLocked) return;
 	bPlayerSimulationViewChangeLocked = bLocked;
-	AvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
+	if (IsValid(SimulationManager.Get())) SimulationManager->PlayerSimulationViewAvailabilityChangedDelegate.Broadcast(CanChangePlayerSimulationView());
 }
 
 UBattleSimulationWorldRuntime* UBattleSimulationPresentationController::GetPlayerPresentationWorldRuntime() const
@@ -85,11 +81,6 @@ UBattleSimulationWorldRuntime* UBattleSimulationPresentationController::GetPlaye
 	if (!IsValid(SimulationManager.Get())) return nullptr;
 	const EBattleSimulationWorldType WorldType = PlayerSimulationView == EBattlePlayerSimulationView::DeceivedSelf ? EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived : EBattleSimulationWorldType::PlayerActualEnemyDeceived;
 	return SimulationManager->GetSimulationWorldRuntime(WorldType);
-}
-
-UBattleSimulationWorldRuntime* UBattleSimulationPresentationController::GetPlayerTargetingWorldRuntime() const
-{
-	return IsValid(SimulationManager.Get()) ? SimulationManager->GetSimulationWorldRuntime(EBattleSimulationWorldType::PlayerActualEnemyDeceived) : nullptr;
 }
 
 ABattleCharacterBase* UBattleSimulationPresentationController::GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const
@@ -106,7 +97,7 @@ bool UBattleSimulationPresentationController::EnterSimulationPresentation(const 
 	if (!CreateSimulationPostProcess()) return false;
 	HideSourceCharacters(SourceCharacters);
 	SetPlayerSimulationViewAvailable(true);
-	ViewChangedDelegate.Broadcast(PlayerSimulationView);
+	if (IsValid(SimulationManager.Get())) SimulationManager->PlayerSimulationViewChangedDelegate.Broadcast(PlayerSimulationView);
 	CaptureSimulationTimeScaleBaseline();
 	SetSimulationTimeScale(1.0f);
 	return true;
@@ -258,7 +249,7 @@ void UBattleSimulationPresentationController::BroadcastPresentationCharacters()
 	ABattleCharacterBase* PlayerCharacter = GetPresentationCharacter(RuntimeContext->GetPlayerCharacter());
 	ABattleCharacterBase* EnemyCharacter = GetPresentationCharacter(RuntimeContext->GetEnemyCharacter());
 	if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter)) return;
-	PresentationCharactersChangedDelegate.Broadcast(PlayerCharacter, EnemyCharacter);
+	SimulationManager->PresentationCharactersChangedDelegate.Broadcast(PlayerCharacter, EnemyCharacter);
 }
 
 bool UBattleSimulationPresentationController::CreateSimulationPostProcess()
@@ -333,7 +324,7 @@ void UBattleSimulationPresentationController::SetSimulationTimeScale(float NewTi
 	if (FMath::IsNearlyEqual(CurrentSimulationTimeScale, SafeTimeScale)) return;
 	CurrentSimulationTimeScale = SafeTimeScale;
 	UGameplayStatics::SetGlobalTimeDilation(SimulationManager, CapturedGlobalTimeDilation * CurrentSimulationTimeScale);
-	TimeScaleChangedDelegate.Broadcast(CurrentSimulationTimeScale);
+	SimulationManager->SimulationTimeScaleChangedDelegate.Broadcast(CurrentSimulationTimeScale);
 }
 
 void UBattleSimulationPresentationController::RestoreSimulationTimeScale()
@@ -344,5 +335,5 @@ void UBattleSimulationPresentationController::RestoreSimulationTimeScale()
 	CurrentSimulationTimeScale = 1.0f;
 	bHasCapturedGlobalTimeDilation = false;
 	CapturedGlobalTimeDilation = 1.0f;
-	if (bWasFastForwarding) TimeScaleChangedDelegate.Broadcast(CurrentSimulationTimeScale);
+	if (bWasFastForwarding && IsValid(SimulationManager.Get())) SimulationManager->SimulationTimeScaleChangedDelegate.Broadcast(CurrentSimulationTimeScale);
 }

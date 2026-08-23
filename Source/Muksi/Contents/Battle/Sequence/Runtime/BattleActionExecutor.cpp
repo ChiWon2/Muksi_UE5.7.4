@@ -19,18 +19,18 @@ bool UBattleActionExecutor::Initialize(ABattleManager* InBattleManager, ABattleG
 	return true;
 }
 
-bool UBattleActionExecutor::ExecuteAction(const FBattleSequenceRequest& Request)
+bool UBattleActionExecutor::ExecuteAction(const FBattleAction& Action)
 {
-	if (bRunning || !ValidateRequest(Request) || !IsValid(GridManager)) return false;
+	if (bRunning || !ValidateAction(Action) || !IsValid(GridManager)) return false;
 
-	FBattleAction SequenceAction = Request.Action;
+	FBattleAction SequenceAction = Action;
 	FResolvedTargeting ResolvedTargeting;
 	if (!FBattleTargetResolver::ResolveAction(SequenceAction, GridManager, GridWorldType, ResolvedTargeting)) return false;
 
 	CurrentAction = MoveTemp(SequenceAction);
-	CurrentExecutionCard = Request.GetExecutionCard();
+	CurrentExecutionCard = ResolveExecutionCard(CurrentAction);
 	CurrentResolvedTargeting = MoveTemp(ResolvedTargeting);
-	ExecutionMode = Request.ExecutionMode;
+	ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType) ? EBattleExecutionMode::Simulation : EBattleExecutionMode::Sequence;
 	bRunning = true;
 	ActiveExecutionRunners.Reset();
 
@@ -51,10 +51,17 @@ void UBattleActionExecutor::Stop()
 	ResetRuntime();
 }
 
-bool UBattleActionExecutor::ValidateRequest(const FBattleSequenceRequest& Request) const
+bool UBattleActionExecutor::ValidateAction(const FBattleAction& Action) const
 {
-	UMuksiBattleCardDataAsset* ExecutionCard = Request.GetExecutionCard();
-	return IsValid(Request.Action.Attacker.Get()) && IsValid(Request.Action.Card.Get()) && IsValid(ExecutionCard) && !ExecutionCard->MainExecutions.IsEmpty();
+	UMuksiBattleCardDataAsset* ExecutionCard = ResolveExecutionCard(Action);
+	return IsValid(Action.Attacker.Get()) && IsValid(Action.Card.Get()) && IsValid(ExecutionCard) && !ExecutionCard->MainExecutions.IsEmpty();
+}
+
+UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBattleAction& Action) const
+{
+	if (!IsValid(Action.Card.Get()) || BattleSimulationWorld::UsesActualCard(GridWorldType, Action.bPlayerAction)) return Action.Card.Get();
+	UMuksiBattleCardDataAsset* DeceivedCard = Action.Card->GetDeceivedCard();
+	return IsValid(DeceivedCard) ? DeceivedCard : Action.Card.Get();
 }
 
 bool UBattleActionExecutor::InitializeExecutionEnvironment()
@@ -173,7 +180,6 @@ void UBattleActionExecutor::ResetRuntime()
 	CurrentAction = FBattleAction();
 	CurrentExecutionCard = nullptr;
 	CurrentResolvedTargeting.Reset();
-	ExecutionMode = EBattleExecutionMode::Sequence;
 	AttackerAnimationComponent = nullptr;
 	ActiveExecutionRunners.Reset();
 	ExecutionEnvironment = nullptr;

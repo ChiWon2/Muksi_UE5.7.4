@@ -14,6 +14,7 @@
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
+#include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
@@ -853,7 +854,8 @@ ABattleCharacterBase* ABattleTargetingManager::ResolveRuntimeCharacter(const ABa
 {
     if (!IsValid(SourceCharacter)) return nullptr;
     if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return const_cast<ABattleCharacterBase*>(SourceCharacter);
-    ABattleSimulationCharacter* SimulationCharacter = BattleSimulationManager->GetPlayerTargetingSimulationCharacter(SourceCharacter);
+    UBattleSimulationWorldRuntime* WorldRuntime = BattleSimulationManager->GetSimulationWorldRuntime(EBattleSimulationWorldType::PlayerActualEnemyDeceived);
+    ABattleSimulationCharacter* SimulationCharacter = IsValid(WorldRuntime) ? WorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
     return IsValid(SimulationCharacter) ? SimulationCharacter : const_cast<ABattleCharacterBase*>(SourceCharacter);
 }
 

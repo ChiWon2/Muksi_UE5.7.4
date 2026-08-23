@@ -6,7 +6,6 @@
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
-#include "Muksi/Contents/Battle/Sequence/Data/BattleSequenceRequest.h"
 #include "BattleSequenceManager.generated.h"
 
 class ABattleGridManager;
@@ -47,9 +46,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
 	bool StartSequence(const FBattleAction& InAction);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
-	bool StartSequenceWithRequest(const FBattleSequenceRequest& Request);
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
 	bool IsSequenceRunning() const;
