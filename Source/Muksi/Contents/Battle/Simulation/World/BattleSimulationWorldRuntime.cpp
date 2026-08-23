@@ -78,16 +78,16 @@ void UBattleSimulationWorldRuntime::SetCharactersVisible(bool bVisible)
 bool UBattleSimulationWorldRuntime::PrepareExchange(int32 ExchangeIndex, const FBattleAction& PlayerAction, const FBattleAction& EnemyAction)
 {
 	if (SimulationState != EBattleSimulationState::Ready) return false;
-	FBattleAction PreparedPlayerAction = PlayerAction;
-	PreparedPlayerAction.ExchangeIndex = ExchangeIndex;
-	PreparedPlayerAction.bPlayerAction = true;
-	FBattleAction PreparedEnemyAction = EnemyAction;
-	PreparedEnemyAction.ExchangeIndex = ExchangeIndex;
-	PreparedEnemyAction.bPlayerAction = false;
+	FBattleAction PlayerSimulationAction = PlayerAction;
+	PlayerSimulationAction.ExchangeIndex = ExchangeIndex;
+	PlayerSimulationAction.bPlayerAction = true;
+	FBattleAction EnemySimulationAction = EnemyAction;
+	EnemySimulationAction.ExchangeIndex = ExchangeIndex;
+	EnemySimulationAction.bPlayerAction = false;
 	FBattleAction NewPlayerAction;
 	FBattleAction NewEnemyAction;
-	if (!BuildSimulationAction(PreparedPlayerAction, NewPlayerAction)) return false;
-	if (!BuildSimulationAction(PreparedEnemyAction, NewEnemyAction)) return false;
+	if (!BuildSimulationAction(PlayerSimulationAction, NewPlayerAction)) return false;
+	if (!BuildSimulationAction(EnemySimulationAction, NewEnemyAction)) return false;
 	this->PreparedPlayerAction = MoveTemp(NewPlayerAction);
 	this->PreparedEnemyAction = MoveTemp(NewEnemyAction);
 	SetSimulationState(EBattleSimulationState::Prepared);
