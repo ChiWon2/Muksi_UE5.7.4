@@ -17,6 +17,7 @@
 
 class ABattleGridTile;
 class ABattleCharacterBase;
+class ABattleSimulationCharacter;
 
 UCLASS()
 class MUKSI_API ABattleGridManager : public AActor
@@ -79,7 +80,7 @@ public:
 public:
 	const TArray<FBattleGridCell>& GetGridCells(EBattleSimulationWorldType WorldType) const;
 	bool HasWorldState(EBattleSimulationWorldType WorldType) const;
-	bool InitializeWorldStateFromActual(EBattleSimulationWorldType WorldType, const TArray<AActor*>& SourceActors, const TArray<AActor*>& ReplacementActors);
+	bool ResetSimulationWorldStateFromActual(EBattleSimulationWorldType WorldType, const TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& SimulationCharacterMap);
 	void RemoveWorldState(EBattleSimulationWorldType WorldType);
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Character") 

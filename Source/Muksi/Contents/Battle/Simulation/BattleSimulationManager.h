@@ -17,12 +17,8 @@ class UBattleSimulationPresentationController;
 class UBattleSimulationWorldRuntime;
 class UMaterialInterface;
 struct FBattleAction;
-struct FResolvedTargeting;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float, TimeScale);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerSimulationViewChanged, EBattlePlayerSimulationView, View);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerSimulationViewAvailabilityChanged, bool, bAvailable);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSimulationPresentationCharactersChanged, ABattleCharacterBase*, PlayerCharacter, ABattleCharacterBase*, EnemyCharacter);
 
 /**
  * Round Simulation 전체를 조율한다.
@@ -49,8 +45,6 @@ public:
 	bool IsSimulationPostProcessEnabled() const { return bEnableSimulationPostProcess; }
 	TSubclassOf<ABattleSimulationPostProcessVolume> GetSimulationPostProcessVolumeClass() const { return SimulationPostProcessVolumeClass; }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
-	void PresentSimulationExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FResolvedTargeting& ResolvedTargeting);
-	void ClearSimulationExecutionPresentation(UBattleSimulationWorldRuntime* WorldRuntime);
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -64,15 +58,6 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|Time")
 	FOnSimulationTimeScaleChanged SimulationTimeScaleChangedDelegate;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
-	FOnPlayerSimulationViewChanged PlayerSimulationViewChangedDelegate;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
-	FOnPlayerSimulationViewAvailabilityChanged PlayerSimulationViewAvailabilityChangedDelegate;
-
-	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|View")
-	FOnSimulationPresentationCharactersChanged PresentationCharactersChangedDelegate;
 
 private:
 	UFUNCTION()
@@ -91,22 +76,17 @@ private:
 	void CompletePhaseExecution(EBattlePhase FinishedPhase);
 	void NotifySimulationPhaseFinished(int32 FinishedExchangeIndex);
 
-	bool EnsureSimulationWorldRuntimes();
-	bool EnsureSimulationWorldRuntime(TObjectPtr<UBattleSimulationWorldRuntime>& InOutWorldRuntime, EBattleSimulationWorldType WorldType);
+	bool CreateSimulationWorldRuntimes(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
+	bool CreateSimulationWorldRuntime(TObjectPtr<UBattleSimulationWorldRuntime>& InOutWorldRuntime, EBattleSimulationWorldType WorldType, ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void DestroySimulationWorldRuntime(TObjectPtr<UBattleSimulationWorldRuntime>& InOutWorldRuntime);
 	void DestroySimulationWorldRuntimes();
 	TArray<UBattleSimulationWorldRuntime*> GetSimulationWorldRuntimes() const;
-	void HideSimulationWorlds();
-	void StopSimulationWorlds();
-	bool PrepareBattleSimulation();
-	bool PrepareSimulationWorldRuntimes(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool AreSimulationWorldRuntimesReady() const;
+	bool InitializeBattleSimulation();
 	bool InitializeRoundSimulation();
-	void ResetRoundSimulationState();
-	bool ResetSimulationWorldsFromActualBattleState(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
+	bool ResetSimulationWorldsFromActualBattleState(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void DeactivateRoundSimulation();
 	void StopSimulation();
-	bool EnsurePresentationController();
+	bool CreatePresentationController();
 
 	bool IsManagedSimulationRuntime(const UBattleSimulationWorldRuntime* WorldRuntime) const;
 

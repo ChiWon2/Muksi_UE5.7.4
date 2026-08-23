@@ -102,8 +102,10 @@ void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, E
         break;
 
     case EBattlePhase::CardSelect:
-        if (OldPhase == EBattlePhase::Targeting) ResetPlayerTargetingForCardReselection();
-        else ResetCurrentExchangeTargeting();
+        if (OldPhase == EBattlePhase::Targeting) 
+            ResetPlayerTargetingForCardReselection();
+        else 
+            ResetCurrentExchangeTargeting();
         break;
 
     case EBattlePhase::Targeting:

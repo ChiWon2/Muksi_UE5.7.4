@@ -29,21 +29,17 @@ class MUKSI_API UBattleSimulationWorldRuntime : public UObject
 	GENERATED_BODY()
 
 public:
-	bool Initialize(ABattleSimulationManager* InSimulationManager, EBattleSimulationWorldType InWorldType);
+	bool Initialize(ABattleSimulationManager* InSimulationManager, EBattleSimulationWorldType InWorldType, ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void Shutdown();
-	bool PrepareSimulationRuntime(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool ResetFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
+	bool ResetFromActualBattleState(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool PrepareExchange(int32 ExchangeIndex, const FBattleAction& PlayerAction, const FBattleAction& EnemyAction);
 	bool ExecuteCurrentExchange();
-	void StopSimulation();
 	void SetCharactersVisible(bool bVisible);
 
 	bool IsSimulationRunning() const;
-	bool IsSimulationRuntimeReady() const;
 	EBattleSimulationState GetSimulationState() const { return SimulationState; }
 	EBattleSimulationWorldType GetWorldType() const { return WorldType; }
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
-	ABattleCharacterBase* GetSourceCharacter(const ABattleSimulationCharacter* SimulationCharacter) const;
 
 	FOnBattleSimulationWorldExchangeFinished ExchangeFinishedDelegate;
 
@@ -51,22 +47,17 @@ protected:
 	virtual void BeginDestroy() override;
 
 private:
+	bool IsSimulationRuntimeInitialized() const;
 	bool CreateSimulationCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool CreateSimulationExecutionEnvironment(ABattleGridManager* InSourceGridManager);
-	bool RebuildWorldGridState(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool CanReuseSimulationRuntime(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters) const;
-	bool ResetSimulationRuntimeFromActualBattleState(ABattleGridManager* InSourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool TryExecuteCurrentExchange();
+	bool CreateActionExecutor(ABattleGridManager* InSourceGridManager);
+	bool ResetGridStateFromActual();
 	bool BuildSimulationAction(const FBattleAction& Action, FBattleAction& OutAction) const;
 	bool ExecuteSimulationAction(const FBattleAction& Action);
-	void ClearSimulationActionPresentation();
 	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
 	void HandleSimulationSequenceFinished();
 	void FinishCurrentExchange();
+	void AbortSimulation();
 	void DestroySimulationRuntime();
-	void ResetSimulationRuntime();
-	void SetSimulationState(EBattleSimulationState NewState);
-	int32 GetMaxExchangeCount() const;
 
 private:
 	UPROPERTY(Transient)
@@ -83,10 +74,6 @@ private:
 
 	UPROPERTY(Transient)
 	FBattleAction PreparedEnemyAction;
-
-	// 별도 GridManager를 소유하지 않고 BattleManager의 공용 Grid를 참조한다.
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UBattleActionExecutor> ActionExecutor = nullptr;

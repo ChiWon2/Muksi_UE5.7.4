@@ -2,6 +2,7 @@
 
 #include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 
 #include "Muksi/Contents/Battle/Grid/Navigation/BattleGridNavigationComponent.h"
 #include "Muksi/Contents/Battle/Grid/Generator/BattleGridTileGeneratorComponent.h"
@@ -482,25 +483,25 @@ bool ABattleGridManager::HasWorldState(EBattleSimulationWorldType WorldType) con
 	return State && !State->Cells.IsEmpty();
 }
 
-bool ABattleGridManager::InitializeWorldStateFromActual(EBattleSimulationWorldType WorldType, const TArray<AActor*>& SourceActors, const TArray<AActor*>& ReplacementActors)
+bool ABattleGridManager::ResetSimulationWorldStateFromActual(EBattleSimulationWorldType WorldType, const TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& SimulationCharacterMap)
 {
-	if (WorldType == EBattleSimulationWorldType::PlayerActualEnemyActual || SourceActors.Num() != ReplacementActors.Num()) return false;
+	if (WorldType == EBattleSimulationWorldType::PlayerActualEnemyActual || SimulationCharacterMap.IsEmpty()) return false;
 	const FBattleGridState* ActualState = GridStates.Find(EBattleSimulationWorldType::PlayerActualEnemyActual);
 	if (!ActualState || ActualState->Cells.IsEmpty()) return false;
 
 	FBattleGridState RuntimeState;
 	RuntimeState.Cells = ActualState->Cells;
 
-	for (int32 ActorIndex = 0; ActorIndex < SourceActors.Num(); ++ActorIndex)
+	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
 	{
-		AActor* SourceActor = SourceActors[ActorIndex];
-		AActor* ReplacementActor = ReplacementActors[ActorIndex];
-		if (!IsValid(SourceActor) || !IsValid(ReplacementActor)) return false;
+		ABattleCharacterBase* SourceCharacter = Pair.Key.Get();
+		ABattleSimulationCharacter* SimulationCharacter = Pair.Value.Get();
+		if (!IsValid(SourceCharacter) || !IsValid(SimulationCharacter)) return false;
 		bool bReplaced = false;
 		for (FBattleGridCell& Cell : RuntimeState.Cells)
 		{
-			if (Cell.OccupyingActor != SourceActor) continue;
-			Cell.OccupyingActor = ReplacementActor;
+			if (Cell.OccupyingActor != SourceCharacter) continue;
+			Cell.OccupyingActor = SimulationCharacter;
 			Cell.bOccupied = true;
 			bReplaced = true;
 			break;

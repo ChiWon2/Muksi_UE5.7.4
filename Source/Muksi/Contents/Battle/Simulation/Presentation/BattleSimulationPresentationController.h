@@ -17,7 +17,7 @@ struct FHexOffsetCoord;
 struct FTargetingStepCardData;
 
 USTRUCT()
-struct FBattleSimulationPresentationState
+struct FBattleSimulationExecutionPreview
 {
 	GENERATED_BODY()
 
@@ -40,19 +40,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
 	EBattlePlayerSimulationView GetPlayerSimulationView() const { return PlayerSimulationView; }
-	bool IsPlayerSimulationViewAvailable() const { return bPlayerSimulationViewAvailable; }
-	bool IsPlayerSimulationViewChangeLocked() const { return bPlayerSimulationViewChangeLocked; }
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	bool CanChangePlayerSimulationView() const { return bPlayerSimulationViewAvailable && !bPlayerSimulationViewChangeLocked; }
+	bool CanChangePlayerSimulationView() const { return bSimulationPresentationActive && !bPlayerSimulationViewChangeLocked; }
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Time")
 	float GetSimulationTimeScale() const { return CurrentSimulationTimeScale; }
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool SetPlayerSimulationView(EBattlePlayerSimulationView NewView);
+	bool RequestPlayerSimulationView(EBattlePlayerSimulationView NewView);
 	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
 	bool TogglePlayerSimulationView();
-	void SetPlayerSimulationViewInternal(EBattlePlayerSimulationView NewView);
-	void SetPlayerSimulationViewAvailable(bool bAvailable);
+	void SetPlayerSimulationView(EBattlePlayerSimulationView NewView);
 	void SetPlayerSimulationViewChangeLocked(bool bLocked);
 
 	UBattleSimulationWorldRuntime* GetPlayerPresentationWorldRuntime() const;
@@ -60,27 +57,23 @@ public:
 	ABattleCharacterBase* GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
 	bool EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	void ExitSimulationPresentation(bool bClearRuntimePreview);
-	void ClearRuntimeSimulationPreview();
-	void PresentSimulationExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FResolvedTargeting& ResolvedTargeting);
-	void ClearSimulationExecutionPresentation(UBattleSimulationWorldRuntime* WorldRuntime);
+	void ExitSimulationPresentation(bool bClearExecutionPreviews);
+	void ClearAllExecutionPreviews();
+	void UpdateExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FResolvedTargeting& ResolvedTargeting);
+	void RemoveExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime);
 
 	void StartSimulationFastForward();
 	void StopSimulationFastForward();
 
 private:
-	void ApplyPlayerSimulationView();
-	void RefreshSimulationExecutionPresentation(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPresentationState& PresentationState);
-	void ClearDisplayedExecutionPresentation();
-	void PresentSimulationStep(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FResolvedTargeting& StepResolvedTargeting, TArray<FHexOffsetCoord>& OutIndicatorCoords);
+	void SynchronizeSimulationPresentation();
+	void DisplayExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationExecutionPreview& ExecutionPreview);
+	void ClearDisplayedExecutionPreview();
+	void AppendStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FResolvedTargeting& StepResolvedTargeting, TArray<FHexOffsetCoord>& OutIndicatorCoords);
 	ABattleGridManager* GetGridManager() const;
-	ABattleCharacterBase* ResolveRuntimeAttacker(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action) const;
-	bool ResolveSimulationStepTargeting(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPresentationState& PresentationState, int32 StepIndex, FResolvedTargeting& OutResolvedTargeting) const;
-	void BroadcastPresentationCharacters();
+	bool ResolveSimulationStepTargeting(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationExecutionPreview& ExecutionPreview, int32 StepIndex, FResolvedTargeting& OutResolvedTargeting) const;
 	bool CreateSimulationPostProcess();
 	void DestroySimulationPostProcess();
-	void HideSourceCharacters(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	void RestoreSourceCharacters();
 	void CaptureSimulationTimeScaleBaseline();
 	void SetSimulationTimeScale(float NewTimeScale);
 	void RestoreSimulationTimeScale();
@@ -93,7 +86,7 @@ private:
 	TObjectPtr<UTargetingPresentationController> TargetingPresentationController = nullptr;
 
 	UPROPERTY(Transient)
-	TMap<EBattleSimulationWorldType, FBattleSimulationPresentationState> PresentationStates;
+	TMap<EBattleSimulationWorldType, FBattleSimulationExecutionPreview> ExecutionPreviewsByWorld;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSimulationPostProcessVolume> SimulationPostProcessVolume = nullptr;
@@ -104,7 +97,7 @@ private:
 	EBattlePlayerSimulationView PlayerSimulationView = EBattlePlayerSimulationView::ActualSelf;
 	float CurrentSimulationTimeScale = 1.0f;
 	float CapturedGlobalTimeDilation = 1.0f;
-	bool bPlayerSimulationViewAvailable = false;
+	bool bSimulationPresentationActive = false;
 	bool bPlayerSimulationViewChangeLocked = false;
 	bool bHasCapturedGlobalTimeDilation = false;
 };

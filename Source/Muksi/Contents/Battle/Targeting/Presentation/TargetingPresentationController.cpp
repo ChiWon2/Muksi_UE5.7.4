@@ -11,10 +11,7 @@ void UTargetingPresentationController::Initialize(ABattleGridManager* InGridMana
 	GridManager = InGridManager;
 }
 
-bool UTargetingPresentationController::AddResolvedStepPreview(
-	ABattleCharacterBase* SourceCharacter,
-	EBattleSimulationWorldType GridWorldType,
-	const FTargetingCardData& CardData,
+bool UTargetingPresentationController::AddResolvedStepPreview(ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType GridWorldType,  const FTargetingCardData& CardData,
 	const FResolvedTargeting& ResolvedTargeting,
 	int32 StepIndex,
 	const FTargetingPhasePresentationSettings& PresentationSettings,

@@ -8,6 +8,7 @@
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
+#include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
@@ -25,11 +26,17 @@ void USaeMaekStatusEffect::BuildBattleActionStartExecutions(const FBattleAction&
 	FDamageExecutionData DamageData;
 	DamageData.TargetPolicy = EDamageExecutionTargetPolicy::Attacker;
 	DamageData.DamageValue = GetCurrentStack();
-	DamageData.bTriggerHitReaction = true;
+	DamageData.bTriggerHitReaction = false;
 	DamageData.bTriggerStatusEffectReactions = true;
 	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
 
 	OutExecutions.Add(MoveTemp(DamageEntry));
+
+	FBattleExecutionEntry HitReactionEntry;
+	HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
+	HitReactionEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
+
+	OutExecutions.Add(MoveTemp(HitReactionEntry));
 
 	FBattleExecutionEntry SubtractEntry;
 	SubtractEntry.ExecutionClass = UStatusEffectExecution::StaticClass();

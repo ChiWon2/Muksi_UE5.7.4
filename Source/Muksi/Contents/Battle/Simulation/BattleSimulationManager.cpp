@@ -31,7 +31,6 @@ void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	StopSimulation();
 	if (PresentationController) PresentationController->Shutdown();
 	PresentationController = nullptr;
-	DestroySimulationWorldRuntimes();
 	BattleManager = nullptr;
 	Super::EndPlay(EndPlayReason);
 }
@@ -82,32 +81,37 @@ ABattleGridManager* ABattleSimulationManager::GetBattleGridManager() const
 	return IsValid(BattleManager.Get()) ? BattleManager->GetBattleGridManager() : nullptr;
 }
 
-bool ABattleSimulationManager::EnsureSimulationWorldRuntimes()
+bool ABattleSimulationManager::CreateSimulationWorldRuntimes(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	if (!EnsureSimulationWorldRuntime(ADWorldRuntime, EBattleSimulationWorldType::PlayerActualEnemyDeceived))
+	DestroySimulationWorldRuntimes();
+	if (!CreateSimulationWorldRuntime(ADWorldRuntime, EBattleSimulationWorldType::PlayerActualEnemyDeceived, SourceGridManager, SourceCharacters))
+	{
+		DestroySimulationWorldRuntimes();
 		return false;
-	if (!EnsureSimulationWorldRuntime(DDWorldRuntime, EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived))
+	}
+	if (!CreateSimulationWorldRuntime(DDWorldRuntime, EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived, SourceGridManager, SourceCharacters))
+	{
+		DestroySimulationWorldRuntimes();
 		return false;
-	if (!EnsureSimulationWorldRuntime(DAWorldRuntime, EBattleSimulationWorldType::PlayerDeceivedEnemyActual))
+	}
+	if (!CreateSimulationWorldRuntime(DAWorldRuntime, EBattleSimulationWorldType::PlayerDeceivedEnemyActual, SourceGridManager, SourceCharacters))
+	{
+		DestroySimulationWorldRuntimes();
 		return false;
+	}
 	return true;
 }
 
-bool ABattleSimulationManager::EnsureSimulationWorldRuntime(TObjectPtr<UBattleSimulationWorldRuntime>& InOutWorldRuntime, EBattleSimulationWorldType WorldType)
+bool ABattleSimulationManager::CreateSimulationWorldRuntime(TObjectPtr<UBattleSimulationWorldRuntime>& InOutWorldRuntime, EBattleSimulationWorldType WorldType, ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	if (IsValid(InOutWorldRuntime.Get()))
-		return true;
-
 	InOutWorldRuntime = NewObject<UBattleSimulationWorldRuntime>(this);
-	if (!IsValid(InOutWorldRuntime.Get()))
+	if (!IsValid(InOutWorldRuntime.Get()) || !InOutWorldRuntime->Initialize(this, WorldType, SourceGridManager, SourceCharacters))
+	{
+		InOutWorldRuntime = nullptr;
 		return false;
+	}
 	InOutWorldRuntime->ExchangeFinishedDelegate.AddUObject(this, &ABattleSimulationManager::HandleSimulationWorldExchangeFinished);
-	
-	if (InOutWorldRuntime->Initialize(this, WorldType))
-		return true;
-
-	DestroySimulationWorldRuntime(InOutWorldRuntime);
-	return false;
+	return true;
 }
 
 void ABattleSimulationManager::DestroySimulationWorldRuntime(TObjectPtr<UBattleSimulationWorldRuntime>& InOutWorldRuntime)
@@ -134,35 +138,9 @@ TArray<UBattleSimulationWorldRuntime*> ABattleSimulationManager::GetSimulationWo
 	return { ADWorldRuntime.Get(), DDWorldRuntime.Get(), DAWorldRuntime.Get() };
 }
 
-void ABattleSimulationManager::HideSimulationWorlds()
-{
-	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
-	{
-		if (IsValid(WorldRuntime)) WorldRuntime->SetCharactersVisible(false);
-	}
-}
-
-void ABattleSimulationManager::StopSimulationWorlds()
-{
-	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
-	{
-		if (IsValid(WorldRuntime)) WorldRuntime->StopSimulation();
-	}
-}
-
 bool ABattleSimulationManager::IsManagedSimulationRuntime(const UBattleSimulationWorldRuntime* WorldRuntime) const
 {
 	return WorldRuntime == ADWorldRuntime.Get() || WorldRuntime == DDWorldRuntime.Get() || WorldRuntime == DAWorldRuntime.Get();
-}
-
-void ABattleSimulationManager::PresentSimulationExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FResolvedTargeting& ResolvedTargeting)
-{
-	if (IsManagedSimulationRuntime(WorldRuntime) && PresentationController) PresentationController->PresentSimulationExecution(WorldRuntime, Action, ResolvedTargeting);
-}
-
-void ABattleSimulationManager::ClearSimulationExecutionPresentation(UBattleSimulationWorldRuntime* WorldRuntime)
-{
-	if (IsManagedSimulationRuntime(WorldRuntime) && PresentationController) PresentationController->ClearSimulationExecutionPresentation(WorldRuntime);
 }
 
 void ABattleSimulationManager::RefreshFastForwardForPrimarySimulationWorld()
@@ -194,7 +172,7 @@ void ABattleSimulationManager::UpdateSimulationViewForPhaseTransition(EBattlePha
 {
 	if (NewPhase == EBattlePhase::Targeting)
 	{
-		if (PresentationController) PresentationController->SetPlayerSimulationViewInternal(EBattlePlayerSimulationView::ActualSelf);
+		if (PresentationController) PresentationController->SetPlayerSimulationView(EBattlePlayerSimulationView::ActualSelf);
 		if (PresentationController) PresentationController->SetPlayerSimulationViewChangeLocked(true);
 		return;
 	}
@@ -211,7 +189,7 @@ void ABattleSimulationManager::ExecutePhaseEntryOperation(EBattlePhase NewPhase)
 		break;
 	case EBattlePhase::ExchangeEnd:
 	case EBattlePhase::BattleActionSequenceStart:
-		if (PresentationController) PresentationController->ClearRuntimeSimulationPreview();
+		if (PresentationController) PresentationController->ClearAllExecutionPreviews();
 		break;
 	case EBattlePhase::RoundEnd:
 		DeactivateRoundSimulation();
@@ -239,7 +217,6 @@ bool ABattleSimulationManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
 {
 	switch (Phase)
 	{
-	case EBattlePhase::ExchangeStart:
 	case EBattlePhase::Targeting:
 	case EBattlePhase::CardReveal:
 	case EBattlePhase::ExchangeEnd:
@@ -277,7 +254,7 @@ void ABattleSimulationManager::HandlePhaseExecutionRequested(EBattlePhase OldPha
 
 void ABattleSimulationManager::ExecuteBattleStart()
 {
-	if (!PrepareBattleSimulation())
+	if (!InitializeBattleSimulation())
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to prepare battle simulation."));
 	}
@@ -302,10 +279,12 @@ void ABattleSimulationManager::ExecuteSimulationSequence()
 	UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to execute current exchange simulation."));
 	CompletePhaseExecution(EBattlePhase::SimulationSequence);
 }
+
 void ABattleSimulationManager::HandleSimulationWorldExchangeFinished(UBattleSimulationWorldRuntime* WorldRuntime, int32 FinishedExchangeIndex)
 {
 	if (!IsManagedSimulationRuntime(WorldRuntime)) return;
 	if (FinishedExchangeIndex != ExchangeCompletionBarrierIndex) return;
+	if (PresentationController) PresentationController->RemoveExecutionPreview(WorldRuntime);
 
 	FinishedWorldTypesForCurrentExchange.Add(WorldRuntime->GetWorldType());
 	RefreshFastForwardForPrimarySimulationWorld();
@@ -353,7 +332,7 @@ bool ABattleSimulationManager::ValidateActualExchangeAction(const FBattleAction&
 	return true;
 }
 
-bool ABattleSimulationManager::PrepareBattleSimulation()
+bool ABattleSimulationManager::InitializeBattleSimulation()
 {
 	if (!IsValid(BattleManager.Get()))
 		return false;
@@ -362,38 +341,19 @@ bool ABattleSimulationManager::PrepareBattleSimulation()
 	if (!IsValid(RuntimeContext) || !IsValid(SourceGridManager)) 
 		return false;
 
-	if (!EnsureSimulationWorldRuntimes() || !EnsurePresentationController())
-		return false;
-
 	const TArray<ABattleCharacterBase*> SourceCharacters = { RuntimeContext->GetPlayerCharacter(), RuntimeContext->GetEnemyCharacter() };
-	if (!PrepareSimulationWorldRuntimes(SourceGridManager, SourceCharacters)) 
+	if (!CreateSimulationWorldRuntimes(SourceGridManager, SourceCharacters) || !CreatePresentationController())
+	{
+		DestroySimulationWorldRuntimes();
 		return false;
-
-	HideSimulationWorlds();
-	return true;
-}
-
-bool ABattleSimulationManager::PrepareSimulationWorldRuntimes(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
-{
-	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
-	{
-		if (!IsValid(WorldRuntime) || !WorldRuntime->PrepareSimulationRuntime(SourceGridManager, SourceCharacters)) return false;
 	}
 	return true;
 }
 
-bool ABattleSimulationManager::AreSimulationWorldRuntimesReady() const
-{
-	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
-	{
-		if (!IsValid(WorldRuntime) || !WorldRuntime->IsSimulationRuntimeReady()) return false;
-	}
-	return true;
-}
-
-bool ABattleSimulationManager::EnsurePresentationController()
+bool ABattleSimulationManager::CreatePresentationController()
 {
 	if (IsValid(PresentationController.Get())) return true;
+
 	if (!IsValid(ADWorldRuntime.Get()) || !IsValid(DDWorldRuntime.Get()) || !IsValid(DAWorldRuntime.Get())) return false;
 
 	PresentationController = NewObject<UBattleSimulationPresentationController>(this);
@@ -408,17 +368,18 @@ bool ABattleSimulationManager::EnsurePresentationController()
 
 bool ABattleSimulationManager::InitializeRoundSimulation()
 {
-	if (!IsValid(BattleManager.Get())) return false;
+	if (!IsValid(BattleManager.Get()))
+		return false;
 	UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
-	ABattleGridManager* SourceGridManager = BattleManager->GetBattleGridManager();
-	if (!IsValid(RuntimeContext) || !IsValid(SourceGridManager)) return false;
-	if (!EnsureSimulationWorldRuntimes() || !EnsurePresentationController()) return false;
+	
+	if (!IsValid(RuntimeContext) || !IsValid(PresentationController.Get())) 
+		return false;
 
 	const TArray<ABattleCharacterBase*> SourceCharacters = { RuntimeContext->GetPlayerCharacter(), RuntimeContext->GetEnemyCharacter() };
-	if (!AreSimulationWorldRuntimesReady() && !PrepareSimulationWorldRuntimes(SourceGridManager, SourceCharacters)) return false;
-	ResetRoundSimulationState();
 
-	if (!ResetSimulationWorldsFromActualBattleState(SourceGridManager, SourceCharacters)) return false;
+	if (!ResetSimulationWorldsFromActualBattleState(SourceCharacters)) 
+		return false;
+
 	if (PresentationController && PresentationController->EnterSimulationPresentation(SourceCharacters))
 	{
 		return true;
@@ -428,21 +389,11 @@ bool ABattleSimulationManager::InitializeRoundSimulation()
 	return false;
 }
 
-void ABattleSimulationManager::ResetRoundSimulationState()
-{
-	if (PresentationController) PresentationController->ExitSimulationPresentation(true);
-	UBattleRuntimeContext* RuntimeContext = IsValid(BattleManager.Get()) ? BattleManager->GetBattleRuntimeContext() : nullptr;
-	if (IsValid(RuntimeContext)) RuntimeContext->ClearBattleActionSequenceQueue();
-	ClearExchangeCompletionBarrier();
-	if (PresentationController) PresentationController->SetPlayerSimulationViewInternal(EBattlePlayerSimulationView::ActualSelf);
-	HideSimulationWorlds();
-}
-
-bool ABattleSimulationManager::ResetSimulationWorldsFromActualBattleState(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
+bool ABattleSimulationManager::ResetSimulationWorldsFromActualBattleState(const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
 	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
 	{
-		if (!IsValid(WorldRuntime) || !WorldRuntime->ResetFromActualBattleState(SourceGridManager, SourceCharacters)) return false;
+		if (!IsValid(WorldRuntime) || !WorldRuntime->ResetFromActualBattleState(SourceCharacters)) return false;
 	}
 	return true;
 }
@@ -502,13 +453,12 @@ void ABattleSimulationManager::CompletePhaseExecution(EBattlePhase FinishedPhase
 void ABattleSimulationManager::StopSimulation()
 {
 	DeactivateRoundSimulation();
-	StopSimulationWorlds();
+	DestroySimulationWorldRuntimes();
 }
 
 void ABattleSimulationManager::DeactivateRoundSimulation()
 {
 	if (PresentationController) PresentationController->ExitSimulationPresentation(true);
-	HideSimulationWorlds();
 	ClearExchangeCompletionBarrier();
 }
 

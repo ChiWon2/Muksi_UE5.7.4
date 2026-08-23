@@ -317,7 +317,7 @@ void UWidget_BattleMainScreen::NotifyPlayerCardUnequipped()
 bool UWidget_BattleMainScreen::SetSimulationPlayerView(EBattlePlayerSimulationView View)
 {
 	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->SetPlayerSimulationView(View) : false;
+	return PresentationController ? PresentationController->RequestPlayerSimulationView(View) : false;
 }
 
 bool UWidget_BattleMainScreen::ToggleSimulationPlayerView()
