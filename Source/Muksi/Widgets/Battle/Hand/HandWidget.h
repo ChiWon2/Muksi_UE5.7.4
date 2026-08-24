@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "HandWidget.generated.h"
 
+struct FBattleCardInstance;
 class UExchangeSlotPanelWidget;
 class UInkLineWidget;
 class UHorizontalBox;
@@ -20,24 +21,9 @@ class ABattleCharacterBase;
 
 class UMuksiCharacterDataAsset;
 class UMuksiBattleCardDataAsset;
-class UWidget_BattleMainScreen;
 
 
 
-USTRUCT(BlueprintType)
-struct FWidgetCard
-{
-	GENERATED_BODY()
-
-public:
-	UPROPERTY()
-	TObjectPtr<UWidget_BattleCardBase> Cards = nullptr;
-	UPROPERTY()
-	UCanvasPanelSlot* CanvasSlot = nullptr;
-	UPROPERTY()
-	int32 ZIndex = 0;
-
-};
 
 DECLARE_MULTICAST_DELEGATE(FOnPlayerCardReturned);
 
@@ -81,10 +67,8 @@ public:
 	UCanvasPanel* GetHandCanvas() const { return HandCanvas; }
 	
 
-	void RemoveBattleCards(UWidget_BattleCardBase* InCard);
+	void RemoveHandCardWidget(UWidget_BattleCardBase* InCard);
 
-	UPROPERTY()
-	TObjectPtr<UWidget_BattleMainScreen> BattleMainScreen = nullptr;
 
 	
 	
@@ -108,9 +92,7 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCardBase>> BattleCards;
-
-	UPROPERTY()
-	TArray<FWidgetCard> CardsStructArray;
+	
 
 	UPROPERTY(Transient)
 	TObjectPtr<UWidget_BattleCardBase> HoveredCard = nullptr;
@@ -137,15 +119,14 @@ protected:
 public:
 
 	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
-	void DrawCards(ABattleCharacterBase* BattleCharacter);
-	bool HasHandCards() const { return !BattleCards.IsEmpty(); }
-
-	UFUNCTION(BlueprintCallable, Category = "Hand|Card")
-	UWidget_BattleCardBase* AddCardToHand(UMuksiBattleCardDataAsset* CardData);
+	void DrawCards();
+	bool HasHandCardWidgets()const;
+	
 
 	void PlaceCardInHand(UWidget_BattleCardBase* CardWidget);
 
-
+	bool CommitHandCard(UWidget_BattleCardBase* CardWidget);
+	bool ReturnCommittedHandCard(UWidget_BattleCardBase* CardWidget);
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> CardDrawSpawnPoint;
@@ -168,11 +149,18 @@ protected:
 	TArray<TObjectPtr<UWidget_BattleCardBase>> RemoveCardArray;
 
 	UWidget_BattleCardBase* CreateCardAtDrawSpawnPoint(
-	UMuksiBattleCardDataAsset* CardData);
+	const FBattleCardInstance& CardInstance);
 public:
 	FVector2D GetCardDrawStartLocalPosition() const;
 public:
 	void RemoveSelectedCardsData();
+	
+	void SetBattleCharacter(ABattleCharacterBase* InBattleCharacter);
+
+	ABattleCharacterBase* GetBoundCharacter() const
+	{
+		return BoundCharacter;
+	}
 	
 	//ExchangeSlot 관련 함수(이름이 바뀌거나 간소화 될 수 있음)-------------------------------------------------------
 public:
@@ -188,5 +176,7 @@ public:
 
 private:
 	void HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget);
-	
+
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleCharacterBase> BoundCharacter;
 };

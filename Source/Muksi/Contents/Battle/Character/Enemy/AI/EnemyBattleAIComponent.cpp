@@ -3,6 +3,7 @@
 
 #include "Muksi/Contents/Battle/Character/Enemy/AI/EnemyBattleAIComponent.h"
 
+#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
@@ -50,19 +51,59 @@ UMuksiBattleCardDataAsset* UEnemyBattleAIComponent::SelectCardForExchange(
 		UE_LOG(LogTemp, Warning, TEXT("CardSelectStrategy is null"));
 		return nullptr;
 	}
+	
 
-	//카드가 없으면 다시 뽑기
-	if (EnemyData.BattleDeck.Num() == 0)
+	ABattleCharacterBase* EnemyCharacter =
+		Cast<ABattleCharacterBase>(GetOwner());
+
+	if (!EnemyCharacter)
 	{
-		EnemyData.BattleDeck = EnemyData.AllBattleDeck;
+		UE_LOG(LogTemp, Warning, TEXT("EnemyCharacter is null"));
+		return nullptr;
 	}
+
+	UBattleCardComponent* CardComponent =
+		EnemyCharacter->GetBattleCardComponent();
+
+	if (!CardComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleCardComponent is null"));
+		return nullptr;
+	}
+
+	// 실제 Enemy의 현재 손패가 완전히 소진된 경우 다시 채움
+	CardComponent->RefillHandIfEmpty();
+
+	const TArray<FBattleCardInstance>& CurrentHand =
+		CardComponent->GetCurrentHand();
+
 
 	Result = CardSelectStrategy->SelectCardForExchange(
 		EnemyData,
+		CurrentHand,
 		GridManager,
 		EnemyCoord,
 		PlayerCoord
 	);
+	
+	//카드 Commit (손패에서 카드 제거하는 과정)
+	if (!Result.SelectedCard ||
+	!Result.SelectedCardInstanceId.IsValid())
+	{
+		return nullptr;
+	}
+
+	if (!CardComponent->CommitCard(
+		Result.SelectedCardInstanceId))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("Enemy CommitCard Failed - Card: %s"),
+			*GetNameSafe(Result.SelectedCard));
+
+		return nullptr;
+	}
 	return Result.SelectedCard;
 }
 

@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Muksi/Widgets/Battle/HandWidget.h"
+#include "HandWidget.h"
 
-#include "Widget_CardEquipSlot.h"
+
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -15,7 +15,7 @@
 
 #include "ExchangeSlot/ExchangeSlotPanelWidget.h"
 #include "ExchangeSlot/ExchangeSlotTypes.h"
-
+#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 
 
 void UHandWidget::NativeConstruct()
@@ -310,7 +310,6 @@ void UHandWidget::ClearHandCards()
 	}
 	HoveredCard = nullptr;
 	BattleCards.Empty();
-	CardsStructArray.Empty();
 	bOrganizeCardsPending = false;
 	OrganizeRetryCount = 0;
 	if (UWorld* World = GetWorld())
@@ -378,10 +377,22 @@ const FGeometry& UHandWidget::GetHandCanvasGeometry() const
 	return HandCanvas->GetCachedGeometry();
 }
 
-void UHandWidget::RemoveBattleCards(UWidget_BattleCardBase* InCard)
+void UHandWidget::RemoveHandCardWidget(UWidget_BattleCardBase* InCard)
 {
+	if (!InCard)
+	{
+		return;
+	}
+
 	BattleCards.Remove(InCard);
+
+	if (HoveredCard == InCard)
+	{
+		HoveredCard = nullptr;
+	}
 }
+
+
 
 
 UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const
@@ -401,6 +412,17 @@ void UHandWidget::HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget)
 		return;
 	}
 
+	if (!ReturnCommittedHandCard(CardWidget))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("HandleCardReturnRequested - ReturnCommittedHandCard Failed: %s"),
+			*GetNameSafe(CardWidget->GetCardData()));
+
+		return;
+	}
+	
 	CardWidget->SetCardRenderAngle(0.0f);
 	CardWidget->SetVisibility(ESlateVisibility::Visible);
 
@@ -520,11 +542,10 @@ void UHandWidget::MoveCardToRemovePoint(UWidget_BattleCardBase* CardWidget, cons
 	RemoveCardArray.Add(CardWidget);
 }
 
-void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
+void UHandWidget::DrawCards()
 {
-	if (BattleCharacter->GetAllBattleDeck().IsEmpty())
+	if (!BoundCharacter)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DrawCards failed: BattleCardAssets is empty"));
 		return;
 	}
 	if (!HandCanvas)
@@ -537,20 +558,31 @@ void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
 		UE_LOG(LogTemp, Warning, TEXT("DrawCards failed: CardDrawSpawnPoint is null"));
 		return;
 	}
-	BattleCharacter->RefillBattleDeckIfEmpty();
-	ClearHandCards();
-	// SpawnPoint의 CachedGeometry를 사용하기 위해 레이아웃 갱신
-	ForceLayoutPrepass();
-
-	for (UMuksiBattleCardDataAsset* CardData : BattleCharacter->GetCurrentBattleDeck())
+	
+	UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();
+	if (!CardComponent)
 	{
-		if (!CardData)
+		return;
+	}
+	
+	ClearHandCards();
+	// 레이아웃 갱신 (SpawnPoint의 CachedGeometry를 사용하기 위해)
+	ForceLayoutPrepass();
+	for (const FBattleCardInstance& CardInstance : CardComponent->GetCurrentHand())
+	{
+		if (!CardInstance.IsValid())
 		{
 			continue;
 		}
 
-		CreateCardAtDrawSpawnPoint(CardData);
+		UWidget_BattleCardBase* CardWidget = CreateCardAtDrawSpawnPoint(CardInstance);
+
+		if (!CardWidget)
+		{
+			continue;
+		}
 	}
+	
 	//화면에 보이게 부채꼴 핸드 위치 설정
 	HandCardPoint = CardUpPoint;
 	// Place the cards from the current draw point only after all geometries are valid.
@@ -558,37 +590,9 @@ void UHandWidget::DrawCards(ABattleCharacterBase* BattleCharacter)
 	RequestOrganizeCards(DefaultCardSpacing);
 }
 
-UWidget_BattleCardBase* UHandWidget::AddCardToHand(UMuksiBattleCardDataAsset* CardData)
+bool UHandWidget::HasHandCardWidgets() const
 {
-	if (!CardData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CardData is null"));
-		return nullptr;
-	}
-
-	if (!BattleCardClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: BattleCardClass is null"));
-		return nullptr;
-	}
-
-	if (!HandCanvas)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: HandCanvas is null"));
-		return nullptr;
-	}
-
-	UWidget_BattleCardBase* CardWidget = CreateWidget<UWidget_BattleCardBase>(GetOwningPlayer(), BattleCardClass);
-
-	if (!CardWidget)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed"));
-		return nullptr;
-	}
-	CardWidget->SetCardData(CardData);
-	PlaceCardInHand(CardWidget);
-
-	return CardWidget;
+	return !BattleCards.IsEmpty();
 }
 
 void UHandWidget::PlaceCardInHand(UWidget_BattleCardBase* InCardWidget)
@@ -621,21 +625,57 @@ void UHandWidget::PlaceCardInHand(UWidget_BattleCardBase* InCardWidget)
 		CanvasSlot->SetPosition(FVector2D::ZeroVector);
 		CanvasSlot->SetZOrder(BattleCards.Num());
 	}
-
-	FWidgetCard WidgetCard;
-	WidgetCard.Cards = InCardWidget;
-	WidgetCard.ZIndex = BattleCards.Num();
-
-	CardsStructArray.Add(WidgetCard);
 	BattleCards.Add(InCardWidget);
 }
 
-
-
-
-UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCardDataAsset* CardData)
+//1. 카드의 InstanceID 얻기
+//2. BoundCharacter의 BattleCardComponent 찾기 
+//3. CommitCard()호출
+bool UHandWidget::CommitHandCard(UWidget_BattleCardBase* CardWidget)
 {
-	if (!CardData || !BattleCardClass || !HandCanvas || !CardDrawSpawnPoint)
+	if (!CardWidget || !BoundCharacter)
+	{
+		return false;
+	}
+
+	UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();
+
+	if (!CardComponent)
+	{
+		return false;
+	}
+
+	return CardComponent->CommitCard(CardWidget->GetCardInstanceId());
+}
+
+bool UHandWidget::ReturnCommittedHandCard(UWidget_BattleCardBase* CardWidget)
+{
+	if (!CardWidget || !BoundCharacter)
+	{
+		return false;
+	}
+
+	UBattleCardComponent* CardComponent =
+		BoundCharacter->GetBattleCardComponent();
+
+	if (!CardComponent)
+	{
+		return false;
+	}
+
+	return CardComponent->ReturnCommittedCard(
+		CardWidget->GetCardInstanceId());
+}
+
+
+UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(const FBattleCardInstance& CardInstance)
+{
+	if (!CardInstance.CardData)
+	{
+		return nullptr;
+	}
+	
+	if (!BattleCardClass || !HandCanvas || !CardDrawSpawnPoint)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("CreateCardAtDrawSpawnPoint failed: invalid input or widget reference"));
 		return nullptr;
@@ -647,7 +687,7 @@ UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCard
 		return nullptr;
 	}
 
-	CardWidget->SetCardData(CardData);
+	CardWidget->SetCardInstance(CardInstance.InstanceId,CardInstance.CardData);
 	CardWidget->SetOwningHandWidget(this);
 
 	UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(CardWidget);
@@ -663,11 +703,7 @@ UWidget_BattleCardBase* UHandWidget::CreateCardAtDrawSpawnPoint(UMuksiBattleCard
 	// The real spawn offset is assigned after Slate has produced valid geometry.
 	CanvasSlot->SetPosition(FVector2D::ZeroVector);
 	CanvasSlot->SetZOrder(BattleCards.Num());
-
-	FWidgetCard WidgetCard;
-	WidgetCard.Cards = CardWidget;
-	WidgetCard.ZIndex = BattleCards.Num();
-	CardsStructArray.Add(WidgetCard);
+	
 	BattleCards.Add(CardWidget);
 	return CardWidget;
 }
@@ -698,5 +734,10 @@ void UHandWidget::RemoveSelectedCardsData()
 		Widget->RemoveFromParent();
 	}
 	RemoveCardArray.Empty();
+}
+
+void UHandWidget::SetBattleCharacter(ABattleCharacterBase* InBattleCharacter)
+{
+	BoundCharacter = InBattleCharacter;
 }
 

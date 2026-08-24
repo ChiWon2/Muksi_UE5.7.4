@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Muksi/Widgets/Components/InkLineWidget.h"
+#include "InkLineWidget.h"
 
 #include "CommonLazyImage.h"
 #include "CommonTextBlock.h"

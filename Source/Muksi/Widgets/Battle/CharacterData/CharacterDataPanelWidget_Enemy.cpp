@@ -11,6 +11,7 @@
 #include "Muksi/Widgets/Battle/Passive/Widget_CharacterPassivePanel.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
+#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Player/Widget_PlayerProfilePanel.h"
 
@@ -51,7 +52,8 @@ void UCharacterDataPanelWidget_Enemy::ApplyCharacterData(ABattleCharacter_Enemy*
 	}
 	EnemyProfilePanelWidget->SetBattleCharacter(PlayerData);
 	EnemyProfilePanelWidget->SetData(PlayerData->GetCharacterData());
-	CharacterDeckPanelWidget->SetDeckData(PlayerData->GetAllBattleDeck());
+	UBattleCardComponent* CardComponent = PlayerData->GetBattleCardComponent();
+	CharacterDeckPanelWidget->SetDeckData(CardComponent->GetFullDeck());
 	CharacterPassivePanelWidget->SetPassiveData(PlayerData->GetCharacterPassives());
 }
 

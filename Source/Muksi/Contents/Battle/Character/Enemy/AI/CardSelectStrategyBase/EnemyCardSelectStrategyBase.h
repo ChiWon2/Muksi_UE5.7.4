@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "EnemyCardSelectStrategyBase.generated.h"
 
+struct FBattleCardInstance;
 struct FCharacterData;
 class UMuksiBattleCardDataAsset;
 class ABattleGridManager;
@@ -21,6 +22,9 @@ struct FEnemyCardSelectResult
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FHexOffsetCoord> TargetingStepCoords;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FGuid SelectedCardInstanceId;
 };
 
 
@@ -36,14 +40,16 @@ class MUKSI_API UEnemyCardSelectStrategyBase : public UObject
 public:
 	UFUNCTION(BlueprintNativeEvent)
 	FEnemyCardSelectResult SelectCardForExchange(
-		FCharacterData EnemyData,
+	const FCharacterData& EnemyData,
+		const TArray<FBattleCardInstance>& CurrentHand,
 		ABattleGridManager* GridManager,
 		const FHexOffsetCoord& EnemyCoord,
 		const FHexOffsetCoord& PlayerCoord
 	);
 
 	virtual FEnemyCardSelectResult SelectCardForExchange_Implementation(
-		FCharacterData EnemyData,
+	const FCharacterData& EnemyData,
+		const TArray<FBattleCardInstance>& CurrentHand,
 		ABattleGridManager* GridManager,
 		const FHexOffsetCoord& EnemyCoord,
 		const FHexOffsetCoord& PlayerCoord
