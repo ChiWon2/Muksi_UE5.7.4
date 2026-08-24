@@ -9,6 +9,10 @@ void UHitReactionExecution::Execute(const FBattleExecutionContext& Context, FBat
 	CachedOnFinished = OnFinished;
 
 	ABattleCharacterBase* TargetCharacter = Context.ExecutionTarget.Get();
+	if (!TargetCharacter)
+	{
+		TargetCharacter = Context.Attacker.Get();
+	}
 
 	if (!TargetCharacter)
 	{

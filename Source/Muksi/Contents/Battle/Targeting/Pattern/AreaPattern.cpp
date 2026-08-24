@@ -1,6 +1,6 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 
-void UAreaPattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
+void UAreaPattern::ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
 }
 

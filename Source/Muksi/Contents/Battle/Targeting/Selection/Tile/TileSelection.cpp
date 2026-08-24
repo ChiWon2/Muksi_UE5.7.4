@@ -7,6 +7,7 @@
 
 void UTileSelection::EvaluateCandidate(
 	ABattleGridManager* GridManager,
+	EBattleSimulationWorldType,
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord& CandidateCoord,
 	const FInstancedStruct& SelectionData,

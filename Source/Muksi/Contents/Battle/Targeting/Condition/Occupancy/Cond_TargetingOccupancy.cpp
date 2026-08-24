@@ -27,7 +27,7 @@ bool FCond_TargetingOccupancy::Evaluate(
     }
 
     const FBattleGridCell* Cell =
-        Context->GridManager->GetCellByCoord(Context->GetEvaluatedCoord());
+        Context->GridManager->GetCellByCoord(Context->GridWorldType, Context->GetEvaluatedCoord());
 
     AActor* Occupant = Cell ? Cell->OccupyingActor.Get() : nullptr;
     const bool bOccupied =

@@ -34,5 +34,6 @@ private:
 
 	FHexOffsetCoord StartCoord = FHexOffsetCoord();
 	FHexOffsetCoord DestinationCoord = FHexOffsetCoord();
+	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 	FBattleExecutionFinished CachedOnFinished;
 };

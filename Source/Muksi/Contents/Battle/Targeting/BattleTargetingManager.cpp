@@ -14,6 +14,7 @@
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
+#include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
@@ -101,8 +102,10 @@ void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, E
         break;
 
     case EBattlePhase::CardSelect:
-        if (OldPhase == EBattlePhase::Targeting) ResetPlayerTargetingForCardReselection();
-        else ResetCurrentExchangeTargeting();
+        if (OldPhase == EBattlePhase::Targeting) 
+            ResetPlayerTargetingForCardReselection();
+        else 
+            ResetCurrentExchangeTargeting();
         break;
 
     case EBattlePhase::Targeting:
@@ -282,6 +285,7 @@ bool ABattleTargetingManager::StartPendingPlayerTargeting()
     if (!PlayerTargetingSession || !PlayerTargetingSession->StartSession(
         PlayerTargetingActor,
         RuntimeGridManager,
+        ResolveRuntimeGridWorldType(),
         PendingPlayerCard->TargetingData,
         true))
     {
@@ -583,6 +587,7 @@ bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
     if (!EnemyTargetingSession || !EnemyTargetingSession->StartSession(
         EnemyTargetingActor,
         RuntimeGridManager,
+        ResolveRuntimeGridWorldType(),
         SelectedCard->TargetingData,
         false))
     {
@@ -739,6 +744,7 @@ void ABattleTargetingManager::NotifyEnemyCardRevealUIFinished(int32 ExchangeInde
             {
                 TargetingPresentationController->AddResolvedStepPreview(
                     ResolveRuntimeCharacter(EnemyAction->Attacker),
+                    ResolveRuntimeGridWorldType(),
                     EnemyAction->Card->TargetingData,
                     StepResolvedTargeting,
                     StepIndex,
@@ -834,16 +840,24 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
 
 ABattleGridManager* ABattleTargetingManager::ResolveRuntimeGridManager() const
 {
-    if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return BattleGridManager.Get();
-    ABattleGridManager* SimulationGridManager = BattleSimulationManager->GetPlayerTargetingSimulationGridManager();
-    return IsValid(SimulationGridManager) ? SimulationGridManager : BattleGridManager.Get();
+    // 모든 WorldType은 하나의 GridManager가 소유한다.
+    // 런타임/시뮬레이션의 차이는 ResolveRuntimeGridWorldType()으로만 구분한다.
+    return BattleGridManager.Get();
+}
+
+EBattleSimulationWorldType ABattleTargetingManager::ResolveRuntimeGridWorldType() const
+{
+    return IsValid(BattleSimulationManager) && BattleSimulationManager->IsSimulationRunning()
+        ? EBattleSimulationWorldType::PlayerActualEnemyDeceived
+        : EBattleSimulationWorldType::PlayerActualEnemyActual;
 }
 
 ABattleCharacterBase* ABattleTargetingManager::ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const
 {
     if (!IsValid(SourceCharacter)) return nullptr;
     if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return const_cast<ABattleCharacterBase*>(SourceCharacter);
-    ABattleSimulationCharacter* SimulationCharacter = BattleSimulationManager->GetPlayerTargetingSimulationCharacter(SourceCharacter);
+    UBattleSimulationWorldRuntime* WorldRuntime = BattleSimulationManager->GetSimulationWorldRuntime(EBattleSimulationWorldType::PlayerActualEnemyDeceived);
+    ABattleSimulationCharacter* SimulationCharacter = IsValid(WorldRuntime) ? WorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
     return IsValid(SimulationCharacter) ? SimulationCharacter : const_cast<ABattleCharacterBase*>(SourceCharacter);
 }
 
@@ -864,7 +878,7 @@ bool ABattleTargetingManager::ResolveActionTargetingForCurrentGrid(
     FBattleAction RuntimeAction = Action;
     RuntimeAction.Attacker = ResolveRuntimeCharacter(Action.Attacker);
 
-    return FBattleTargetResolver::ResolveAction(RuntimeAction, ResolveRuntimeGridManager(), OutResolvedTargeting);
+    return FBattleTargetResolver::ResolveAction(RuntimeAction, ResolveRuntimeGridManager(), ResolveRuntimeGridWorldType(), OutResolvedTargeting);
 }
 
 bool ABattleTargetingManager::ResolveActionTargetingThroughStepForCurrentGrid(
@@ -878,6 +892,7 @@ bool ABattleTargetingManager::ResolveActionTargetingThroughStepForCurrentGrid(
     return FBattleTargetResolver::ResolveActionThroughStep(
         RuntimeAction,
         ResolveRuntimeGridManager(),
+        ResolveRuntimeGridWorldType(),
         LastStepIndex,
         OutResolvedTargeting);
 }

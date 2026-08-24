@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "TargetingPresentationController.generated.h"
 
 class ABattleCharacterBase;
@@ -24,6 +25,7 @@ public:
 	void Initialize(ABattleGridManager* InGridManager);
 	bool AddResolvedStepPreview(
 		ABattleCharacterBase* SourceCharacter,
+		EBattleSimulationWorldType GridWorldType,
 		const FTargetingCardData& CardData,
 		const FResolvedTargeting& ResolvedTargeting,
 		int32 StepIndex,

@@ -193,8 +193,8 @@ bool ABattleSetupManager::CreateBattleCharacters()
 
     EnemyCharacter->SetCharacterData(EnemyCharacterDataAsset, BattleManager);
 
-    BattleGridManager->PlaceCharacter(PlayerCharacter, StartPlayerCoord);
-    BattleGridManager->PlaceCharacter(EnemyCharacter, StartEnemyCoord);
+    BattleGridManager->PlaceCharacter(EBattleSimulationWorldType::PlayerActualEnemyActual, PlayerCharacter, StartPlayerCoord);
+    BattleGridManager->PlaceCharacter(EBattleSimulationWorldType::PlayerActualEnemyActual, EnemyCharacter, StartEnemyCoord);
     RuntimeContext->SetBattleCharacters(PlayerCharacter, EnemyCharacter);
     return true;
 }

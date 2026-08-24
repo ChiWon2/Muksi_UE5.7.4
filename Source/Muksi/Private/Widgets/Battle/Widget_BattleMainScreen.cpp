@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
+#include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 
@@ -327,22 +328,26 @@ void UWidget_BattleMainScreen::NotifyPlayerCardUnequipped()
 
 bool UWidget_BattleMainScreen::SetSimulationPlayerView(EBattlePlayerSimulationView View)
 {
-	return BattleSimulationManager ? BattleSimulationManager->SetPlayerSimulationView(View) : false;
+	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
+	return PresentationController ? PresentationController->RequestPlayerSimulationView(View) : false;
 }
 
 bool UWidget_BattleMainScreen::ToggleSimulationPlayerView()
 {
-	return BattleSimulationManager ? BattleSimulationManager->TogglePlayerSimulationView() : false;
+	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
+	return PresentationController ? PresentationController->TogglePlayerSimulationView() : false;
 }
 
 EBattlePlayerSimulationView UWidget_BattleMainScreen::GetSimulationPlayerView() const
 {
-	return BattleSimulationManager ? BattleSimulationManager->GetPlayerSimulationView() : EBattlePlayerSimulationView::ActualSelf;
+	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
+	return PresentationController ? PresentationController->GetPlayerSimulationView() : EBattlePlayerSimulationView::ActualSelf;
 }
 
 bool UWidget_BattleMainScreen::CanToggleSimulationPlayerView() const
 {
-	return BattleSimulationManager ? BattleSimulationManager->CanChangePlayerSimulationView() : false;
+	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
+	return PresentationController ? PresentationController->CanChangePlayerSimulationView() : false;
 }
 
 bool UWidget_BattleMainScreen::CanRequestEndExchange()

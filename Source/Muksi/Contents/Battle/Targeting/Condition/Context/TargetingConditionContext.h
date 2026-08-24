@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "TargetingConditionContext.generated.h"
 
 class ABattleCharacterBase;
@@ -30,6 +31,9 @@ public:
 
     UPROPERTY(Transient, BlueprintReadOnly)
     TObjectPtr<ABattleGridManager> GridManager = nullptr;
+
+    UPROPERTY(Transient, BlueprintReadOnly)
+    EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
     UPROPERTY(Transient, BlueprintReadOnly)
     FHexOffsetCoord OriginCoord;

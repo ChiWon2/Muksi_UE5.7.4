@@ -20,7 +20,6 @@ namespace
 void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = MoveTemp(OnFinished);
-	PendingHitResponseCount = 0;
 
 	const FDamageExecutionData* DamageData = Context.GetExecutionData<FDamageExecutionData>();
 
@@ -48,23 +47,20 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		if (!HitResponse.Executions.IsEmpty()) PendingHitResponses.Add(MoveTemp(HitResponse));
 	}
 
-	PendingHitResponseCount = PendingHitResponses.Num();
-	if (PendingHitResponseCount == 0)
-	{
-		CompleteDamageExecution();
-		return;
-	}
-
 	for (const FPendingHitResponse& HitResponse : PendingHitResponses)
 	{
-		const bool bStarted = Context.CanRequestRuntimeExecutionChain()
-			&& Context.RequestRuntimeExecutionChain.Execute(
-				HitResponse.Executions,
-				HitResponse.Context,
-				FSimpleDelegate::CreateUObject(this, &UDamageExecution::HandleHitResponseFinished));
+		if (!Context.CanRequestRuntimeExecutionChain())
+		{
+			continue;
+		}
 
-		if (!bStarted) HandleHitResponseFinished();
+		Context.RequestRuntimeExecutionChain.Execute(
+			HitResponse.Executions,
+			HitResponse.Context,
+			FSimpleDelegate());
 	}
+
+	CompleteDamageExecution();
 }
 
 void UDamageExecution::ResolveTargets(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, TArray<ABattleCharacterBase*>& OutTargets) const
@@ -91,7 +87,7 @@ void UDamageExecution::ResolveTargets(const FBattleExecutionContext& Context, co
 
 	for (const FHexOffsetCoord& AffectedCoord : Context.ResolvedTargeting.AffectedCoords)
 	{
-		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(AffectedCoord);
+		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, AffectedCoord);
 		ABattleCharacterBase* TargetCharacter = Cell ? Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()) : nullptr;
 
 		if (TargetCharacter && TargetCharacter != Context.Attacker) OutTargets.AddUnique(TargetCharacter);
@@ -145,17 +141,6 @@ void UDamageExecution::BuildHitResponseExecutions(const FBattleExecutionContext&
 	}
 }
 
-void UDamageExecution::HandleHitResponseFinished()
-{
-	if (PendingHitResponseCount <= 0)
-	{
-		return;
-	}
-
-	--PendingHitResponseCount;
-	if (PendingHitResponseCount == 0) CompleteDamageExecution();
-}
-
 void UDamageExecution::CompleteDamageExecution()
 {
 	if (IsExecutionFinished())
@@ -163,7 +148,6 @@ void UDamageExecution::CompleteDamageExecution()
 		return;
 	}
 
-	PendingHitResponseCount = 0;
 	FinishExecution(CachedOnFinished);
 }
 

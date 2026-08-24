@@ -92,6 +92,7 @@ private:
     void HideEnemyTargetingPreviewAndFinishReveal();
 
     ABattleGridManager* ResolveRuntimeGridManager() const;
+    EBattleSimulationWorldType ResolveRuntimeGridWorldType() const;
     ABattleCharacterBase* ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const;
     ABattleCharacterBase* GetPlayerTargetingActor() const;
     ABattleCharacterBase* GetEnemyTargetingActor() const;

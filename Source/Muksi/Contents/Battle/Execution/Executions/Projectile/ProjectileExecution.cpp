@@ -24,7 +24,7 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 	}
 
 	const FHexOffsetCoord DestinationCoord = Context.ResolvedTargeting.PathCoords.Last();
-	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(DestinationCoord);
+	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, DestinationCoord);
 
 	if (!DestinationCell)
 	{
@@ -33,10 +33,10 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 	}
 
 	FVector TargetLocation = DestinationCell->WorldLocation;
+	PendingHitTarget = ResolveHitTarget(Context, DestinationCoord);
 
-	if (ABattleCharacterBase* TargetCharacter = Cast<ABattleCharacterBase>(DestinationCell->OccupyingActor.Get()))
+	if (PendingHitTarget)
 	{
-		PendingHitTarget = TargetCharacter;
 		TargetLocation = PendingHitTarget->GetActorLocation();
 	}
 
@@ -83,6 +83,45 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 const UScriptStruct* UProjectileExecution::GetExecutionDataStruct() const
 {
 	return FProjectileExecutionData::StaticStruct();
+}
+
+ABattleCharacterBase* UProjectileExecution::ResolveHitTarget(const FBattleExecutionContext& Context, const FHexOffsetCoord& DestinationCoord) const
+{
+	if (Context.ExecutionTarget && Context.ExecutionTarget != Context.Attacker)
+	{
+		return Context.ExecutionTarget.Get();
+	}
+
+	if (!Context.BattleGridManager)
+	{
+		return nullptr;
+	}
+
+	for (const FHexOffsetCoord& AffectedCoord : Context.ResolvedTargeting.AffectedCoords)
+	{
+		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, AffectedCoord);
+		ABattleCharacterBase* TargetCharacter = Cell ? Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()) : nullptr;
+
+		if (TargetCharacter && TargetCharacter != Context.Attacker)
+		{
+			return TargetCharacter;
+		}
+	}
+
+	if (Context.ResolvedTargeting.HasSelectedCoord())
+	{
+		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Context.ResolvedTargeting.GetSelectedCoord());
+		ABattleCharacterBase* TargetCharacter = Cell ? Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()) : nullptr;
+
+		if (TargetCharacter && TargetCharacter != Context.Attacker)
+		{
+			return TargetCharacter;
+		}
+	}
+
+	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, DestinationCoord);
+	ABattleCharacterBase* DestinationCharacter = DestinationCell ? Cast<ABattleCharacterBase>(DestinationCell->OccupyingActor.Get()) : nullptr;
+	return DestinationCharacter != Context.Attacker ? DestinationCharacter : nullptr;
 }
 
 void UProjectileExecution::HandleProjectileFinished(bool bInterrupted)

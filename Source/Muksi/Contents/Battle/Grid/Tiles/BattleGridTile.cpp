@@ -31,7 +31,16 @@ ABattleGridTile::ABattleGridTile()
 void ABattleGridTile::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (TargetIndicatorMesh)
+	{
+		TargetIndicatorMesh->SetVisibility(false);
+	}
+
+	if (ExchangeIndicatorMesh)
+	{
+		ExchangeIndicatorMesh->SetVisibility(false);
+	}
 }
 
 void ABattleGridTile::SetTargetIndicatorVisible(bool bVisible)

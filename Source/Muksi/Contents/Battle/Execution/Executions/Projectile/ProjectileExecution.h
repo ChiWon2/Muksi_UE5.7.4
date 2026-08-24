@@ -20,6 +20,7 @@ public:
 
 private:
 	void HandleProjectileFinished(bool bInterrupted);
+	ABattleCharacterBase* ResolveHitTarget(const FBattleExecutionContext& Context, const FHexOffsetCoord& DestinationCoord) const;
 	bool RequestOnHitExecutionChain();
 	void CompleteExecution();
 

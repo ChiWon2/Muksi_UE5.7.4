@@ -2,6 +2,7 @@
 
 void UTargetSelection::EvaluateCandidate(
 	ABattleGridManager*,
+	EBattleSimulationWorldType,
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord&,
 	const FInstancedStruct&,

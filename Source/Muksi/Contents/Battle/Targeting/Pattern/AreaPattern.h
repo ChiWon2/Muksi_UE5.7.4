@@ -6,6 +6,7 @@
 
 #include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
 #include "AreaPattern.generated.h"
 
@@ -17,7 +18,7 @@ class MUKSI_API UAreaPattern : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const;
+	virtual void ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const;
 
 	virtual const UScriptStruct* GetPatternDataStruct() const;
 

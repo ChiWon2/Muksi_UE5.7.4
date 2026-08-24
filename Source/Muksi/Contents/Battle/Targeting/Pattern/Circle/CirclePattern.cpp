@@ -4,7 +4,7 @@
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePatternData.h"
 
-void UCirclePattern::ApplyPattern(ABattleGridManager* GridManager, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
+void UCirclePattern::ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
 {
 	AREA_PATTERN_VALIDATE_COMMON_OR_RETURN(GridManager, PatternData);
 

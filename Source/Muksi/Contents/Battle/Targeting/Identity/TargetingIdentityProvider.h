@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "TargetingIdentityProvider.generated.h"
 
 class ABattleCharacterBase;
@@ -26,5 +27,5 @@ class MUKSI_API FTargetingCharacterIdentity
 {
 public:
 	static FName GetCharacterKey(const ABattleCharacterBase* Character);
-	static ABattleCharacterBase* FindCharacterByKey(ABattleGridManager* GridManager, FName CharacterKey);
+	static ABattleCharacterBase* FindCharacterByKey(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, FName CharacterKey);
 };

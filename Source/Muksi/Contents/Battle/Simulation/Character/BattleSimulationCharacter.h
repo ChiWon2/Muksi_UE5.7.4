@@ -22,6 +22,12 @@ public:
 
 	virtual FName GetTargetingCharacterKey_Implementation() const override;
 
+private:
+	void ResetActiveState();
+	void CopyActorState(const ABattleCharacterBase& InSourceCharacter);
+	void CopyMeshPresentation(const ABattleCharacterBase& InSourceCharacter, UMaterialInterface* MaterialOverride);
+	void CopyAnimationPresentation(const ABattleCharacterBase& InSourceCharacter);
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Battle|Simulation")
 	TObjectPtr<UMaterialInterface> SimulationMaterial;

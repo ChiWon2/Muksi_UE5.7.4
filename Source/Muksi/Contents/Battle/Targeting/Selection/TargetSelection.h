@@ -5,6 +5,7 @@
 #include "UObject/Object.h"
 
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
+#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
 #include "TargetSelection.generated.h"
 
@@ -18,6 +19,7 @@ class MUKSI_API UTargetSelection : public UObject
 public:
 	virtual void EvaluateCandidate(
 		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& CandidateCoord,
 		const FInstancedStruct& SelectionData,

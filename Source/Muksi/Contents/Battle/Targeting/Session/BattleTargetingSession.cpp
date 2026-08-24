@@ -24,7 +24,7 @@ void UBattleTargetingSession::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-bool UBattleTargetingSession::StartSession(ABattleCharacterBase* InSourceCharacter, ABattleGridManager* InGridManager, const FTargetingCardData& InCardTargetingData, bool bEnablePreview)
+bool UBattleTargetingSession::StartSession(ABattleCharacterBase* InSourceCharacter, ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType, const FTargetingCardData& InCardTargetingData, bool bEnablePreview)
 {
 	ResetSession();
 
@@ -35,6 +35,7 @@ bool UBattleTargetingSession::StartSession(ABattleCharacterBase* InSourceCharact
 
 	SourceCharacter = InSourceCharacter;
 	GridManager = InGridManager;
+	GridWorldType = InGridWorldType;
 	CardTargetingData = InCardTargetingData;
 	bPreviewEnabled = bEnablePreview;
 
@@ -93,7 +94,7 @@ bool UBattleTargetingSession::UpdateCandidateCoord(const FHexOffsetCoord& Candid
 		return false;
 	}
 
-	Selection->EvaluateCandidate(GridManager.Get(), OriginCoord, CandidateCoord, StepData->Selection.SelectionData, CurrentStepResult);
+	Selection->EvaluateCandidate(GridManager.Get(), GridWorldType, OriginCoord, CandidateCoord, StepData->Selection.SelectionData, CurrentStepResult);
 	CurrentStepResult.bValid = CurrentStepResult.bValid && IsCurrentSelectionAllowed();
 
 	if (!CurrentStepResult.bValid && StepData->AdvancedSettings.InvalidResolvePolicy == EInvalidTargetResolvePolicy::FindNearestValid)
@@ -101,7 +102,7 @@ bool UBattleTargetingSession::UpdateCandidateCoord(const FHexOffsetCoord& Candid
 		FHexOffsetCoord ResolvedCoord;
 		if (TryResolveValidCandidate(CandidateCoord, ResolvedCoord))
 		{
-			Selection->EvaluateCandidate(GridManager.Get(), OriginCoord, ResolvedCoord, StepData->Selection.SelectionData, CurrentStepResult);
+			Selection->EvaluateCandidate(GridManager.Get(), GridWorldType, OriginCoord, ResolvedCoord, StepData->Selection.SelectionData, CurrentStepResult);
 			CurrentStepResult.bValid = CurrentStepResult.bValid && IsCurrentSelectionAllowed();
 		}
 	}
@@ -270,6 +271,7 @@ const FTargetingIntent& UBattleTargetingSession::GetIntent() const
 bool UBattleTargetingSession::ShowResolvedPreview(
 	ABattleCharacterBase* InSourceCharacter,
 	ABattleGridManager* InGridManager,
+	EBattleSimulationWorldType InGridWorldType,
 	const FTargetingCardData& InCardTargetingData,
 	const FResolvedTargeting& InResolvedTargeting,
 	int32 StepIndex,
@@ -292,6 +294,7 @@ bool UBattleTargetingSession::ShowResolvedPreview(
 
 	SourceCharacter = InSourceCharacter;
 	GridManager = InGridManager;
+	GridWorldType = InGridWorldType;
 	CardTargetingData = InCardTargetingData;
 	CurrentStepIndex = StepIndex;
 	CurrentStepResult = *RuntimeStepResult;
@@ -415,6 +418,7 @@ bool UBattleTargetingSession::IsCurrentSelectionAllowed() const
 	FTargetingConditionRequest Request;
 	Request.SourceCharacter = SourceCharacter.Get();
 	Request.GridManager = GridManager.Get();
+	Request.GridWorldType = GridWorldType;
 	Request.OriginCoord = CurrentStepResult.OriginCoord;
 	Request.CandidateCoord = CurrentStepResult.SelectedCoord;
 	Request.ResolvedCoord = CurrentStepResult.SelectedCoord;
@@ -448,7 +452,7 @@ bool UBattleTargetingSession::TryResolveValidCandidate(const FHexOffsetCoord& De
 		{
 			const FHexOffsetCoord Candidate(X, Y);
 			FTargetingStepResult Saved = CurrentStepResult;
-			Selection->EvaluateCandidate(GridManager.Get(), OriginCoord, Candidate, StepData->Selection.SelectionData, CurrentStepResult);
+			Selection->EvaluateCandidate(GridManager.Get(), GridWorldType, OriginCoord, Candidate, StepData->Selection.SelectionData, CurrentStepResult);
 			const bool bAllowed = CurrentStepResult.bValid && IsCurrentSelectionAllowed();
 			CurrentStepResult = Saved;
 			if (!bAllowed) continue;
@@ -482,7 +486,7 @@ bool UBattleTargetingSession::BuildCurrentStepIntent(FTargetingStepIntent& OutIn
 	{
 		OutIntent.RelativeOffset = FHexGridMath::OffsetToCube(CurrentStepResult.SelectedCoord) - FHexGridMath::OffsetToCube(CurrentStepResult.OriginCoord);
 
-		if (const FBattleGridCell* Cell = GridManager->GetCellByCoord(CurrentStepResult.SelectedCoord))
+		if (const FBattleGridCell* Cell = GridManager->GetCellByCoord(GridWorldType, CurrentStepResult.SelectedCoord))
 		{
 			OutIntent.TargetCharacterKey = FTargetingCharacterIdentity::GetCharacterKey(Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()));
 		}
@@ -541,6 +545,7 @@ bool UBattleTargetingSession::BuildPreviewTargeting(FResolvedTargeting& OutPrevi
 	return FBattleTargetResolver::ResolveIntent(
 		SourceCharacter.Get(),
 		GridManager.Get(),
+		GridWorldType,
 		PartialTargetingData,
 		PartialIntent,
 		OutPreviewTargeting);
@@ -581,7 +586,7 @@ bool UBattleTargetingSession::EnsurePreviewActor()
 		return false;
 	}
 
-	PreviewActor->Initialize(GridManager.Get());
+	PreviewActor->Initialize(GridManager.Get(), GridWorldType);
 	return true;
 }
 
@@ -750,6 +755,7 @@ void UBattleTargetingSession::ResetSession()
 	DestroyPreview();
 	SourceCharacter = nullptr;
 	GridManager = nullptr;
+	GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 	CardTargetingData = FTargetingCardData();
 	CurrentStepIndex = INDEX_NONE;
 	CurrentStepResult.Reset();
