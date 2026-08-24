@@ -30,7 +30,9 @@ struct FCardEquipSlotData
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
-
+	
+	UPROPERTY(BlueprintReadOnly)
+	FGuid CardInstanceId;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bConfirmed = false;

@@ -38,11 +38,6 @@ public:
 	FCardEquipSlotData GetSlotDataByExchangeNumber_Player(int32 InIndex);
 	UFUNCTION(BlueprintCallable)
 	FCardEquipSlotData GetSlotDataByExchangeNumber_Enemy(int32 InIndex);
-
-	UFUNCTION(BlueprintCallable)
-	UMuksiBattleCardDataAsset* GetExchangeDataIndex_Player(int32 InIndex);
-	UFUNCTION(BlueprintCallable)
-	UMuksiBattleCardDataAsset* GetExchangeDataIndex_Enemy(int32 InIndex);
 	
 	UFUNCTION(BlueprintCallable)
 	void ConfirmExchangeInput(int32 InIndex);

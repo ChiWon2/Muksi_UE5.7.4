@@ -5,7 +5,7 @@
 
 #include "Muksi/Widgets/Battle/Status/CharacterStatusWidget.h"
 
-void UBattleStatusHUDWidget::SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
+void UBattleStatusHUDWidget::SetData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy)
 {
 	if (CharacterStatusWidget_Player)
 	{

@@ -4,9 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "ExchangeSlot/ExchangeSlotPanelWidget.h"
+#include "Hand/ExchangeSlot/ExchangeSlotTypes.h"
 #include "Widget_CardEquipSlot.generated.h"
 
+class UWidget_CardEquipSlot;
 class UMuksiBattleCardDataAsset;
 class UBorder;
 class UWidget_BattleCardBase;
@@ -27,8 +28,9 @@ public:
 	bool IsPointInsideSlot(const FVector2D& ScreenPosition) const;
 
 	// 카드 위젯 자체를 슬롯에 장착
-	bool EquipCard(UWidget_BattleCardBase* InCard);//이거 지울거임
-	bool EquipCard_Enemy(UWidget_BattleCardBase* InCard);//이거 지울거임
+	bool EquipCard(UWidget_BattleCardBase* InCard);
+	bool EquipCard_Enemy(UWidget_BattleCardBase* InCard);
+	bool CanEquipCard(UWidget_BattleCardBase* InCard) const;
 	
 	UWidget_BattleCardBase* ReleaseCard();
 	
@@ -46,18 +48,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool CheckEmptySlot();
 
-
+	
 public:
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
 	void SetSlotInfo(int32 InSlotIndex, int32 InExchangeNumber);
-
-	// DataAsset 기반 카드 데이터 장착
-	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
-	void EquipCardData(UMuksiBattleCardDataAsset* InCardData, ABattleCharacterBase* InSourceCharacter);
-
-	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
-	void SetBattleContext(ABattleCharacterBase* InSourceCharacter);
-
+	
 	UFUNCTION(BlueprintCallable, Category = "CardEquipSlot")
 	void ClearSlot();
 

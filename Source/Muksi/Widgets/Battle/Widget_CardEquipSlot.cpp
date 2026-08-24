@@ -39,17 +39,7 @@ bool UWidget_CardEquipSlot::IsPointInsideSlot(const FVector2D& ScreenPosition) c
 
 bool UWidget_CardEquipSlot::EquipCard(UWidget_BattleCardBase* InCard)
 {
-	if (!InCard)
-	{
-		return false;
-	}
-	if (EquippedCard)
-	{
-		return false;
-	}
-	if (!bSlotEnabled && bPlayerSlot){UE_LOG(LogTemp, Log, TEXT("EquipCard4"));}
-	if (SlotData.bConfirmed){UE_LOG(LogTemp, Log, TEXT("EquipCard5"));}
-	if (SlotData.bConfirmed || !bSlotEnabled)
+	if (!CanEquipCard(InCard))
 	{
 		return false;
 	}
@@ -66,6 +56,7 @@ bool UWidget_CardEquipSlot::EquipCard(UWidget_BattleCardBase* InCard)
 	}
 	
 	EquippedCard = InCard;
+	SlotData.CardInstanceId = InCard->GetCardInstanceId();
 	SlotData.CardData = CardData;
 
 	InCard->RemoveFromParent();
@@ -123,6 +114,36 @@ bool UWidget_CardEquipSlot::EquipCard_Enemy(UWidget_BattleCardBase* InCard)
 	return true;
 }
 
+bool UWidget_CardEquipSlot::CanEquipCard(UWidget_BattleCardBase* InCard) const
+{
+	if (!InCard)
+	{
+		return false;
+	}
+
+	if (EquippedCard)
+	{
+		return false;
+	}
+
+	if (SlotData.bConfirmed || !bSlotEnabled)
+	{
+		return false;
+	}
+
+	if (!InCard->GetCardData())
+	{
+		return false;
+	}
+
+	if (!CardHostOverlay)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 UWidget_BattleCardBase* UWidget_CardEquipSlot::ReleaseCard()
 {
 	if (!EquippedCard)
@@ -137,6 +158,7 @@ UWidget_BattleCardBase* UWidget_CardEquipSlot::ReleaseCard()
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
 	SlotData.bConfirmed = false;
+	SlotData.CardInstanceId.Invalidate();
 
 	bHighlighted = false;
 
@@ -202,6 +224,7 @@ bool UWidget_CardEquipSlot::ClearEquipSlot()
 
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
+	SlotData.CardInstanceId.Invalidate();
 
 	RefreshSlotVisual();
 
@@ -224,40 +247,7 @@ void UWidget_CardEquipSlot::SetSlotInfo(int32 InSlotIndex, int32 InExchangeNumbe
 	RefreshSlotVisual();
 }
 
-void UWidget_CardEquipSlot::EquipCardData(UMuksiBattleCardDataAsset* InCardData, ABattleCharacterBase* InSourceCharacter)
-{
-	if (SlotData.bConfirmed)
-	{
-		return;
-	}
 
-	if (!bSlotEnabled)
-	{
-		return;
-	}
-
-	if (!InCardData)
-	{
-		return;
-	}
-
-	if (!InSourceCharacter)
-	{
-		return;
-	}
-
-	SlotData.CardData = InCardData;
-	SlotData.SourceCharacter = InSourceCharacter;
-
-	RefreshSlotVisual();
-}
-
-void UWidget_CardEquipSlot::SetBattleContext(ABattleCharacterBase* InSourceCharacter)
-{
-	SlotData.SourceCharacter = InSourceCharacter;
-
-	RefreshSlotVisual();
-}
 
 
 void UWidget_CardEquipSlot::ClearSlot()
@@ -272,6 +262,7 @@ void UWidget_CardEquipSlot::ClearSlot()
 
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
+	SlotData.CardInstanceId.Invalidate();
 
 	RefreshSlotVisual();
 }
@@ -283,6 +274,7 @@ void UWidget_CardEquipSlot::ForceClearSlot()
 	SlotData.CardData = nullptr;
 	SlotData.SourceCharacter = nullptr;
 	SlotData.bConfirmed = false;
+	SlotData.CardInstanceId.Invalidate();
 
 	bSlotEnabled = false;
 	bHighlighted = false;

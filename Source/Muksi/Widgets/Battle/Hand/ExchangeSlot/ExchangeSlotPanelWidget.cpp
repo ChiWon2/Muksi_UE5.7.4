@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Muksi/Widgets/Battle/ExchangeSlot/ExchangeSlotPanelWidget.h"
+#include "ExchangeSlotPanelWidget.h"
 
 #include "ExchangeSlotTypes.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
@@ -111,17 +111,6 @@ FCardEquipSlotData UExchangeSlotPanelWidget::GetSlotDataByExchangeNumber_Enemy(i
 	return EnemyExchangeSlots[SlotIndex]->GetSlotData();
 }
 
-UMuksiBattleCardDataAsset* UExchangeSlotPanelWidget::GetExchangeDataIndex_Player(int32 InIndex)
-{
-	FCardEquipSlotData Data = GetSlotDataByExchangeNumber_Player(InIndex);
-	return Data.CardData;
-}
-
-UMuksiBattleCardDataAsset* UExchangeSlotPanelWidget::GetExchangeDataIndex_Enemy(int32 InIndex)
-{
-	FCardEquipSlotData Data = GetSlotDataByExchangeNumber_Enemy(InIndex);
-	return Data.CardData;
-}
 
 void UExchangeSlotPanelWidget::ConfirmExchangeInput(int32 InIndex)
 {

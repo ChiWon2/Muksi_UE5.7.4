@@ -4,11 +4,13 @@
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 
 #include "CommonTextBlock.h"
-#include "HandWidget.h"
 #include "Widget_CardEquipSlot.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
+#include "Hand/HandWidget.h"
+#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
@@ -204,6 +206,12 @@ void UWidget_BattleCardBase::SetCardRenderAngle(float InAngle)
 	SetRenderTransformAngle(InAngle);
 }
 
+void UWidget_BattleCardBase::SetCardInstance(const FGuid& InInstanceId, UMuksiBattleCardDataAsset* InCardData)
+{
+	CardInstanceId = InInstanceId;
+	SetCardData(InCardData);
+}
+
 void UWidget_BattleCardBase::OnMoveTimelineUpdate(float Alpha)
 {
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
@@ -255,11 +263,27 @@ void UWidget_BattleCardBase::StopDragging()
 	{
 		UWidget_CardEquipSlot* OverlappedSlot =
 			OwningHandWidget->FindOverlappedEquipSlot(this);
-		if (OverlappedSlot && OverlappedSlot->EquipCard(this))
+
+		if (OverlappedSlot && OverlappedSlot->CanEquipCard(this))
 		{
-			OwningHandWidget->RemoveBattleCards(this);
-			OwningHandWidget->OrganizeCards( OwningHandWidget->GetDefaultCardSpacing());
-			return;
+			// 1. 먼저 게임 데이터에서 카드 Commit
+			if (OwningHandWidget->CommitHandCard(this))
+			{
+				// 2. Commit 성공 후 실제 UI를 Slot에 장착
+				if (OverlappedSlot->EquipCard(this))
+				{
+					OwningHandWidget->RemoveHandCardWidget(this);
+
+					OwningHandWidget->OrganizeCards(
+						OwningHandWidget->GetDefaultCardSpacing());
+
+					return;
+				}
+
+				// 3. Commit은 성공했는데 UI 장착 실패
+				// → 게임 데이터 원상복구
+				OwningHandWidget->ReturnCommittedHandCard(this);
+			}
 		}
 	}
 

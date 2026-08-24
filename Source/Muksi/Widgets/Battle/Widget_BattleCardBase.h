@@ -51,7 +51,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCard")
 	UMuksiBattleCardDataAsset* GetCardData() const { return CardData; }
 
-	
+	const FGuid& GetCardInstanceId() const
+	{
+		return CardInstanceId;
+	}	
+	void SetCardInstance(
+	const FGuid& InInstanceId,
+	UMuksiBattleCardDataAsset* InCardData);
 protected:
 	UFUNCTION()
 	void OnMoveTimelineUpdate(float Alpha);
@@ -75,6 +81,8 @@ protected:
 	UPROPERTY(Transient)
 	FVector2D CachedHandPosition = FVector2D::ZeroVector;
 
+	UPROPERTY(Transient)
+	FGuid CardInstanceId;
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Card|Move")
 	TObjectPtr<UCurveFloat> MoveCurve;
