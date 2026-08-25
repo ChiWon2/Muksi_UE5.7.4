@@ -20,7 +20,7 @@
 
 namespace
 {
-	bool ResolveGridCoordFromCursorHit(
+	bool GetGridCoordFromCursorHit(
 		ABattleGridManager* BattleGridManager,
 		const FHitResult& HitResult,
 		FHexOffsetCoord& OutCoord,
@@ -111,7 +111,7 @@ void UPlayerMode_Battle::ExitMode()
 {
 	if (BattleTargetingManager)
 	{
-		BattleTargetingManager->RequestCancelPlayerTargeting();
+        BattleTargetingManager->CancelPlayerTargeting();
 	}
 
 	BattleTargetingManager = nullptr;
@@ -154,14 +154,16 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 		return;
 	}
 
-	if (BattleTargetingManager->RequestConfirmPlayerTargeting())
+	FHitResult HitResult;
+	const bool bHasHitResult = PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+
+	if (BattleTargetingManager->RequestUpdatePlayerTargeting(HitResult, bHasHitResult)
+		&& BattleTargetingManager->RequestConfirmPlayerTargeting())
 	{
 		return;
 	}
 
-	FHitResult HitResult;
-
-	if (!PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
+	if (!bHasHitResult)
 	{
 		return;
 	}
@@ -216,7 +218,7 @@ void UPlayerMode_Battle::UpdateHoveredGridTile(const FHitResult& HitResult, bool
 
 	if (bHasHitResult)
 	{
-		ResolveGridCoordFromCursorHit(BattleGridManager, HitResult, HoveredCoord, NewHoveredGridTile);
+		GetGridCoordFromCursorHit(BattleGridManager, HitResult, HoveredCoord, NewHoveredGridTile);
 	}
 
 	if (HoveredGridTile == NewHoveredGridTile)

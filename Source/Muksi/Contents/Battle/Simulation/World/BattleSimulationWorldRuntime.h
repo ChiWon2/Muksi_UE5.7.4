@@ -14,7 +14,7 @@ class ABattleSimulationManager;
 class UBattleSimulationWorldRuntime;
 class UBattleActionExecutor;
 struct FBattleExecutionEntry;
-struct FResolvedTargeting;
+struct FTargetingResult;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSimulationWorldExchangeFinished, UBattleSimulationWorldRuntime*, int32);
 
@@ -53,7 +53,7 @@ private:
 	bool ResetGridStateFromActual();
 	bool BuildSimulationAction(const FBattleAction& Action, FBattleAction& OutAction) const;
 	bool ExecuteSimulationAction(const FBattleAction& Action);
-	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
+	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
 	void HandleSimulationSequenceFinished();
 	void FinishCurrentExchange();
 	void AbortSimulation();

@@ -13,7 +13,7 @@ void UBattleGridTileGeneratorComponent::Initialize(ABattleGridManager* InGridMan
 	GridManager = InGridManager;
 }
 
-ABattleGridManager* UBattleGridTileGeneratorComponent::ResolveGridManager()
+ABattleGridManager* UBattleGridTileGeneratorComponent::GetGridManager()
 {
 	if (!IsValid(GridManager))
 	{
@@ -25,7 +25,7 @@ ABattleGridManager* UBattleGridTileGeneratorComponent::ResolveGridManager()
 
 bool UBattleGridTileGeneratorComponent::GenerateTiles()
 {
-	if (!ResolveGridManager())
+	if (!GetGridManager())
 	{
 		return false;
 	}
@@ -36,7 +36,7 @@ bool UBattleGridTileGeneratorComponent::GenerateTiles()
 
 void UBattleGridTileGeneratorComponent::ClearTiles()
 {
-	if (ResolveGridManager())
+	if (GetGridManager())
 	{
 		ClearTilesInternal();
 	}

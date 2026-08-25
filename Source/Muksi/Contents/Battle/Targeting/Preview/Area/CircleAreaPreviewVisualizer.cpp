@@ -3,8 +3,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePatternData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
@@ -31,7 +29,7 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid() || !Context.ResolvedTargeting)
+	if (!HasPreviewActor() || !Context.IsValid())
 	{
 		return;
 	}
@@ -45,9 +43,8 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	// Use the step explicitly bound to this preview session.
 	// Runtime presentation can display multiple steps, so the overall resolved
 	// result's last step is not necessarily the step this visualizer represents.
-	const FTargetingStepResult* StepResult = Context.StepResult;
-
-	if (!Data || !StepResult || !StepResult->HasSelectedCoord())
+	
+	if (!Data || !Context.HasTargetCoord())
 	{
 		return;
 	}
@@ -59,8 +56,6 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	{
 		return;
 	}
-
-	PreviewActorInstance->SetAreaGridCoords(Context.ResolvedTargeting->AffectedCoords);
 	PreviewMeshComponent->SetVisibility(false);
 
 	if (!CirclePreviewMesh)
@@ -72,7 +67,7 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	// arbitrary point inside the tile, so using it here makes the mesh disagree with
 	// the indicator and with reveal/runtime previews.
 	FVector CenterLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(StepResult->SelectedCoord, CenterLocation)) return;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), CenterLocation)) return;
 	const float WorldRadius = CalculateWorldRadius(Context, Data->Radius);
 
 	if (WorldRadius <= KINDA_SMALL_NUMBER)

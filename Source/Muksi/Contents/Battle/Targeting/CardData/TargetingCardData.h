@@ -11,7 +11,8 @@ struct FTargetingCardData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting")
+	/** Targeting은 위에서 아래 순서로 진행된다. 각 Step은 Origin / Selection / Intent / Resolve / Pattern / Presentation으로 구성된다. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting", meta = (DisplayName = "Targeting Steps"))
 	TArray<FTargetingStepCardData> Steps;
 
 	bool HasSteps() const

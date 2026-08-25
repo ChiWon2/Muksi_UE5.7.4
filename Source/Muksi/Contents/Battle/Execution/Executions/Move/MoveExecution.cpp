@@ -188,12 +188,13 @@ bool UMoveExecution::CommitGridMovement()
 	}
 
 	// Grid 점유와 CharacterData.CurrentPosition을 원자적으로 갱신한다.
-	return GridManager->MoveCharacterOnGrid(
-		GridWorldType,
-		MovingCharacter.Get(),
-		StartCoord,
-		DestinationCoord,
-		true);
+	FBattleGridMoveRequest Request;
+	Request.Character = MovingCharacter.Get();
+	Request.WorldType = GridWorldType;
+	Request.FromCoord = StartCoord;
+	Request.ToCoord = DestinationCoord;
+	Request.bSnapActorToGrid = true;
+	return GridManager->ExecuteGridMove(Request).bSucceeded;
 }
 
 void UMoveExecution::RestoreStartWorldLocation()

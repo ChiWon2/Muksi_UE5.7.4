@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
-#include"Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
 
 #include "GameFramework/Actor.h"
 #include "BattleGridTile.generated.h"
@@ -42,11 +41,6 @@ public:
 	UFUNCTION()
 	FTransform GetCharacterSpawnTransform() const;
 	
-	UFUNCTION()
-	void SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, bool bEnemy = false);
-	
-	UFUNCTION()
-	void ClearExchangeIndicator();
 	
 	UFUNCTION()
 	void OnHoverBegin();
@@ -67,23 +61,11 @@ protected:
 	TObjectPtr<UStaticMeshComponent> TargetIndicatorMesh;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TObjectPtr<UStaticMeshComponent> ExchangeIndicatorMesh;
+	TObjectPtr<UStaticMeshComponent> ExtraIndicatorMesh;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
 	TObjectPtr<UMaterialInterface> NormalIndicatorMaterial;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
-	TObjectPtr<UMaterialInterface> AttackableIndicatorMaterial;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
-	TObjectPtr<UMaterialInterface> BlockedIndicatorMaterial;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid|Indicator")
-	TObjectPtr<UMaterialInterface> EnemyIndicatorMaterial;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Indicator")
-	TObjectPtr<UMaterialInterface> MoveIndicatorMaterial;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Grid")
 	FHexOffsetCoord GridCoord = FHexOffsetCoord();
 	

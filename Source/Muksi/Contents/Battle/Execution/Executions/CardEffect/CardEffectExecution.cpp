@@ -7,7 +7,6 @@
 #include "Muksi/Contents/Battle/Card/Effect/BattleCardEffect.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/Core/BattleGridCell.h"
 
 void UCardEffectExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
@@ -22,37 +21,23 @@ void UCardEffectExecution::Execute(const FBattleExecutionContext& Context, FBatt
 		return;
 	}
 
-	for (const FHexOffsetCoord& Coord :
-		 Context.ResolvedTargeting.AffectedCoords)
+	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
+	if (!StepResult)
 	{
-		const FBattleGridCell* Cell =
-			Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Coord);
+		FinishExecution(OnFinished);
+		return;
+	}
 
-		if (!Cell || !Cell->OccupyingActor)
-		{
-			continue;
-		}
-
-		ABattleCharacterBase* TargetCharacter =
-			Cast<ABattleCharacterBase>(
-				Cell->OccupyingActor.Get()
-			);
-
-		if (!IsValid(TargetCharacter))
-		{
-			continue;
-		}
+	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
+	{
+		if (!IsValid(TargetCharacter)) continue;
 
 		FBattleCardEffectContext EffectContext;
-
 		EffectContext.User = Context.Attacker;
 		EffectContext.Target = TargetCharacter;
 		EffectContext.Card = Context.Card;
 		EffectContext.ExecutionMode = Context.ExecutionMode;
-
-		EffectData->CardEffect->Execute(
-			EffectContext
-		);
+		EffectData->CardEffect->Execute(EffectContext);
 	}
 
 	FinishExecution(OnFinished);

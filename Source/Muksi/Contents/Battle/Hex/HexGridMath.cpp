@@ -58,33 +58,34 @@ int32 FHexGridMath::GetOppositeDirection(const int32 DirectionIndex) { return No
 int32 FHexGridMath::RotateDirectionLeft(const int32 DirectionIndex, const int32 StepCount) { return NormalizeDirection(DirectionIndex - StepCount); }
 int32 FHexGridMath::RotateDirectionRight(const int32 DirectionIndex, const int32 StepCount) { return NormalizeDirection(DirectionIndex + StepCount); }
 
-int32 FHexGridMath::GetClosestDirectionByWorldVector(const FVector& WorldDirection)
+FVector2D FHexGridMath::GetGridVector2D(const FHexCubeCoord& CubeVector)
 {
-	FVector2D FlatDirection(WorldDirection.X, WorldDirection.Y);
-	if (!FlatDirection.Normalize())
-	{
-		return INDEX_NONE;
-	}
+	constexpr float HalfSqrtThree = 0.8660254f;
+	return FVector2D(
+		static_cast<float>(CubeVector.X) + static_cast<float>(CubeVector.Z) * 0.5f,
+		static_cast<float>(CubeVector.Z) * HalfSqrtThree);
+}
 
-	// Direction indices follow GetCubeDirection():
-	// 0 East, 1 North-East, 2 North-West, 3 West, 4 South-West, 5 South-East.
-	// Grid rows increase along world +Y, so the north-facing directions use negative Y.
-	static const FVector2D DirectionVectors[DirectionCount] =
-	{
-		FVector2D( 1.0f,  0.0f),
-		FVector2D( 0.5f, -0.8660254f),
-		FVector2D(-0.5f, -0.8660254f),
-		FVector2D(-1.0f,  0.0f),
-		FVector2D(-0.5f,  0.8660254f),
-		FVector2D( 0.5f,  0.8660254f)
-	};
+int32 FHexGridMath::GetClosestDirection(const FHexOffsetCoord& OriginCoord, const FHexOffsetCoord& TargetCoord)
+{
+	if (!OriginCoord.IsValid() || !TargetCoord.IsValid() || OriginCoord == TargetCoord)
+		return INDEX_NONE;
+
+	const FHexCubeCoord DeltaCube = OffsetToCube(TargetCoord) - OffsetToCube(OriginCoord);
+	FVector2D TargetDirection = GetGridVector2D(DeltaCube);
+
+	if (!TargetDirection.Normalize())
+		return INDEX_NONE;
 
 	int32 BestDirection = 0;
 	float BestDot = -1.0f;
 
 	for (int32 DirectionIndex = 0; DirectionIndex < DirectionCount; ++DirectionIndex)
 	{
-		const float Dot = FVector2D::DotProduct(FlatDirection, DirectionVectors[DirectionIndex]);
+		FVector2D Direction = GetGridVector2D(GetCubeDirection(DirectionIndex));
+		Direction.Normalize();
+
+		const float Dot = FVector2D::DotProduct(TargetDirection, Direction);
 		if (Dot > BestDot)
 		{
 			BestDot = Dot;

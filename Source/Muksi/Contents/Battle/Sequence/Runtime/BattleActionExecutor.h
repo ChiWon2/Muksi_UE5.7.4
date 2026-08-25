@@ -14,7 +14,7 @@ class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 
 DECLARE_MULTICAST_DELEGATE(FOnBattleActionExecutorFinished);
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleActionExecutorEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FResolvedTargeting&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleActionExecutorEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
 
 UCLASS()
 class MUKSI_API UBattleActionExecutor : public UObject
@@ -32,7 +32,8 @@ public:
 
 private:
 	bool ValidateAction(const FBattleAction& Action) const;
-	UMuksiBattleCardDataAsset* ResolveExecutionCard(const FBattleAction& Action) const;
+	bool BuildActionTargetingResult(const FBattleAction& Action, FTargetingResult& OutTargetingResult) const;
+	UMuksiBattleCardDataAsset* GetExecutionCard(const FBattleAction& Action) const;
 	bool InitializeExecutionEnvironment();
 	bool BindAttackerNotify();
 	void UnbindAttackerNotify();
@@ -63,7 +64,7 @@ private:
 	TObjectPtr<UMuksiBattleCardDataAsset> CurrentExecutionCard = nullptr;
 
 	UPROPERTY(Transient)
-	FResolvedTargeting CurrentResolvedTargeting;
+	FTargetingResult CurrentTargetingResult;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;

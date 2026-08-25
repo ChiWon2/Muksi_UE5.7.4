@@ -4,7 +4,7 @@
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleExecutionContext.generated.h"
 
@@ -36,7 +36,7 @@ struct FBattleExecutionContext
 
 
 	UPROPERTY(BlueprintReadOnly)
-	FResolvedTargeting ResolvedTargeting;
+	FTargetingResult TargetingResult;
 
 	UPROPERTY(BlueprintReadOnly)
 	FInstancedStruct ExecutionData;
@@ -68,14 +68,17 @@ struct FBattleExecutionContext
 
 	bool HasValidEnvironment() const;
 
+	const FTargetingStepResult* GetLastTargetingStepResult() const
+	{
+		return TargetingResult.GetLastStep();
+	}
+
 	FHexOffsetCoord GetPrimaryTargetCoord() const
 	{
-		if (ResolvedTargeting.HasSelectedCoord())
-		{
-			return ResolvedTargeting.GetSelectedCoord();
-		}
-
-		return ResolvedTargeting.AffectedCoords.IsValidIndex(0) ? ResolvedTargeting.AffectedCoords[0] : FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+		const FTargetingStepResult* StepResult = GetLastTargetingStepResult();
+		if (!StepResult) return FHexOffsetCoord::Invalid();
+		if (StepResult->ResolvedStep.HasResolvedCoord()) return StepResult->ResolvedStep.ResolvedCoord;
+		return StepResult->AffectedCoords.IsValidIndex(0) ? StepResult->AffectedCoords[0] : FHexOffsetCoord::Invalid();
 	}
 
 	bool CanRequestRuntimeExecutionChain() const

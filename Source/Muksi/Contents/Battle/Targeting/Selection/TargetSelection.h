@@ -4,8 +4,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "UObject/Object.h"
 
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
-#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
+#include "Muksi/Contents/Battle/Targeting/Context/SelectionStepResult.h"
 
 #include "TargetSelection.generated.h"
 
@@ -19,21 +18,27 @@ class MUKSI_API UTargetSelection : public UObject
 public:
 	virtual void EvaluateCandidate(
 		ABattleGridManager* GridManager,
-		EBattleSimulationWorldType WorldType,
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& CandidateCoord,
 		const FInstancedStruct& SelectionData,
-		FTargetingStepResult& OutStepResult
+		FSelectionStepResult& OutStepResult
 	) const;
 
-	virtual const UScriptStruct* GetSelectionDataStruct() const;
+	virtual void CollectCandidateCoords(
+        ABattleGridManager* GridManager,
+        const FHexOffsetCoord& OriginCoord,
+        const FInstancedStruct& SelectionData,
+        TArray<FHexOffsetCoord>& OutCoords
+    ) const;
+
+    virtual const UScriptStruct* GetRuleDataStruct() const;
 
 	// 방향/조준 선택은 선택 좌표를 이동 목적지로 사용하지 않는다.
 
 protected:
-	bool IsSelectionDataValid(const FInstancedStruct& SelectionData) const;
+	bool IsRuleDataValid(const FInstancedStruct& SelectionData) const;
 
-	void InitializeStepResult(const FHexOffsetCoord& OriginCoord, FTargetingStepResult& OutStepResult) const;
+	void InitializeStepResult(const FHexOffsetCoord& OriginCoord, FSelectionStepResult& OutStepResult) const;
 };
 
 
@@ -53,7 +58,7 @@ protected:
 		{ \
 			return; \
 		} \
-		if (!IsSelectionDataValid(SelectionData)) \
+		if (!IsRuleDataValid(SelectionData)) \
 		{ \
 			return; \
 		} \

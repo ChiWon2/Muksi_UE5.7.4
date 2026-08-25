@@ -8,12 +8,12 @@
 UENUM(BlueprintType)
 enum class ETargetingIntentBinding : uint8
 {
-	/** Resolve the selected offset again from the current runtime step origin. This is the default for spatial battle targeting across AD/DD/DA/AA. */
-	SourceRelative,
-	/** Follow the same logical character identity in the current runtime world. If that identity is unavailable, fall back to the recorded source-relative offset. */
-	TargetCharacter,
+	/** Preserve the selected offset from the current Step Origin. During AD/DD/DA/AA resolution, apply the offset again from that World's resolved Step Origin. */
+	OriginRelative = 0,
+	/** Follow the same logical character identity in the current runtime world. If that identity is unavailable, fall back to the recorded origin-relative offset. */
+	TargetCharacter = 1,
 	/** Keep the originally selected absolute grid coordinate. Use only when the card intentionally targets a fixed world cell. */
-	WorldFixed
+	WorldFixed = 2
 };
 
 UENUM(BlueprintType)
@@ -30,7 +30,7 @@ struct FTargetingStepIntent
 {
 	GENERATED_BODY()
 
-	/** SelectedCoord minus the step origin in cube space. This is the portable spatial intent used by SourceRelative resolution. */
+	/** SelectedCoord minus the Step Origin in cube space. Targeting uses the selected Step Origin; Simulation/Execution reapplies it from the resolved Step Origin. */
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	FHexCubeCoord RelativeOffset;
 

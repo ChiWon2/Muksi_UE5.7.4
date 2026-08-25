@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
+#include "Muksi/Contents/Battle/Hex/HexCubeCoord.h"
 
 #include "ConePattern.generated.h"
 
@@ -12,10 +13,11 @@ class MUKSI_API UConePattern : public UAreaPattern
 	GENERATED_BODY()
 
 public:
-	virtual void ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const override;
+	virtual void ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FInstancedStruct& PatternData, const FHexOffsetCoord& OriginCoord, const FHexOffsetCoord& TargetCoord, int32 Direction, TArray<FHexOffsetCoord>& OutAffectedCoords, TArray<FHexOffsetCoord>& OutPathCoords) const override;
+	virtual bool RequiresDirection() const override { return true; }
 
 	virtual const UScriptStruct* GetPatternDataStruct() const override;
 
 private:
-	bool IsInsideCone(const FVector& OriginWorldLocation, const FVector& AimWorldLocation, const FVector& CandidateWorldLocation, float ConeAngle) const;
+	bool IsInsideHexCone(const FHexCubeCoord& RelativeCube, int32 Direction, float ConeAngle) const;
 };

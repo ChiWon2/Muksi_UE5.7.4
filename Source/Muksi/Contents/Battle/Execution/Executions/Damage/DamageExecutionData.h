@@ -7,7 +7,7 @@
 UENUM(BlueprintType)
 enum class EDamageExecutionTargetPolicy : uint8
 {
-	ResolvedTargeting,
+	TargetingResult,
 	ExecutionTarget,
 	Attacker
 };
@@ -18,7 +18,7 @@ struct FDamageExecutionData : public FBattleExecutionData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
-	EDamageExecutionTargetPolicy TargetPolicy = EDamageExecutionTargetPolicy::ResolvedTargeting;
+	EDamageExecutionTargetPolicy TargetPolicy = EDamageExecutionTargetPolicy::TargetingResult;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage", meta = (ClampMin = "0"))
 	int32 DamageValue = 0;

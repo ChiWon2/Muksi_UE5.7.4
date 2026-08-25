@@ -1,34 +1,20 @@
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
-#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
-#include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 
-bool UBattleSimulationPresentationController::Initialize(ABattleSimulationManager* InSimulationManager)
+bool UBattleSimulationPresentationController::Initialize(ABattleSimulationManager* InSimulationManager, UTargetingPresentationController* InTargetingPresentationController)
 {
-	if (!IsValid(InSimulationManager) || !IsValid(InSimulationManager->GetBattleManager())) 
-		return false;
+	if (!IsValid(InSimulationManager) || !IsValid(InTargetingPresentationController)) return false;
 	SimulationManager = InSimulationManager;
-
-	TargetingPresentationController = NewObject<UTargetingPresentationController>(this);
-
-	ABattleGridManager* GridManager = InSimulationManager->GetBattleGridManager();
-
-	if (!IsValid(TargetingPresentationController.Get()) || !IsValid(GridManager))
-		return false;
-
-	TargetingPresentationController->Initialize(GridManager);
-
+	TargetingPresentationController = InTargetingPresentationController;
 	return true;
 }
 
@@ -96,9 +82,9 @@ bool UBattleSimulationPresentationController::EnterSimulationPresentation(const 
 	return true;
 }
 
-void UBattleSimulationPresentationController::ExitSimulationPresentation(bool bClearExecutionPreviews)
+void UBattleSimulationPresentationController::ExitSimulationPresentation(bool bClearExecutionResults)
 {
-	if (bClearExecutionPreviews) ExecutionPreviewsByWorld.Empty();
+	if (bClearExecutionResults) ExecutionResultsByWorld.Empty();
 	bSimulationPresentationActive = false;
 	bPlayerSimulationViewChangeLocked = false;
 	SynchronizeSimulationPresentation();
@@ -107,28 +93,28 @@ void UBattleSimulationPresentationController::ExitSimulationPresentation(bool bC
 	RestoreSimulationTimeScale();
 }
 
-void UBattleSimulationPresentationController::ClearAllExecutionPreviews()
+void UBattleSimulationPresentationController::ClearAllExecutionResults()
 {
-	ExecutionPreviewsByWorld.Empty();
-	if (bSimulationPresentationActive) ClearDisplayedExecutionPreview();
+	ExecutionResultsByWorld.Empty();
+	if (bSimulationPresentationActive) ClearDisplayedExecutionResult();
 }
 
-void UBattleSimulationPresentationController::UpdateExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FResolvedTargeting& ResolvedTargeting)
+void UBattleSimulationPresentationController::UpdateExecutionResult(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult)
 {
 	if (!IsValid(WorldRuntime) || !IsValid(Action.Card.Get())) return;
 	const EBattleSimulationWorldType WorldType = WorldRuntime->GetWorldType();
 	if (WorldType != EBattleSimulationWorldType::PlayerActualEnemyDeceived && WorldType != EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived) return;
-	FBattleSimulationExecutionPreview& ExecutionPreview = ExecutionPreviewsByWorld.FindOrAdd(WorldType);
-	ExecutionPreview.Action = Action;
-	ExecutionPreview.ResolvedTargeting = ResolvedTargeting;
-	if (bSimulationPresentationActive && WorldRuntime == GetPlayerPresentationWorldRuntime()) DisplayExecutionPreview(WorldRuntime, ExecutionPreview);
+	FBattleSimulationExecutionResult& ExecutionResult = ExecutionResultsByWorld.FindOrAdd(WorldType);
+	ExecutionResult.Action = Action;
+	ExecutionResult.TargetingResult = TargetingResult;
+	if (bSimulationPresentationActive && WorldRuntime == GetPlayerPresentationWorldRuntime()) DisplayExecutionResult(WorldRuntime, ExecutionResult);
 }
 
-void UBattleSimulationPresentationController::RemoveExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime)
+void UBattleSimulationPresentationController::RemoveExecutionResult(UBattleSimulationWorldRuntime* WorldRuntime)
 {
 	if (!IsValid(WorldRuntime)) return;
-	ExecutionPreviewsByWorld.Remove(WorldRuntime->GetWorldType());
-	if (bSimulationPresentationActive && WorldRuntime == GetPlayerPresentationWorldRuntime()) ClearDisplayedExecutionPreview();
+	ExecutionResultsByWorld.Remove(WorldRuntime->GetWorldType());
+	if (bSimulationPresentationActive && WorldRuntime == GetPlayerPresentationWorldRuntime()) ClearDisplayedExecutionResult();
 }
 
 void UBattleSimulationPresentationController::StartSimulationFastForward()
@@ -165,7 +151,7 @@ void UBattleSimulationPresentationController::SynchronizeSimulationPresentation(
 	ABattleSimulationManager* Manager = SimulationManager.Get();
 	if (!IsValid(Manager))
 	{
-		ClearDisplayedExecutionPreview();
+		ClearDisplayedExecutionResult();
 		return;
 	}
 	UBattleSimulationWorldRuntime* VisibleWorldRuntime = bSimulationPresentationActive ? GetPlayerPresentationWorldRuntime() : nullptr;
@@ -177,79 +163,42 @@ void UBattleSimulationPresentationController::SynchronizeSimulationPresentation(
 	}
 	if (!IsValid(VisibleWorldRuntime))
 	{
-		ClearDisplayedExecutionPreview();
+		ClearDisplayedExecutionResult();
 		return;
 	}
 
-	//Display ExecutionPreview
-	const FBattleSimulationExecutionPreview* ExecutionPreview = ExecutionPreviewsByWorld.Find(VisibleWorldRuntime->GetWorldType());
-	if (ExecutionPreview) 
-		DisplayExecutionPreview(VisibleWorldRuntime, *ExecutionPreview);
-	else ClearDisplayedExecutionPreview();
+	//Display ExecutionResult
+	const FBattleSimulationExecutionResult* ExecutionResult = ExecutionResultsByWorld.Find(VisibleWorldRuntime->GetWorldType());
+	if (ExecutionResult) 
+		DisplayExecutionResult(VisibleWorldRuntime, *ExecutionResult);
+	else ClearDisplayedExecutionResult();
 }
 
-void UBattleSimulationPresentationController::DisplayExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationExecutionPreview& ExecutionPreview)
+void UBattleSimulationPresentationController::DisplayExecutionResult(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationExecutionResult& ExecutionResult)
 {
-	ABattleGridManager* GridManager = GetGridManager();
-	if (!IsValid(GridManager)) return;
-	ClearDisplayedExecutionPreview();
-	ABattleCharacterBase* RuntimeAttacker = ExecutionPreview.Action.Attacker.Get();
-	TArray<FHexOffsetCoord> IndicatorCoords;
-	const int32 StepCount = ExecutionPreview.Action.Card->TargetingData.Steps.Num();
+	ClearDisplayedExecutionResult();
+	ABattleCharacterBase* RuntimeAttacker = ExecutionResult.Action.Attacker.Get();
+	const int32 StepCount = ExecutionResult.Action.Card->TargetingData.Steps.Num();
 	for (int32 StepIndex = 0; StepIndex < StepCount; ++StepIndex)
 	{
-		const FTargetingStepCardData* StepData = ExecutionPreview.Action.Card->TargetingData.GetStep(StepIndex);
-		if (!StepData) continue;
-		FResolvedTargeting StepResolvedTargeting;
-		if (!ResolveSimulationStepTargeting(WorldRuntime, ExecutionPreview, StepIndex, StepResolvedTargeting)) continue;
-		AppendStepPreview(WorldRuntime, RuntimeAttacker, ExecutionPreview.Action, StepIndex, *StepData, StepResolvedTargeting, IndicatorCoords);
+		const FTargetingStepCardData* StepData = ExecutionResult.Action.Card->TargetingData.GetStep(StepIndex);
+		if (!StepData || !ExecutionResult.TargetingResult.GetStep(StepIndex)) continue;
+		AppendStepPreview(WorldRuntime, RuntimeAttacker, ExecutionResult.Action, StepIndex, *StepData, ExecutionResult.TargetingResult);
 	}
-	if (!IndicatorCoords.IsEmpty()) GridManager->SetExchangeIndicator(ExecutionPreview.Action.Card->CardTypeInfo, IndicatorCoords, !ExecutionPreview.Action.bPlayerAction);
 }
 
-void UBattleSimulationPresentationController::ClearDisplayedExecutionPreview()
+void UBattleSimulationPresentationController::ClearDisplayedExecutionResult()
 {
-	if (TargetingPresentationController) TargetingPresentationController->ClearExecutionPreview();
-	ABattleGridManager* GridManager = GetGridManager();
-	if (!IsValid(GridManager)) return;
-	GridManager->AllClearGridHovered();
-	GridManager->AllClearExchangeIndicator();
+	if (TargetingPresentationController) TargetingPresentationController->ClearTargetingResultPreviews();
 }
 
-void UBattleSimulationPresentationController::AppendStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FResolvedTargeting& StepResolvedTargeting, TArray<FHexOffsetCoord>& OutIndicatorCoords)
+void UBattleSimulationPresentationController::AppendStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FTargetingResult& TargetingResult)
 {
-	const FTargetingPhasePresentationSettings& Settings = StepData.AdvancedSettings.Presentation.SimulationPhase;
-	if (Settings.bShowIndicator)
-	{
-		TArray<FHexOffsetCoord> StepIndicatorCoords = StepResolvedTargeting.AffectedCoords;
-		if (StepIndicatorCoords.IsEmpty())
-		{
-			const FTargetingStepResult* StepResult = StepResolvedTargeting.GetStep(StepIndex);
-			if (StepResult && StepResult->HasSelectedCoord()) StepIndicatorCoords.Add(StepResult->SelectedCoord);
-		}
-		for (const FHexOffsetCoord& Coord : StepIndicatorCoords) OutIndicatorCoords.AddUnique(Coord);
-	}
-	const bool bShowPreview = Settings.bShowSelectionPreview || Settings.bShowPathPreview || Settings.bShowAreaPreview;
-	if (bShowPreview) TargetingPresentationController->AddResolvedStepPreview(RuntimeAttacker, WorldRuntime->GetWorldType(), Action.Card->TargetingData, StepResolvedTargeting, StepIndex, Settings, !Action.bPlayerAction);
+	const FTargetingPhasePresentationSettings& Settings = StepData.Presentation.Phases.Simulation;
+	const bool bShowPresentation = Settings.HasAnyPresentation();
+	if (bShowPresentation && TargetingPresentationController) TargetingPresentationController->AddTargetingResultPreview(RuntimeAttacker, WorldRuntime->GetWorldType(), Action.Card->TargetingData, TargetingResult, StepIndex, Settings, !Action.bPlayerAction);
 }
 
-ABattleGridManager* UBattleSimulationPresentationController::GetGridManager() const
-{
-	return IsValid(SimulationManager.Get()) ? SimulationManager->GetBattleGridManager() : nullptr;
-}
-
-bool UBattleSimulationPresentationController::ResolveSimulationStepTargeting(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationExecutionPreview& ExecutionPreview, int32 StepIndex, FResolvedTargeting& OutResolvedTargeting) const
-{
-	if (StepIndex == ExecutionPreview.Action.Card->TargetingData.Steps.Num() - 1)
-	{
-		OutResolvedTargeting = ExecutionPreview.ResolvedTargeting;
-		return true;
-	}
-	ABattleGridManager* GridManager = GetGridManager();
-	if (!IsValid(GridManager)) return false;
-	FBattleAction RuntimeAction = ExecutionPreview.Action;
-	return FBattleTargetResolver::ResolveActionThroughStep(RuntimeAction, GridManager, WorldRuntime->GetWorldType(), StepIndex, OutResolvedTargeting);
-}
 
 bool UBattleSimulationPresentationController::CreateSimulationPostProcess()
 {

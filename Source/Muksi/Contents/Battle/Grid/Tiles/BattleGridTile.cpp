@@ -21,8 +21,8 @@ ABattleGridTile::ABattleGridTile()
 	CenterPointComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("CenterPointComponent"));
 	CenterPointComponent->SetupAttachment(SceneRoot);
 	
-	ExchangeIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExchangeIndicator"));
-	ExchangeIndicatorMesh->SetupAttachment(SceneRoot);
+	ExtraIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExtraIndicator"));
+	ExtraIndicatorMesh->SetupAttachment(SceneRoot);
 	
 	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TargetIndicatorMesh"));
 	TargetIndicatorMesh->SetupAttachment(SceneRoot);
@@ -37,9 +37,9 @@ void ABattleGridTile::BeginPlay()
 		TargetIndicatorMesh->SetVisibility(false);
 	}
 
-	if (ExchangeIndicatorMesh)
+	if (ExtraIndicatorMesh)
 	{
-		ExchangeIndicatorMesh->SetVisibility(false);
+		ExtraIndicatorMesh->SetVisibility(false);
 	}
 }
 
@@ -72,45 +72,6 @@ FTransform ABattleGridTile::GetCharacterSpawnTransform() const
 	}
 
 	return GetActorTransform();
-}
-
-void ABattleGridTile::SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, bool bEnemy)
-{
-	ExchangeIndicatorMesh->SetTranslucentSortPriority(100);
-	ExchangeIndicatorMesh->SetVisibility(true);
-
-	if (bEnemy && EnemyIndicatorMaterial)
-	{
-		ExchangeIndicatorMesh->SetMaterial(0, EnemyIndicatorMaterial);
-		return;
-	}
-	
-	if (!AttackableIndicatorMaterial && !MoveIndicatorMaterial && !BlockedIndicatorMaterial){UE_LOG(LogTemp, Error, TEXT("IndicatorMaterior is null (BattleGridTile.cpp)")); return;}
-	
-	switch (CardTypeInfo.CardType)
-	{
-		case EMuksiBattleCardType::None:
-		ExchangeIndicatorMesh->SetMaterial(0, AttackableIndicatorMaterial);
-		break;
-		/*case EMuksiBattleCardType::RangeAttack:
-		case EMuksiBattleCardType::Defense:
-		case EMuksiBattleCardType::Heal:*/
-		case EMuksiBattleCardType::Defence:
-		ExchangeIndicatorMesh->SetMaterial(0, MoveIndicatorMaterial);
-		break;
-		case EMuksiBattleCardType::Attack:
-		ExchangeIndicatorMesh->SetMaterial(0, BlockedIndicatorMaterial);
-		break;
-		default:
-		UE_LOG(LogTemp, Error, TEXT("[BattleGridTile] SetTargetIndicator Type Error"));
-		break;
-	}
-}
-
-
-void ABattleGridTile::ClearExchangeIndicator()
-{
-	ExchangeIndicatorMesh->SetVisibility(false);
 }
 
 void ABattleGridTile::OnHoverBegin()

@@ -2,7 +2,6 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
-#include"Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
 #include "BattleGridIndicatorComponent.generated.h"
 class ABattleGridManager;
 UCLASS(ClassGroup=(Battle), meta=(BlueprintSpawnableComponent))
@@ -12,13 +11,11 @@ class MUKSI_API UBattleGridIndicatorComponent : public UActorComponent
 public:
 	UBattleGridIndicatorComponent();
 	void Initialize(ABattleGridManager* InGridManager);
-	void SetHovered(const TArray<FHexOffsetCoord>& Coords);
-	void ClearHovered();
-	void ClearAllHovered();
-	void SetExchange(const FBattleCardTypeInfoData& CardTypeInfo, const TArray<FHexOffsetCoord>& Coords, bool bEnemy = false);
-	void ClearExchange();
+	void SetTargetIndicators(const TArray<FHexOffsetCoord>& Coords);
+	void ClearTargetIndicators();
+	void ClearAllTargetIndicators();
 private:
-	ABattleGridManager* ResolveGridManager();
+	ABattleGridManager* GetGridManager();
 	UPROPERTY(Transient) TObjectPtr<ABattleGridManager> GridManager;
-	UPROPERTY(Transient) TArray<FHexOffsetCoord> HoveredCoords;
+	UPROPERTY(Transient) TArray<FHexOffsetCoord> TargetIndicatorCoords;
 };

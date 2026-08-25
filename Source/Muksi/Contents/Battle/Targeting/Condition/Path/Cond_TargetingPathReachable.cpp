@@ -17,7 +17,7 @@ bool FCond_TargetingPathReachable::Evaluate(
         return false;
     }
 
-    const FHexOffsetCoord EvaluatedCoord = Context->GetEvaluatedCoord();
+    const FHexOffsetCoord EvaluatedCoord = Context->TargetCoord;
 
     if (Condition.MaxDistance >= 0 &&
         FHexGridMath::GetHexDistance(Context->OriginCoord, EvaluatedCoord) >

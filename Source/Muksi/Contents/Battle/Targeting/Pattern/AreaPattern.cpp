@@ -1,6 +1,14 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 
-void UAreaPattern::ApplyPattern(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FInstancedStruct& PatternData, FResolvedTargeting& InOutResult) const
+void UAreaPattern::ApplyPattern(
+	ABattleGridManager*,
+	EBattleSimulationWorldType,
+	const FInstancedStruct&,
+	const FHexOffsetCoord&,
+	const FHexOffsetCoord&,
+	int32,
+	TArray<FHexOffsetCoord>&,
+	TArray<FHexOffsetCoord>&) const
 {
 }
 
@@ -12,21 +20,15 @@ const UScriptStruct* UAreaPattern::GetPatternDataStruct() const
 bool UAreaPattern::IsPatternDataValid(const FInstancedStruct& PatternData) const
 {
 	const UScriptStruct* ExpectedStruct = GetPatternDataStruct();
-
-	if (!ExpectedStruct)
-	{
-		return !PatternData.IsValid();
-	}
-
-	return PatternData.GetScriptStruct() == ExpectedStruct;
+	return ExpectedStruct ? PatternData.GetScriptStruct() == ExpectedStruct : !PatternData.IsValid();
 }
 
-void UAreaPattern::AddAffectedCoord(FResolvedTargeting& InOutResult, const FHexOffsetCoord& Coord) const
+void UAreaPattern::AddAffectedCoord(TArray<FHexOffsetCoord>& OutAffectedCoords, const FHexOffsetCoord& Coord) const
 {
-	InOutResult.AffectedCoords.AddUnique(Coord);
+	OutAffectedCoords.AddUnique(Coord);
 }
 
-void UAreaPattern::AddPathCoord(FResolvedTargeting& InOutResult, const FHexOffsetCoord& Coord) const
+void UAreaPattern::AddPathCoord(TArray<FHexOffsetCoord>& OutPathCoords, const FHexOffsetCoord& Coord) const
 {
-	InOutResult.PathCoords.AddUnique(Coord);
+	OutPathCoords.AddUnique(Coord);
 }

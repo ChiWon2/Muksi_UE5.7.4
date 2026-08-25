@@ -4,13 +4,11 @@
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "GameFramework/Actor.h"
 
-#include "Muksi/Contents/Battle/Targeting/Types/TargetingGridPreviewMode.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
 #include "TargetingPreviewActor.generated.h"
 
 class ABattleGridManager;
-class UInstancedStaticMeshComponent;
 class USceneComponent;
 class USplineComponent;
 class USplineMeshComponent;
@@ -29,11 +27,6 @@ protected:
 
 public:
 	void Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType);
-	void SetSelectionGridCoords(const TArray<FHexOffsetCoord>& InCoords);
-	void SetPathGridCoords(const TArray<FHexOffsetCoord>& InCoords);
-	void SetAreaGridCoords(const TArray<FHexOffsetCoord>& InCoords);
-	void SetGridPreviewMode(ETargetingGridPreviewMode InGridPreviewMode);
-	void ClearSelectionPreview();
 	void ClearPathPreview();
 	void ClearAreaPreview();
 	void ClearAllPreview();
@@ -49,11 +42,6 @@ public:
 	void ClearPathMeshComponents();
 
 private:
-	void LoadPreviewAssets();
-	void RebuildGridPreview();
-	void AddGridCoords(TSet<FHexOffsetCoord>& InOutCoords, const TArray<FHexOffsetCoord>& InCoords) const;
-
-private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USceneComponent> SceneRoot = nullptr;
 
@@ -67,9 +55,6 @@ private:
 	TObjectPtr<UStaticMeshComponent> ArrowPreviewMesh = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UInstancedStaticMeshComponent> GridPreviewMesh = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USplineComponent> PathSpline = nullptr;
 
 	UPROPERTY(Transient)
@@ -79,12 +64,6 @@ private:
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
-	TArray<FHexOffsetCoord> SelectionGridCoords;
-	TArray<FHexOffsetCoord> PathGridCoords;
-	TArray<FHexOffsetCoord> AreaGridCoords;
-	ETargetingGridPreviewMode GridPreviewMode = ETargetingGridPreviewMode::AffectedTiles;
-	float PreviewHeightOffset = 5.0f;
-	float OccupiedGridPreviewScale = 1.2f;
 	bool bEnemyStyle = false;
 	void ApplyPreviewStyle();
 };

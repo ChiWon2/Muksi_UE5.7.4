@@ -65,7 +65,7 @@ void ABattleSimulationCharacter::CopyAnimationPresentation(const ABattleCharacte
 	BattleAnimationComponent->SetWeaponType(InSourceCharacter.BattleAnimationComponent->CurrentWeaponType);
 }
 
-FName ABattleSimulationCharacter::GetTargetingCharacterKey_Implementation() const
+FName ABattleSimulationCharacter::GetTargetingCharacterKey() const
 {
-	return FTargetingCharacterIdentity::GetCharacterKey(SourceCharacter.Get());
+	return IsValid(SourceCharacter.Get()) ? SourceCharacter->GetTargetingCharacterKey() : NAME_None;
 }

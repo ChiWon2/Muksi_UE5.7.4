@@ -88,6 +88,7 @@ public:
 	UMuksiCharacterDataAsset* GetCharacterData()const{return CharacterData.CharacterAsset;};
 	
 	FHexOffsetCoord GetCharacterCoord()const{return CharacterData.CurrentPosition;};
+	virtual FName GetTargetingCharacterKey() const { return GetFName(); }
 	void SetCharacterPosition(FHexOffsetCoord NewPosition){CharacterData.CurrentPosition = NewPosition;};
 	
 	int32 GetCurrentBattleCardCount()const;

@@ -23,7 +23,8 @@ public:
 	static int32 GetOppositeDirection(int32 DirectionIndex);
 	static int32 RotateDirectionLeft(int32 DirectionIndex, int32 StepCount = 1);
 	static int32 RotateDirectionRight(int32 DirectionIndex, int32 StepCount = 1);
-	static int32 GetClosestDirectionByWorldVector(const FVector& WorldDirection);
+	static FVector2D GetGridVector2D(const FHexCubeCoord& CubeVector);
+	static int32 GetClosestDirection(const FHexOffsetCoord& OriginCoord, const FHexOffsetCoord& TargetCoord);
 
 	static FHexCubeCoord GetRotateCubeRight60(const FHexCubeCoord& Cube);
 	static FHexCubeCoord GetRotateCubeLeft60(const FHexCubeCoord& Cube);

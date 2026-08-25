@@ -66,6 +66,7 @@ public:
 	int32 CoordToIndex(const FHexOffsetCoord& Coord) const;
 	ABattleGridTile* GetTileActorByCoord(const FHexOffsetCoord& Coord) const;
 	const FBattleGridCell* GetCellByCoord(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord) const;
+	void GetCharactersAtCoords(EBattleSimulationWorldType WorldType, const TArray<FHexOffsetCoord>& Coords, TArray<TObjectPtr<ABattleCharacterBase>>& OutCharacters) const;
 
 	FTransform GetTransformToPosition(const FHexOffsetCoord& InPosition);
 	FVector GetWorldLocationByCoord(const FHexOffsetCoord& Coord) const;
@@ -92,11 +93,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	FBattleGridMoveResult ExecuteGridMove(const FBattleGridMoveRequest& Request);
 
-	/** Legacy-compatible wrapper. New movement code should prefer ExecuteGridMove. */
-	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
-	bool MoveCharacterOnGrid(EBattleSimulationWorldType WorldType, ABattleCharacterBase* Character, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord, bool bSnapActorToGrid = true);
 
-	/** 일반 Actor용 이동. ABattleCharacterBase이면 MoveCharacterOnGrid로 위임한다. */
+	/** 일반 Actor용 이동. ABattleCharacterBase이면 ExecuteGridMove로 위임한다. */
 	UFUNCTION(BlueprintCallable, Category = "Battle|Grid")
 	bool MoveActorOnGrid(EBattleSimulationWorldType WorldType, AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord);
 	void GenerateGrid();
@@ -118,11 +116,8 @@ public:
 	bool ClearOccupied(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord);
 
 
-	void SetGridHovered(const TArray<FHexOffsetCoord>& NewGridArray);
-	void ClearGridHovered();
-	void AllClearGridHovered();
-	void SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy = false);
-	void AllClearExchangeIndicator();
+	void SetTargetIndicators(const TArray<FHexOffsetCoord>& Coords);
+	void ClearAllTargetIndicators();
 
 private:
 	FBattleGridCell* GetMutableCellByCoord(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord);

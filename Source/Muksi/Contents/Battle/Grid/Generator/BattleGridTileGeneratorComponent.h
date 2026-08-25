@@ -29,7 +29,7 @@ public:
 private:
 	void GenerateTilesInternal();
 	void ClearTilesInternal();
-	ABattleGridManager* ResolveGridManager();
+	ABattleGridManager* GetGridManager();
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Battle|Grid|Generator", meta=(AllowPrivateAccess="true", ShowOnlyInnerProperties))

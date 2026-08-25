@@ -17,18 +17,6 @@ public:
     UTargetingDeveloperSettings();
 
 public:
-    UPROPERTY(Config, EditAnywhere, Category = "Preview|Range")
-    TSoftObjectPtr<UMaterialInterface> RangePreviewMaterial;
-
-    UPROPERTY(Config, EditAnywhere, Category = "Preview|Grid")
-    TSoftObjectPtr<UMaterialInterface> GridPreviewMaterial;
-
-    UPROPERTY(Config, EditAnywhere, Category = "Preview|Grid")
-    TSoftObjectPtr<UStaticMesh> GridPreviewMesh;
-
-    UPROPERTY(Config, EditAnywhere, Category = "Preview|Grid", meta = (ClampMin = "1.0"))
-    float OccupiedGridPreviewScale = 1.2f;
-
     UPROPERTY(Config, EditAnywhere, Category = "Preview|Straight")
     TSoftObjectPtr<UMaterialInterface> StraightPreviewMaterial;
 
@@ -44,6 +32,12 @@ public:
     UPROPERTY(Config, EditAnywhere, Category = "Preview|Arc")
     TSoftObjectPtr<UMaterialInterface> ArcPreviewMaterial;
 
+    UPROPERTY(Config, EditAnywhere, Category = "Preview|Selection Range")
+    TSoftObjectPtr<UMaterialInterface> SelectionRangePreviewMaterial;
+
+    UPROPERTY(Config, EditAnywhere, Category = "Preview|Selection Range")
+    TSoftObjectPtr<UStaticMesh> SelectionRangePreviewMesh;
+
     UPROPERTY(Config, EditAnywhere, Category = "Preview|Circle")
     TSoftObjectPtr<UMaterialInterface> CirclePreviewMaterial;
 
@@ -55,15 +49,6 @@ public:
 
     UPROPERTY(Config, EditAnywhere, Category = "Preview|Cone")
     TSoftObjectPtr<UStaticMesh> ConePreviewMesh;
-
-    UPROPERTY(Config, EditAnywhere, Category = "Preview|Rectangle")
-    TSoftObjectPtr<UMaterialInterface> RectanglePreviewMaterial;
-
-    UPROPERTY(Config, EditAnywhere, Category = "Preview|Rectangle")
-    TSoftObjectPtr<UStaticMesh> RectanglePreviewMesh;
-
-    UPROPERTY(Config, EditAnywhere, Category = "Preview|Spline")
-    TSoftObjectPtr<UMaterialInterface> SplinePreviewMaterial;
 
     UPROPERTY(Config, EditAnywhere, Category = "Preview|Common", meta = (ClampMin = "0.0"))
     float PreviewHeightOffset = 5.0f;

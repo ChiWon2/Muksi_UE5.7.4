@@ -17,6 +17,7 @@ class UBattleSimulationPresentationController;
 class UBattleSimulationWorldRuntime;
 class UMaterialInterface;
 struct FBattleAction;
+struct FTargetingResult;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float, TimeScale);
 
@@ -41,10 +42,12 @@ public:
 	UMaterialInterface* GetPlayerSimulationMaterial() const { return PlayerSimulationMaterial.Get(); }
 	UMaterialInterface* GetEnemySimulationMaterial() const { return EnemySimulationMaterial.Get(); }
 	UBattleSimulationWorldRuntime* GetSimulationWorldRuntime(EBattleSimulationWorldType WorldType) const;
+	ABattleCharacterBase* GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const;
 	ABattleGridManager* GetBattleGridManager() const;
 	bool IsSimulationPostProcessEnabled() const { return bEnableSimulationPostProcess; }
 	TSubclassOf<ABattleSimulationPostProcessVolume> GetSimulationPostProcessVolumeClass() const { return SimulationPostProcessVolumeClass; }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
+	void PresentSimulationWorldExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult);
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -89,6 +92,7 @@ private:
 	bool CreatePresentationController();
 
 	bool IsManagedSimulationRuntime(const UBattleSimulationWorldRuntime* WorldRuntime) const;
+
 
 	void HandleSimulationWorldExchangeFinished(UBattleSimulationWorldRuntime* WorldRuntime, int32 FinishedExchangeIndex);
 	void FinalizeCurrentExchangeSimulation(int32 FinishedExchangeIndex);

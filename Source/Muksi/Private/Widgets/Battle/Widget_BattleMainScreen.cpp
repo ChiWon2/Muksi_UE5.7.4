@@ -322,7 +322,7 @@ void UWidget_BattleMainScreen::NotifyPlayerCardUnequipped()
 {
 	if (BattleTargetingManager)
 	{
-		BattleTargetingManager->RequestCancelPlayerTargeting();
+        BattleTargetingManager->CancelPlayerTargeting();
 	}
 }
 
