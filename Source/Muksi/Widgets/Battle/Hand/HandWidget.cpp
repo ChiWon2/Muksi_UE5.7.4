@@ -8,6 +8,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "TimerManager.h"
+#include "Card/BattleCardManager.h"
 
 
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
@@ -48,6 +49,9 @@ void UHandWidget::NativeDestruct()
 		World->GetTimerManager().ClearTimer(OrganizeCardsTimerHandle);
 	}
 	if (ExchangeSlotPanelWidget){ExchangeSlotPanelWidget->OnCardReturnRequested.RemoveAll(this);}
+	if (BattleCardManager){BattleCardManager->OnBattleHandCardChanged.RemoveDynamic(this,&UHandWidget::HandleBattleHandCardChanged);}
+	BattleCardManager = nullptr;
+
 
 	ClearHandCards();
 	Super::NativeDestruct();
@@ -405,6 +409,14 @@ UWidget_CardEquipSlot* UHandWidget::FindOverlappedEquipSlot(UWidget_BattleCardBa
 	return ExchangeSlotPanelWidget->FindOverlappedEquipSlot(Card);
 }
 
+void UHandWidget::EnableExchangeSlot(int32 Index, bool bActive)
+{
+	if (ExchangeSlotPanelWidget)
+	{
+		ExchangeSlotPanelWidget->EnableExchangeSlot(Index, bActive);
+	}
+}
+
 void UHandWidget::HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget)
 {
 	if (!CardWidget)
@@ -432,6 +444,57 @@ void UHandWidget::HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget)
 	OnPlayerCardReturned.Broadcast();
 }
 
+
+void UHandWidget::BindingBattleCardManager(UBattleCardManager* InBattleCardManager)
+{
+	if (BattleCardManager)
+	{
+		BattleCardManager->OnBattleHandCardChanged.RemoveDynamic(
+			this,
+			&UHandWidget::HandleBattleHandCardChanged);
+	}
+
+	BattleCardManager = InBattleCardManager;
+
+	if (BattleCardManager)
+	{
+		BattleCardManager->OnBattleHandCardChanged.AddUniqueDynamic(
+			this,
+			&UHandWidget::HandleBattleHandCardChanged);
+	}
+}
+
+void UHandWidget::HandleBattleHandCardChanged(FGuid InstanceId,
+	UMuksiBattleCardDataAsset* NewCardData)
+{
+	UWidget_BattleCardBase* CardWidget =
+		FindBattleCardWidgetByInstanceId(InstanceId);
+
+	if (!IsValid(CardWidget))
+	{
+		return;
+	}
+
+	CardWidget->PlayCardChangeEffect(NewCardData);
+}
+
+UWidget_BattleCardBase* UHandWidget::FindBattleCardWidgetByInstanceId(const FGuid& InstanceId) const
+{
+	for (UWidget_BattleCardBase* CardWidget : BattleCards)
+	{
+		if (!IsValid(CardWidget))
+		{
+			continue;
+		}
+
+		if (CardWidget->GetCardInstanceId() == InstanceId)
+		{
+			return CardWidget;
+		}
+	}
+
+	return nullptr;
+}
 
 void UHandWidget::ClearEnemySelectCard()
 {

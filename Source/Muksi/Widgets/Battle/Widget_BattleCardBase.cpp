@@ -9,8 +9,8 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
 #include "Hand/HandWidget.h"
-#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "NiagaraSystemWidget.h"
+#include "Components/Overlay.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
@@ -202,8 +202,15 @@ void UWidget_BattleCardBase::SetOwningHandWidget(UHandWidget* InHandWidget)
 
 void UWidget_BattleCardBase::SetCardRenderAngle(float InAngle)
 {
+	/*SetRenderTransformPivot(FVector2D(0.5f, 1.0f));
+	SetRenderTransformAngle(InAngle);*/
 	SetRenderTransformPivot(FVector2D(0.5f, 1.0f));
-	SetRenderTransformAngle(InAngle);
+	if (!CardRotationRoot)
+	{
+		return;
+	}
+
+	CardRotationRoot->SetRenderTransformAngle(InAngle);
 }
 
 void UWidget_BattleCardBase::SetCardInstance(const FGuid& InInstanceId, UMuksiBattleCardDataAsset* InCardData)
@@ -359,7 +366,7 @@ void UWidget_BattleCardBase::PlayCardFlipToFront()
 		return;
 	}
 
-	PlayAnimation(Anim_CardFlipToFront);
+	//PlayAnimation(Anim_CardFlipToFront); 테스트 용도
 }
 
 void UWidget_BattleCardBase::PlayDrawToHandAnimation(float InDelay)
@@ -399,6 +406,60 @@ void UWidget_BattleCardBase::PlayDrawToHandAnimation(float InDelay)
 	SetRenderTranslation(DrawStartTranslation);
 	SetRenderOpacity(0.0f);
 	SetIsEnabled(false);
+}
+
+void UWidget_BattleCardBase::PlayCardChangeEffect(UMuksiBattleCardDataAsset* NewCardData)
+{
+	if (!IsValid(NewCardData))
+	{
+		return;
+	}
+
+	PendingCardData = NewCardData;
+	
+	PlayAnimation(CardChangeAnimation);
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		CardChangeTimerHandle,
+		this,
+		&UWidget_BattleCardBase::PlayNiagaraWidget,
+		NiagaraWidgetStartTime,
+		false);
+}
+
+void UWidget_BattleCardBase::StopCardChangeEffect()
+{
+	if (!CardChangeNiagaraWidget)
+	{
+		return;
+	}
+
+	CardChangeNiagaraWidget->DeactivateSystem();
+}
+
+void UWidget_BattleCardBase::PlayNiagaraWidget()
+{
+	CardChangeNiagaraWidget->ActivateSystem(true);
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		CardChangeTimerHandle,
+		this,
+		&UWidget_BattleCardBase::ApplyPendingCardChange,
+		CardDataChangeTime,
+		false);
+}
+
+void UWidget_BattleCardBase::ApplyPendingCardChange()
+{
+	if (!IsValid(PendingCardData))
+	{
+		return;
+	}
+
+	// 기존 카드 표시 갱신 함수 사용
+	SetCardData(PendingCardData);
+
+	PendingCardData = nullptr;
 }
 
 

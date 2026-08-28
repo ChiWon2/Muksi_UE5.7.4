@@ -75,6 +75,7 @@ public:
 	}
 	
 	const FBattleCardInstance* FindHandCardById(const FGuid& InstanceId) const;
+	const FBattleCardInstance* FindHandCardByData(UMuksiBattleCardDataAsset* CardData) const;
 	
 	
 	bool CommitCard(const FGuid& InstanceId);

@@ -8,6 +8,7 @@
 #include "Muksi/Contents/Battle/Setup/BattleSetupManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
+#include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
 
 ABattleManager::ABattleManager()
@@ -29,6 +30,8 @@ void ABattleManager::BeginPlay()
         UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize battle phase pipeline."));
         PhasePipeline = nullptr;
     }
+    
+    BattleCardManager = NewObject<UBattleCardManager>(this);
 
     if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this)) 
         ManagerSubsystem->RegisterManager<ABattleManager>(this);
@@ -74,6 +77,9 @@ bool ABattleManager::InitializeBattleFlow()
         return false;
 
     if (!BattleSequenceManager->InitializeBattleFlow(this, BattleRuntimeContext, BattleGridManager))
+        return false;
+    
+    if (!BattleCardManager->InitializeBattleFlow(this))
         return false;
 
     bBattleFlowInitialized = true;

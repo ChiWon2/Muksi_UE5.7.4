@@ -16,6 +16,7 @@ class ABattleSequenceManager;
 class ABattleSetupManager;
 class ABattleSimulationManager;
 class ABattleTargetingManager;
+class UBattleCardManager;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnBattlePhaseStageRequested, EBattlePhase, OldPhase, EBattlePhase, NewPhase, UBattlePhaseTaskContext*, TaskContext);
 
@@ -73,6 +74,9 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Battle|Managers")
     ABattleSequenceManager* GetBattleSequenceManager() const { return BattleSequenceManager; }
+    
+    UFUNCTION(BlueprintPure, Category = "Battle|Managers")
+    UBattleCardManager* GetBattleCardManager() const{ return BattleCardManager; }
 
     EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
 
@@ -146,6 +150,9 @@ protected:
 
     UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<ABattleSequenceManager> BattleSequenceManager = nullptr;
+    
+    UPROPERTY(Transient, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UBattleCardManager> BattleCardManager = nullptr;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
     EBattlePhase CurrentPhase = EBattlePhase::None;
