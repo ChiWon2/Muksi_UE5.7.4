@@ -3,6 +3,8 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+
 // Sets default values for this component's properties
 UBattleCardComponent::UBattleCardComponent()
 {
@@ -40,13 +42,6 @@ void UBattleCardComponent::Initialize(const TArray<UMuksiBattleCardDataAsset*>& 
 
 		CurrentHand.Emplace(CardData);
 	}
-	
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("BattleCardComponent Initialize - FullDeck: %d / CurrentHand: %d"),
-		FullDeck.Num(),
-		CurrentHand.Num());
 }
 
 const FBattleCardInstance* UBattleCardComponent::FindHandCardById(const FGuid& InstanceId) const
@@ -55,6 +50,20 @@ const FBattleCardInstance* UBattleCardComponent::FindHandCardById(const FGuid& I
 		[&InstanceId](const FBattleCardInstance& CardInstance)
 		{
 			return CardInstance.InstanceId == InstanceId;
+		});
+}
+
+const FBattleCardInstance* UBattleCardComponent::FindHandCardByData(UMuksiBattleCardDataAsset* CardData) const
+{
+	if (!IsValid(CardData))
+	{
+		return nullptr;
+	}
+
+	return CurrentHand.FindByPredicate(
+		[CardData](const FBattleCardInstance& CardInstance)
+		{
+			return CardInstance.CardData == CardData;
 		});
 }
 
@@ -87,7 +96,7 @@ bool UBattleCardComponent::CommitCard(const FGuid& InstanceId)
 	UE_LOG(
 		LogTemp,
 		Warning,
-		TEXT("[%s] CommitCard Success - Hand: %d / Committed: %d"),
+		TEXT("[%s] CommitCard Success - Hand: %d / Committed: %d (BattleCardComponent.cpp)"),
 		*GetNameSafe(GetOwner()),
 		CurrentHand.Num(),
 		CommittedCards.Num());
@@ -123,7 +132,7 @@ bool UBattleCardComponent::ReturnCommittedCard(const FGuid& InstanceId)
 	UE_LOG(
 		LogTemp,
 		Warning,
-		TEXT("[%s] ReturnCommittedCard Success - Hand: %d / Committed: %d"),
+		TEXT("[%s] ReturnCommittedCard Success - Hand: %d / Committed: %d (BattleCardComponent.cpp)"),
 		*GetNameSafe(GetOwner()),
 		CurrentHand.Num(),
 		CommittedCards.Num());
@@ -158,14 +167,13 @@ bool UBattleCardComponent::ReplaceHandCard(const FGuid& InstanceId, UMuksiBattle
 void UBattleCardComponent::ConsumeCommittedCards()
 {
 	CommittedCards.Empty();
-	
-	UE_LOG(
+	/*UE_LOG(
 		LogTemp,
 		Warning,
-		TEXT("[%s] ConsumeCommittedCards - Hand: %d / Committed: %d"),
+		TEXT("[%s] ConsumeCommittedCards - Hand: %d / Committed: %d (BattleCardComponent.cpp)"),
 		*GetNameSafe(GetOwner()),
 		CurrentHand.Num(),
-		CommittedCards.Num());
+		CommittedCards.Num());*/
 }
 
 bool UBattleCardComponent::RefillHandIfEmpty()

@@ -10,8 +10,6 @@ struct FBattleCardInstance;
 class UExchangeSlotPanelWidget;
 class UInkLineWidget;
 class UHorizontalBox;
-class UWidget_BattleCardBase;
-class UWidget_CardEquipSlot;
 class UCanvasPanel;
 class UCanvasPanelSlot;
 class UCommonButtonBase;
@@ -21,6 +19,9 @@ class ABattleCharacterBase;
 
 class UMuksiCharacterDataAsset;
 class UMuksiBattleCardDataAsset;
+class UBattleCardManager;
+class UWidget_BattleCardBase;
+class UWidget_CardEquipSlot;
 
 
 
@@ -162,6 +163,18 @@ public:
 		return BoundCharacter;
 	}
 	
+	//카드 변경 기능----------------------------------------------------------------------------------------------
+public:
+	void BindingBattleCardManager(UBattleCardManager* InBattleCardManager);
+private:
+	UFUNCTION()
+	void HandleBattleHandCardChanged(FGuid InstanceId, UMuksiBattleCardDataAsset* NewCardData);
+	
+	UWidget_BattleCardBase* FindBattleCardWidgetByInstanceId(const FGuid& InstanceId) const;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleCardManager> BattleCardManager = nullptr;
+	//----------------------------------------------------------------------------------------------------------
 	//ExchangeSlot 관련 함수(이름이 바뀌거나 간소화 될 수 있음)-------------------------------------------------------
 public:
 	UFUNCTION()
@@ -172,6 +185,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UWidget_CardEquipSlot* FindOverlappedEquipSlot(UWidget_BattleCardBase* Card) const;
 	
+	void EnableExchangeSlot(int32 Index, bool bActive);
+	
 	FOnPlayerCardReturned OnPlayerCardReturned;
 
 private:
@@ -179,4 +194,5 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleCharacterBase> BoundCharacter;
+	//-----------------------------------------------------------------------------------------------------------
 };

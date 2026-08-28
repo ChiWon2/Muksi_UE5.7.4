@@ -156,13 +156,11 @@ public:
 	//====================================Battle<전투>==================================================================
 public:
 	void BattleStart();
-
-	void DisplayBattleStartUI();
+	
 	void DisplayBattleStartUIFinish();
 
 	void BattleEnd();
-
-	void DisplayBattleEndUI();
+	
 	void DisplayBattleEndUIFinish();
 
 	void HandleBattleStartFinish();
@@ -173,18 +171,15 @@ public:
 public:
 	//국 시작
 	void RoundStart();
-
-	void DisplayRoundStartUI();
+	
 	void DisplayRoundStartUIFinish();
 
 
 	//국 종료
 	void RoundEnd();
-
-	void RemoveSelectCards()const;
+	
 	void ClearExchangeSlots()const;
-
-	void DisplayRoundEndUI();
+	
 	void DisplayRoundEndUIFinish();
 
 	void HandleRoundEndFinish();
@@ -195,11 +190,9 @@ public:
 
 public:
 	void ExchangeStart();
-
-	void DisplayExchangeStartUI();
+	
 	void DisplayExchangeStartUIFinish();
-
-	void DisplayExchangeEndUI();
+	
 	void DisplayExchangeEndUIFinish();
 
 	void StartExchangeSelectCard(int32 ExchangeIndex);
@@ -233,8 +226,7 @@ public:
 
 public:
 	void BattleActionSequenceStart();
-
-	void DisplayBattleActionSequenceStartUI();
+	
 	void DisplayBattleActionSequenceStartUIFinish();
 
 	// 비동기 Reveal 연출을 시작했으면 true를 반환하고, 연출 종료 시 NotifyDeceiveCardRevealFinished()를 호출한다.
@@ -248,7 +240,6 @@ public:
 	void PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset);
 
 	void BattleActionSequenceEnd();
-	void DisplayBattleActionSequenceEndUI();
 	void DisplayBattleActionSequenceEndUIFinish();
 
 protected:

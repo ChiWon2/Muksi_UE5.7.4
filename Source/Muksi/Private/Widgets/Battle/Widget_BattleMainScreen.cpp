@@ -106,6 +106,7 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 	ActivePassiveWidget->SetData(Player, Enemy);//각 캐릭터 Passive 관련 위젯 설정
 	StatusHUDWidget->SetData(Player, Enemy);//각 캐릭터 Stat 관련 위젯 설정
 	HandWidget->SetBattleCharacter(Player);//BattleCharacterBase의 BattleCardId로 손패 관련 설정
+	HandWidget->BindingBattleCardManager(BattleManager->GetBattleCardManager());//HandWidget과 BattleCardComponent 바인딩
 }
 
 
@@ -445,17 +446,8 @@ void UWidget_BattleMainScreen::ReadyEnd()
 void UWidget_BattleMainScreen::BattleStart()
 {
 	HandleUIFinishCount = 0;
-	DisplayBattleStartUI();
-}
-
-void UWidget_BattleMainScreen::DisplayBattleStartUI()
-{
 	//전투 시작 UI 표시
 	BattlePipelineWidgetSetting(EBattlePhase::BattleStart);
-
-	//뭐 다른 UI 표시 있으면 추가하고 ex) 전투 시작 시 카드 변경 효과같은 경우 HandWidget에 할당
-	//HandleBattleStartFinishCount += 1 한 다음
-	//해당 애니메이션 끝나면 거기서 DisplayBattleStartUIFinish() 호출하기
 }
 
 void UWidget_BattleMainScreen::DisplayBattleStartUIFinish()
@@ -470,18 +462,8 @@ void UWidget_BattleMainScreen::DisplayBattleStartUIFinish()
 
 void UWidget_BattleMainScreen::BattleEnd()
 {
-	DisplayBattleEndUI();
-}
-
-void UWidget_BattleMainScreen::DisplayBattleEndUI()
-{
-	//전투 종료 UI 표시
-
 	//Pipeline UI 표시
 	BattlePipelineWidgetSetting(EBattlePhase::BattleEnd);
-	
-	//일단 그냥 넘기기
-	//DisplayBattleEndUIFinish();
 }
 
 void UWidget_BattleMainScreen::DisplayBattleEndUIFinish()
@@ -507,59 +489,13 @@ void UWidget_BattleMainScreen::HandleBattleEndFinish()
 void UWidget_BattleMainScreen::RoundStart()
 {
 	HandleUIFinishCount = 0;
-	//-----------------------------------------------------------------
-	//Gameplay를 담당하는 Manager의 RoundStart로 옮길 예정-----------------
-	//BattleCharacterBase의 카드 데이터를 관리 기능
-	if (!BattleManager)
-	{
-		return;
-	}
-	UBattleRuntimeContext* BattleRuntimeContext =
-		BattleManager->GetBattleRuntimeContext();
-
-	if (!BattleRuntimeContext)
-	{
-		return;
-	}
-
-	ABattleCharacterBase* PlayerBattleCharacter =
-		BattleRuntimeContext->GetPlayerCharacter();
-
-	ABattleCharacterBase* EnemyBattleCharacter =
-		BattleRuntimeContext->GetEnemyCharacter();
-
-	if (!PlayerBattleCharacter || !EnemyBattleCharacter)
-	{
-		return;
-	}
 	
-	if (UBattleCardComponent* PlayerCardComponent =
-		PlayerBattleCharacter->GetBattleCardComponent())
-	{
-		PlayerCardComponent->RefillHandIfEmpty();
-	}
-
-	if (UBattleCardComponent* EnemyCardComponent =
-		EnemyBattleCharacter->GetBattleCardComponent())
-	{
-		EnemyCardComponent->RefillHandIfEmpty();
-	}
-	//-----------------------------------------------------------------
 	// Round 단위로 한 번만 핸드와 기존 선택 카드 표시를 초기화한다.
 	SetBattleCardToHand();//HandWidget의 카드 데이터 확인 후 드로우, 카드 활성화
-	DisplayRoundStartUI();
-}
-
-void UWidget_BattleMainScreen::DisplayRoundStartUI()
-{
 	//국 시작 UI 표시
-
-	//InkLine 호출
 	BattlePipelineWidgetSetting(EBattlePhase::RoundStart);
-	//뭐 다른 UI 표시 있으면 추가하고
-	//HandleBattleStartFinishCount += 1 한 다음
-	//해당 애니메이션 끝나면 거기서 DisplayBattleStartUIFinish() 호출하기
 }
+
 
 void UWidget_BattleMainScreen::DisplayRoundStartUIFinish()
 {
@@ -575,47 +511,13 @@ void UWidget_BattleMainScreen::DisplayRoundStartUIFinish()
 
 void UWidget_BattleMainScreen::RoundEnd()
 {
-	//이건 BattleCharacterBase의 내용을 수정하는 거라 여기 있으면 안됨 (일단 여기)
-	if (BattleManager)
-	{
-		UBattleRuntimeContext* BattleRuntimeContext =
-			BattleManager->GetBattleRuntimeContext();
-
-		if (BattleRuntimeContext)
-		{
-			ABattleCharacterBase* PlayerBattleCharacter =
-				BattleRuntimeContext->GetPlayerCharacter();
-
-			ABattleCharacterBase* EnemyBattleCharacter =
-				BattleRuntimeContext->GetEnemyCharacter();
-
-			if (PlayerBattleCharacter)
-			{
-				if (UBattleCardComponent* CardComponent =
-					PlayerBattleCharacter->GetBattleCardComponent())
-				{
-					CardComponent->ConsumeCommittedCards();
-				}
-			}
-
-			if (EnemyBattleCharacter)
-			{
-				if (UBattleCardComponent* CardComponent =
-					EnemyBattleCharacter->GetBattleCardComponent())
-				{
-					CardComponent->ConsumeCommittedCards();
-				}
-			}
-		}
-	}
-	//---------------------------------------------------------
-	
 	// Exchange Slot 비우기
 	ClearExchangeSlots();
 	// Round 동안 유지한 핸드를 Round 종료 시 정리한다.
 	ClearBattleCard();
 
-	DisplayRoundEndUI();
+	//국 종료 UI 표시
+	BattlePipelineWidgetSetting(EBattlePhase::RoundEnd);
 }
 
 
@@ -625,11 +527,6 @@ void UWidget_BattleMainScreen::ClearExchangeSlots() const
 	HandWidget->ClearEnemySelectCard();
 }
 
-void UWidget_BattleMainScreen::DisplayRoundEndUI()
-{
-	//국 종료 UI 표시
-	BattlePipelineWidgetSetting(EBattlePhase::RoundEnd);
-}
 
 void UWidget_BattleMainScreen::DisplayRoundEndUIFinish()
 {
@@ -655,20 +552,9 @@ void UWidget_BattleMainScreen::ExchangeStart()
 	ExchangeControlWidget->ShowSelectButton(true);// 턴 종료 버튼 활성화 (없어질 예정)
 	HandleUIFinishCount = 0;
 	
-	DisplayExchangeStartUI();
-}
-
-void UWidget_BattleMainScreen::DisplayExchangeStartUI()
-{
-	//합 시작 UI 표시
-
-	//InkLine 호출
 	BattlePipelineWidgetSetting(EBattlePhase::ExchangeStart);
-
-	//뭐 다른 UI 표시 있으면 추가하고
-	//HandleBattleStartFinishCount += 1 한 다음
-	//해당 애니메이션 끝나면 거기서 DisplayBattleRoundUIFinish() 호출하기
 }
+
 
 void UWidget_BattleMainScreen::DisplayExchangeStartUIFinish()
 {
@@ -723,16 +609,10 @@ void UWidget_BattleMainScreen::ExchangeEnd()
 	ExchangeControlWidget->ShowSelectButton(false);// 턴 종료 버튼 비활성화 (없어질 예정)
 	
 	
-	DisplayExchangeEndUI();
-}
-
-void UWidget_BattleMainScreen::DisplayExchangeEndUI()
-{
 	//합 종료 UI 표시
-
-	//InkLine 표시
 	BattlePipelineWidgetSetting(EBattlePhase::ExchangeEnd);
 }
+
 
 void UWidget_BattleMainScreen::DisplayExchangeEndUIFinish()
 {
@@ -759,8 +639,9 @@ void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 	{
 		return;
 	}
+	HandWidget->EnableExchangeSlot(Index, bActive);
 
-	UExchangeSlotPanelWidget* ExchangePanel =
+	/*UExchangeSlotPanelWidget* ExchangePanel =
 		HandWidget->GetExchangeSlotPanelWidget();
 
 	if (!ExchangePanel)
@@ -768,7 +649,7 @@ void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 		return;
 	}
 
-	ExchangePanel->EnableExchangeSlot(Index, bActive);
+	ExchangePanel->EnableExchangeSlot(Index, bActive);*/
 }
 
 void UWidget_BattleMainScreen::HandleEnemyCardRevealFinished(int32 ExchangeIndex)
@@ -911,20 +792,10 @@ void UWidget_BattleMainScreen::BattleActionSequenceStart()
 	HandWidget->InvisibleHandCards();
 	//-------------------------------------------------------------------------------
 
-	DisplayBattleActionSequenceStartUI();
-}
-
-void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUI()
-{
-	//합 시작 UI 표시
-
-	//InkLine 호출
+	//공격 시작 UI 표시
 	BattlePipelineWidgetSetting(EBattlePhase::BattleActionSequenceStart);
-
-	//뭐 다른 UI 표시 있으면 추가하고
-	//HandleBattleStartFinishCount += 1 한 다음
-	//해당 애니메이션 끝나면 거기서 DisplayBattleRoundUIFinish() 호출하기
 }
+
 
 void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUIFinish()
 {
@@ -962,13 +833,9 @@ void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterB
 void UWidget_BattleMainScreen::BattleActionSequenceEnd()
 {
 	//UI 기능적으로 일단 뭐 없음
-	DisplayBattleActionSequenceEndUI();
-}
-
-void UWidget_BattleMainScreen::DisplayBattleActionSequenceEndUI()
-{
 	BattlePipelineWidgetSetting(EBattlePhase::BattleActionSequenceEnd);
 }
+
 
 void UWidget_BattleMainScreen::DisplayBattleActionSequenceEndUIFinish()
 {
