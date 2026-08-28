@@ -79,7 +79,7 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 	DestinationCoord = KnockbackPath.Last();
 
 	// 목적지는 이동 시작 시점에 선점하지 않는다.
-	// Execution은 순차 실행되므로 이동이 끝나는 순간 MoveCharacterOnGrid로
+	// Execution은 순차 실행되므로 이동이 끝나는 순간 ExecuteGridMove로
 	// Grid 점유와 논리 좌표를 함께 확정하는 편이 일관되고 복구도 안전하다.
 	TArray<FVector> WorldPath;
 
@@ -195,12 +195,13 @@ void UKnockbackExecution::HandleMovementFinished(bool bInterrupted)
 	}
 
 	// 이동 완료 시점에 점유/논리 좌표/월드 Transform을 한 번에 확정한다.
-	if (!CachedGridManager->MoveCharacterOnGrid(
-		GridWorldType,
-		KnockbackTarget,
-		StartCoord,
-		DestinationCoord,
-		true))
+	FBattleGridMoveRequest Request;
+	Request.Character = KnockbackTarget;
+	Request.WorldType = GridWorldType;
+	Request.FromCoord = StartCoord;
+	Request.ToCoord = DestinationCoord;
+	Request.bSnapActorToGrid = true;
+	if (!CachedGridManager->ExecuteGridMove(Request).bSucceeded)
 	{
 		// 예상치 못한 점유 충돌이 발생하면 논리 상태는 StartCoord에 남아 있으므로
 		// 시각 위치도 시작 지점으로 복구한다.

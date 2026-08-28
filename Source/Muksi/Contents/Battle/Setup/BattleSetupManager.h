@@ -38,7 +38,7 @@ private:
     bool PrepareReadyData();
     bool PrepareReadyEnd();
     bool ShouldHandlePhaseEntry(EBattlePhase Phase) const;
-    void ResolveEnemyCharacterData();
+    void LoadEncounterEnemyCharacterData();
     bool CreateBattleCharacters();
     void BindBattleEndEvents();
     void UnbindBattleEndEvents();

@@ -17,13 +17,10 @@ bool UTargetingConditionService::Evaluate(const FTargetingCondNode& Conditions, 
     Context->GridManager = Request.GridManager;
     Context->GridWorldType = Request.GridWorldType;
     Context->OriginCoord = Request.OriginCoord;
-    Context->CandidateCoord = Request.CandidateCoord;
-    Context->ResolvedCoord = Request.ResolvedCoord;
-    Context->Phase = Request.Phase;
+    Context->TargetCoord = Request.TargetCoord;
 
-    const FHexOffsetCoord& EvaluatedCoord = Context->GetEvaluatedCoord();
     if (!IsValid(Context->GridManager) ||
-        !Context->GridManager->IsValidCoord(EvaluatedCoord))
+        !Context->GridManager->IsValidCoord(Context->TargetCoord))
     {
         return false;
     }

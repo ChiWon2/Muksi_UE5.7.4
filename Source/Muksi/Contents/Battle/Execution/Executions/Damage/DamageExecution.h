@@ -17,7 +17,7 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
-	void ResolveTargets(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, TArray<ABattleCharacterBase*>& OutTargets) const;
+	void CollectTargets(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, TArray<ABattleCharacterBase*>& OutTargets) const;
 	void ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter) const;
 	void BuildHitResponseExecutions(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, TArray<FBattleExecutionEntry>& OutExecutions) const;
 	void CompleteDamageExecution();

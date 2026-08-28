@@ -1,24 +1,43 @@
 #include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
 
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+
 void UTargetSelection::EvaluateCandidate(
 	ABattleGridManager*,
-	EBattleSimulationWorldType,
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord&,
 	const FInstancedStruct&,
-	FTargetingStepResult& OutStepResult) const
+	FSelectionStepResult& OutStepResult) const
 {
 	InitializeStepResult(OriginCoord, OutStepResult);
 }
 
-const UScriptStruct* UTargetSelection::GetSelectionDataStruct() const
+void UTargetSelection::CollectCandidateCoords(
+    ABattleGridManager* GridManager,
+    const FHexOffsetCoord& OriginCoord,
+    const FInstancedStruct& SelectionData,
+    TArray<FHexOffsetCoord>& OutCoords) const
+{
+    OutCoords.Reset();
+
+    if (!GridManager || !OriginCoord.IsValid() || !IsRuleDataValid(SelectionData))
+        return;
+
+    for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
+    {
+        for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
+            OutCoords.Add(FHexOffsetCoord(X, Y));
+    }
+}
+
+const UScriptStruct* UTargetSelection::GetRuleDataStruct() const
 {
 	return nullptr;
 }
 
-bool UTargetSelection::IsSelectionDataValid(const FInstancedStruct& SelectionData) const
+bool UTargetSelection::IsRuleDataValid(const FInstancedStruct& SelectionData) const
 {
-	const UScriptStruct* ExpectedStruct = GetSelectionDataStruct();
+	const UScriptStruct* ExpectedStruct = GetRuleDataStruct();
 
 	if (!ExpectedStruct)
 	{
@@ -28,7 +47,7 @@ bool UTargetSelection::IsSelectionDataValid(const FInstancedStruct& SelectionDat
 	return SelectionData.GetScriptStruct() == ExpectedStruct;
 }
 
-void UTargetSelection::InitializeStepResult(const FHexOffsetCoord& OriginCoord, FTargetingStepResult& OutStepResult) const
+void UTargetSelection::InitializeStepResult(const FHexOffsetCoord& OriginCoord, FSelectionStepResult& OutStepResult) const
 {
 	OutStepResult.Reset();
 	OutStepResult.OriginCoord = OriginCoord;

@@ -61,8 +61,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
 	TArray<FBattleNotifyExecutionChain> NotifyExecutionChains;
 
-	// 카드가 사용하는 단계별 Targeting 설정.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Targeting")
+	// Selection / Resolve / Presentation으로 구성되는 카드 Targeting 설정.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Targeting", meta = (DisplayName = "Targeting"))
 	FTargetingCardData TargetingData;
 
 	// 변초 카드는 Targeting은 원본을 유지하고 Simulation Execution만 DeceivedCard를 사용한다.

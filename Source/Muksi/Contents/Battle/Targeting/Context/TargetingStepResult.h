@@ -2,7 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
 #include "TargetingStepResult.generated.h"
+
+class ABattleCharacterBase;
 
 USTRUCT(BlueprintType)
 struct FTargetingStepResult
@@ -10,37 +13,22 @@ struct FTargetingStepResult
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	bool bValid = false;
+	FResolvedStepResult ResolvedStep;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	FHexOffsetCoord OriginCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+	TArray<FHexOffsetCoord> AffectedCoords;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	FHexOffsetCoord SelectedCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
+	TArray<FHexOffsetCoord> PathCoords;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	int32 Direction = INDEX_NONE;
-
-	bool HasOriginCoord() const
-	{
-		return OriginCoord.IsValid();
-	}
-
-	bool HasSelectedCoord() const
-	{
-		return SelectedCoord.IsValid();
-	}
-
-	bool HasDirection() const
-	{
-		return Direction != INDEX_NONE;
-	}
+	TArray<TObjectPtr<ABattleCharacterBase>> Targets;
 
 	void Reset()
 	{
-		bValid = false;
-		OriginCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
-		SelectedCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
-		Direction = INDEX_NONE;
+		ResolvedStep.Reset();
+		AffectedCoords.Empty();
+		PathCoords.Empty();
+		Targets.Empty();
 	}
 };

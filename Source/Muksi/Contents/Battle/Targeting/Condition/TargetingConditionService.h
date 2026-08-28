@@ -20,12 +20,10 @@ struct FTargetingConditionRequest
     TObjectPtr<ABattleGridManager> GridManager = nullptr;
     EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
     FHexOffsetCoord OriginCoord;
-    FHexOffsetCoord CandidateCoord;
-    FHexOffsetCoord ResolvedCoord;
-    ETargetingConditionPhase Phase = ETargetingConditionPhase::Selection;
+    FHexOffsetCoord TargetCoord;
 };
 
-/** Selection/Resolve/Execution이 동일한 ConditionHandle 경로를 사용하도록 하는 진입점. */
+/** Resolve Condition을 평가하는 진입점. */
 UCLASS()
 class MUKSI_API UTargetingConditionService : public UObject
 {

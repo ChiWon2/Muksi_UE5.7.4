@@ -7,6 +7,7 @@
 #include "Components/TimelineComponent.h"
 #include "Widget_BattleCardBase.generated.h"
 
+class UNiagaraSystemWidget;
 class UWidgetAnimation;
 class UHandWidget;
 class UMuksiBattleCardDataAsset;
@@ -14,6 +15,7 @@ class UCommonTextBlock;
 class UImage;
 class UBorder;
 class UWidget_BattleCardBase;
+class UOverlay;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCardFlipFinished, UWidget_BattleCardBase*);
 
@@ -51,7 +53,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCard")
 	UMuksiBattleCardDataAsset* GetCardData() const { return CardData; }
 
-	
+	const FGuid& GetCardInstanceId() const
+	{
+		return CardInstanceId;
+	}	
+	void SetCardInstance(
+	const FGuid& InInstanceId,
+	UMuksiBattleCardDataAsset* InCardData);
 protected:
 	UFUNCTION()
 	void OnMoveTimelineUpdate(float Alpha);
@@ -75,6 +83,8 @@ protected:
 	UPROPERTY(Transient)
 	FVector2D CachedHandPosition = FVector2D::ZeroVector;
 
+	UPROPERTY(Transient)
+	FGuid CardInstanceId;
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Card|Move")
 	TObjectPtr<UCurveFloat> MoveCurve;
@@ -121,7 +131,8 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage>Image_BehindCardImage;
 	
-	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UOverlay> CardRotationRoot;
 public:
 	FOnCardFlipFinished OnCardFlipFinished;
 
@@ -150,4 +161,34 @@ private:
 	float DrawAnimationDuration = 0.35f;
 
 	FVector2D DrawStartTranslation = FVector2D::ZeroVector;
+	
+	//카드 변경 연출-------------------------------------------
+public:
+	UFUNCTION()
+	void PlayCardChangeEffect(UMuksiBattleCardDataAsset* NewCardData);
+
+	UFUNCTION()
+	void StopCardChangeEffect();
+protected:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UNiagaraSystemWidget> CardChangeNiagaraWidget;
+	
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> CardChangeAnimation;
+	
+	UPROPERTY(EditAnywhere, Category = "CardAnimation")
+	float NiagaraWidgetStartTime = 0.85f;
+	UPROPERTY(EditAnywhere, Category = "CardAnimation")
+	float CardDataChangeTime = 0.5f;
+	
+	UFUNCTION()
+	void PlayNiagaraWidget();
+private:
+	void ApplyPendingCardChange();
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UMuksiBattleCardDataAsset> PendingCardData = nullptr;
+
+	FTimerHandle CardChangeTimerHandle;
+	//-------------------------------------------------------
 };

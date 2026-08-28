@@ -17,7 +17,7 @@ class MUKSI_API UBattleStatusHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
+	void SetData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
 	
 protected:
 	UPROPERTY(meta = (BindWidget))

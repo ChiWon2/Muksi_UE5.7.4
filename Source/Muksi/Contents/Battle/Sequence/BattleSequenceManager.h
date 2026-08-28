@@ -13,12 +13,11 @@ class ABattleManager;
 class UBattleRuntimeContext;
 class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
-class UTargetingPresentationController;
 class UBattleActionExecutor;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveCardRevealRequested, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleExecutionEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FResolvedTargeting&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleExecutionEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
 
 UCLASS()
 class MUKSI_API ABattleSequenceManager : public AActor
@@ -84,10 +83,8 @@ private:
 	TObjectPtr<UBattleRuntimeContext> BattleRuntimeContext = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTargetingPresentationController> TargetingPresentationController = nullptr;
-
-	UPROPERTY(Transient)
 	TObjectPtr<UBattleActionExecutor> ActionExecutor = nullptr;
+
 
 private:
 	UFUNCTION()
@@ -95,10 +92,10 @@ private:
 
 	void ExecuteBattleActionSequence();
 	void NotifyBattleActionSequenceCompleted();
-	void RefreshBattleActionTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionResolvedTargeting);
+	void PresentBattleActionTargetingResult(const FBattleAction& Action, const FTargetingResult& TargetingResult);
 	void ClearBattleActionPresentation();
 
-	void HandleActionExecutorEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting);
+	void HandleActionExecutorEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
 	void HandleActionExecutorFinished();
 
 	void SortBattleActionQueue();

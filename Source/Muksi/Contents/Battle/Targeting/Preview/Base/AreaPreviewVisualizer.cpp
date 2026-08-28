@@ -4,25 +4,28 @@
 
 void UAreaPreviewVisualizer::ClearPreview()
 {
-	if (HasPreviewActor())
-	{
-		GetPreviewActor()->ClearAreaPreview();
-	}
+    if (HasPreviewActor())
+        GetPreviewActor()->ClearAreaPreview();
 }
 
 const UScriptStruct* UAreaPreviewVisualizer::GetSupportedPatternDataStruct() const
 {
-	return nullptr;
+    return nullptr;
+}
+
+const UScriptStruct* UAreaPreviewVisualizer::GetAreaPreviewDataStruct() const
+{
+    return nullptr;
 }
 
 bool UAreaPreviewVisualizer::IsPatternDataValid(const FInstancedStruct& PatternData) const
 {
-	const UScriptStruct* ExpectedStruct = GetSupportedPatternDataStruct();
+    const UScriptStruct* ExpectedStruct = GetSupportedPatternDataStruct();
+    return ExpectedStruct ? PatternData.GetScriptStruct() == ExpectedStruct : !PatternData.IsValid();
+}
 
-	if (!ExpectedStruct)
-	{
-		return !PatternData.IsValid();
-	}
-
-	return PatternData.GetScriptStruct() == ExpectedStruct;
+bool UAreaPreviewVisualizer::IsAreaPreviewDataValid(const FInstancedStruct& PreviewData) const
+{
+    const UScriptStruct* ExpectedStruct = GetAreaPreviewDataStruct();
+    return ExpectedStruct ? PreviewData.GetScriptStruct() == ExpectedStruct : !PreviewData.IsValid();
 }

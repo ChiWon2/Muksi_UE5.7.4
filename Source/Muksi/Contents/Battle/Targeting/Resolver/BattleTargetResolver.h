@@ -1,37 +1,33 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 
 class ABattleCharacterBase;
 class ABattleGridManager;
 struct FTargetingCardData;
-struct FResolvedTargeting;
 struct FTargetingStepCardData;
-struct FTargetingStepResult;
 
+/** StepIntent를 현재 Simulation World 기준 Coord / Direction으로 해석한다. Pattern 계산은 담당하지 않는다. */
 class MUKSI_API FBattleTargetResolver
 {
 public:
-	static bool ResolveAction(const FBattleAction& Action, ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
-	static bool ResolveActionThroughStep(const FBattleAction& Action, ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting, const FTargetingCardData* TargetingDataOverride = nullptr);
 	static bool ResolveIntent(
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
 		const FTargetingCardData& TargetingData,
 		const FTargetingIntent& TargetingIntent,
-		FResolvedTargeting& OutResolvedTargeting
-	);
+		TArray<FResolvedStepResult>& OutResolvedSteps);
 
 private:
 	static bool ResolveStepOrigin(
 		ABattleCharacterBase* Attacker,
-		const FResolvedTargeting& ResolvedTargeting,
+		const TArray<FResolvedStepResult>& ResolvedSteps,
 		const FTargetingStepCardData& StepData,
-		FHexOffsetCoord& OutOriginCoord
-	);
+		FHexOffsetCoord& OutOriginCoord);
 
 	static bool ResolveDesiredCoord(
 		const FTargetingStepIntent& StepIntent,
@@ -39,10 +35,9 @@ private:
 		const FHexOffsetCoord& OriginCoord,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutDesiredCoord
-	);
+		FHexOffsetCoord& OutDesiredCoord);
 
-	static bool ResolveInvalidCoord(
+	static bool ResolveCoord(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& DesiredCoord,
 		int32 Direction,
@@ -50,10 +45,9 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutResolvedCoord
-	);
+		FHexOffsetCoord& OutResolvedCoord);
 
-	static bool EvaluateStepAtCoord(
+	static bool BuildResolvedStepAtCoord(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& CandidateCoord,
 		int32 Direction,
@@ -61,18 +55,16 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FTargetingStepResult& OutStepResult
-	);
+		FResolvedStepResult& OutResolvedStep);
 
-	static bool IsCoordUsable(
+	static bool IsCoordValidForResolve(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& Coord,
 		int32 Direction,
 		const FTargetingStepCardData& StepData,
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
-		EBattleSimulationWorldType WorldType
-	);
+		EBattleSimulationWorldType WorldType);
 
 	static bool FindLastValidCoord(
 		const FHexOffsetCoord& OriginCoord,
@@ -82,8 +74,7 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutResolvedCoord
-	);
+		FHexOffsetCoord& OutResolvedCoord);
 
 	static bool FindNearestValidCoord(
 		const FHexOffsetCoord& OriginCoord,
@@ -93,14 +84,5 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutResolvedCoord
-	);
-
-	static FHexOffsetCoord ResolveCubeLineCoord(const FHexOffsetCoord& StartCoord, const FHexOffsetCoord& EndCoord, int32 LinePointIndex, int32 LinePointCount);
-	static bool ApplyFinalPattern(
-		ABattleGridManager* GridManager,
-		EBattleSimulationWorldType WorldType,
-		const FTargetingCardData& TargetingData,
-		FResolvedTargeting& InOutResolvedTargeting
-	);
+		FHexOffsetCoord& OutResolvedCoord);
 };

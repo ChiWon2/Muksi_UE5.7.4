@@ -9,8 +9,7 @@
 #include "Muksi/Contents/Battle/Sequence/Runtime/BattleActionExecutor.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
-#include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 
 bool UBattleSimulationWorldRuntime::Initialize(ABattleSimulationManager* InSimulationManager, EBattleSimulationWorldType InWorldType, ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
@@ -69,8 +68,7 @@ bool UBattleSimulationWorldRuntime::ResetFromActualBattleState(const TArray<ABat
 		return false;
 	}
 	ABattleGridManager* GridManager = SimulationManager->GetBattleGridManager();
-	GridManager->AllClearGridHovered();
-	GridManager->AllClearExchangeIndicator();
+	GridManager->ClearAllTargetIndicators();
 	PreparedPlayerAction = FBattleAction();
 	PreparedEnemyAction = FBattleAction();
 	SimulationState = EBattleSimulationState::Ready;
@@ -198,12 +196,11 @@ bool UBattleSimulationWorldRuntime::ExecuteSimulationAction(const FBattleAction&
 	return ActionExecutor->ExecuteAction(Action);
 }
 
-void UBattleSimulationWorldRuntime::HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FResolvedTargeting& ResolvedTargeting)
+void UBattleSimulationWorldRuntime::HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult)
 {
 	(void)Entry;
 	(void)EntryIndex;
-	UBattleSimulationPresentationController* PresentationController = IsValid(SimulationManager.Get()) ? SimulationManager->GetPresentationController() : nullptr;
-	if (IsValid(PresentationController)) PresentationController->UpdateExecutionPreview(this, Action, ResolvedTargeting);
+	if (SimulationManager) SimulationManager->PresentSimulationWorldExecution(this, Action, TargetingResult);
 }
 
 void UBattleSimulationWorldRuntime::HandleSimulationSequenceFinished()

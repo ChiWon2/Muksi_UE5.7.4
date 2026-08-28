@@ -1,11 +1,8 @@
 #include "Muksi/Contents/Battle/Targeting/Preview/Path/ArcPathPreviewVisualizer.h"
 
-#include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
@@ -34,98 +31,65 @@ void UArcPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Co
 	ClearPreview();
 
 	if (!HasPreviewActor() || !Context.IsValid())
-	{
 		return;
-	}
 
-	if (!IsPathPreviewDataValid(Context.StepData->Preview.PathPreviewData))
-	{
+	if (!IsPathPreviewDataValid(Context.StepData->Presentation.Visualizers.Path.Data))
 		return;
-	}
 
-	const FArcPathPreviewData* Data = Context.StepData->Preview.PathPreviewData.GetPtr<FArcPathPreviewData>();
+	const FArcPathPreviewData* Data = Context.StepData->Presentation.Visualizers.Path.Data.GetPtr<FArcPathPreviewData>();
 
-	if (!Data || !StraightPreviewMesh)
-	{
+	if (!Data || !StraightPreviewMesh || !Context.HasOriginCoord() || !Context.HasTargetCoord())
 		return;
-	}
-
-	if (!Context.StepResult->HasOriginCoord() || !Context.StepResult->HasSelectedCoord())
-	{
-		return;
-	}
 
 	FVector StartLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->OriginCoord, StartLocation)) return;
-	FVector SelectedPresentationLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->SelectedCoord, SelectedPresentationLocation)) return;
-	FVector EndLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : SelectedPresentationLocation;
-	EndLocation.Z = SelectedPresentationLocation.Z;
+	FVector EndLocation = FVector::ZeroVector;
+
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), StartLocation))
+		return;
+
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), EndLocation))
+		return;
 
 	StartLocation.Z += PreviewHeightOffset;
 	EndLocation.Z += PreviewHeightOffset;
 
 	if (FVector::DistSquared2D(StartLocation, EndLocation) <= KINDA_SMALL_NUMBER)
-	{
 		return;
-	}
 
-	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
-	USplineComponent* PathSpline = PreviewActorInstance->GetPathSpline();
-
-	if (!PathSpline)
-	{
-		return;
-	}
-
-	const float ArcHeight = FMath::Max(0.0f, Data->ArcHeight);
-	const int32 SegmentCount = FMath::Clamp(Data->SegmentCount, 2, 128);
+	constexpr int32 SegmentCount = 8;
+	const float Height = FMath::Max(0.0f, Data->Height);
 	const float ThicknessScale = FMath::Max(KINDA_SMALL_NUMBER, PreviewLineThickness / PreviewMeshBaseSize);
-
-	PathSpline->ClearSplinePoints(false);
-
-	for (int32 PointIndex = 0; PointIndex <= SegmentCount; ++PointIndex)
-	{
-		const float Alpha = static_cast<float>(PointIndex) / static_cast<float>(SegmentCount);
-		FVector PointLocation = FMath::Lerp(StartLocation, EndLocation, Alpha);
-		PointLocation.Z += 4.0f * ArcHeight * Alpha * (1.0f - Alpha);
-		PathSpline->AddSplinePoint(PointLocation, ESplineCoordinateSpace::World, false);
-		PathSpline->SetSplinePointType(PointIndex, ESplinePointType::CurveClamped, false);
-	}
-
-	PathSpline->UpdateSpline();
+	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
+	const FTransform ActorTransform = PreviewActorInstance->GetActorTransform();
 
 	for (int32 SegmentIndex = 0; SegmentIndex < SegmentCount; ++SegmentIndex)
 	{
+		const float StartAlpha = static_cast<float>(SegmentIndex) / static_cast<float>(SegmentCount);
+		const float EndAlpha = static_cast<float>(SegmentIndex + 1) / static_cast<float>(SegmentCount);
+
+		FVector SegmentStart = FMath::Lerp(StartLocation, EndLocation, StartAlpha);
+		FVector SegmentEnd = FMath::Lerp(StartLocation, EndLocation, EndAlpha);
+		SegmentStart.Z += 4.0f * Height * StartAlpha * (1.0f - StartAlpha);
+		SegmentEnd.Z += 4.0f * Height * EndAlpha * (1.0f - EndAlpha);
+
+		const FVector LocalStart = ActorTransform.InverseTransformPosition(SegmentStart);
+		const FVector LocalEnd = ActorTransform.InverseTransformPosition(SegmentEnd);
+		const FVector LocalTangent = LocalEnd - LocalStart;
 		USplineMeshComponent* PathMeshComponent = PreviewActorInstance->CreatePathMeshComponent();
 
 		if (!PathMeshComponent)
-		{
 			continue;
-		}
-
-		const FVector StartPoint = PathSpline->GetLocationAtSplinePoint(SegmentIndex, ESplineCoordinateSpace::Local);
-		const FVector StartTangent = PathSpline->GetTangentAtSplinePoint(SegmentIndex, ESplineCoordinateSpace::Local);
-		const FVector EndPoint = PathSpline->GetLocationAtSplinePoint(SegmentIndex + 1, ESplineCoordinateSpace::Local);
-		const FVector EndTangent = PathSpline->GetTangentAtSplinePoint(SegmentIndex + 1, ESplineCoordinateSpace::Local);
 
 		PathMeshComponent->SetStaticMesh(StraightPreviewMesh);
 		PathMeshComponent->SetForwardAxis(ESplineMeshAxis::X, false);
-		PathMeshComponent->SetStartAndEnd(StartPoint, StartTangent, EndPoint, EndTangent, false);
+		PathMeshComponent->SetStartAndEnd(LocalStart, LocalTangent, LocalEnd, LocalTangent, false);
 		PathMeshComponent->SetStartScale(FVector2D(ThicknessScale, 1.0f), false);
 		PathMeshComponent->SetEndScale(FVector2D(ThicknessScale, 1.0f), false);
 
 		if (ArcPreviewMaterial)
-		{
 			PathMeshComponent->SetMaterial(0, ArcPreviewMaterial);
-		}
 
 		PathMeshComponent->UpdateMesh();
-	}
-
-	if (Context.ResolvedTargeting)
-	{
-		PreviewActorInstance->SetPathGridCoords(Context.ResolvedTargeting->PathCoords);
 	}
 }
 

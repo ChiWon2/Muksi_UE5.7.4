@@ -8,6 +8,9 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 
 bool UBattleActionExecutor::Initialize(ABattleManager* InBattleManager, ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType)
@@ -24,12 +27,12 @@ bool UBattleActionExecutor::ExecuteAction(const FBattleAction& Action)
 	if (bRunning || !ValidateAction(Action) || !IsValid(GridManager)) return false;
 
 	FBattleAction SequenceAction = Action;
-	FResolvedTargeting ResolvedTargeting;
-	if (!FBattleTargetResolver::ResolveAction(SequenceAction, GridManager, GridWorldType, ResolvedTargeting)) return false;
+	FTargetingResult TargetingResult;
+	if (!BuildActionTargetingResult(SequenceAction, TargetingResult)) return false;
 
 	CurrentAction = MoveTemp(SequenceAction);
-	CurrentExecutionCard = ResolveExecutionCard(CurrentAction);
-	CurrentResolvedTargeting = MoveTemp(ResolvedTargeting);
+	CurrentExecutionCard = GetExecutionCard(CurrentAction);
+	CurrentTargetingResult = MoveTemp(TargetingResult);
 	ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType) ? EBattleExecutionMode::Simulation : EBattleExecutionMode::Sequence;
 	bRunning = true;
 	ActiveExecutionRunners.Reset();
@@ -51,13 +54,58 @@ void UBattleActionExecutor::Stop()
 	ResetRuntime();
 }
 
+bool UBattleActionExecutor::BuildActionTargetingResult(const FBattleAction& Action, FTargetingResult& OutTargetingResult) const
+{
+	OutTargetingResult.Reset();
+	if (!IsValid(Action.Attacker.Get()) || !IsValid(Action.Card.Get()) || !IsValid(GridManager)) return false;
+
+	const FTargetingCardData& TargetingData = Action.Card->TargetingData;
+	TArray<FResolvedStepResult> ResolvedSteps;
+	if (!FBattleTargetResolver::ResolveIntent(Action.Attacker.Get(), GridManager, GridWorldType, TargetingData, Action.TargetingIntent, ResolvedSteps)) return false;
+
+	OutTargetingResult.Steps.Reserve(ResolvedSteps.Num());
+	for (int32 StepIndex = 0; StepIndex < ResolvedSteps.Num(); ++StepIndex)
+	{
+		const FTargetingStepCardData* StepData = TargetingData.GetStep(StepIndex);
+		if (!StepData) return false;
+
+		FTargetingStepResult StepResult;
+		StepResult.ResolvedStep = ResolvedSteps[StepIndex];
+		if (!StepResult.ResolvedStep.HasResolvedCoord()) return false;
+
+		if (!StepData->Pattern.PatternClass)
+		{
+			StepResult.AffectedCoords.Add(StepResult.ResolvedStep.ResolvedCoord);
+		}
+		else
+		{
+			const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
+			if (!Pattern) return false;
+
+			Pattern->ApplyPattern(
+				GridManager,
+				GridWorldType,
+				StepData->Pattern.PatternData,
+				StepResult.ResolvedStep.OriginCoord,
+				StepResult.ResolvedStep.ResolvedCoord,
+				StepResult.ResolvedStep.ResolvedDirection,
+				StepResult.AffectedCoords,
+				StepResult.PathCoords);
+		}
+
+		GridManager->GetCharactersAtCoords(GridWorldType, StepResult.AffectedCoords, StepResult.Targets);
+		OutTargetingResult.Steps.Add(MoveTemp(StepResult));
+	}
+	return true;
+}
+
 bool UBattleActionExecutor::ValidateAction(const FBattleAction& Action) const
 {
-	UMuksiBattleCardDataAsset* ExecutionCard = ResolveExecutionCard(Action);
+	UMuksiBattleCardDataAsset* ExecutionCard = GetExecutionCard(Action);
 	return IsValid(Action.Attacker.Get()) && IsValid(Action.Card.Get()) && IsValid(ExecutionCard) && !ExecutionCard->MainExecutions.IsEmpty();
 }
 
-UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBattleAction& Action) const
+UMuksiBattleCardDataAsset* UBattleActionExecutor::GetExecutionCard(const FBattleAction& Action) const
 {
 	if (!IsValid(Action.Card.Get()) || BattleSimulationWorld::UsesActualCard(GridWorldType, Action.bPlayerAction)) return Action.Card.Get();
 	UMuksiBattleCardDataAsset* DeceivedCard = Action.Card->GetDeceivedCard();
@@ -138,7 +186,7 @@ FBattleExecutionContext UBattleActionExecutor::MakeExecutionContext(FName Notify
 	Context.Card = CurrentExecutionCard;
 	Context.ExecutionMode = ExecutionMode;
 	Context.Environment = ExecutionEnvironment;
-	Context.ResolvedTargeting = CurrentResolvedTargeting;
+	Context.TargetingResult = CurrentTargetingResult;
 	Context.BattleGridManager = GridManager;
 	Context.GridWorldType = GridWorldType;
 	Context.NotifyKey = NotifyKey;
@@ -148,11 +196,11 @@ FBattleExecutionContext UBattleActionExecutor::MakeExecutionContext(FName Notify
 void UBattleActionExecutor::HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext)
 {
 	if (!bRunning) return;
-	FResolvedTargeting RefreshedTargeting;
-	if (FBattleTargetResolver::ResolveAction(CurrentAction, GridManager, GridWorldType, RefreshedTargeting)) CurrentResolvedTargeting = MoveTemp(RefreshedTargeting);
-	else CurrentResolvedTargeting.Reset();
-	InOutExecutionContext.ResolvedTargeting = CurrentResolvedTargeting;
-	EntryStartedDelegate.Broadcast(CurrentAction, Entry, EntryIndex, CurrentResolvedTargeting);
+	FTargetingResult RefreshedTargeting;
+	if (BuildActionTargetingResult(CurrentAction, RefreshedTargeting)) CurrentTargetingResult = MoveTemp(RefreshedTargeting);
+	else CurrentTargetingResult.Reset();
+	InOutExecutionContext.TargetingResult = CurrentTargetingResult;
+	EntryStartedDelegate.Broadcast(CurrentAction, Entry, EntryIndex, CurrentTargetingResult);
 }
 
 void UBattleActionExecutor::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
@@ -179,7 +227,7 @@ void UBattleActionExecutor::ResetRuntime()
 	bRunning = false;
 	CurrentAction = FBattleAction();
 	CurrentExecutionCard = nullptr;
-	CurrentResolvedTargeting.Reset();
+	CurrentTargetingResult.Reset();
 	AttackerAnimationComponent = nullptr;
 	ActiveExecutionRunners.Reset();
 	ExecutionEnvironment = nullptr;

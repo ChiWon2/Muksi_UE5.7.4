@@ -26,6 +26,7 @@ public class Muksi : ModuleRules
             "StructUtils",
             "Landscape",
             "Niagara",
+            "NiagaraUIRenderer",
             "LevelSequence",
             "MovieScene",
             "MovieSceneTracks"

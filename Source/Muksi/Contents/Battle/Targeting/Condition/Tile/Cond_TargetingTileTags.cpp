@@ -18,7 +18,7 @@ bool FCond_TargetingTileTags::Evaluate(
     }
 
     ABattleGridTile* TileActor = Context->GridManager->GetTileActorByCoord(
-        Context->GetEvaluatedCoord());
+        Context->TargetCoord);
 
     const IGameplayTagAssetInterface* TagInterface =
         Cast<IGameplayTagAssetInterface>(TileActor);

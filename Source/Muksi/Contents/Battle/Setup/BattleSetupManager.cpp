@@ -87,7 +87,7 @@ void ABattleSetupManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBatt
 
 bool ABattleSetupManager::PrepareReadyData()
 {
-    ResolveEnemyCharacterData();
+    LoadEncounterEnemyCharacterData();
 
     if (!IsValid(PlayerCharacterDataAsset))
     {
@@ -116,7 +116,7 @@ bool ABattleSetupManager::PrepareReadyEnd()
     return true;
 }
 
-void ABattleSetupManager::ResolveEnemyCharacterData()
+void ABattleSetupManager::LoadEncounterEnemyCharacterData()
 {
     UBattleEncounterSubsystem* BattleEncounterSubsystem = UBattleEncounterSubsystem::Get(this);
     if (!IsValid(BattleEncounterSubsystem))

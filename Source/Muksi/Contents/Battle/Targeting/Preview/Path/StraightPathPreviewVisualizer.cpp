@@ -4,8 +4,6 @@
 #include "Components/SplineMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
@@ -38,28 +36,28 @@ void UStraightPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContex
 		return;
 	}
 
-	if (!IsPathPreviewDataValid(Context.StepData->Preview.PathPreviewData))
+	if (!IsPathPreviewDataValid(Context.StepData->Presentation.Visualizers.Path.Data))
 	{
 		return;
 	}
 
-	const FStraightPathPreviewData* Data = Context.StepData->Preview.PathPreviewData.GetPtr<FStraightPathPreviewData>();
+	const FStraightPathPreviewData* Data = Context.StepData->Presentation.Visualizers.Path.Data.GetPtr<FStraightPathPreviewData>();
 
 	if (!Data || !StraightPreviewMesh)
 	{
 		return;
 	}
 
-	if (!Context.StepResult->HasOriginCoord() || !Context.StepResult->HasSelectedCoord())
+	if (!Context.HasOriginCoord() || !Context.HasTargetCoord())
 	{
 		return;
 	}
 
 	FVector StartLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->OriginCoord, StartLocation)) return;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), StartLocation)) return;
 	FVector SelectedPresentationLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->SelectedCoord, SelectedPresentationLocation)) return;
-	FVector AimLocation = Context.bHasAimWorldLocation ? Context.AimWorldLocation : SelectedPresentationLocation;
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), SelectedPresentationLocation)) return;
+	FVector AimLocation = SelectedPresentationLocation;
 	AimLocation.Z = SelectedPresentationLocation.Z;
 	FVector AimDirection = AimLocation - StartLocation;
 
@@ -119,11 +117,6 @@ void UStraightPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContex
 	}
 
 	PathMeshComponent->UpdateMesh();
-
-	if (Context.ResolvedTargeting)
-	{
-		PreviewActorInstance->SetPathGridCoords(Context.ResolvedTargeting->PathCoords);
-	}
 }
 
 const UScriptStruct* UStraightPathPreviewVisualizer::GetPathPreviewDataStruct() const

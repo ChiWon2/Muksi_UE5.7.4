@@ -2,11 +2,13 @@
 
 
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
+
+#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
-FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Implementation(FCharacterData EnemyData,
+FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Implementation(const FCharacterData& EnemyData,const TArray<FBattleCardInstance>& CurrentHand,
                                                                                           ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord)
 {
 	FEnemyCardSelectResult BestResult;
@@ -19,15 +21,20 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 	{
 		return BestResult;
 	}
-
-	TArray<UMuksiBattleCardDataAsset*> Deck = EnemyData.BattleDeck;
-	if (Deck.Num() <= 0)
+	if (CurrentHand.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy deck is empty"));
+		UE_LOG(LogTemp, Warning, TEXT("Enemy CurrentHand is empty"));
 		return BestResult;
 	}
+	const FBattleCardInstance& SelectedInstance = CurrentHand[0];
+
+	if (!SelectedInstance.IsValid())
+	{
+		return BestResult;
+	}
+
 	//일단 첫번째 카드 사용
-	UMuksiBattleCardDataAsset* Card = Deck[0];
+	UMuksiBattleCardDataAsset* Card = SelectedInstance.CardData;
 
 	TArray<FHexOffsetCoord> CandidateCoords = GetCandidateCoords(
 			EnemyData,
@@ -41,7 +48,8 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 	{
 		return BestResult;
 	}
-
+	BestResult.SelectedCardInstanceId = SelectedInstance.InstanceId;
+	
 	//일단 첫번째 가능 위치 사용
 	FHexOffsetCoord SelectedCoord = CandidateCoords[0];
 	BestResult.SelectedCard = Card;

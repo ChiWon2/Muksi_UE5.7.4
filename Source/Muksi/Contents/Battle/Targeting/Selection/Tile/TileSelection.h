@@ -14,12 +14,18 @@ class MUKSI_API UTileSelection : public UTargetSelection
 public:
 	virtual void EvaluateCandidate(
 		ABattleGridManager* GridManager,
-		EBattleSimulationWorldType WorldType,
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& CandidateCoord,
 		const FInstancedStruct& SelectionData,
-		FTargetingStepResult& OutStepResult
+		FSelectionStepResult& OutStepResult
 	) const override;
 
-	virtual const UScriptStruct* GetSelectionDataStruct() const override;
+	virtual void CollectCandidateCoords(
+        ABattleGridManager* GridManager,
+        const FHexOffsetCoord& OriginCoord,
+        const FInstancedStruct& SelectionData,
+        TArray<FHexOffsetCoord>& OutCoords
+    ) const override;
+
+    virtual const UScriptStruct* GetRuleDataStruct() const override;
 };

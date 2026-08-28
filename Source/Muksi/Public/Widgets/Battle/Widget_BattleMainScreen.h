@@ -125,8 +125,6 @@ public:
 	// 카드 슬롯에서 장착 해제될 때 진행 중인 타겟팅/대기 카드 상태를 함께 정리한다.
 	void NotifyPlayerCardUnequipped();
 
-	FTimerHandle InkLineTimerHandle;
-
 	//---------------------------중앙 텍스트 블록 관련 함수---------------------------------------------------------------
 public:
 	void HandlePipelineUIFinish();
@@ -137,6 +135,8 @@ protected:
 	void UnbindBattleManagerEvents();
 	void BindBattleSequenceManagerEvents();
 	void UnbindBattleSequenceManagerEvents();
+	
+	void BattlePipelineWidgetSetting(EBattlePhase BattlePhase);
 
 	UFUNCTION()
 	void HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
@@ -144,6 +144,9 @@ protected:
 	void CompletePhaseUI(EBattlePhase FinishedPhase);
 
 	void HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction);
+	
+	UPROPERTY()
+	int32 HandleUIFinishCount = 0;
 
 	//====================================Ready<준비>===================================================================
 public:
@@ -153,66 +156,43 @@ public:
 	//====================================Battle<전투>==================================================================
 public:
 	void BattleStart();
-
-	void DisplayBattleStartUI();
+	
 	void DisplayBattleStartUIFinish();
 
 	void BattleEnd();
-
-	void DisplayBattleEndUI();
+	
 	void DisplayBattleEndUIFinish();
 
 	void HandleBattleStartFinish();
 
 	void HandleBattleEndFinish();
-public:
-	UPROPERTY(EditAnywhere)
-	FString BattleStartText = "Battle Start!";
-	UPROPERTY(EditAnywhere)
-	FString BattleEndText = "Battle End!";
-	int32 HandleBattleUIFinishCount = 0;
 
 	//=====================================Round<국>====================================================================
 public:
 	//국 시작
 	void RoundStart();
-
-	void DisplayRoundStartUI();
+	
 	void DisplayRoundStartUIFinish();
 
 
 	//국 종료
 	void RoundEnd();
-
-	void RemoveSelectCards()const;
+	
 	void ClearExchangeSlots()const;
-
-	void DisplayRoundEndUI();
+	
 	void DisplayRoundEndUIFinish();
 
 	void HandleRoundEndFinish();
-
-public:
-	UPROPERTY(EditAnywhere)
-	FString RoundStartText = "Round Start!";
-	UPROPERTY(EditAnywhere)
-	FString RoundEndText = "Round End";
-
-	UPROPERTY()
-	int32 HandleRoundStartFinishCount = 0;
-	UPROPERTY()
-	int32 HandleRoundEndFinishCount = 0;
+	
 
 	//=================================Exchange<합>=====================================================================
 	//합 시작	Round 시작
 
 public:
 	void ExchangeStart();
-
-	void DisplayExchangeStartUI();
+	
 	void DisplayExchangeStartUIFinish();
-
-	void DisplayExchangeEndUI();
+	
 	void DisplayExchangeEndUIFinish();
 
 	void StartExchangeSelectCard(int32 ExchangeIndex);
@@ -228,19 +208,7 @@ protected:
 	void SetBattleCardToHand();
 	void ClearBattleCard()const;
 public:
-
-	UPROPERTY()
-	int32 HandleExchangeCount = 0;
-
-	UPROPERTY(EditAnywhere)
-	FString ExchangeStartText= "Exchange Start!";
-
-	UPROPERTY(EditAnywhere)
-	FString ExchangeCountText = "Exchange";
-
-	UPROPERTY(EditAnywhere)
-	FString ExchangeEndText = "Exchange End!";
-
+	
 	void HandleEnemyCardSelectionReady(UMuksiBattleCardDataAsset* EnemyCard, int32 ExchangeIndex);
 
 public:
@@ -258,8 +226,7 @@ public:
 
 public:
 	void BattleActionSequenceStart();
-
-	void DisplayBattleActionSequenceStartUI();
+	
 	void DisplayBattleActionSequenceStartUIFinish();
 
 	// 비동기 Reveal 연출을 시작했으면 true를 반환하고, 연출 종료 시 NotifyDeceiveCardRevealFinished()를 호출한다.
@@ -273,17 +240,9 @@ public:
 	void PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset);
 
 	void BattleActionSequenceEnd();
-	void DisplayBattleActionSequenceEndUI();
 	void DisplayBattleActionSequenceEndUIFinish();
 
 protected:
-	UPROPERTY(EditAnywhere)
-	FString BattleActionSequenceStartText = "BattleAction Start!";
-	UPROPERTY(EditAnywhere)
-	FString BattleActionSequenceEndText = "BattleAction End!";
-	UPROPERTY()
-	int32 BattleActionSequenceUIFinishCount = 0;
-
 	UPROPERTY(EditAnywhere)
 	float TurnTime = 0.1f;
 };

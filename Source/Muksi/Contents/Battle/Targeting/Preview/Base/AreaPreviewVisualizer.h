@@ -10,12 +10,14 @@
 UCLASS(Abstract)
 class MUKSI_API UAreaPreviewVisualizer : public UTargetingPreviewVisualizer
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	virtual void ClearPreview() override;
-	virtual const UScriptStruct* GetSupportedPatternDataStruct() const;
+    virtual void ClearPreview() override;
+    virtual const UScriptStruct* GetSupportedPatternDataStruct() const;
+    virtual const UScriptStruct* GetAreaPreviewDataStruct() const;
 
 protected:
-	bool IsPatternDataValid(const FInstancedStruct& PatternData) const;
+    bool IsPatternDataValid(const FInstancedStruct& PatternData) const;
+    bool IsAreaPreviewDataValid(const FInstancedStruct& PreviewData) const;
 };

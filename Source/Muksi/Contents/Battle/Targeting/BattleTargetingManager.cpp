@@ -10,33 +10,39 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
-#include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedTargeting.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
+#include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
+#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/Battle/Targeting/Session/BattleTargetingSession.h"
+
+namespace
+{
+    constexpr EBattleSimulationWorldType PlayerTargetingWorldType = EBattleSimulationWorldType::PlayerActualEnemyDeceived;
+    constexpr EBattleSimulationWorldType EnemyTargetingWorldType = EBattleSimulationWorldType::PlayerDeceivedEnemyActual;
+}
 
 ABattleTargetingManager::ABattleTargetingManager()
 {
     PrimaryActorTick.bCanEverTick = false;
 }
 
-void ABattleTargetingManager::BeginPlay()
-{
-    Super::BeginPlay();
-}
-
 void ABattleTargetingManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
-    GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
+    GetWorldTimerManager().ClearTimer(CardRevealPreviewTimerHandle);
 
-    ClearSelectionAndRevealPreviews();
+    if (TargetingPresentationController)
+        ClearAllTargeting();
+
     if (BattleManager)
         BattleManager->PhaseEntryRequestedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePhaseEntryRequested);
 
@@ -46,26 +52,28 @@ void ABattleTargetingManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     if (BattleManager)
         BattleManager->PhaseExecutionRequestedDelegate.RemoveDynamic(this, &ABattleTargetingManager::HandlePhaseExecutionRequested);
 
-    PhaseUITask = nullptr;
-    PhaseExecutionTask = nullptr;
-    PendingPlayerCard = nullptr;
-    BattleRuntimeContext = nullptr;
-    BattleGridManager = nullptr;
-    BattleSimulationManager = nullptr;
+    CardRevealTask = nullptr;
+    CardSelectTask = nullptr;
+    TargetingTask = nullptr;
+    PlayerTargetingCard = nullptr;
     BattleManager = nullptr;
 
     Super::EndPlay(EndPlayReason);
 }
 
-bool ABattleTargetingManager::InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager, ABattleSimulationManager* InBattleSimulationManager)
+bool ABattleTargetingManager::InitializeBattleFlow(ABattleManager* InBattleManager)
 {
-    if (!IsValid(InBattleManager) || !IsValid(InBattleRuntimeContext) || !IsValid(InBattleGridManager) || !IsValid(InBattleSimulationManager))
+    if (!IsValid(InBattleManager))
+    {
         return false;
+    }
+
+    if (!IsValid(InBattleManager->GetBattleRuntimeContext()) || !IsValid(InBattleManager->GetBattleGridManager()) || !IsValid(InBattleManager->GetBattleSimulationManager()))
+    {
+        return false;
+    }
 
     BattleManager = InBattleManager;
-    BattleRuntimeContext = InBattleRuntimeContext;
-    BattleGridManager = InBattleGridManager;
-    BattleSimulationManager = InBattleSimulationManager;
     BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePhaseEntryRequested);
     BattleManager->PhaseUIRequestedDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePhaseUIRequested);
     BattleManager->PhaseExecutionRequestedDelegate.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePhaseExecutionRequested);
@@ -76,45 +84,33 @@ bool ABattleTargetingManager::InitializeBattleFlow(ABattleManager* InBattleManag
     if (!TargetingPresentationController)
         return false;
 
-    TargetingPresentationController->Initialize(BattleGridManager);
+    TargetingPresentationController->Initialize(BattleManager->GetBattleGridManager());
 
     return true;
 }
 
 void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
-    if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext) 
-        return;
-    UBattlePhaseTask* Task = TaskContext->RegisterTask(this);
-    if (!Task) 
-        return;
-    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager) || !IsValid(BattleSimulationManager))
-    {
-        UE_LOG(LogTemp, Error, TEXT("[BattleTargetingManager] Failed to resolve phase entry dependencies."));
-        Task->Complete();
-        return;
-    }
+    (void)TaskContext;
 
     switch (NewPhase)
     {
-    case EBattlePhase::RoundStart:
-        ResetCurrentExchangeTargeting();
-        break;
-
     case EBattlePhase::CardSelect:
-        if (OldPhase == EBattlePhase::Targeting) 
-            ResetPlayerTargetingForCardReselection();
-        else 
-            ResetCurrentExchangeTargeting();
+        ResetPlayerTargeting();
+
+        if (OldPhase != EBattlePhase::Targeting)
+        {
+            ResetEnemyTargeting();
+        }
         break;
 
     case EBattlePhase::Targeting:
-        if (!StartPendingPlayerTargeting())
+        if (!StartPlayerTargeting())
         {
             UE_LOG(LogTemp, Error, TEXT("[BattleTargetingManager] Failed to start player targeting."));
             GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
             {
-                if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::Targeting)
+                if (BattleManager->GetCurrentPhase() == EBattlePhase::Targeting)
                 {
                     BattleManager->RestartCurrentExchangeCardSelection();
                 }
@@ -127,260 +123,252 @@ void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, E
     case EBattlePhase::BattleActionSequenceStart:
     case EBattlePhase::RoundEnd:
     case EBattlePhase::BattleEnd:
-        ClearSelectionAndRevealPreviews();
-        PendingPlayerCard = nullptr;
+        ClearAllTargeting();
+        PlayerTargetingCard = nullptr;
         break;
 
     default:
         break;
     }
 
-    Task->Complete();
-}
-
-bool ABattleTargetingManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
-{
-    switch (Phase)
-    {
-    case EBattlePhase::RoundStart:
-    case EBattlePhase::CardSelect:
-    case EBattlePhase::Targeting:
-    case EBattlePhase::SimulationSequence:
-    case EBattlePhase::ExchangeEnd:
-    case EBattlePhase::BattleActionSequenceStart:
-    case EBattlePhase::RoundEnd:
-    case EBattlePhase::BattleEnd:
-        return true;
-    default:
-        return false;
-    }
 }
 
 void ABattleTargetingManager::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
     (void)OldPhase;
-    if (NewPhase != EBattlePhase::CardReveal || !TaskContext) return;
-    PhaseUITask = TaskContext->RegisterTask(this);
+    if (NewPhase != EBattlePhase::CardReveal || !TaskContext) 
+        return;
+    CardRevealTask = TaskContext->RegisterTask(this);
 }
 
 void ABattleTargetingManager::HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
     (void)OldPhase;
-    if ((NewPhase != EBattlePhase::CardSelect && NewPhase != EBattlePhase::Targeting) || !TaskContext) return;
-    PhaseExecutionTask = TaskContext->RegisterTask(this);
-}
-
-void ABattleTargetingManager::ResetCurrentExchangeTargeting()
-{
-    GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
-    GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
-    
-    ClearSelectionAndRevealPreviews();
-    PendingPlayerCard = nullptr;
-    bPlayerCardSelectionFinished = false;
-    bEnemyCardSelectionFinished = false;
-
-    if (BattleRuntimeContext && BattleManager)
+    if (!TaskContext)
     {
-        BattleRuntimeContext->ResetExchangeActions(BattleManager->GetCurrentExchange());
-    }
-}
-
-void ABattleTargetingManager::ResetPlayerTargetingForCardReselection()
-{
-    GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
-
-    if (TargetingPresentationController) TargetingPresentationController->ClearSession(PlayerTargetingSession);
-    else if (PlayerTargetingSession)
-    {
-        PlayerTargetingSession->EndSession();
-        PlayerTargetingSession = nullptr;
-    }
-
-    PendingPlayerCard = nullptr;
-    bPlayerCardSelectionFinished = false;
-
-    if (BattleRuntimeContext && BattleManager) BattleRuntimeContext->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
-}
-
-void ABattleTargetingManager::ClearSelectionAndRevealPreviews()
-{
-    if (TargetingPresentationController)
-    {
-        TargetingPresentationController->ClearAll(PlayerTargetingSession, EnemyTargetingSession);
         return;
     }
 
-    if (PlayerTargetingSession)
+    if (NewPhase == EBattlePhase::CardSelect)
     {
-        PlayerTargetingSession->EndSession();
-        PlayerTargetingSession = nullptr;
+        CardSelectTask = TaskContext->RegisterTask(this);
+        return;
     }
 
-    if (EnemyTargetingSession)
+    if (NewPhase == EBattlePhase::Targeting)
     {
-        EnemyTargetingSession->EndSession();
-        EnemyTargetingSession = nullptr;
+        TargetingTask = TaskContext->RegisterTask(this);
+    }
+}
+
+void ABattleTargetingManager::ResetPlayerTargeting()
+{
+    TargetingTask = nullptr;
+    PlayerTargetingSession = nullptr;
+    TargetingPresentationController->ClearLivePreview();
+
+    PlayerTargetingCard = nullptr;
+
+    BattleManager->GetBattleRuntimeContext()->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
+}
+
+void ABattleTargetingManager::ResetEnemyTargeting()
+{
+    GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
+    GetWorldTimerManager().ClearTimer(CardRevealPreviewTimerHandle);
+    EnemyTargetingSession = nullptr;
+    TargetingPresentationController->ClearAllPresentation();
+
+    bEnemyCardPresentationFinished = false;
+
+    BattleManager->GetBattleRuntimeContext()->ClearEnemyExchangeAction(BattleManager->GetCurrentExchange());
+}
+
+void ABattleTargetingManager::BuildAndPresentPlayerTargetingPreview()
+{
+    // Targeting 계산은 Manager/PatternProcessor에서 끝내고, PresentationController에는 표시할 Context만 전달한다.
+    if (!PlayerTargetingSession || !PlayerTargetingCard)
+        return;
+
+    const FTargetingStepCardData* StepData = PlayerTargetingSession->GetCurrentStepData();
+    if (!StepData)
+    {
+        TargetingPresentationController->ClearLivePreview();
+        return;
     }
 
-    if (BattleGridManager)
+    FSelectionStepResult PreviewStepResult = PlayerTargetingSession->GetCurrentStepResult();
+
+    if (!PreviewStepResult.HasOriginCoord())
+        PlayerTargetingSession->GetCurrentOriginCoord(PreviewStepResult.OriginCoord);
+
+    TArray<FHexOffsetCoord> PreviewAffectedCoords;
+    TArray<FHexOffsetCoord> PreviewPathCoords;
+    FTargetingPreviewContext PreviewContext;
+    PreviewContext.GridManager = BattleManager->GetBattleGridManager();
+    PreviewContext.StepData = StepData;
+    PreviewContext.SelectionStep = &PreviewStepResult;
+
+    if (PreviewStepResult.bValid && PreviewStepResult.HasSelectedCoord())
     {
-        BattleGridManager->AllClearGridHovered();
-        BattleGridManager->AllClearExchangeIndicator();
+        if (!StepData->Pattern.PatternClass)
+        {
+            PreviewAffectedCoords.Add(PreviewStepResult.SelectedCoord);
+        }
+        else
+        {
+            const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
+            if (Pattern)
+            {
+                Pattern->ApplyPattern(
+                    PreviewContext.GridManager,
+                    PlayerTargetingWorldType,
+                    StepData->Pattern.PatternData,
+                    PreviewStepResult.OriginCoord,
+                    PreviewStepResult.SelectedCoord,
+                    PreviewStepResult.SelectedDirection,
+                    PreviewAffectedCoords,
+                    PreviewPathCoords);
+            }
+        }
+
+        PreviewContext.PreviewAffectedCoords = &PreviewAffectedCoords;
+        PreviewContext.PreviewPathCoords = &PreviewPathCoords;
     }
+
+    if (!PreviewContext.IsValid())
+    {
+        TargetingPresentationController->ClearLivePreview();
+        return;
+    }
+
+    TargetingPresentationController->UpdateLivePreview(*StepData, PreviewContext);
+}
+
+void ABattleTargetingManager::ClearAllTargeting()
+{
+    PlayerTargetingSession = nullptr;
+    EnemyTargetingSession = nullptr;
+
+    TargetingPresentationController->ClearAllPresentation();
 }
 
 bool ABattleTargetingManager::RequestPlayerCardSelection(UMuksiBattleCardDataAsset* CardData)
 {
-    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager))
-    {
-        return false;
-    }
-
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
     if (!IsValid(CardData) || BattleManager->GetCurrentPhase() != EBattlePhase::CardSelect)
     {
         return false;
     }
 
-    PendingPlayerCard = CardData;
-    UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
-    PhaseExecutionTask = nullptr;
-    if (CompletedTask) CompletedTask->Complete();
+    PlayerTargetingCard = CardData;
+    UBattlePhaseTask* CompletedTask = CardSelectTask;
+    CardSelectTask = nullptr;
+    if (CompletedTask)
+    {
+        CompletedTask->Complete();
+    }
 
     // Phase delegate broadcast가 끝난 뒤 즉시 완료 카드를 처리해 재진입 전환을 피한다.
     if (PlayerTargetingSession && PlayerTargetingSession->IsCompleted())
     {
-        NotifyPlayerCardSelectionFinished();
+        CompletePlayerTargeting();
     }
 
-    return IsPlayerCardTargeting() || bPlayerCardSelectionFinished;
+    const FBattleAction* PlayerAction = BattleRuntimeContext->GetPlayerExchangeAction(BattleManager->GetCurrentExchange());
+    return CanProcessPlayerTargetingInput() || PlayerAction != nullptr;
 }
 
-bool ABattleTargetingManager::StartPendingPlayerTargeting()
+bool ABattleTargetingManager::StartPlayerTargeting()
 {
-    ABattleGridManager* RuntimeGridManager = ResolveRuntimeGridManager();
-    if (!IsValid(PendingPlayerCard) || !IsValid(RuntimeGridManager))
-    {
+    if (!IsValid(PlayerTargetingCard))
         return false;
-    }
 
-    if (TargetingPresentationController)
-    {
-        TargetingPresentationController->ClearExecutionPreview();
-        TargetingPresentationController->ClearSession(PlayerTargetingSession);
-    }
-    else if (PlayerTargetingSession)
-    {
-        PlayerTargetingSession->EndSession();
-        PlayerTargetingSession = nullptr;
-    }
+    ABattleGridManager* RuntimeGridManager = BattleManager->GetBattleGridManager();
 
-    ABattleCharacterBase* PlayerTargetingActor = GetPlayerTargetingActor();
+    TargetingPresentationController->ClearTargetingResultPreviews();
+    PlayerTargetingSession = nullptr;
+
+    ABattleCharacterBase* PlayerTargetingActor = BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(BattleManager->GetBattleRuntimeContext()->GetPlayerCharacter(), PlayerTargetingWorldType);
     if (!PlayerTargetingActor)
     {
         return false;
     }
 
     PlayerTargetingSession = NewObject<UBattleTargetingSession>(this);
-    if (!PlayerTargetingSession || !PlayerTargetingSession->StartSession(
-        PlayerTargetingActor,
-        RuntimeGridManager,
-        ResolveRuntimeGridWorldType(),
-        PendingPlayerCard->TargetingData,
-        true))
+    if (!PlayerTargetingSession || !PlayerTargetingSession->StartSession(PlayerTargetingActor, RuntimeGridManager, PlayerTargetingWorldType, PlayerTargetingCard->TargetingData))
     {
         PlayerTargetingSession = nullptr;
         return false;
     }
 
+    if (!TargetingPresentationController->StartLivePreview(PlayerTargetingActor, PlayerTargetingWorldType))
+    {
+        PlayerTargetingSession = nullptr;
+        return false;
+    }
+
+    BuildAndPresentPlayerTargetingPreview();
     return true;
 }
 
 bool ABattleTargetingManager::RequestConfirmPlayerTargeting()
 {
-    if (!HasActivePlayerTargetingSession())
+    if (!CanProcessPlayerTargetingInput())
     {
         return false;
     }
 
-    ConfirmPlayerCardTargetingStep();
-    return true;
+    const ETargetingConfirmResult ConfirmResult = PlayerTargetingSession->ConfirmStep();
+    BuildAndPresentPlayerTargetingPreview();
+    if (ConfirmResult == ETargetingConfirmResult::Completed)
+    {
+        CompletePlayerTargeting();
+    }
+
+    return ConfirmResult != ETargetingConfirmResult::Failed;
 }
 
 bool ABattleTargetingManager::RequestUndoOrCancelPlayerTargeting()
 {
-    if (!HasActivePlayerTargetingSession())
+    if (!CanProcessPlayerTargetingInput())
     {
         return false;
     }
 
     if (!UndoPlayerCardTargetingStep())
     {
-        CancelPlayerCardTargeting();
+        CancelPlayerTargeting();
     }
 
     return true;
 }
 
-void ABattleTargetingManager::RequestCancelPlayerTargeting()
-{
-    CancelPlayerCardTargeting();
-}
-
 bool ABattleTargetingManager::RequestUpdatePlayerTargeting(const FHitResult& HitResult, bool bHasHitResult)
 {
-    if (!IsPlayerCardTargeting())
+    if (!CanProcessPlayerTargetingInput())
     {
         return false;
     }
 
     if (!bHasHitResult)
     {
-        UpdatePlayerTargetingAim(FVector::ZeroVector, false);
-        UpdatePlayerTargetingCandidate(FHexOffsetCoord::Invalid());
+        PlayerTargetingSession->UpdateSelection(FHexOffsetCoord::Invalid(), INDEX_NONE);
+        BuildAndPresentPlayerTargetingPreview();
         return true;
     }
 
-    UpdatePlayerTargetingAim(HitResult.ImpactPoint, true);
-
     FHexOffsetCoord CandidateCoord = FHexOffsetCoord::Invalid();
-    ResolveGridCoordFromHit(HitResult, CandidateCoord);
-    UpdatePlayerTargetingCandidate(CandidateCoord);
+    GetGridCoordFromHit(HitResult, CandidateCoord);
+    const int32 Direction = CalculateDirectionToCoord(PlayerTargetingSession, CandidateCoord);
+    PlayerTargetingSession->UpdateSelection(CandidateCoord, Direction);
+    BuildAndPresentPlayerTargetingPreview();
     return true;
-}
-
-bool ABattleTargetingManager::UpdatePlayerTargetingCandidate(const FHexOffsetCoord& CandidateCoord)
-{
-    return PlayerTargetingSession && PlayerTargetingSession->UpdateCandidateCoord(CandidateCoord);
-}
-
-void ABattleTargetingManager::UpdatePlayerTargetingAim(const FVector& AimWorldLocation, bool bHasAimLocation)
-{
-    if (PlayerTargetingSession)
-    {
-        PlayerTargetingSession->UpdateAimWorldLocation(AimWorldLocation, bHasAimLocation);
-    }
-}
-
-ETargetingConfirmResult ABattleTargetingManager::ConfirmPlayerCardTargetingStep()
-{
-    if (!PlayerTargetingSession)
-    {
-        return ETargetingConfirmResult::Failed;
-    }
-
-    const ETargetingConfirmResult ConfirmResult = PlayerTargetingSession->ConfirmStep();
-    if (ConfirmResult == ETargetingConfirmResult::Completed)
-    {
-        NotifyPlayerCardSelectionFinished();
-    }
-
-    return ConfirmResult;
 }
 
 bool ABattleTargetingManager::UndoPlayerCardTargetingStep()
 {
-    if (!PlayerTargetingSession || !BattleManager || BattleManager->GetCurrentPhase() != EBattlePhase::Targeting)
+    if (!PlayerTargetingSession || BattleManager->GetCurrentPhase() != EBattlePhase::Targeting)
     {
         return false;
     }
@@ -390,73 +378,41 @@ bool ABattleTargetingManager::UndoPlayerCardTargetingStep()
         return false;
     }
 
-    bPlayerCardSelectionFinished = false;
-    if (BattleRuntimeContext)
-    {
-        BattleRuntimeContext->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
-    }
+    BuildAndPresentPlayerTargetingPreview();
+
+    BattleManager->GetBattleRuntimeContext()->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
 
     UE_LOG(LogTemp, Log, TEXT("[BattleTargetingManager] Player targeting undo. RestoredStep=%d"),
         PlayerTargetingSession->GetCurrentStepIndex());
     return true;
 }
 
-void ABattleTargetingManager::CancelPlayerCardTargeting()
+void ABattleTargetingManager::CancelPlayerTargeting()
 {
-    if (TargetingPresentationController)
-    {
-        TargetingPresentationController->ClearSession(PlayerTargetingSession);
-    }
-    else if (PlayerTargetingSession)
-    {
-        PlayerTargetingSession->EndSession();
-        PlayerTargetingSession = nullptr;
-    }
+    PlayerTargetingSession = nullptr;
+    TargetingPresentationController->ClearLivePreview();
 
-    PendingPlayerCard = nullptr;
-    bPlayerCardSelectionFinished = false;
+    PlayerTargetingCard = nullptr;
 
-    if (BattleRuntimeContext && BattleManager)
-    {
-        BattleRuntimeContext->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
-    }
+    BattleManager->GetBattleRuntimeContext()->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
 
-    if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::Targeting)
+    if (BattleManager->GetCurrentPhase() == EBattlePhase::Targeting)
     {
         BattleManager->RestartCurrentExchangeCardSelection();
     }
 }
 
-bool ABattleTargetingManager::IsPlayerCardTargeting() const
+bool ABattleTargetingManager::CanProcessPlayerTargetingInput() const
 {
     return PlayerTargetingSession
-        && BattleManager
         && BattleManager->GetCurrentPhase() == EBattlePhase::Targeting
-        && (PlayerTargetingSession->IsSelecting() || PlayerTargetingSession->IsCompleted());
+        && PlayerTargetingSession->IsSelecting();
 }
 
-bool ABattleTargetingManager::HasActivePlayerTargetingSession() const
+bool ABattleTargetingManager::CompletePlayerTargeting()
 {
-    return PlayerTargetingSession
-        && BattleManager
-        && BattleManager->GetCurrentPhase() == EBattlePhase::Targeting;
-}
-
-void ABattleTargetingManager::NotifyPlayerCardSelectionFinished()
-{
-    if (!BuildPlayerActionForCurrentExchange())
-    {
-        return;
-    }
-
-    bPlayerCardSelectionFinished = true;
-    TryFinishCurrentExchangeTargeting();
-}
-
-bool ABattleTargetingManager::BuildPlayerActionForCurrentExchange()
-{
-    if (!BattleRuntimeContext || !BattleManager || !PlayerTargetingSession
-        || !PlayerTargetingSession->IsCompleted() || !IsValid(PendingPlayerCard))
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
+    if (!PlayerTargetingSession || !PlayerTargetingSession->IsCompleted() || !IsValid(PlayerTargetingCard))
     {
         return false;
     }
@@ -469,23 +425,20 @@ bool ABattleTargetingManager::BuildPlayerActionForCurrentExchange()
 
     FBattleAction BattleAction;
     BattleAction.ExchangeIndex = BattleManager->GetCurrentExchange();
-    BattleAction.Card = PendingPlayerCard;
-    BattleAction.Speed = PlayerCharacter->GetCharacterSpeed() + PendingPlayerCard->CardSpeed;
+    BattleAction.Card = PlayerTargetingCard;
+    BattleAction.Speed = PlayerCharacter->GetCharacterSpeed() + PlayerTargetingCard->CardSpeed;
     BattleAction.Attacker = PlayerCharacter;
     BattleAction.bPlayerAction = true;
     BattleAction.TargetingIntent = PlayerTargetingSession->GetIntent();
 
     BattleRuntimeContext->SetPlayerExchangeAction(BattleAction.ExchangeIndex, BattleAction);
+    TryCompleteTargetingPhase();
     return true;
 }
 
 bool ABattleTargetingManager::RequestEnemyCardSelection()
 {
-    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext))
-    {
-        return false;
-    }
-
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
     if (BattleManager->GetCurrentPhase() != EBattlePhase::CardSelect
         && BattleManager->GetCurrentPhase() != EBattlePhase::Targeting)
     {
@@ -493,8 +446,15 @@ bool ABattleTargetingManager::RequestEnemyCardSelection()
     }
 
     const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
-    if (BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex)) return true;
-    if (GetWorldTimerManager().IsTimerActive(EnemyCardSelectionTimerHandle)) return true;
+    if (BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex))
+    {
+        return true;
+    }
+
+    if (GetWorldTimerManager().IsTimerActive(EnemyCardSelectionTimerHandle))
+    {
+        return true;
+    }
 
     ABattleCharacter_Enemy* EnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
     if (!IsValid(EnemyCharacter))
@@ -518,46 +478,39 @@ bool ABattleTargetingManager::RequestEnemyCardSelection()
 
 void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
 {
-    if (!BuildEnemyActionForCurrentExchange() || !BattleRuntimeContext || !BattleManager)
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
+    FBattleAction EnemyAction;
+    if (!BuildEnemyAction(EnemyAction))
     {
         return;
     }
 
-    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
-    const FBattleAction* EnemyAction = BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
-    if (!EnemyAction || !IsValid(EnemyAction->Card))
-    {
-        return;
-    }
+    BattleRuntimeContext->SetEnemyExchangeAction(EnemyAction.ExchangeIndex, EnemyAction);
 
-    UMuksiBattleCardDataAsset* PresentedCard = EnemyAction->Card.Get();
-    UMuksiBattleCardDataAsset* DeceivedCard = EnemyAction->Card->GetDeceivedCard();
+    UMuksiBattleCardDataAsset* PresentedCard = EnemyAction.Card.Get();
+    UMuksiBattleCardDataAsset* DeceivedCard = EnemyAction.Card->GetDeceivedCard();
     if (IsValid(DeceivedCard))
     {
         PresentedCard = DeceivedCard;
     }
 
-    OnEnemyCardSelectionReady.Broadcast(PresentedCard, ExchangeIndex);
+    OnEnemyCardSelectionReady.Broadcast(PresentedCard, EnemyAction.ExchangeIndex);
 }
 
-bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
+bool ABattleTargetingManager::BuildEnemyAction(FBattleAction& OutAction)
 {
-    if (!IsValid(BattleManager) || !IsValid(BattleRuntimeContext) || !IsValid(BattleGridManager))
-    {
-        return false;
-    }
-
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
     if (BattleManager->GetCurrentPhase() != EBattlePhase::CardSelect
         && BattleManager->GetCurrentPhase() != EBattlePhase::Targeting)
     {
         return false;
     }
 
-    ABattleGridManager* RuntimeGridManager = ResolveRuntimeGridManager();
+    ABattleGridManager* RuntimeGridManager = BattleManager->GetBattleGridManager();
     ABattleCharacter_Enemy* EnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
-    ABattleCharacterBase* EnemyTargetingActor = GetEnemyTargetingActor();
-    ABattleCharacterBase* PlayerTargetingActor = GetPlayerTargetingActor();
-    if (!IsValid(RuntimeGridManager) || !IsValid(EnemyCharacter) || !EnemyTargetingActor || !PlayerTargetingActor)
+    ABattleCharacterBase* EnemyTargetingActor = BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(EnemyCharacter, EnemyTargetingWorldType);
+    ABattleCharacterBase* PlayerTargetingActor = BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(BattleRuntimeContext->GetPlayerCharacter(), EnemyTargetingWorldType);
+    if (!IsValid(EnemyCharacter) || !EnemyTargetingActor || !PlayerTargetingActor)
     {
         return false;
     }
@@ -572,81 +525,71 @@ bool ABattleTargetingManager::BuildEnemyActionForCurrentExchange()
         return false;
     }
 
-    if (TargetingPresentationController)
+    TargetingPresentationController->ClearTargetingResultPreviews();
+    EnemyTargetingSession = NewObject<UBattleTargetingSession>(this);
+    if (!EnemyTargetingSession || !EnemyTargetingSession->StartSession(EnemyTargetingActor,RuntimeGridManager, EnemyTargetingWorldType,SelectedCard->TargetingData))
     {
-        TargetingPresentationController->ClearExecutionPreview();
-        TargetingPresentationController->ClearSession(EnemyTargetingSession);
-    }
-    else if (EnemyTargetingSession)
-    {
-        EnemyTargetingSession->EndSession();
         EnemyTargetingSession = nullptr;
+        return false;
     }
 
-    EnemyTargetingSession = NewObject<UBattleTargetingSession>(this);
-    if (!EnemyTargetingSession || !EnemyTargetingSession->StartSession(
-        EnemyTargetingActor,
-        RuntimeGridManager,
-        ResolveRuntimeGridWorldType(),
-        SelectedCard->TargetingData,
-        false))
+    if (!CompleteEnemyTargetingSession(SelectedCard, PlayerTargetingActor))
     {
         EnemyTargetingSession = nullptr;
+        return false;
+    }
+
+    OutAction.ExchangeIndex = BattleManager->GetCurrentExchange();
+    OutAction.Card = SelectedCard;
+    OutAction.Attacker = EnemyCharacter;
+    OutAction.Speed = EnemyCharacter->GetCharacterSpeed() + SelectedCard->CardSpeed;
+    OutAction.bPlayerAction = false;
+    OutAction.TargetingIntent = EnemyTargetingSession->GetIntent();
+    return true;
+}
+
+bool ABattleTargetingManager::CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, ABattleCharacterBase* TargetCharacter)
+{
+    if (!EnemyTargetingSession || !IsValid(SelectedCard) || !IsValid(TargetCharacter))
+    {
         return false;
     }
 
     while (EnemyTargetingSession->IsSelecting())
     {
         const int32 StepIndex = EnemyTargetingSession->GetCurrentStepIndex();
-        const FHexOffsetCoord PlayerCoord = PlayerTargetingActor->GetCharacterCoord();
-        const FVector PlayerWorldLocation = RuntimeGridManager->GetWorldLocationByCoord(PlayerCoord);
-        EnemyTargetingSession->UpdateAimWorldLocation(PlayerWorldLocation, true);
-
-        if (!EnemyTargetingSession->UpdateCandidateCoord(PlayerCoord)
+        const FHexOffsetCoord TargetCoord = TargetCharacter->GetCharacterCoord();
+        const int32 Direction = CalculateDirectionToCoord(EnemyTargetingSession, TargetCoord);
+        if (!EnemyTargetingSession->UpdateSelection(TargetCoord, Direction)
             || EnemyTargetingSession->ConfirmStep() == ETargetingConfirmResult::Failed)
         {
             UE_LOG(LogTemp, Error,
-                TEXT("[BattleTargetingManager] Enemy card cannot target player. Step=%d Card=%s"),
+                TEXT("[BattleTargetingManager] Enemy card cannot target character. Step=%d Card=%s"),
                 StepIndex,
                 *GetNameSafe(SelectedCard));
-            EnemyTargetingSession->EndSession();
-            EnemyTargetingSession = nullptr;
             return false;
         }
     }
 
-    if (!EnemyTargetingSession->IsCompleted())
-    {
-        return false;
-    }
-
-    FBattleAction BattleAction;
-    BattleAction.ExchangeIndex = BattleManager->GetCurrentExchange();
-    BattleAction.Card = SelectedCard;
-    BattleAction.Attacker = EnemyCharacter;
-    BattleAction.Speed = EnemyCharacter->GetCharacterSpeed() + SelectedCard->CardSpeed;
-    BattleAction.bPlayerAction = false;
-    BattleAction.TargetingIntent = EnemyTargetingSession->GetIntent();
-
-    BattleRuntimeContext->SetEnemyExchangeAction(BattleAction.ExchangeIndex, BattleAction);
-    return true;
+    return EnemyTargetingSession->IsCompleted();
 }
 
 void ABattleTargetingManager::NotifyEnemyCardSelectionUIFinished()
 {
-    if (!BattleRuntimeContext || !BattleManager
-        || !BattleRuntimeContext->GetEnemyExchangeAction(BattleManager->GetCurrentExchange()))
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
+    if (!BattleRuntimeContext->GetEnemyExchangeAction(BattleManager->GetCurrentExchange()))
     {
         return;
     }
 
-    bEnemyCardSelectionFinished = true;
-    TryFinishCurrentExchangeTargeting();
+    bEnemyCardPresentationFinished = true;
+    TryCompleteTargetingPhase();
 }
 
-void ABattleTargetingManager::TryFinishCurrentExchangeTargeting()
+void ABattleTargetingManager::TryCompleteTargetingPhase()
 {
-    if (!bPlayerCardSelectionFinished || !bEnemyCardSelectionFinished || !BattleManager || !BattleRuntimeContext)
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
+    if (!bEnemyCardPresentationFinished)
     {
         return;
     }
@@ -658,150 +601,128 @@ void ABattleTargetingManager::TryFinishCurrentExchangeTargeting()
         return;
     }
 
-    UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
-    PhaseExecutionTask = nullptr;
-    if (CompletedTask) CompletedTask->Complete();
-}
-
-void ABattleTargetingManager::RefreshExchangeTargetIndicators()
-{
-    if (!BattleGridManager || !BattleRuntimeContext || !BattleManager)
+    UBattlePhaseTask* CompletedTask = TargetingTask;
+    TargetingTask = nullptr;
+    if (CompletedTask)
     {
-        return;
-    }
-
-    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
-    const FBattleAction* PlayerAction = BattleRuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
-    const FBattleAction* EnemyAction = BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
-    if (!PlayerAction || !EnemyAction)
-    {
-        return;
-    }
-
-    BattleGridManager->AllClearGridHovered();
-    BattleGridManager->AllClearExchangeIndicator();
-
-    FResolvedTargeting PlayerResolvedTargeting;
-    if (ResolveActionTargetingForCurrentGrid(*PlayerAction, PlayerResolvedTargeting))
-    {
-        TArray<FHexOffsetCoord> TargetCoords = PlayerResolvedTargeting.AffectedCoords;
-        if (TargetCoords.IsEmpty() && PlayerResolvedTargeting.HasSelectedCoord())
-        {
-            TargetCoords.Add(PlayerResolvedTargeting.GetSelectedCoord());
-        }
-        BattleGridManager->SetExchangeIndicator(PlayerAction->Card->CardTypeInfo, TargetCoords, false);
-    }
-
-    FResolvedTargeting EnemyResolvedTargeting;
-    if (ResolveActionTargetingForCurrentGrid(*EnemyAction, EnemyResolvedTargeting))
-    {
-        TArray<FHexOffsetCoord> TargetCoords = EnemyResolvedTargeting.AffectedCoords;
-        if (TargetCoords.IsEmpty() && EnemyResolvedTargeting.HasSelectedCoord())
-        {
-            TargetCoords.Add(EnemyResolvedTargeting.GetSelectedCoord());
-        }
-        BattleGridManager->SetExchangeIndicator(EnemyAction->Card->CardTypeInfo, TargetCoords, true);
+        CompletedTask->Complete();
     }
 }
 
 void ABattleTargetingManager::NotifyEnemyCardRevealUIFinished(int32 ExchangeIndex)
 {
-    if (!BattleManager || !BattleRuntimeContext
-        || BattleManager->GetCurrentPhase() != EBattlePhase::CardReveal
+    if (BattleManager->GetCurrentPhase() != EBattlePhase::CardReveal
         || ExchangeIndex != BattleManager->GetCurrentExchange())
     {
         return;
     }
 
-    RefreshExchangeTargetIndicators();
+    StartCardRevealPresentation(ExchangeIndex);
+}
 
+void ABattleTargetingManager::StartCardRevealPresentation(int32 ExchangeIndex)
+{
+    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
+    const FBattleAction* PlayerAction = BattleRuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
     const FBattleAction* EnemyAction = BattleRuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
-    if (TargetingPresentationController && EnemyAction && IsValid(EnemyAction->Card))
+
+    TargetingPresentationController->ClearLivePreview();
+    ClearCardRevealPresentation();
+
+    if (PlayerAction)
+        ShowCardRevealActionPresentation(*PlayerAction);
+    if (EnemyAction)
+        ShowCardRevealActionPresentation(*EnemyAction);
+
+    if (!PlayerAction && !EnemyAction)
     {
-        TargetingPresentationController->ClearExecutionPreview();
-
-        const int32 StepCount = EnemyAction->Card->TargetingData.Steps.Num();
-        for (int32 StepIndex = 0; StepIndex < StepCount; ++StepIndex)
-        {
-            const FTargetingStepCardData* StepData = EnemyAction->Card->TargetingData.GetStep(StepIndex);
-            if (!StepData)
-            {
-                continue;
-            }
-
-            const FTargetingPhasePresentationSettings& PresentationSettings =
-                StepData->AdvancedSettings.Presentation.AttackSequencePhase;
-            const bool bShowAnyPreview = PresentationSettings.bShowSelectionPreview
-                || PresentationSettings.bShowPathPreview
-                || PresentationSettings.bShowAreaPreview;
-            if (!bShowAnyPreview)
-            {
-                continue;
-            }
-
-            FResolvedTargeting StepResolvedTargeting;
-            if (ResolveActionTargetingThroughStepForCurrentGrid(*EnemyAction, StepIndex, StepResolvedTargeting))
-            {
-                TargetingPresentationController->AddResolvedStepPreview(
-                    ResolveRuntimeCharacter(EnemyAction->Attacker),
-                    ResolveRuntimeGridWorldType(),
-                    EnemyAction->Card->TargetingData,
-                    StepResolvedTargeting,
-                    StepIndex,
-                    PresentationSettings,
-                    true);
-            }
-        }
+        FinishCardRevealPresentation();
+        return;
     }
 
-    GetWorldTimerManager().ClearTimer(EnemyPreviewHideTimerHandle);
+    GetWorldTimerManager().ClearTimer(CardRevealPreviewTimerHandle);
     GetWorldTimerManager().SetTimer(
-        EnemyPreviewHideTimerHandle,
+        CardRevealPreviewTimerHandle,
         this,
-        &ABattleTargetingManager::HideEnemyTargetingPreviewAndFinishReveal,
-        FMath::Max(EnemyPreviewDuration, 0.05f),
+        &ABattleTargetingManager::FinishCardRevealPresentation,
+        FMath::Max(CardRevealPreviewDuration, 0.05f),
         false);
 }
 
-void ABattleTargetingManager::HideEnemyTargetingPreview()
+void ABattleTargetingManager::ShowCardRevealActionPresentation(const FBattleAction& Action)
 {
-    if (TargetingPresentationController)
-    {
-        TargetingPresentationController->ClearExecutionPreview();
-    }
+    if (!IsValid(Action.Card))
+        return;
 
-    if (EnemyTargetingSession)
+    FTargetingResult TargetingResult;
+    if (!BuildCardRevealTargetingResult(Action, TargetingResult))
+        return;
+
+    const int32 StepCount = Action.Card->TargetingData.Steps.Num();
+    for (int32 StepIndex = 0; StepIndex < StepCount; ++StepIndex)
     {
-        EnemyTargetingSession->HidePreview();
+        const FTargetingStepCardData* StepData = Action.Card->TargetingData.GetStep(StepIndex);
+        if (!StepData || !TargetingResult.GetStep(StepIndex))
+            continue;
+
+        const FTargetingPhasePresentationSettings& PresentationSettings = StepData->Presentation.Phases.CardReveal;
+        const bool bShowAnyPresentation = PresentationSettings.HasAnyPresentation();
+        if (!bShowAnyPresentation)
+            continue;
+
+        TargetingPresentationController->AddTargetingResultPreview(
+            BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(Action.Attacker, PlayerTargetingWorldType),
+            PlayerTargetingWorldType,
+            Action.Card->TargetingData,
+            TargetingResult,
+            StepIndex,
+            PresentationSettings,
+            !Action.bPlayerAction);
     }
 }
 
-void ABattleTargetingManager::HideEnemyTargetingPreviewAndFinishReveal()
+void ABattleTargetingManager::ClearCardRevealPresentation()
 {
-    HideEnemyTargetingPreview();
-    ClearSelectionAndRevealPreviews();
-    PendingPlayerCard = nullptr;
-
-    if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::CardReveal)
-    {
-        UBattlePhaseTask* CompletedTask = PhaseUITask;
-        PhaseUITask = nullptr;
-        if (CompletedTask) CompletedTask->Complete();
-    }
+    TargetingPresentationController->ClearTargetingResultPreviews();
 }
 
-bool ABattleTargetingManager::ResolveGridCoordFromHit(
+void ABattleTargetingManager::FinishCardRevealPresentation()
+{
+    GetWorldTimerManager().ClearTimer(CardRevealPreviewTimerHandle);
+    ClearCardRevealPresentation();
+
+    ClearAllTargeting();
+    PlayerTargetingCard = nullptr;
+
+    if (BattleManager->GetCurrentPhase() != EBattlePhase::CardReveal)
+        return;
+
+    UBattlePhaseTask* CompletedTask = CardRevealTask;
+    CardRevealTask = nullptr;
+    if (CompletedTask)
+        CompletedTask->Complete();
+}
+
+int32 ABattleTargetingManager::CalculateDirectionToCoord(const UBattleTargetingSession* Session, const FHexOffsetCoord& TargetCoord) const
+{
+    if (!Session || !TargetCoord.IsValid())
+        return INDEX_NONE;
+
+    FHexOffsetCoord OriginCoord;
+
+    if (!Session->GetCurrentOriginCoord(OriginCoord))
+        return INDEX_NONE;
+
+    return FHexGridMath::GetClosestDirection(OriginCoord, TargetCoord);
+}
+
+bool ABattleTargetingManager::GetGridCoordFromHit(
     const FHitResult& HitResult,
     FHexOffsetCoord& OutCoord) const
 {
     OutCoord = FHexOffsetCoord::Invalid();
 
-    ABattleGridManager* RuntimeGridManager = ResolveRuntimeGridManager();
-
-    if (!IsValid(RuntimeGridManager))
-    {
-        return false;
-    }
+    ABattleGridManager* RuntimeGridManager = BattleManager->GetBattleGridManager();
 
     AActor* HitActor = HitResult.GetActor();
     if (const ABattleGridTile* HitTile = Cast<ABattleGridTile>(HitActor))
@@ -812,7 +733,7 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
 
     if (ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
     {
-        ABattleCharacterBase* RuntimeCharacter = ResolveRuntimeCharacter(HitCharacter);
+        ABattleCharacterBase* RuntimeCharacter = BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(HitCharacter, PlayerTargetingWorldType);
         OutCoord = RuntimeCharacter ? RuntimeCharacter->GetCharacterCoord() : FHexOffsetCoord::Invalid();
         return OutCoord.IsValid();
     }
@@ -824,7 +745,10 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
         {
             const FHexOffsetCoord Coord(X, Y);
             FVector PresentationLocation = FVector::ZeroVector;
-            if (!RuntimeGridManager->GetPresentationWorldLocationByCoord(Coord, PresentationLocation)) continue;
+            if (!RuntimeGridManager->GetPresentationWorldLocationByCoord(Coord, PresentationLocation))
+            {
+                continue;
+            }
             const FVector Delta = PresentationLocation - HitResult.ImpactPoint;
             const float DistanceSquared = FVector2D(Delta.X, Delta.Y).SizeSquared();
             if (DistanceSquared < BestDistanceSquared)
@@ -838,61 +762,61 @@ bool ABattleTargetingManager::ResolveGridCoordFromHit(
     return OutCoord.IsValid();
 }
 
-ABattleGridManager* ABattleTargetingManager::ResolveRuntimeGridManager() const
-{
-    // 모든 WorldType은 하나의 GridManager가 소유한다.
-    // 런타임/시뮬레이션의 차이는 ResolveRuntimeGridWorldType()으로만 구분한다.
-    return BattleGridManager.Get();
-}
-
-EBattleSimulationWorldType ABattleTargetingManager::ResolveRuntimeGridWorldType() const
-{
-    return IsValid(BattleSimulationManager) && BattleSimulationManager->IsSimulationRunning()
-        ? EBattleSimulationWorldType::PlayerActualEnemyDeceived
-        : EBattleSimulationWorldType::PlayerActualEnemyActual;
-}
-
-ABattleCharacterBase* ABattleTargetingManager::ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const
-{
-    if (!IsValid(SourceCharacter)) return nullptr;
-    if (!IsValid(BattleSimulationManager) || !BattleSimulationManager->IsSimulationRunning()) return const_cast<ABattleCharacterBase*>(SourceCharacter);
-    UBattleSimulationWorldRuntime* WorldRuntime = BattleSimulationManager->GetSimulationWorldRuntime(EBattleSimulationWorldType::PlayerActualEnemyDeceived);
-    ABattleSimulationCharacter* SimulationCharacter = IsValid(WorldRuntime) ? WorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
-    return IsValid(SimulationCharacter) ? SimulationCharacter : const_cast<ABattleCharacterBase*>(SourceCharacter);
-}
-
-ABattleCharacterBase* ABattleTargetingManager::GetPlayerTargetingActor() const
-{
-    return BattleRuntimeContext ? ResolveRuntimeCharacter(BattleRuntimeContext->GetPlayerCharacter()) : nullptr;
-}
-
-ABattleCharacterBase* ABattleTargetingManager::GetEnemyTargetingActor() const
-{
-    return BattleRuntimeContext ? ResolveRuntimeCharacter(BattleRuntimeContext->GetEnemyCharacter()) : nullptr;
-}
-
-bool ABattleTargetingManager::ResolveActionTargetingForCurrentGrid(
+bool ABattleTargetingManager::BuildCardRevealTargetingResult(
     const FBattleAction& Action,
-    FResolvedTargeting& OutResolvedTargeting) const
+    FTargetingResult& OutTargetingResult) const
 {
+    constexpr EBattleSimulationWorldType WorldType = EBattleSimulationWorldType::PlayerActualEnemyDeceived;
     FBattleAction RuntimeAction = Action;
-    RuntimeAction.Attacker = ResolveRuntimeCharacter(Action.Attacker);
+    RuntimeAction.Attacker = BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(Action.Attacker, WorldType);
+    if (!IsValid(RuntimeAction.Attacker))
+        return false;
 
-    return FBattleTargetResolver::ResolveAction(RuntimeAction, ResolveRuntimeGridManager(), ResolveRuntimeGridWorldType(), OutResolvedTargeting);
-}
+    OutTargetingResult.Reset();
+    ABattleGridManager* GridManager = BattleManager->GetBattleGridManager();
+    if (!IsValid(GridManager) || !IsValid(RuntimeAction.Card.Get()))
+        return false;
 
-bool ABattleTargetingManager::ResolveActionTargetingThroughStepForCurrentGrid(
-    const FBattleAction& Action,
-    int32 LastStepIndex,
-    FResolvedTargeting& OutResolvedTargeting) const
-{
-    FBattleAction RuntimeAction = Action;
-    RuntimeAction.Attacker = ResolveRuntimeCharacter(Action.Attacker);
+    const FTargetingCardData& TargetingData = RuntimeAction.Card->TargetingData;
+    TArray<FResolvedStepResult> ResolvedSteps;
+    if (!FBattleTargetResolver::ResolveIntent(RuntimeAction.Attacker.Get(), GridManager, WorldType, TargetingData, RuntimeAction.TargetingIntent, ResolvedSteps))
+        return false;
 
-    return FBattleTargetResolver::ResolveActionThroughStep(
-        RuntimeAction,
-        ResolveRuntimeGridManager(),
-        ResolveRuntimeGridWorldType(),
-        LastStepIndex,
-        OutResolvedTargeting);
+    OutTargetingResult.Steps.Reserve(ResolvedSteps.Num());
+    for (int32 StepIndex = 0; StepIndex < ResolvedSteps.Num(); ++StepIndex)
+    {
+        const FTargetingStepCardData* StepData = TargetingData.GetStep(StepIndex);
+        if (!StepData)
+            return false;
+
+        FTargetingStepResult StepResult;
+        StepResult.ResolvedStep = ResolvedSteps[StepIndex];
+        if (!StepResult.ResolvedStep.HasResolvedCoord())
+            return false;
+
+        if (!StepData->Pattern.PatternClass)
+        {
+            StepResult.AffectedCoords.Add(StepResult.ResolvedStep.ResolvedCoord);
+        }
+        else
+        {
+            const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
+            if (!Pattern)
+                return false;
+
+            Pattern->ApplyPattern(
+                GridManager,
+                WorldType,
+                StepData->Pattern.PatternData,
+                StepResult.ResolvedStep.OriginCoord,
+                StepResult.ResolvedStep.ResolvedCoord,
+                StepResult.ResolvedStep.ResolvedDirection,
+                StepResult.AffectedCoords,
+                StepResult.PathCoords);
+        }
+
+        GridManager->GetCharactersAtCoords(WorldType, StepResult.AffectedCoords, StepResult.Targets);
+        OutTargetingResult.Steps.Add(MoveTemp(StepResult));
+    }
+    return true;
 }

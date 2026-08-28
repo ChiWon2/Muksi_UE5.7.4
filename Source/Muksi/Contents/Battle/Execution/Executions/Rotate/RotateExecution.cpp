@@ -33,14 +33,14 @@ void URotateExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		return;
 	}
 
-	if (!Context.ResolvedTargeting.HasSelectedCoord())
+	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
+	if (!StepResult || !StepResult->ResolvedStep.HasResolvedCoord())
 	{
 		FinishRotateExecution();
 		return;
 	}
 
-	const FHexOffsetCoord SelectedCoord = Context.ResolvedTargeting.GetSelectedCoord();
-	const FVector TargetWorldLocation = Context.BattleGridManager->GetTransformToPosition(SelectedCoord).GetLocation();
+	const FVector TargetWorldLocation = Context.BattleGridManager->GetTransformToPosition(StepResult->ResolvedStep.ResolvedCoord).GetLocation();
 
 	FMuksiBattleMovementFinished OnRotationFinished;
 	OnRotationFinished.BindUObject(this, &URotateExecution::HandleRotationFinished);

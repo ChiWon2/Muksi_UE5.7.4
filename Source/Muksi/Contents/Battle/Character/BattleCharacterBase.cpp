@@ -3,6 +3,7 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
+#include "BattleCardComponent.h"
 #include "BattleStatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -71,14 +72,13 @@ ABattleCharacterBase::ABattleCharacterBase()
 
 	StatusEffectComponent = CreateDefaultSubobject<UMuksiStatusEffectComponent>(TEXT("StatusEffectComponent"));
 
-
 	BattleAnimationComponent = CreateDefaultSubobject<UMuksiBattleAnimationComponent>(TEXT("BattleAnimationComponent"));
 
 	BattleMovementComponent =CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
 	
 	BattleStatComponent = CreateDefaultSubobject<UBattleStatComponent>(TEXT("BattleStatComponent"));
 
-	
+	BattleCardComponent = CreateDefaultSubobject<UBattleCardComponent>(TEXT("BattleCardComponent"));
 }
 
 
@@ -119,11 +119,17 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 		UE_LOG(LogTemp, Error, TEXT("PassiveComponent is null (BattleCharacterBase.cpp)"));
 		return;
 	}
-	UE_LOG(LogTemp, Error, TEXT("CharacterData CharacterPassives %d"), CharacterData.CharacterPassives.Num());
 	StatusEffectComponent->Initialize(BattleManager);
 	PassiveComponent->InitializePassives(CharacterData.CharacterPassives);
 	
 	InitializeBattleStats();
+	
+	if (!BattleCardComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleCardComponent is null (BattleCharacterBase.cpp)"));
+		return;
+	}
+	BattleCardComponent->Initialize(InCharacterData->CharacterDeck);
 }
 
 void ABattleCharacterBase::InitializeBattleStats()
@@ -160,25 +166,17 @@ void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, 
 		*ButtonPressed.ToString());
 }
 
-void ABattleCharacterBase::RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData)
-{
-	const int32 FoundIndex =
-		CharacterData.BattleDeck.Find(BattleCardData);
 
-	if (FoundIndex != INDEX_NONE)
-	{
-		CharacterData.BattleDeck.RemoveAt(FoundIndex);
-	}
-	/*for (UMuksiBattleCardDataAsset* Card : CharacterData.BattleDeck)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Remove Battle Card %s"), *Card->GetName());
-	}*/
-	
-}
 
 int32 ABattleCharacterBase::GetCurrentBattleCardCount() const
 {
-	return CharacterData.BattleDeck.Num();
+	//return CharacterData.BattleDeck.Num();기존 코드
+	if (!BattleCardComponent)
+	{
+		return 0;
+	}
+
+	return BattleCardComponent->GetCurrentHandCount();
 }
 
 TArray<TObjectPtr<UCharacterPassive>> ABattleCharacterBase::GetCharacterPassives()

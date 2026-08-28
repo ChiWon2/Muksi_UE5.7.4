@@ -188,6 +188,18 @@ const FBattleGridCell* ABattleGridManager::GetCellByCoord(EBattleSimulationWorld
 	return Cells.IsValidIndex(Index) ? &Cells[Index] : nullptr;
 }
 
+void ABattleGridManager::GetCharactersAtCoords(EBattleSimulationWorldType WorldType, const TArray<FHexOffsetCoord>& Coords, TArray<TObjectPtr<ABattleCharacterBase>>& OutCharacters) const
+{
+	OutCharacters.Reset();
+	for (const FHexOffsetCoord& Coord : Coords)
+	{
+		const FBattleGridCell* Cell = GetCellByCoord(WorldType, Coord);
+		ABattleCharacterBase* Character = Cell ? Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()) : nullptr;
+		if (IsValid(Character)) OutCharacters.AddUnique(Character);
+	}
+}
+
+
 FBattleGridCell* ABattleGridManager::GetMutableCellByCoord(EBattleSimulationWorldType WorldType, const FHexOffsetCoord& Coord)
 {
 	if (!IsValidCoord(Coord)) return nullptr;
@@ -369,22 +381,17 @@ FBattleGridMoveResult ABattleGridManager::ExecuteGridMove(const FBattleGridMoveR
 	return Result;
 }
 
-bool ABattleGridManager::MoveCharacterOnGrid(EBattleSimulationWorldType WorldType, ABattleCharacterBase* Character, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord, bool bSnapActorToGrid)
-{
-	FBattleGridMoveRequest Request;
-	Request.Character = Character;
-	Request.WorldType = WorldType;
-	Request.FromCoord = FromCoord;
-	Request.ToCoord = ToCoord;
-	Request.bSnapActorToGrid = bSnapActorToGrid;
-	return ExecuteGridMove(Request).bSucceeded;
-}
-
 bool ABattleGridManager::MoveActorOnGrid(EBattleSimulationWorldType WorldType, AActor* Actor, const FHexOffsetCoord& FromCoord, const FHexOffsetCoord& ToCoord)
 {
 	if (ABattleCharacterBase* Character = Cast<ABattleCharacterBase>(Actor))
 	{
-		return MoveCharacterOnGrid(WorldType, Character, FromCoord, ToCoord, true);
+		FBattleGridMoveRequest Request;
+		Request.Character = Character;
+		Request.WorldType = WorldType;
+		Request.FromCoord = FromCoord;
+		Request.ToCoord = ToCoord;
+		Request.bSnapActorToGrid = true;
+		return ExecuteGridMove(Request).bSucceeded;
 	}
 
 	if (!IsValid(Actor) || FromCoord == ToCoord)
@@ -439,31 +446,15 @@ bool ABattleGridManager::CheckGridInRange(const FHexOffsetCoord& A, const FHexOf
 	return Distance <= Range;
 }
 
-void ABattleGridManager::SetGridHovered(const TArray<FHexOffsetCoord>& NewGridArray)
+void ABattleGridManager::SetTargetIndicators(const TArray<FHexOffsetCoord>& Coords)
 {
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetHovered(NewGridArray);
+	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetTargetIndicators(Coords);
 }
 
-void ABattleGridManager::ClearGridHovered()
+void ABattleGridManager::ClearAllTargetIndicators()
 {
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->ClearHovered();
+	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->ClearAllTargetIndicators();
 }
-
-void ABattleGridManager::AllClearGridHovered()
-{
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->ClearAllHovered();
-}
-
-void ABattleGridManager::SetExchangeIndicator(const FBattleCardTypeInfoData& CardTypeInfo, const TArray<FHexOffsetCoord>& GridArray, bool bEnemy)
-{
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->SetExchange(CardTypeInfo, GridArray, bEnemy);
-}
-
-void ABattleGridManager::AllClearExchangeIndicator()
-{
-	if (BattleGridIndicatorComponent) BattleGridIndicatorComponent->ClearExchange();
-}
-
 
 const TArray<FBattleGridCell>& ABattleGridManager::GetGridCells(EBattleSimulationWorldType WorldType) const
 {

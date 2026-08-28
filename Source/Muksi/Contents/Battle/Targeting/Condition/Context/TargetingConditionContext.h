@@ -8,14 +8,6 @@
 class ABattleCharacterBase;
 class ABattleGridManager;
 
-UENUM(BlueprintType)
-enum class ETargetingConditionPhase : uint8
-{
-    Selection,
-    Resolve,
-    Execution
-};
-
 /** ConditionHandleSystem에 타겟팅 평가 정보를 전달하는 transient context. */
 UCLASS()
 class MUKSI_API UTargetingConditionContext : public UObject
@@ -39,18 +31,5 @@ public:
     FHexOffsetCoord OriginCoord;
 
     UPROPERTY(Transient, BlueprintReadOnly)
-    FHexOffsetCoord CandidateCoord;
-
-    UPROPERTY(Transient, BlueprintReadOnly)
-    FHexOffsetCoord ResolvedCoord;
-
-    UPROPERTY(Transient, BlueprintReadOnly)
-    ETargetingConditionPhase Phase = ETargetingConditionPhase::Selection;
-
-    const FHexOffsetCoord& GetEvaluatedCoord() const
-    {
-        return Phase == ETargetingConditionPhase::Selection
-            ? CandidateCoord
-            : ResolvedCoord;
-    }
+    FHexOffsetCoord TargetCoord;
 };

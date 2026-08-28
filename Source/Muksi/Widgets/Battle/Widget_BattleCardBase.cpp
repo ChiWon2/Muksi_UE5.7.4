@@ -4,11 +4,13 @@
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 
 #include "CommonTextBlock.h"
-#include "HandWidget.h"
 #include "Widget_CardEquipSlot.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
+#include "Hand/HandWidget.h"
+#include "NiagaraSystemWidget.h"
+#include "Components/Overlay.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
@@ -200,8 +202,21 @@ void UWidget_BattleCardBase::SetOwningHandWidget(UHandWidget* InHandWidget)
 
 void UWidget_BattleCardBase::SetCardRenderAngle(float InAngle)
 {
+	/*SetRenderTransformPivot(FVector2D(0.5f, 1.0f));
+	SetRenderTransformAngle(InAngle);*/
 	SetRenderTransformPivot(FVector2D(0.5f, 1.0f));
-	SetRenderTransformAngle(InAngle);
+	if (!CardRotationRoot)
+	{
+		return;
+	}
+
+	CardRotationRoot->SetRenderTransformAngle(InAngle);
+}
+
+void UWidget_BattleCardBase::SetCardInstance(const FGuid& InInstanceId, UMuksiBattleCardDataAsset* InCardData)
+{
+	CardInstanceId = InInstanceId;
+	SetCardData(InCardData);
 }
 
 void UWidget_BattleCardBase::OnMoveTimelineUpdate(float Alpha)
@@ -255,11 +270,27 @@ void UWidget_BattleCardBase::StopDragging()
 	{
 		UWidget_CardEquipSlot* OverlappedSlot =
 			OwningHandWidget->FindOverlappedEquipSlot(this);
-		if (OverlappedSlot && OverlappedSlot->EquipCard(this))
+
+		if (OverlappedSlot && OverlappedSlot->CanEquipCard(this))
 		{
-			OwningHandWidget->RemoveBattleCards(this);
-			OwningHandWidget->OrganizeCards( OwningHandWidget->GetDefaultCardSpacing());
-			return;
+			// 1. 먼저 게임 데이터에서 카드 Commit
+			if (OwningHandWidget->CommitHandCard(this))
+			{
+				// 2. Commit 성공 후 실제 UI를 Slot에 장착
+				if (OverlappedSlot->EquipCard(this))
+				{
+					OwningHandWidget->RemoveHandCardWidget(this);
+
+					OwningHandWidget->OrganizeCards(
+						OwningHandWidget->GetDefaultCardSpacing());
+
+					return;
+				}
+
+				// 3. Commit은 성공했는데 UI 장착 실패
+				// → 게임 데이터 원상복구
+				OwningHandWidget->ReturnCommittedHandCard(this);
+			}
 		}
 	}
 
@@ -335,7 +366,7 @@ void UWidget_BattleCardBase::PlayCardFlipToFront()
 		return;
 	}
 
-	PlayAnimation(Anim_CardFlipToFront);
+	//PlayAnimation(Anim_CardFlipToFront); 테스트 용도
 }
 
 void UWidget_BattleCardBase::PlayDrawToHandAnimation(float InDelay)
@@ -375,6 +406,60 @@ void UWidget_BattleCardBase::PlayDrawToHandAnimation(float InDelay)
 	SetRenderTranslation(DrawStartTranslation);
 	SetRenderOpacity(0.0f);
 	SetIsEnabled(false);
+}
+
+void UWidget_BattleCardBase::PlayCardChangeEffect(UMuksiBattleCardDataAsset* NewCardData)
+{
+	if (!IsValid(NewCardData))
+	{
+		return;
+	}
+
+	PendingCardData = NewCardData;
+	
+	PlayAnimation(CardChangeAnimation);
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		CardChangeTimerHandle,
+		this,
+		&UWidget_BattleCardBase::PlayNiagaraWidget,
+		NiagaraWidgetStartTime,
+		false);
+}
+
+void UWidget_BattleCardBase::StopCardChangeEffect()
+{
+	if (!CardChangeNiagaraWidget)
+	{
+		return;
+	}
+
+	CardChangeNiagaraWidget->DeactivateSystem();
+}
+
+void UWidget_BattleCardBase::PlayNiagaraWidget()
+{
+	CardChangeNiagaraWidget->ActivateSystem(true);
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		CardChangeTimerHandle,
+		this,
+		&UWidget_BattleCardBase::ApplyPendingCardChange,
+		CardDataChangeTime,
+		false);
+}
+
+void UWidget_BattleCardBase::ApplyPendingCardChange()
+{
+	if (!IsValid(PendingCardData))
+	{
+		return;
+	}
+
+	// 기존 카드 표시 갱신 함수 사용
+	SetCardData(PendingCardData);
+
+	PendingCardData = nullptr;
 }
 
 

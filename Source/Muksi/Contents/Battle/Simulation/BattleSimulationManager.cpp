@@ -9,9 +9,11 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
+#include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
+#include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 
 ABattleSimulationManager::ABattleSimulationManager()
 {
@@ -74,6 +76,14 @@ UBattleSimulationWorldRuntime* ABattleSimulationManager::GetSimulationWorldRunti
 	default:
 		return nullptr;
 	}
+}
+
+ABattleCharacterBase* ABattleSimulationManager::GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const
+{
+	if (!IsValid(SourceCharacter)) return nullptr;
+	if (!BattleSimulationWorld::UsesSimulationRuntime(WorldType)) return const_cast<ABattleCharacterBase*>(SourceCharacter);
+	UBattleSimulationWorldRuntime* WorldRuntime = GetSimulationWorldRuntime(WorldType);
+	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
 }
 
 ABattleGridManager* ABattleSimulationManager::GetBattleGridManager() const
@@ -189,7 +199,7 @@ void ABattleSimulationManager::ExecutePhaseEntryOperation(EBattlePhase NewPhase)
 		break;
 	case EBattlePhase::ExchangeEnd:
 	case EBattlePhase::BattleActionSequenceStart:
-		if (PresentationController) PresentationController->ClearAllExecutionPreviews();
+		if (PresentationController) PresentationController->ClearAllExecutionResults();
 		break;
 	case EBattlePhase::RoundEnd:
 		DeactivateRoundSimulation();
@@ -280,11 +290,17 @@ void ABattleSimulationManager::ExecuteSimulationSequence()
 	CompletePhaseExecution(EBattlePhase::SimulationSequence);
 }
 
+void ABattleSimulationManager::PresentSimulationWorldExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult)
+{
+	if (!IsManagedSimulationRuntime(WorldRuntime) || !PresentationController) return;
+	PresentationController->UpdateExecutionResult(WorldRuntime, Action, TargetingResult);
+}
+
 void ABattleSimulationManager::HandleSimulationWorldExchangeFinished(UBattleSimulationWorldRuntime* WorldRuntime, int32 FinishedExchangeIndex)
 {
 	if (!IsManagedSimulationRuntime(WorldRuntime)) return;
 	if (FinishedExchangeIndex != ExchangeCompletionBarrierIndex) return;
-	if (PresentationController) PresentationController->RemoveExecutionPreview(WorldRuntime);
+	if (PresentationController) PresentationController->RemoveExecutionResult(WorldRuntime);
 
 	FinishedWorldTypesForCurrentExchange.Add(WorldRuntime->GetWorldType());
 	RefreshFastForwardForPrimarySimulationWorld();
@@ -356,8 +372,9 @@ bool ABattleSimulationManager::CreatePresentationController()
 
 	if (!IsValid(ADWorldRuntime.Get()) || !IsValid(DDWorldRuntime.Get()) || !IsValid(DAWorldRuntime.Get())) return false;
 
+	UTargetingPresentationController* TargetingPresentationController = BattleManager->GetBattleTargetingManager() ? BattleManager->GetBattleTargetingManager()->GetPresentationController() : nullptr;
 	PresentationController = NewObject<UBattleSimulationPresentationController>(this);
-	if (!PresentationController || !PresentationController->Initialize(this))
+	if (!PresentationController || !PresentationController->Initialize(this, TargetingPresentationController))
 	{
 		PresentationController = nullptr;
 		return false;

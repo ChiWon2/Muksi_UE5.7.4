@@ -2,13 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Targeting/Identity/TargetingIdentityProvider.h"
 #include "BattleSimulationCharacter.generated.h"
 
 class UMaterialInterface;
 
 UCLASS()
-class MUKSI_API ABattleSimulationCharacter : public ABattleCharacterBase, public ITargetingIdentityProvider
+class MUKSI_API ABattleSimulationCharacter : public ABattleCharacterBase
 {
 	GENERATED_BODY()
 
@@ -20,7 +19,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleCharacterBase* GetSourceCharacter() const { return SourceCharacter; }
 
-	virtual FName GetTargetingCharacterKey_Implementation() const override;
+	virtual FName GetTargetingCharacterKey() const override;
 
 private:
 	void ResetActiveState();

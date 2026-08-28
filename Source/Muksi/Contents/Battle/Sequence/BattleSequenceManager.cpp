@@ -9,9 +9,9 @@
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Sequence/Runtime/BattleActionExecutor.h"
+#include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
-#include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 
 ABattleSequenceManager::ABattleSequenceManager() { PrimaryActorTick.bCanEverTick = false; }
 void ABattleSequenceManager::BeginPlay() { Super::BeginPlay(); }
@@ -37,10 +37,8 @@ bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InManager, UBa
 	BattleRuntimeContext = InContext;
 	BattleGridManager = InGrid;
 	BattleManager->PhaseExecutionRequestedDelegate.AddUniqueDynamic(this, &ABattleSequenceManager::HandlePhaseExecutionRequested);
-	TargetingPresentationController = NewObject<UTargetingPresentationController>(this);
 	ActionExecutor = NewObject<UBattleActionExecutor>(this);
-	if (!TargetingPresentationController || !ActionExecutor) return false;
-	TargetingPresentationController->Initialize(BattleGridManager);
+	if (!ActionExecutor) return false;
 	if (!ActionExecutor->Initialize(BattleManager, BattleGridManager, EBattleSimulationWorldType::PlayerActualEnemyActual)) return false;
 	ActionExecutor->FinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandleActionExecutorFinished);
 	ActionExecutor->EntryStartedDelegate.AddUObject(this, &ABattleSequenceManager::HandleActionExecutorEntryStarted);
@@ -156,9 +154,9 @@ void ABattleSequenceManager::StartCurrentBattleActionExecution()
 	if (!bStarted) HandleCurrentBattleActionFinished();
 }
 
-void ABattleSequenceManager::HandleActionExecutorEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 Index, const FResolvedTargeting& Targeting)
+void ABattleSequenceManager::HandleActionExecutorEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 Index, const FTargetingResult& Targeting)
 {
-	if (bBattleActionSequenceRunning) RefreshBattleActionTargetingPresentation(Action, Targeting);
+	if (bBattleActionSequenceRunning) PresentBattleActionTargetingResult(Action, Targeting);
 	OnExecutionEntryStarted.Broadcast(Action, Entry, Index, Targeting);
 }
 
@@ -213,45 +211,29 @@ void ABattleSequenceManager::ResetBattleActionSequence()
 	bWaitingForDeceiveCardReveal = false;
 }
 
-void ABattleSequenceManager::RefreshBattleActionTargetingPresentation(const FBattleAction& Action, const FResolvedTargeting& ExecutionTargeting)
+void ABattleSequenceManager::PresentBattleActionTargetingResult(const FBattleAction& Action, const FTargetingResult& TargetingResult)
 {
 	ClearBattleActionPresentation();
-	if (!IsValid(BattleGridManager) || !IsValid(Action.Card.Get())) return;
-	TArray<FHexOffsetCoord> IndicatorCoords;
+	if (!IsValid(BattleGridManager) || !IsValid(Action.Card.Get()) || !IsValid(BattleManager.Get())) return;
+
+	ABattleTargetingManager* TargetingManager = BattleManager->GetBattleTargetingManager();
+	UTargetingPresentationController* PresentationController = TargetingManager ? TargetingManager->GetPresentationController() : nullptr;
+	if (!PresentationController) return;
+
 	for (int32 StepIndex = 0; StepIndex < Action.Card->TargetingData.Steps.Num(); ++StepIndex)
 	{
 		const FTargetingStepCardData* StepData = Action.Card->TargetingData.GetStep(StepIndex);
-		if (!StepData) continue;
-		FResolvedTargeting StepTargeting;
-		if (StepIndex == Action.Card->TargetingData.Steps.Num() - 1) StepTargeting = ExecutionTargeting;
-		else if (!FBattleTargetResolver::ResolveActionThroughStep(Action, BattleGridManager, EBattleSimulationWorldType::PlayerActualEnemyActual, StepIndex, StepTargeting)) continue;
-		const FTargetingPhasePresentationSettings& Settings = StepData->AdvancedSettings.Presentation.AttackSequencePhase;
-		if (Settings.bShowIndicator)
-		{
-			TArray<FHexOffsetCoord> Coords = StepTargeting.AffectedCoords;
-			if (Coords.IsEmpty())
-			{
-				if (const FTargetingStepResult* Result = StepTargeting.GetStep(StepIndex))
-				{
-					if (Result->HasSelectedCoord()) Coords.Add(Result->SelectedCoord);
-				}
-			}
-			for (const FHexOffsetCoord& Coord : Coords) IndicatorCoords.AddUnique(Coord);
-		}
-		if ((Settings.bShowSelectionPreview || Settings.bShowPathPreview || Settings.bShowAreaPreview) && TargetingPresentationController)
-		{
-			TargetingPresentationController->AddResolvedStepPreview(Action.Attacker, EBattleSimulationWorldType::PlayerActualEnemyActual, Action.Card->TargetingData, StepTargeting, StepIndex, Settings, !Action.bPlayerAction);
-		}
+		if (!StepData || !TargetingResult.GetStep(StepIndex)) continue;
+		const FTargetingPhasePresentationSettings& Settings = StepData->Presentation.Phases.ActualBattle;
+		if (!Settings.HasAnyPresentation()) continue;
+		PresentationController->AddTargetingResultPreview(Action.Attacker, EBattleSimulationWorldType::PlayerActualEnemyActual, Action.Card->TargetingData, TargetingResult, StepIndex, Settings, !Action.bPlayerAction);
 	}
-	if (!IndicatorCoords.IsEmpty()) BattleGridManager->SetExchangeIndicator(Action.Card->CardTypeInfo, IndicatorCoords, !Action.bPlayerAction);
 }
 
 void ABattleSequenceManager::ClearBattleActionPresentation()
 {
-	if (TargetingPresentationController) TargetingPresentationController->ClearExecutionPreview();
-	if (BattleGridManager)
-	{
-		BattleGridManager->AllClearGridHovered();
-		BattleGridManager->AllClearExchangeIndicator();
-	}
+	if (!IsValid(BattleManager.Get())) return;
+	ABattleTargetingManager* TargetingManager = BattleManager->GetBattleTargetingManager();
+	UTargetingPresentationController* PresentationController = TargetingManager ? TargetingManager->GetPresentationController() : nullptr;
+	if (PresentationController) PresentationController->ClearTargetingResultPreviews();
 }

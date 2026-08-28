@@ -20,7 +20,9 @@ class UMuksiBattleMovementComponent;
 class UMuksiStatusEffectComponent;
 class UCharacterPassiveComponent;
 class UBattleStatComponent;
+class UBattleCardComponent;
 
+//여기 적혀있는거 고쳐야 함
 USTRUCT(BlueprintType)
 struct MUKSI_API FCharacterData
 {
@@ -34,8 +36,6 @@ struct MUKSI_API FCharacterData
 		CharacterSpeed = InCharacterData->CharacterSpeed;
 		DefenseValue = InCharacterData->DefenseValue;
 		
-		AllBattleDeck = InCharacterData->CharacterDeck;
-		BattleDeck = AllBattleDeck;
 		CharacterPassives = InCharacterData->CharacterPassiveClass;
 	}
 	
@@ -61,12 +61,6 @@ struct MUKSI_API FCharacterData
 
 	UPROPERTY(Transient)
 	float CharacterSpeed = 1.0f;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> BattleDeck;
-	
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMuksiBattleCardDataAsset>> AllBattleDeck;
 	
 	UPROPERTY(Transient)
 	TArray<TSubclassOf<UCharacterPassive>> CharacterPassives;
@@ -94,25 +88,10 @@ public:
 	UMuksiCharacterDataAsset* GetCharacterData()const{return CharacterData.CharacterAsset;};
 	
 	FHexOffsetCoord GetCharacterCoord()const{return CharacterData.CurrentPosition;};
+	virtual FName GetTargetingCharacterKey() const { return GetFName(); }
 	void SetCharacterPosition(FHexOffsetCoord NewPosition){CharacterData.CurrentPosition = NewPosition;};
 	
-	TArray<UMuksiBattleCardDataAsset*> GetCurrentBattleDeck()const{return CharacterData.BattleDeck;};
-	void RemoveBattleCard(UMuksiBattleCardDataAsset* BattleCardData);
-	
 	int32 GetCurrentBattleCardCount()const;
-	
-	TArray<UMuksiBattleCardDataAsset*> GetAllBattleDeck()const{return CharacterData.AllBattleDeck;};
-	void InitBattleDeck(){ CharacterData.BattleDeck = CharacterData.AllBattleDeck; }
-	bool RefillBattleDeckIfEmpty()
-	{
-		if (!CharacterData.BattleDeck.IsEmpty())
-		{
-			return false;
-		}
-
-		CharacterData.BattleDeck = CharacterData.AllBattleDeck;
-		return !CharacterData.BattleDeck.IsEmpty();
-	}
 	
 	TArray<TObjectPtr<UCharacterPassive>> GetCharacterPassives();
 
@@ -156,7 +135,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
 	UCharacterCameraComponent* GetAttackCameraComponent()const{ return AttackCameraFocusComponent;}
-
+	
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|BattleCard")
+	UBattleCardComponent* GetBattleCardComponent(){ return BattleCardComponent; }
 
 
 	virtual void OnSelected() override;
@@ -199,5 +180,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Passive", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCharacterPassiveComponent> PassiveComponent;
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UBattleCardComponent> BattleCardComponent;
 };

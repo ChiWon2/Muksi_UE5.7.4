@@ -30,7 +30,7 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 	}
 
 	TArray<ABattleCharacterBase*> TargetCharacters;
-	ResolveTargets(Context, *DamageData, TargetCharacters);
+	CollectTargets(Context, *DamageData, TargetCharacters);
 
 	TArray<FPendingHitResponse> PendingHitResponses;
 
@@ -63,7 +63,7 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 	CompleteDamageExecution();
 }
 
-void UDamageExecution::ResolveTargets(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, TArray<ABattleCharacterBase*>& OutTargets) const
+void UDamageExecution::CollectTargets(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, TArray<ABattleCharacterBase*>& OutTargets) const
 {
 	OutTargets.Reset();
 
@@ -75,7 +75,7 @@ void UDamageExecution::ResolveTargets(const FBattleExecutionContext& Context, co
 	case EDamageExecutionTargetPolicy::Attacker:
 		if (Context.Attacker) OutTargets.Add(Context.Attacker);
 		return;
-	case EDamageExecutionTargetPolicy::ResolvedTargeting:
+	case EDamageExecutionTargetPolicy::TargetingResult:
 	default:
 		break;
 	}
@@ -85,13 +85,14 @@ void UDamageExecution::ResolveTargets(const FBattleExecutionContext& Context, co
 		return;
 	}
 
-	for (const FHexOffsetCoord& AffectedCoord : Context.ResolvedTargeting.AffectedCoords)
-	{
-		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, AffectedCoord);
-		ABattleCharacterBase* TargetCharacter = Cell ? Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()) : nullptr;
+	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
+	if (!StepResult) return;
 
+	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
+	{
 		if (TargetCharacter && TargetCharacter != Context.Attacker) OutTargets.AddUnique(TargetCharacter);
 	}
+
 }
 
 void UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter) const

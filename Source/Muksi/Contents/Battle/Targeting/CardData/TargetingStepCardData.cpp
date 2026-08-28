@@ -1,85 +1,128 @@
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
+#include "Muksi/Contents/Battle/Targeting/Preview/Base/AreaPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/PathPreviewVisualizer.h"
+#include "Muksi/Contents/Battle/Targeting/Preview/Base/SelectionPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
 
 #if WITH_EDITOR
 
 void FTargetingStepCardData::SyncDataTypes()
 {
-	SyncSelectionDataType();
-	SyncPathPreviewDataType();
-	SyncPatternDataType();
+    SyncSelectionRuleDataType();
+    SyncSelectionVisualizerDataType();
+    SyncPathVisualizerDataType();
+    SyncAffectedAreaVisualizerDataType();
+    SyncPatternDataType();
 }
 
-void FTargetingStepCardData::SyncSelectionDataType()
+void FTargetingStepCardData::SyncSelectionRuleDataType()
 {
-	if (!Selection.SelectionClass)
-	{
-		Selection.SelectionData.Reset();
-		return;
-	}
+    if (!Selection.RuleClass)
+    {
+        Selection.RuleData.Reset();
+        return;
+    }
 
-	const UTargetSelection* SelectionCDO = Selection.SelectionClass.GetDefaultObject();
-	const UScriptStruct* ExpectedDataStruct = SelectionCDO ? SelectionCDO->GetSelectionDataStruct() : nullptr;
+    const UTargetSelection* SelectionCDO = Selection.RuleClass.GetDefaultObject();
+    const UScriptStruct* ExpectedDataStruct = SelectionCDO ? SelectionCDO->GetRuleDataStruct() : nullptr;
 
-	if (!ExpectedDataStruct)
-	{
-		Selection.SelectionData.Reset();
-		return;
-	}
+    if (!ExpectedDataStruct)
+    {
+        Selection.RuleData.Reset();
+        return;
+    }
 
-	if (Selection.SelectionData.GetScriptStruct() != ExpectedDataStruct)
-	{
-		Selection.SelectionData.InitializeAs(ExpectedDataStruct);
-	}
+    if (Selection.RuleData.GetScriptStruct() != ExpectedDataStruct)
+        Selection.RuleData.InitializeAs(ExpectedDataStruct);
 }
 
-void FTargetingStepCardData::SyncPathPreviewDataType()
+void FTargetingStepCardData::SyncSelectionVisualizerDataType()
 {
-	if (!Preview.PathPreviewClass)
-	{
-		Preview.PathPreviewData.Reset();
-		return;
-	}
+    FTargetingSelectionVisualizerSettings& Settings = Presentation.Visualizers.Selection;
+    if (!Settings.Visualizer)
+    {
+        Settings.Data.Reset();
+        return;
+    }
 
-	const UPathPreviewVisualizer* PathPreviewCDO = Preview.PathPreviewClass.GetDefaultObject();
-	const UScriptStruct* ExpectedDataStruct = PathPreviewCDO ? PathPreviewCDO->GetPathPreviewDataStruct() : nullptr;
+    const USelectionPreviewVisualizer* VisualizerCDO = Settings.Visualizer.GetDefaultObject();
+    const UScriptStruct* ExpectedDataStruct = VisualizerCDO ? VisualizerCDO->GetSelectionPreviewDataStruct() : nullptr;
 
-	if (!ExpectedDataStruct)
-	{
-		Preview.PathPreviewData.Reset();
-		return;
-	}
+    if (!ExpectedDataStruct)
+    {
+        Settings.Data.Reset();
+        return;
+    }
 
-	if (Preview.PathPreviewData.GetScriptStruct() != ExpectedDataStruct)
-	{
-		Preview.PathPreviewData.InitializeAs(ExpectedDataStruct);
-	}
+    if (Settings.Data.GetScriptStruct() != ExpectedDataStruct)
+        Settings.Data.InitializeAs(ExpectedDataStruct);
+}
+
+void FTargetingStepCardData::SyncPathVisualizerDataType()
+{
+    FTargetingPathVisualizerSettings& Settings = Presentation.Visualizers.Path;
+    if (!Settings.Visualizer)
+    {
+        Settings.Data.Reset();
+        return;
+    }
+
+    const UPathPreviewVisualizer* VisualizerCDO = Settings.Visualizer.GetDefaultObject();
+    const UScriptStruct* ExpectedDataStruct = VisualizerCDO ? VisualizerCDO->GetPathPreviewDataStruct() : nullptr;
+
+    if (!ExpectedDataStruct)
+    {
+        Settings.Data.Reset();
+        return;
+    }
+
+    if (Settings.Data.GetScriptStruct() != ExpectedDataStruct)
+        Settings.Data.InitializeAs(ExpectedDataStruct);
+}
+
+void FTargetingStepCardData::SyncAffectedAreaVisualizerDataType()
+{
+    FTargetingAffectedAreaVisualizerSettings& Settings = Presentation.Visualizers.AffectedArea;
+    if (!Settings.Visualizer)
+    {
+        Settings.Data.Reset();
+        return;
+    }
+
+    const UAreaPreviewVisualizer* VisualizerCDO = Settings.Visualizer.GetDefaultObject();
+    const UScriptStruct* ExpectedDataStruct = VisualizerCDO ? VisualizerCDO->GetAreaPreviewDataStruct() : nullptr;
+
+    if (!ExpectedDataStruct)
+    {
+        Settings.Data.Reset();
+        return;
+    }
+
+    if (Settings.Data.GetScriptStruct() != ExpectedDataStruct)
+        Settings.Data.InitializeAs(ExpectedDataStruct);
 }
 
 void FTargetingStepCardData::SyncPatternDataType()
 {
-	if (!Pattern.PatternClass)
-	{
-		Pattern.PatternData.Reset();
-		return;
-	}
+    if (!Pattern.PatternClass)
+    {
+        Pattern.PatternData.Reset();
+        return;
+    }
 
-	const UAreaPattern* PatternCDO = Pattern.PatternClass.GetDefaultObject();
-	const UScriptStruct* ExpectedDataStruct = PatternCDO ? PatternCDO->GetPatternDataStruct() : nullptr;
+    const UAreaPattern* PatternCDO = Pattern.PatternClass.GetDefaultObject();
+    const UScriptStruct* ExpectedDataStruct = PatternCDO ? PatternCDO->GetPatternDataStruct() : nullptr;
 
-	if (!ExpectedDataStruct)
-	{
-		Pattern.PatternData.Reset();
-		return;
-	}
+    if (!ExpectedDataStruct)
+    {
+        Pattern.PatternData.Reset();
+        return;
+    }
 
-	if (Pattern.PatternData.GetScriptStruct() != ExpectedDataStruct)
-	{
-		Pattern.PatternData.InitializeAs(ExpectedDataStruct);
-	}
+    if (Pattern.PatternData.GetScriptStruct() != ExpectedDataStruct)
+        Pattern.PatternData.InitializeAs(ExpectedDataStruct);
 }
 
 #endif

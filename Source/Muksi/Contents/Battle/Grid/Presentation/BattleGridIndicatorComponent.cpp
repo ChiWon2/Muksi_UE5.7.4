@@ -12,7 +12,7 @@ void UBattleGridIndicatorComponent::Initialize(ABattleGridManager* InGridManager
 	GridManager = InGridManager;
 }
 
-ABattleGridManager* UBattleGridIndicatorComponent::ResolveGridManager()
+ABattleGridManager* UBattleGridIndicatorComponent::GetGridManager()
 {
 	if (!IsValid(GridManager))
 	{
@@ -21,14 +21,14 @@ ABattleGridManager* UBattleGridIndicatorComponent::ResolveGridManager()
 	return GridManager;
 }
 
-void UBattleGridIndicatorComponent::SetHovered(const TArray<FHexOffsetCoord>& Coords)
+void UBattleGridIndicatorComponent::SetTargetIndicators(const TArray<FHexOffsetCoord>& Coords)
 {
-	if (!ResolveGridManager())
+	if (!GetGridManager())
 	{
 		return;
 	}
 
-	ClearHovered();
+	ClearTargetIndicators();
 
 	for (const FHexOffsetCoord& Coord : Coords)
 	{
@@ -39,19 +39,19 @@ void UBattleGridIndicatorComponent::SetHovered(const TArray<FHexOffsetCoord>& Co
 			continue;
 		}
 
-		HoveredCoords.AddUnique(Coord);
+		TargetIndicatorCoords.AddUnique(Coord);
 		Tile->SetTargetIndicatorVisible(true);
 	}
 }
 
-void UBattleGridIndicatorComponent::ClearHovered()
+void UBattleGridIndicatorComponent::ClearTargetIndicators()
 {
-	if (!ResolveGridManager())
+	if (!GetGridManager())
 	{
 		return;
 	}
 
-	for (const FHexOffsetCoord& Coord : HoveredCoords)
+	for (const FHexOffsetCoord& Coord : TargetIndicatorCoords)
 	{
 		ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
 
@@ -61,12 +61,12 @@ void UBattleGridIndicatorComponent::ClearHovered()
 		}
 	}
 
-	HoveredCoords.Empty();
+	TargetIndicatorCoords.Empty();
 }
 
-void UBattleGridIndicatorComponent::ClearAllHovered()
+void UBattleGridIndicatorComponent::ClearAllTargetIndicators()
 {
-	if (!ResolveGridManager())
+	if (!GetGridManager())
 	{
 		return;
 	}
@@ -79,39 +79,5 @@ void UBattleGridIndicatorComponent::ClearAllHovered()
 		}
 	}
 
-	HoveredCoords.Empty();
-}
-
-void UBattleGridIndicatorComponent::SetExchange(const FBattleCardTypeInfoData& CardTypeInfo, const TArray<FHexOffsetCoord>& Coords, bool bEnemy)
-{
-	if (!ResolveGridManager())
-	{
-		return;
-	}
-
-	for (const FHexOffsetCoord& Coord : Coords)
-	{
-		ABattleGridTile* Tile = GridManager->GetTileActorByCoord(Coord);
-
-		if (Tile)
-		{
-			Tile->SetExchangeIndicator(CardTypeInfo, bEnemy);
-		}
-	}
-}
-
-void UBattleGridIndicatorComponent::ClearExchange()
-{
-	if (!ResolveGridManager())
-	{
-		return;
-	}
-
-	for (const FBattleGridCell& Cell : GridManager->GetGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual))
-	{
-		if (Cell.TileActor)
-		{
-			Cell.TileActor->ClearExchangeIndicator();
-		}
-	}
+	TargetIndicatorCoords.Empty();
 }

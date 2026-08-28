@@ -2,92 +2,74 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
-#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelectionData.h"
 
 void UCircleRangePreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewActor)
 {
-	Super::Initialize(InPreviewActor);
+    Super::Initialize(InPreviewActor);
 
-	const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
+    const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
 
-	if (!Settings)
-	{
-		return;
-	}
+    if (!Settings)
+        return;
 
-	CirclePreviewMesh = Settings->CirclePreviewMesh.LoadSynchronous();
-	RangePreviewMaterial = Settings->RangePreviewMaterial.LoadSynchronous();
-	PreviewHeightOffset = Settings->PreviewHeightOffset;
-	PreviewMeshBaseSize = FMath::Max(KINDA_SMALL_NUMBER, Settings->PreviewMeshBaseSize);
+    SelectionRangePreviewMesh = Settings->SelectionRangePreviewMesh.LoadSynchronous();
+    SelectionRangePreviewMaterial = Settings->SelectionRangePreviewMaterial.LoadSynchronous();
+    PreviewHeightOffset = Settings->PreviewHeightOffset;
+    PreviewMeshBaseSize = FMath::Max(KINDA_SMALL_NUMBER, Settings->PreviewMeshBaseSize);
 }
 
 void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Context)
 {
-	if (!HasPreviewActor() || !Context.IsValid())
-	{
-		ClearPreview();
-		return;
-	}
+    if (!HasPreviewActor() || !Context.IsValid() || !Context.HasOriginCoord() || !SelectionRangePreviewMesh)
+    {
+        ClearPreview();
+        return;
+    }
 
-	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
-	UStaticMeshComponent* PreviewMeshComponent = PreviewActorInstance->GetSelectionPreviewMesh();
+    UStaticMeshComponent* PreviewMesh = GetPreviewActor()->GetSelectionPreviewMesh();
 
-	if (!PreviewMeshComponent)
-	{
-		ClearPreview();
-		return;
-	}
+    if (!PreviewMesh)
+        return;
 
-	PreviewMeshComponent->SetVisibility(false);
+    const float WorldRadius = CalculateWorldRadius(Context);
 
-	if (!Context.StepResult->HasOriginCoord() || !CirclePreviewMesh)
-	{
-		return;
-	}
+    if (WorldRadius <= KINDA_SMALL_NUMBER)
+    {
+        ClearPreview();
+        return;
+    }
 
-	const float WorldRadius = CalculateWorldRadius(Context);
+    FVector OriginLocation = FVector::ZeroVector;
 
-	if (WorldRadius <= KINDA_SMALL_NUMBER)
-	{
-		return;
-	}
+    if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), OriginLocation))
+    {
+        ClearPreview();
+        return;
+    }
 
-	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
-	FVector PresentationOriginLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.StepResult->OriginCoord, PresentationOriginLocation)) return;
-	const FVector PreviewLocation = PresentationOriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
+    const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
+    PreviewMesh->SetStaticMesh(SelectionRangePreviewMesh);
 
-	PreviewMeshComponent->SetStaticMesh(CirclePreviewMesh);
+    if (SelectionRangePreviewMaterial)
+        PreviewMesh->SetMaterial(0, SelectionRangePreviewMaterial);
 
-	if (RangePreviewMaterial)
-	{
-		PreviewMeshComponent->SetMaterial(0, RangePreviewMaterial);
-	}
-
-	PreviewMeshComponent->SetWorldLocation(PreviewLocation);
-	PreviewMeshComponent->SetWorldRotation(FRotator::ZeroRotator);
-	PreviewMeshComponent->SetWorldScale3D(FVector(PreviewScale, PreviewScale, 1.0f));
-	PreviewMeshComponent->SetVisibility(true);
+    PreviewMesh->SetWorldLocation(OriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset));
+    PreviewMesh->SetWorldRotation(FRotator::ZeroRotator);
+    PreviewMesh->SetWorldScale3D(FVector(PreviewScale, PreviewScale, 1.0f));
+    PreviewMesh->SetVisibility(true);
 }
 
 float UCircleRangePreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context) const
 {
-	if (!Context.GridManager || !Context.StepData)
-	{
-		return 0.0f;
-	}
+    const FTileSelectionData* Data = Context.StepData->Selection.RuleData.GetPtr<FTileSelectionData>();
 
-	const FTileSelectionData* Data = Context.StepData->Selection.SelectionData.GetPtr<FTileSelectionData>();
+    if (!Data)
+        return 0.0f;
 
-	if (!Data)
-	{
-		return 0.0f;
-	}
-
-	return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(0, Data->SelectionRange), true);
+    return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(0, Data->SelectionRange), true);
 }

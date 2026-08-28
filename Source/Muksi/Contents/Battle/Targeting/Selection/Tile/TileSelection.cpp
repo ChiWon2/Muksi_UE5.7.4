@@ -1,17 +1,15 @@
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelection.h"
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelectionData.h"
 
 void UTileSelection::EvaluateCandidate(
 	ABattleGridManager* GridManager,
-	EBattleSimulationWorldType,
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord& CandidateCoord,
 	const FInstancedStruct& SelectionData,
-	FTargetingStepResult& OutStepResult) const
+	FSelectionStepResult& OutStepResult) const
 {
 	InitializeStepResult(OriginCoord, OutStepResult);
 
@@ -33,18 +31,40 @@ void UTileSelection::EvaluateCandidate(
 		return;
 	}
 
-	const ABattleGridTile* SelectedTile = GridManager->GetTileActorByCoord(CandidateCoord);
-
-	if (!SelectedTile)
-	{
-		return;
-	}
-
 	OutStepResult.bValid = true;
 	OutStepResult.SelectedCoord = CandidateCoord;
 }
 
-const UScriptStruct* UTileSelection::GetSelectionDataStruct() const
+void UTileSelection::CollectCandidateCoords(
+    ABattleGridManager* GridManager,
+    const FHexOffsetCoord& OriginCoord,
+    const FInstancedStruct& SelectionData,
+    TArray<FHexOffsetCoord>& OutCoords) const
+{
+    OutCoords.Reset();
+
+    TARGET_SELECTION_VALIDATE_COMMON_OR_RETURN(GridManager, OriginCoord, SelectionData);
+
+    const FTileSelectionData* Data = SelectionData.GetPtr<FTileSelectionData>();
+
+    if (!Data)
+        return;
+
+    const int32 SelectionRange = FMath::Max(0, Data->SelectionRange);
+
+    for (int32 X = 0; X < GridManager->GetGridWidth(); ++X)
+    {
+        for (int32 Y = 0; Y < GridManager->GetGridHeight(); ++Y)
+        {
+            const FHexOffsetCoord CandidateCoord(X, Y);
+
+            if (FHexGridMath::GetHexDistance(OriginCoord, CandidateCoord) <= SelectionRange)
+                OutCoords.Add(CandidateCoord);
+        }
+    }
+}
+
+const UScriptStruct* UTileSelection::GetRuleDataStruct() const
 {
 	return FTileSelectionData::StaticStruct();
 }

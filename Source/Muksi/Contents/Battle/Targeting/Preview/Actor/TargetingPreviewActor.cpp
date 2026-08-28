@@ -1,13 +1,11 @@
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 
-#include "Components/InstancedStaticMeshComponent.h"
 #include "Components/MeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 ATargetingPreviewActor::ATargetingPreviewActor()
@@ -42,15 +40,6 @@ ATargetingPreviewActor::ATargetingPreviewActor()
 	ArrowPreviewMesh->SetCanEverAffectNavigation(false);
 	ArrowPreviewMesh->SetVisibility(false);
 
-	GridPreviewMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("GridPreviewMesh"));
-	GridPreviewMesh->SetMobility(EComponentMobility::Movable);
-	GridPreviewMesh->SetupAttachment(SceneRoot);
-	GridPreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GridPreviewMesh->SetCastShadow(false);
-	GridPreviewMesh->SetCanEverAffectNavigation(false);
-	GridPreviewMesh->SetTranslucentSortPriority(100);
-	GridPreviewMesh->SetVisibility(false);
-
 	PathSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PathSpline"));
 	PathSpline->SetMobility(EComponentMobility::Movable);
 	PathSpline->SetupAttachment(SceneRoot);
@@ -67,7 +56,6 @@ void ATargetingPreviewActor::Initialize(ABattleGridManager* InGridManager, EBatt
 {
 	GridManager = InGridManager;
 	GridWorldType = InGridWorldType;
-	LoadPreviewAssets();
 	ClearAllPreview();
 	ApplyPreviewStyle();
 }
@@ -86,7 +74,6 @@ void ATargetingPreviewActor::ApplyPreviewStyle()
 	Meshes.Add(SelectionPreviewMesh);
 	Meshes.Add(AreaPreviewMesh);
 	Meshes.Add(ArrowPreviewMesh);
-	Meshes.Add(GridPreviewMesh);
 	for (UMeshComponent* Mesh : Meshes)
 	{
 		if (!Mesh) continue;
@@ -109,67 +96,27 @@ void ATargetingPreviewActor::ApplyPreviewStyle()
 	}
 }
 
-void ATargetingPreviewActor::SetSelectionGridCoords(const TArray<FHexOffsetCoord>& InCoords)
-{
-	SelectionGridCoords = InCoords;
-	RebuildGridPreview();
-}
-
-void ATargetingPreviewActor::SetPathGridCoords(const TArray<FHexOffsetCoord>& InCoords)
-{
-	PathGridCoords = InCoords;
-	RebuildGridPreview();
-}
-
-void ATargetingPreviewActor::SetAreaGridCoords(const TArray<FHexOffsetCoord>& InCoords)
-{
-	AreaGridCoords = InCoords;
-	RebuildGridPreview();
-}
-
-void ATargetingPreviewActor::SetGridPreviewMode(ETargetingGridPreviewMode InGridPreviewMode)
-{
-	GridPreviewMode = InGridPreviewMode;
-	RebuildGridPreview();
-}
-
-void ATargetingPreviewActor::ClearSelectionPreview()
-{
-	SelectionGridCoords.Empty();
-	SelectionPreviewMesh->SetVisibility(false);
-	RebuildGridPreview();
-}
-
 void ATargetingPreviewActor::ClearPathPreview()
 {
-	PathGridCoords.Empty();
 	ArrowPreviewMesh->SetVisibility(false);
 	PathSpline->ClearSplinePoints(false);
 	PathSpline->UpdateSpline();
 	ClearPathMeshComponents();
-	RebuildGridPreview();
 }
 
 void ATargetingPreviewActor::ClearAreaPreview()
 {
-	AreaGridCoords.Empty();
 	AreaPreviewMesh->SetVisibility(false);
-	RebuildGridPreview();
 }
 
 void ATargetingPreviewActor::ClearAllPreview()
 {
-	SelectionGridCoords.Empty();
-	PathGridCoords.Empty();
-	AreaGridCoords.Empty();
 	SelectionPreviewMesh->SetVisibility(false);
 	AreaPreviewMesh->SetVisibility(false);
 	ArrowPreviewMesh->SetVisibility(false);
 	PathSpline->ClearSplinePoints(false);
 	PathSpline->UpdateSpline();
 	ClearPathMeshComponents();
-	GridPreviewMesh->ClearInstances();
-	GridPreviewMesh->SetVisibility(false);
 }
 
 USplineMeshComponent* ATargetingPreviewActor::CreatePathMeshComponent()
@@ -205,83 +152,4 @@ void ATargetingPreviewActor::ClearPathMeshComponents()
 	}
 
 	PathMeshComponents.Empty();
-}
-
-void ATargetingPreviewActor::LoadPreviewAssets()
-{
-	const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
-
-	if (!Settings)
-	{
-		return;
-	}
-
-	PreviewHeightOffset = Settings->PreviewHeightOffset;
-	OccupiedGridPreviewScale = FMath::Max(1.0f, Settings->OccupiedGridPreviewScale);
-
-	if (UStaticMesh* GridMesh = Settings->GridPreviewMesh.LoadSynchronous())
-	{
-		GridPreviewMesh->SetStaticMesh(GridMesh);
-	}
-
-	if (UMaterialInterface* GridMaterial = Settings->GridPreviewMaterial.LoadSynchronous())
-	{
-		GridPreviewMesh->SetMaterial(0, GridMaterial);
-	}
-}
-
-void ATargetingPreviewActor::RebuildGridPreview()
-{
-	GridPreviewMesh->ClearInstances();
-	GridPreviewMesh->SetVisibility(false);
-
-	if (!IsValid(GridManager) || !GridPreviewMesh->GetStaticMesh())
-	{
-		return;
-	}
-
-	TSet<FHexOffsetCoord> PreviewCoords;
-	AddGridCoords(PreviewCoords, SelectionGridCoords);
-
-	if (GridPreviewMode == ETargetingGridPreviewMode::PathTiles || GridPreviewMode == ETargetingGridPreviewMode::AffectedAndPathTiles)
-	{
-		AddGridCoords(PreviewCoords, PathGridCoords);
-	}
-
-	if (GridPreviewMode == ETargetingGridPreviewMode::AffectedTiles || GridPreviewMode == ETargetingGridPreviewMode::AffectedAndPathTiles)
-	{
-		AddGridCoords(PreviewCoords, AreaGridCoords);
-	}
-
-	for (const FHexOffsetCoord& Coord : PreviewCoords)
-	{
-		const FBattleGridCell* Cell = GridManager->GetCellByCoord(GridWorldType, Coord);
-
-		if (!Cell)
-		{
-			continue;
-		}
-
-		const bool bOccupied = Cell->bOccupied && IsValid(Cell->OccupyingActor.Get());
-		const float PreviewScale = bOccupied ? OccupiedGridPreviewScale : 1.0f;
-		FVector PresentationLocation = FVector::ZeroVector;
-		if (!GridManager->GetPresentationWorldLocationByCoord(Coord, PresentationLocation)) continue;
-		const FVector InstanceLocation = PresentationLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
-		const FTransform InstanceTransform(FRotator::ZeroRotator, InstanceLocation, FVector(PreviewScale, PreviewScale, 1.0f));
-		GridPreviewMesh->AddInstance(InstanceTransform, true);
-	}
-
-	GridPreviewMesh->MarkRenderStateDirty();
-	GridPreviewMesh->SetVisibility(GridPreviewMesh->GetInstanceCount() > 0);
-}
-
-void ATargetingPreviewActor::AddGridCoords(TSet<FHexOffsetCoord>& InOutCoords, const TArray<FHexOffsetCoord>& InCoords) const
-{
-	for (const FHexOffsetCoord& Coord : InCoords)
-	{
-		if (IsValid(GridManager) && GridManager->IsValidCoord(Coord))
-		{
-			InOutCoords.Add(Coord);
-		}
-	}
 }

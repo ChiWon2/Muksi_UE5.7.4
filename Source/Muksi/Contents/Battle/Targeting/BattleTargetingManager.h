@@ -4,24 +4,20 @@
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
-#include "Muksi/Contents/Battle/Targeting/Types/TargetingConfirmResult.h"
 #include "BattleTargetingManager.generated.h"
 
 class ABattleCharacterBase;
-class ABattleGridManager;
 class ABattleManager;
-class ABattleSimulationManager;
-class UBattleRuntimeContext;
 class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
 class UBattleTargetingSession;
 class UMuksiBattleCardDataAsset;
 class UTargetingPresentationController;
 
-struct FBattleAction;
 struct FHitResult;
-struct FResolvedTargeting;
+struct FTargetingResult;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnemyCardSelectionReady, UMuksiBattleCardDataAsset*, int32);
 
@@ -36,7 +32,7 @@ class MUKSI_API ABattleTargetingManager : public AActor
 
 public:
     ABattleTargetingManager();
-    bool InitializeBattleFlow(ABattleManager* InBattleManager, UBattleRuntimeContext* InBattleRuntimeContext, ABattleGridManager* InBattleGridManager, ABattleSimulationManager* InBattleSimulationManager);
+    bool InitializeBattleFlow(ABattleManager* InBattleManager);
 
     // Widget command API. UI는 선택 요청과 UI 완료만 전달한다.
     bool RequestPlayerCardSelection(UMuksiBattleCardDataAsset* CardData);
@@ -47,13 +43,13 @@ public:
     // PlayerMode command API. 입력 상태 판단과 Confirm/Undo/Cancel 규칙은 Manager가 소유한다.
     bool RequestConfirmPlayerTargeting();
     bool RequestUndoOrCancelPlayerTargeting();
-    void RequestCancelPlayerTargeting();
+    void CancelPlayerTargeting();
     bool RequestUpdatePlayerTargeting(const FHitResult& HitResult, bool bHasHitResult);
+    UTargetingPresentationController* GetPresentationController() const { return TargetingPresentationController.Get(); }
 
     FOnEnemyCardSelectionReady OnEnemyCardSelectionReady;
 
 protected:
-    virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
@@ -66,51 +62,32 @@ private:
     UFUNCTION()
     void HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
-    bool ShouldHandlePhaseEntry(EBattlePhase Phase) const;
-
-    void ResetCurrentExchangeTargeting();
-    void ResetPlayerTargetingForCardReselection();
-    void ClearSelectionAndRevealPreviews();
-    bool StartPendingPlayerTargeting();
-    bool BuildPlayerActionForCurrentExchange();
-    bool BuildEnemyActionForCurrentExchange();
+    void ResetPlayerTargeting();
+    void ResetEnemyTargeting();
+    void BuildAndPresentPlayerTargetingPreview();
+    void ClearAllTargeting();
+    bool StartPlayerTargeting();
+    bool CompletePlayerTargeting();
+    bool BuildEnemyAction(FBattleAction& OutAction);
+    bool CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, ABattleCharacterBase* TargetCharacter);
     void CompleteEnemyCardSelectionRequest();
-    void NotifyPlayerCardSelectionFinished();
-    void TryFinishCurrentExchangeTargeting();
+    void TryCompleteTargetingPhase();
 
-    bool UpdatePlayerTargetingCandidate(const FHexOffsetCoord& CandidateCoord);
-    void UpdatePlayerTargetingAim(const FVector& AimWorldLocation, bool bHasAimLocation = true);
-    ETargetingConfirmResult ConfirmPlayerCardTargetingStep();
     bool UndoPlayerCardTargetingStep();
-    void CancelPlayerCardTargeting();
-    bool IsPlayerCardTargeting() const;
-    bool HasActivePlayerTargetingSession() const;
-    bool ResolveGridCoordFromHit(const FHitResult& HitResult, FHexOffsetCoord& OutCoord) const;
+    bool CanProcessPlayerTargetingInput() const;
+    bool GetGridCoordFromHit(const FHitResult& HitResult, FHexOffsetCoord& OutCoord) const;
+    int32 CalculateDirectionToCoord(const UBattleTargetingSession* Session, const FHexOffsetCoord& TargetCoord) const;
 
-    void RefreshExchangeTargetIndicators();
-    void HideEnemyTargetingPreview();
-    void HideEnemyTargetingPreviewAndFinishReveal();
+    void StartCardRevealPresentation(int32 ExchangeIndex);
+    void ShowCardRevealActionPresentation(const FBattleAction& Action);
+    void ClearCardRevealPresentation();
+    void FinishCardRevealPresentation();
 
-    ABattleGridManager* ResolveRuntimeGridManager() const;
-    EBattleSimulationWorldType ResolveRuntimeGridWorldType() const;
-    ABattleCharacterBase* ResolveRuntimeCharacter(const ABattleCharacterBase* SourceCharacter) const;
-    ABattleCharacterBase* GetPlayerTargetingActor() const;
-    ABattleCharacterBase* GetEnemyTargetingActor() const;
-    bool ResolveActionTargetingForCurrentGrid(const FBattleAction& Action, FResolvedTargeting& OutResolvedTargeting) const;
-    bool ResolveActionTargetingThroughStepForCurrentGrid(const FBattleAction& Action, int32 LastStepIndex, FResolvedTargeting& OutResolvedTargeting) const;
+    bool BuildCardRevealTargetingResult(const FBattleAction& Action, FTargetingResult& OutTargetingResult) const;
 
 private:
     UPROPERTY(Transient)
     TObjectPtr<ABattleManager> BattleManager = nullptr;
-
-    UPROPERTY(Transient)
-    TObjectPtr<UBattleRuntimeContext> BattleRuntimeContext = nullptr;
-
-    UPROPERTY(Transient)
-    TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
-
-    UPROPERTY(Transient)
-    TObjectPtr<ABattleSimulationManager> BattleSimulationManager = nullptr;
 
     UPROPERTY(Transient)
     TObjectPtr<UBattleTargetingSession> PlayerTargetingSession = nullptr;
@@ -119,23 +96,27 @@ private:
     TObjectPtr<UBattleTargetingSession> EnemyTargetingSession = nullptr;
 
     UPROPERTY(Transient)
-    TObjectPtr<UMuksiBattleCardDataAsset> PendingPlayerCard = nullptr;
+    TObjectPtr<UMuksiBattleCardDataAsset> PlayerTargetingCard = nullptr;
 
     UPROPERTY(Transient)
     TObjectPtr<UTargetingPresentationController> TargetingPresentationController = nullptr;
 
     UPROPERTY(Transient)
-    TObjectPtr<UBattlePhaseTask> PhaseUITask = nullptr;
+    TObjectPtr<UBattlePhaseTask> CardRevealTask = nullptr;
 
     UPROPERTY(Transient)
-    TObjectPtr<UBattlePhaseTask> PhaseExecutionTask = nullptr;
+    TObjectPtr<UBattlePhaseTask> CardSelectTask = nullptr;
 
-    UPROPERTY(EditAnywhere, Category = "Battle|Targeting|Enemy Preview", meta = (ClampMin = "0.1"))
-    float EnemyPreviewDuration = 1.25f;
+    UPROPERTY(Transient)
+    TObjectPtr<UBattlePhaseTask> TargetingTask = nullptr;
 
-    bool bPlayerCardSelectionFinished = false;
-    bool bEnemyCardSelectionFinished = false;
+    UPROPERTY(EditAnywhere, Category = "Battle|Targeting|Card Reveal", meta = (ClampMin = "0.1"))
+    float CardRevealPreviewDuration = 1.25f;
+
+    bool bEnemyCardPresentationFinished = false;
+
 
     FTimerHandle EnemyCardSelectionTimerHandle;
-    FTimerHandle EnemyPreviewHideTimerHandle;
+    FTimerHandle CardRevealPreviewTimerHandle;
+
 };
