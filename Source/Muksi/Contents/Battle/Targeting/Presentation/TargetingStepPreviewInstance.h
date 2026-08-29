@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
-#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "TargetingStepPreviewInstance.generated.h"
 
 class ABattleCharacterBase;
@@ -25,13 +24,7 @@ protected:
 	virtual void BeginDestroy() override;
 
 public:
-	bool Initialize(
-		ABattleCharacterBase* InSourceCharacter,
-		ABattleGridManager* InGridManager,
-		EBattleSimulationWorldType InGridWorldType,
-		const FTargetingStepCardData& StepData,
-		const FTargetingPhasePresentationSettings& PresentationSettings,
-		bool bEnemyStyle = false);
+	bool Initialize(const FTargetingPreviewContext& PreviewContext);
 
 	void UpdatePreview(const FTargetingPreviewContext& PreviewContext);
 	void EndPresentation();
@@ -44,9 +37,6 @@ private:
 		const FTargetingStepCardData& StepData,
 		const FTargetingPhasePresentationSettings& PresentationSettings);
 	void ClearVisualizers();
-	void UpdateAffectedHighlight(
-		const FTargetingPhasePresentationSettings& PresentationSettings,
-		const FTargetingPreviewContext& PreviewContext);
 
 private:
 	UPROPERTY(Transient)
@@ -54,8 +44,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
-
-	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ATargetingPreviewActor> PreviewActor = nullptr;

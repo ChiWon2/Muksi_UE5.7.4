@@ -23,7 +23,7 @@ void UWidget_PlayerProfilePanel::SetData(UMuksiCharacterDataAsset* DataAsset)
 	MaxHP = DataAsset->MaxHP;
 	SetHP(DataAsset->MaxHP);
 	if (!PlayerCharacter){UE_LOG(LogTemp, Error, TEXT("BattleCharacter is null (Widget_PlayerProfilePanel.cpp)"));return;}
-	PlayerCharacter->BattleStatComponent->OnHPChanged.AddDynamic(this, &UWidget_PlayerProfilePanel::HPChanged);
+	PlayerCharacter->BattleStatComponent->OnHPChanged.AddUniqueDynamic(this, &UWidget_PlayerProfilePanel::HPChanged);
 }
 
 void UWidget_PlayerProfilePanel::SetHP(int32 CurrentHP)

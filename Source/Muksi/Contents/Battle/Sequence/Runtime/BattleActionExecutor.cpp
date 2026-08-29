@@ -9,7 +9,7 @@
 #include "Muksi/Contents/Battle/Sequence/Environment/BattleSequenceExecutionEnvironment.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 
@@ -32,7 +32,7 @@ bool UBattleActionExecutor::ExecuteAction(const FBattleAction& Action)
 
 	CurrentAction = MoveTemp(SequenceAction);
 	CurrentExecutionCard = GetExecutionCard(CurrentAction);
-	CurrentTargetingResult = MoveTemp(TargetingResult);
+	ActionTargetingResult = MoveTemp(TargetingResult);
 	ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType) ? EBattleExecutionMode::Simulation : EBattleExecutionMode::Sequence;
 	bRunning = true;
 	ActiveExecutionRunners.Reset();
@@ -60,7 +60,7 @@ bool UBattleActionExecutor::BuildActionTargetingResult(const FBattleAction& Acti
 	if (!IsValid(Action.Attacker.Get()) || !IsValid(Action.Card.Get()) || !IsValid(GridManager)) return false;
 
 	const FTargetingCardData& TargetingData = Action.Card->TargetingData;
-	TArray<FResolvedStepResult> ResolvedSteps;
+	TArray<FTargetingStep> ResolvedSteps;
 	if (!FBattleTargetResolver::ResolveIntent(Action.Attacker.Get(), GridManager, GridWorldType, TargetingData, Action.TargetingIntent, ResolvedSteps)) return false;
 
 	OutTargetingResult.Steps.Reserve(ResolvedSteps.Num());
@@ -70,12 +70,12 @@ bool UBattleActionExecutor::BuildActionTargetingResult(const FBattleAction& Acti
 		if (!StepData) return false;
 
 		FTargetingStepResult StepResult;
-		StepResult.ResolvedStep = ResolvedSteps[StepIndex];
-		if (!StepResult.ResolvedStep.HasResolvedCoord()) return false;
+		StepResult.Step = ResolvedSteps[StepIndex];
+		if (!StepResult.Step.HasTargetCoord()) return false;
 
 		if (!StepData->Pattern.PatternClass)
 		{
-			StepResult.AffectedCoords.Add(StepResult.ResolvedStep.ResolvedCoord);
+			StepResult.AffectedCoords.Add(StepResult.Step.TargetCoord);
 		}
 		else
 		{
@@ -86,9 +86,9 @@ bool UBattleActionExecutor::BuildActionTargetingResult(const FBattleAction& Acti
 				GridManager,
 				GridWorldType,
 				StepData->Pattern.PatternData,
-				StepResult.ResolvedStep.OriginCoord,
-				StepResult.ResolvedStep.ResolvedCoord,
-				StepResult.ResolvedStep.ResolvedDirection,
+				StepResult.Step.OriginCoord,
+				StepResult.Step.TargetCoord,
+				StepResult.Step.Direction,
 				StepResult.AffectedCoords,
 				StepResult.PathCoords);
 		}
@@ -186,7 +186,8 @@ FBattleExecutionContext UBattleActionExecutor::MakeExecutionContext(FName Notify
 	Context.Card = CurrentExecutionCard;
 	Context.ExecutionMode = ExecutionMode;
 	Context.Environment = ExecutionEnvironment;
-	Context.TargetingResult = CurrentTargetingResult;
+	Context.TargetingResult = ActionTargetingResult;
+	Context.TargetingIntent = CurrentAction.TargetingIntent;
 	Context.BattleGridManager = GridManager;
 	Context.GridWorldType = GridWorldType;
 	Context.NotifyKey = NotifyKey;
@@ -196,11 +197,13 @@ FBattleExecutionContext UBattleActionExecutor::MakeExecutionContext(FName Notify
 void UBattleActionExecutor::HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext)
 {
 	if (!bRunning) return;
-	FTargetingResult RefreshedTargeting;
-	if (BuildActionTargetingResult(CurrentAction, RefreshedTargeting)) CurrentTargetingResult = MoveTemp(RefreshedTargeting);
-	else CurrentTargetingResult.Reset();
-	InOutExecutionContext.TargetingResult = CurrentTargetingResult;
-	EntryStartedDelegate.Broadcast(CurrentAction, Entry, EntryIndex, CurrentTargetingResult);
+
+	// 기본 TargetingResult는 Action 시작 시 한 번만 Resolve한 스냅샷을 유지한다.
+	// 현재 상태를 다시 해석해야 하는 특수 Execution은 TargetingIntent를 사용해
+	// 해당 Execution 내부에서 별도의 임시 TargetingResult를 Resolve한다.
+	InOutExecutionContext.TargetingResult = ActionTargetingResult;
+	InOutExecutionContext.TargetingIntent = CurrentAction.TargetingIntent;
+	EntryStartedDelegate.Broadcast(CurrentAction, Entry, EntryIndex, ActionTargetingResult);
 }
 
 void UBattleActionExecutor::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
@@ -227,7 +230,7 @@ void UBattleActionExecutor::ResetRuntime()
 	bRunning = false;
 	CurrentAction = FBattleAction();
 	CurrentExecutionCard = nullptr;
-	CurrentTargetingResult.Reset();
+	ActionTargetingResult.Reset();
 	AttackerAnimationComponent = nullptr;
 	ActiveExecutionRunners.Reset();
 	ExecutionEnvironment = nullptr;

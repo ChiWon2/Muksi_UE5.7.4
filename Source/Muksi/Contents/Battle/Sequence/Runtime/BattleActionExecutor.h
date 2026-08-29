@@ -64,7 +64,7 @@ private:
 	TObjectPtr<UMuksiBattleCardDataAsset> CurrentExecutionCard = nullptr;
 
 	UPROPERTY(Transient)
-	FTargetingResult CurrentTargetingResult;
+	FTargetingResult ActionTargetingResult;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleAnimationComponent> AttackerAnimationComponent = nullptr;

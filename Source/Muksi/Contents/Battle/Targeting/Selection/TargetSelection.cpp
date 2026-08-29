@@ -2,14 +2,15 @@
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
-void UTargetSelection::EvaluateCandidate(
+bool UTargetSelection::EvaluateCandidate(
 	ABattleGridManager*,
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord&,
 	const FInstancedStruct&,
-	FSelectionStepResult& OutStepResult) const
+	FTargetingStep& OutStep) const
 {
-	InitializeStepResult(OriginCoord, OutStepResult);
+	InitializeStep(OriginCoord, OutStep);
+	return false;
 }
 
 void UTargetSelection::CollectCandidateCoords(
@@ -47,8 +48,8 @@ bool UTargetSelection::IsRuleDataValid(const FInstancedStruct& SelectionData) co
 	return SelectionData.GetScriptStruct() == ExpectedStruct;
 }
 
-void UTargetSelection::InitializeStepResult(const FHexOffsetCoord& OriginCoord, FSelectionStepResult& OutStepResult) const
+void UTargetSelection::InitializeStep(const FHexOffsetCoord& OriginCoord, FTargetingStep& OutStep) const
 {
-	OutStepResult.Reset();
-	OutStepResult.OriginCoord = OriginCoord;
+	OutStep.Reset();
+	OutStep.OriginCoord = OriginCoord;
 }

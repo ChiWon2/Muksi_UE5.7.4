@@ -52,46 +52,45 @@ void ATargetingPreviewActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ATargetingPreviewActor::Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType)
+void ATargetingPreviewActor::Initialize(ABattleGridManager* InGridManager)
 {
 	GridManager = InGridManager;
-	GridWorldType = InGridWorldType;
 	ClearAllPreview();
-	ApplyPreviewStyle();
-}
-
-
-void ATargetingPreviewActor::SetEnemyStyle(bool bInEnemyStyle)
-{
-	bEnemyStyle = bInEnemyStyle;
 	ApplyPreviewStyle();
 }
 
 void ATargetingPreviewActor::ApplyPreviewStyle()
 {
-	const FLinearColor Tint = bEnemyStyle ? FLinearColor(1.0f, 0.08f, 0.03f, 1.0f) : FLinearColor(0.05f, 0.45f, 1.0f, 1.0f);
+	const FLinearColor Tint(0.05f, 0.45f, 1.0f, 1.0f);
 	TArray<UMeshComponent*> Meshes;
 	Meshes.Add(SelectionPreviewMesh);
 	Meshes.Add(AreaPreviewMesh);
 	Meshes.Add(ArrowPreviewMesh);
 	for (UMeshComponent* Mesh : Meshes)
 	{
-		if (!Mesh) continue;
+		if (!Mesh || Mesh->GetNumMaterials() <= 0)
+		{
+			continue;
+		}
+
 		if (UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0))
 		{
 			MID->SetVectorParameterValue(TEXT("TintColor"), Tint);
 			MID->SetVectorParameterValue(TEXT("Color"), Tint);
 		}
 	}
+
 	for (USplineMeshComponent* Mesh : PathMeshComponents)
 	{
-		if (Mesh)
+		if (!Mesh || Mesh->GetNumMaterials() <= 0)
 		{
-			if (UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0))
-			{
-				MID->SetVectorParameterValue(TEXT("TintColor"), Tint);
-				MID->SetVectorParameterValue(TEXT("Color"), Tint);
-			}
+			continue;
+		}
+
+		if (UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0))
+		{
+			MID->SetVectorParameterValue(TEXT("TintColor"), Tint);
+			MID->SetVectorParameterValue(TEXT("Color"), Tint);
 		}
 	}
 }

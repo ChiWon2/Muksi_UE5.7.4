@@ -4,8 +4,6 @@
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "GameFramework/Actor.h"
 
-#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
-
 #include "TargetingPreviewActor.generated.h"
 
 class ABattleGridManager;
@@ -26,11 +24,10 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	void Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType);
+	void Initialize(ABattleGridManager* InGridManager);
 	void ClearPathPreview();
 	void ClearAreaPreview();
 	void ClearAllPreview();
-	void SetEnemyStyle(bool bInEnemyStyle);
 
 	UStaticMeshComponent* GetSelectionPreviewMesh() const { return SelectionPreviewMesh; }
 	UStaticMeshComponent* GetAreaPreviewMesh() const { return AreaPreviewMesh; }
@@ -62,8 +59,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
-	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
-	bool bEnemyStyle = false;
 	void ApplyPreviewStyle();
 };

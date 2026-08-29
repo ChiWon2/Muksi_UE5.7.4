@@ -14,7 +14,7 @@ struct FBattleCardInstance
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (IgnoreForMemberInitializationTest))
 	FGuid InstanceId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

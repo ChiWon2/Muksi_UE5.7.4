@@ -4,35 +4,28 @@
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/Tile/TileSelectionData.h"
 
-void UTileSelection::EvaluateCandidate(
+bool UTileSelection::EvaluateCandidate(
 	ABattleGridManager* GridManager,
 	const FHexOffsetCoord& OriginCoord,
 	const FHexOffsetCoord& CandidateCoord,
 	const FInstancedStruct& SelectionData,
-	FSelectionStepResult& OutStepResult) const
+	FTargetingStep& OutStep) const
 {
-	InitializeStepResult(OriginCoord, OutStepResult);
+	InitializeStep(OriginCoord, OutStep);
 
-	TARGET_SELECTION_VALIDATE_COMMON_OR_RETURN(GridManager, OriginCoord, SelectionData);
+	if (!GridManager || !OriginCoord.IsValid() || !GridManager->IsValidCoord(OriginCoord) || !IsRuleDataValid(SelectionData))
+		return false;
 
 	const FTileSelectionData* Data = SelectionData.GetPtr<FTileSelectionData>();
-
-	if (!Data)
-	{
-		return;
-	}
+	if (!Data || !CandidateCoord.IsValid() || !GridManager->IsValidCoord(CandidateCoord))
+		return false;
 
 	const int32 SafeSelectionRange = FMath::Max(0, Data->SelectionRange);
-
-	TARGET_SELECTION_VALIDATE_CANDIDATE_OR_RETURN(GridManager, CandidateCoord);
-
 	if (FHexGridMath::GetHexDistance(OriginCoord, CandidateCoord) > SafeSelectionRange)
-	{
-		return;
-	}
+		return false;
 
-	OutStepResult.bValid = true;
-	OutStepResult.SelectedCoord = CandidateCoord;
+	OutStep.TargetCoord = CandidateCoord;
+	return true;
 }
 
 void UTileSelection::CollectCandidateCoords(

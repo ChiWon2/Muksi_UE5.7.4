@@ -12,6 +12,7 @@
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
+#include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
 
 ABattleSequenceManager::ABattleSequenceManager() { PrimaryActorTick.bCanEverTick = false; }
 void ABattleSequenceManager::BeginPlay() { Super::BeginPlay(); }
@@ -223,10 +224,18 @@ void ABattleSequenceManager::PresentBattleActionTargetingResult(const FBattleAct
 	for (int32 StepIndex = 0; StepIndex < Action.Card->TargetingData.Steps.Num(); ++StepIndex)
 	{
 		const FTargetingStepCardData* StepData = Action.Card->TargetingData.GetStep(StepIndex);
-		if (!StepData || !TargetingResult.GetStep(StepIndex)) continue;
+		const FTargetingStepResult* StepResult = TargetingResult.GetStep(StepIndex);
+		if (!StepData || !StepResult) continue;
 		const FTargetingPhasePresentationSettings& Settings = StepData->Presentation.Phases.ActualBattle;
 		if (!Settings.HasAnyPresentation()) continue;
-		PresentationController->AddTargetingResultPreview(Action.Attacker, EBattleSimulationWorldType::PlayerActualEnemyActual, Action.Card->TargetingData, TargetingResult, StepIndex, Settings, !Action.bPlayerAction);
+
+		FTargetingPreviewContext PreviewContext;
+		PreviewContext.SourceCharacter = Action.Attacker.Get();
+		PreviewContext.GridManager = BattleGridManager.Get();
+		PreviewContext.StepData = StepData;
+		PreviewContext.TargetingStep = StepResult;
+		PreviewContext.PresentationSettings = &Settings;
+		PresentationController->AddStepPreview(PreviewContext);
 	}
 }
 
@@ -235,5 +244,5 @@ void ABattleSequenceManager::ClearBattleActionPresentation()
 	if (!IsValid(BattleManager.Get())) return;
 	ABattleTargetingManager* TargetingManager = BattleManager->GetBattleTargetingManager();
 	UTargetingPresentationController* PresentationController = TargetingManager ? TargetingManager->GetPresentationController() : nullptr;
-	if (PresentationController) PresentationController->ClearTargetingResultPreviews();
+	if (PresentationController) PresentationController->ClearStepPreviews();
 }

@@ -4,6 +4,7 @@
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleExecutionContext.generated.h"
@@ -35,8 +36,13 @@ struct FBattleExecutionContext
 	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
 
 
+	// Action 시작 시 해석된 기본 Targeting 스냅샷이다. Execution에서 자동으로 갱신하지 않는다.
 	UPROPERTY(BlueprintReadOnly)
 	FTargetingResult TargetingResult;
+
+	// Targeting 당시의 원본 의도. 특수 Execution이 현재 월드 상태 기준으로 별도 Resolve해야 할 때 사용한다.
+	UPROPERTY(BlueprintReadOnly)
+	FTargetingIntent TargetingIntent;
 
 	UPROPERTY(BlueprintReadOnly)
 	FInstancedStruct ExecutionData;
@@ -77,7 +83,7 @@ struct FBattleExecutionContext
 	{
 		const FTargetingStepResult* StepResult = GetLastTargetingStepResult();
 		if (!StepResult) return FHexOffsetCoord::Invalid();
-		if (StepResult->ResolvedStep.HasResolvedCoord()) return StepResult->ResolvedStep.ResolvedCoord;
+		if (StepResult->Step.HasTargetCoord()) return StepResult->Step.TargetCoord;
 		return StepResult->AffectedCoords.IsValidIndex(0) ? StepResult->AffectedCoords[0] : FHexOffsetCoord::Invalid();
 	}
 

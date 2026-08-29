@@ -36,7 +36,7 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BattleGrid")
+	UPROPERTY(Transient)
 	TMap<EBattleSimulationWorldType, FBattleGridState> GridStates;
 
 protected:
@@ -71,6 +71,7 @@ public:
 	FTransform GetTransformToPosition(const FHexOffsetCoord& InPosition);
 	FVector GetWorldLocationByCoord(const FHexOffsetCoord& Coord) const;
 	bool GetPresentationWorldLocationByCoord(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const;
+	bool GetPresentationCoordFromHit(const FHitResult& HitResult, FHexOffsetCoord& OutCoord) const;
 
 
 public:

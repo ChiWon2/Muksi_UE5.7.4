@@ -18,67 +18,7 @@
 #include "Muksi/Contents/Battle/Grid/SelectGridInterface.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 
-namespace
-{
-	bool GetGridCoordFromCursorHit(
-		ABattleGridManager* BattleGridManager,
-		const FHitResult& HitResult,
-		FHexOffsetCoord& OutCoord,
-		ABattleGridTile*& OutTile)
-	{
-		OutCoord = FHexOffsetCoord::Invalid();
-		OutTile = nullptr;
 
-		if (!BattleGridManager)
-		{
-			return false;
-		}
-
-		AActor* HitActor = HitResult.GetActor();
-
-		if (ABattleGridTile* HitTile = Cast<ABattleGridTile>(HitActor))
-		{
-			OutCoord = HitTile->GetGridCoord();
-			OutTile = HitTile;
-			return true;
-		}
-
-		if (const ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
-		{
-			OutCoord = HitCharacter->GetCharacterCoord();
-			OutTile = BattleGridManager->GetTileActorByCoord(OutCoord);
-			return OutCoord.IsValid() && OutTile;
-		}
-
-		// 무기, ChildActor, 별도 Collision Component가 캐릭터/타일보다 먼저
-		// Visibility Trace를 맞는 경우에도 ImpactPoint에 가장 가까운 Grid Tile을
-		// 선택한다. Selection 종류와 점유 여부는 이 좌표 획득 단계에서 검사하지 않는다.
-		float BestDistanceSquared = TNumericLimits<float>::Max();
-		for (int32 X = 0; X < BattleGridManager->GetGridWidth(); ++X)
-		{
-			for (int32 Y = 0; Y < BattleGridManager->GetGridHeight(); ++Y)
-			{
-				const FHexOffsetCoord Coord(X, Y);
-				ABattleGridTile* Tile = BattleGridManager->GetTileActorByCoord(Coord);
-				if (!Tile)
-				{
-					continue;
-				}
-
-				const FVector Delta = BattleGridManager->GetWorldLocationByCoord(Coord) - HitResult.ImpactPoint;
-				const float DistanceSquared = FVector2D(Delta.X, Delta.Y).SizeSquared();
-				if (DistanceSquared < BestDistanceSquared)
-				{
-					BestDistanceSquared = DistanceSquared;
-					OutCoord = Coord;
-					OutTile = Tile;
-				}
-			}
-		}
-
-		return OutCoord.IsValid() && OutTile;
-	}
-}
 
 void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 {
@@ -142,6 +82,7 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 {
 	Super::HandleLeftClick(Value);
 
+
 	SelectedActor = nullptr;
 
 	if (!PC)
@@ -156,6 +97,7 @@ void UPlayerMode_Battle::HandleLeftClick(const FInputActionValue& Value)
 
 	FHitResult HitResult;
 	const bool bHasHitResult = PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+
 
 	if (BattleTargetingManager->RequestUpdatePlayerTargeting(HitResult, bHasHitResult)
 		&& BattleTargetingManager->RequestConfirmPlayerTargeting())
@@ -216,9 +158,9 @@ void UPlayerMode_Battle::UpdateHoveredGridTile(const FHitResult& HitResult, bool
 	ABattleGridTile* NewHoveredGridTile = nullptr;
 	FHexOffsetCoord HoveredCoord = FHexOffsetCoord::Invalid();
 
-	if (bHasHitResult)
+	if (bHasHitResult && BattleGridManager && BattleGridManager->GetPresentationCoordFromHit(HitResult, HoveredCoord))
 	{
-		GetGridCoordFromCursorHit(BattleGridManager, HitResult, HoveredCoord, NewHoveredGridTile);
+		NewHoveredGridTile = BattleGridManager->GetTileActorByCoord(HoveredCoord);
 	}
 
 	if (HoveredGridTile == NewHoveredGridTile)

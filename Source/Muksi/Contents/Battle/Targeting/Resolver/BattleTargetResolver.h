@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 
 class ABattleCharacterBase;
@@ -20,12 +20,12 @@ public:
 		EBattleSimulationWorldType WorldType,
 		const FTargetingCardData& TargetingData,
 		const FTargetingIntent& TargetingIntent,
-		TArray<FResolvedStepResult>& OutResolvedSteps);
+		TArray<FTargetingStep>& OutResolvedSteps);
 
 private:
 	static bool ResolveStepOrigin(
 		ABattleCharacterBase* Attacker,
-		const TArray<FResolvedStepResult>& ResolvedSteps,
+		const TArray<FTargetingStep>& ResolvedSteps,
 		const FTargetingStepCardData& StepData,
 		FHexOffsetCoord& OutOriginCoord);
 
@@ -45,7 +45,7 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutResolvedCoord);
+		FHexOffsetCoord& OutTargetCoord);
 
 	static bool BuildResolvedStepAtCoord(
 		const FHexOffsetCoord& OriginCoord,
@@ -55,7 +55,7 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FResolvedStepResult& OutResolvedStep);
+		FTargetingStep& OutResolvedStep);
 
 	static bool IsCoordValidForResolve(
 		const FHexOffsetCoord& OriginCoord,
@@ -74,7 +74,7 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutResolvedCoord);
+		FHexOffsetCoord& OutTargetCoord);
 
 	static bool FindNearestValidCoord(
 		const FHexOffsetCoord& OriginCoord,
@@ -84,5 +84,5 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutResolvedCoord);
+		FHexOffsetCoord& OutTargetCoord);
 };

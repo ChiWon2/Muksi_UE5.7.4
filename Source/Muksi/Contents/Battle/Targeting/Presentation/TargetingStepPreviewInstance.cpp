@@ -16,25 +16,18 @@ void UTargetingStepPreviewInstance::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-bool UTargetingStepPreviewInstance::Initialize(
-	ABattleCharacterBase* InSourceCharacter,
-	ABattleGridManager* InGridManager,
-	EBattleSimulationWorldType InGridWorldType,
-	const FTargetingStepCardData& StepData,
-	const FTargetingPhasePresentationSettings& PresentationSettings,
-	bool bEnemyStyle)
+bool UTargetingStepPreviewInstance::Initialize(const FTargetingPreviewContext& PreviewContext)
 {
 	EndPresentation();
 
-	if (!IsValid(InSourceCharacter) || !IsValid(InGridManager))
+	if (!PreviewContext.IsValid())
 	{
 		return false;
 	}
 
-	SourceCharacter = InSourceCharacter;
-	GridManager = InGridManager;
-	GridWorldType = InGridWorldType;
-	bShowAffectedHighlight = PresentationSettings.bShowAffectedHighlight;
+	SourceCharacter = PreviewContext.SourceCharacter;
+	GridManager = PreviewContext.GridManager;
+	bShowAffectedHighlight = PreviewContext.PresentationSettings->bShowAffectedHighlight;
 
 	if (!EnsurePreviewActor())
 	{
@@ -42,8 +35,7 @@ bool UTargetingStepPreviewInstance::Initialize(
 		return false;
 	}
 
-	PreviewActor->SetEnemyStyle(bEnemyStyle);
-	CreateVisualizers(StepData, PresentationSettings);
+	CreateVisualizers(*PreviewContext.StepData, *PreviewContext.PresentationSettings);
 	return true;
 }
 
@@ -104,7 +96,6 @@ void UTargetingStepPreviewInstance::EndPresentation()
 	PreviewActor = nullptr;
 	SourceCharacter = nullptr;
 	GridManager = nullptr;
-	GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 }
 
 bool UTargetingStepPreviewInstance::EnsurePreviewActor()
@@ -136,7 +127,7 @@ bool UTargetingStepPreviewInstance::EnsurePreviewActor()
 		return false;
 	}
 
-	PreviewActor->Initialize(GridManager.Get(), GridWorldType);
+	PreviewActor->Initialize(GridManager.Get());
 	return true;
 }
 

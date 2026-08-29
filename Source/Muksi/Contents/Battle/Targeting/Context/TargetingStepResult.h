@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 #include "TargetingStepResult.generated.h"
 
 class ABattleCharacterBase;
@@ -13,7 +13,7 @@ struct FTargetingStepResult
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
-	FResolvedStepResult ResolvedStep;
+	FTargetingStep Step;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	TArray<FHexOffsetCoord> AffectedCoords;
@@ -26,7 +26,7 @@ struct FTargetingStepResult
 
 	void Reset()
 	{
-		ResolvedStep.Reset();
+		Step.Reset();
 		AffectedCoords.Empty();
 		PathCoords.Empty();
 		Targets.Empty();

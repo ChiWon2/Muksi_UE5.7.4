@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "UObject/Object.h"
-#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "TargetingPresentationController.generated.h"
 
 class ABattleCharacterBase;
@@ -16,8 +15,8 @@ struct FTargetingCardData;
 struct FTargetingPhasePresentationSettings;
 
 /**
- * 계산이 끝난 Targeting 정보의 Preview/Highlight 생성과 수명만 관리한다.
- * Resolve/ApplyPattern은 수행하지 않는다.
+ * 계산이 끝난 Targeting Step의 Preview/Highlight 생성과 수명을 관리한다.
+ * Phase별 계산/Resolve/ApplyPattern은 수행하지 않는다.
  */
 UCLASS()
 class MUKSI_API UTargetingPresentationController : public UObject
@@ -26,23 +25,20 @@ class MUKSI_API UTargetingPresentationController : public UObject
 
 public:
 	void Initialize(ABattleGridManager* InGridManager);
-	bool StartLivePreview(ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType GridWorldType);
-	void UpdateLivePreview(const FTargetingStepCardData& StepData, const FTargetingPreviewContext& PreviewContext);
-	void ClearLivePreview();
-	bool AddTargetingResultPreview(
-		ABattleCharacterBase* SourceCharacter,
-		EBattleSimulationWorldType GridWorldType,
-		const FTargetingCardData& CardData,
-		const FTargetingResult& TargetingResult,
-		int32 StepIndex,
-		const FTargetingPhasePresentationSettings& PresentationSettings,
-		bool bEnemyStyle);
-	void ClearTargetingResultPreviews();
+
+	bool PresentCurrentStep(const FTargetingPreviewContext& PreviewContext);
+
+	void ClearCurrentStepPreview();
+
+	bool AddStepPreview(const FTargetingPreviewContext& PreviewContext);
+
+
+	void ClearStepPreviews();
 	void ClearAllPresentation();
 
 private:
-	bool CreateLiveStepPreview(const FTargetingStepCardData& StepData);
-	void DestroyLiveStepPreview();
+	bool CreateCurrentStepPreview(const FTargetingPreviewContext& PreviewContext);
+	void DestroyCurrentStepPreview();
 	void RefreshAffectedHighlights();
 
 private:
@@ -50,14 +46,14 @@ private:
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleCharacterBase> LiveSourceCharacter = nullptr;
-
-	EBattleSimulationWorldType LiveGridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
+	TObjectPtr<UTargetingStepPreviewInstance> CurrentStepPreview = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTargetingStepPreviewInstance> LiveStepPreview = nullptr;
-	const FTargetingStepCardData* LivePreviewStepData = nullptr;
+	TObjectPtr<ABattleCharacterBase> CurrentStepSourceCharacter = nullptr;
+
+	const FTargetingStepCardData* CurrentStepData = nullptr;
+	const FTargetingPhasePresentationSettings* CurrentPresentationSettings = nullptr;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UTargetingStepPreviewInstance>> TargetingResultPreviewInstances;
+	TArray<TObjectPtr<UTargetingStepPreviewInstance>> StepPreviews;
 };

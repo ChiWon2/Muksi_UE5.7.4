@@ -366,7 +366,7 @@ void UWidget_BattleCardBase::PlayCardFlipToFront()
 		return;
 	}
 
-	//PlayAnimation(Anim_CardFlipToFront); 테스트 용도
+	PlayAnimation(Anim_CardFlipToFront);
 }
 
 void UWidget_BattleCardBase::PlayDrawToHandAnimation(float InDelay)
