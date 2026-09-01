@@ -106,9 +106,9 @@ ABattleCharacterBase* UProjectileExecution::FindHitTarget(const FBattleExecution
 		if (TargetCharacter && TargetCharacter != Context.Attacker) return TargetCharacter;
 	}
 
-	if (StepResult->ResolvedStep.HasResolvedCoord())
+	if (StepResult->Step.HasTargetCoord())
 	{
-		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, StepResult->ResolvedStep.ResolvedCoord);
+		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, StepResult->Step.TargetCoord);
 		ABattleCharacterBase* TargetCharacter = Cell ? Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()) : nullptr;
 
 		if (TargetCharacter && TargetCharacter != Context.Attacker)

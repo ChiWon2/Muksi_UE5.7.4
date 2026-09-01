@@ -2,6 +2,7 @@
 
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Grid/Tiles/BattleGridTile.h"
+#include "EngineUtils.h"
 
 UBattleGridTileGeneratorComponent::UBattleGridTileGeneratorComponent()
 {
@@ -115,11 +116,18 @@ void UBattleGridTileGeneratorComponent::ClearTilesInternal()
 		return;
 	}
 
-	for (FBattleGridCell& Cell : GridManager->GetMutableGridCells(EBattleSimulationWorldType::PlayerActualEnemyActual))
+	UWorld* World = GridManager->GetWorld();
+
+	if (World)
 	{
-		if (IsValid(Cell.TileActor))
+		for (TActorIterator<ABattleGridTile> It(World); It; ++It)
 		{
-			Cell.TileActor->Destroy();
+			ABattleGridTile* Tile = *It;
+
+			if (IsValid(Tile) && Tile->GetOwner() == GridManager)
+			{
+				Tile->Destroy();
+			}
 		}
 	}
 

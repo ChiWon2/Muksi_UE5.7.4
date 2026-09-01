@@ -4,7 +4,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "UObject/Object.h"
 
-#include "Muksi/Contents/Battle/Targeting/Context/SelectionStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 
 #include "TargetSelection.generated.h"
 
@@ -16,12 +16,12 @@ class MUKSI_API UTargetSelection : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void EvaluateCandidate(
+	virtual bool EvaluateCandidate(
 		ABattleGridManager* GridManager,
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& CandidateCoord,
 		const FInstancedStruct& SelectionData,
-		FSelectionStepResult& OutStepResult
+		FTargetingStep& OutStep
 	) const;
 
 	virtual void CollectCandidateCoords(
@@ -38,7 +38,7 @@ public:
 protected:
 	bool IsRuleDataValid(const FInstancedStruct& SelectionData) const;
 
-	void InitializeStepResult(const FHexOffsetCoord& OriginCoord, FSelectionStepResult& OutStepResult) const;
+	void InitializeStep(const FHexOffsetCoord& OriginCoord, FTargetingStep& OutStep) const;
 };
 
 

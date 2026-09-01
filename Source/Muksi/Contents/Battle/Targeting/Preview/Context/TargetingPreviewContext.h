@@ -1,67 +1,44 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Muksi/Contents/Battle/Targeting/Context/ResolvedStepResult.h"
-#include "Muksi/Contents/Battle/Targeting/Context/SelectionStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 
+class ABattleCharacterBase;
 class ABattleGridManager;
+struct FTargetingPhasePresentationSettings;
 struct FTargetingStepCardData;
 
 struct FTargetingPreviewContext
 {
-	ABattleGridManager* GridManager = nullptr;
-	const FTargetingStepCardData* StepData = nullptr;
-	const FSelectionStepResult* SelectionStep = nullptr;
-	const FTargetingStepResult* TargetingStep = nullptr;
-	const TArray<FHexOffsetCoord>* PreviewAffectedCoords = nullptr;
-	const TArray<FHexOffsetCoord>* PreviewPathCoords = nullptr;
+    ABattleCharacterBase* SourceCharacter = nullptr;
+    ABattleGridManager* GridManager = nullptr;
+    const FTargetingStepCardData* StepData = nullptr;
+    const FTargetingStepResult* TargetingStep = nullptr;
+    const FTargetingPhasePresentationSettings* PresentationSettings = nullptr;
+    const TArray<FHexOffsetCoord>* PreviewAffectedCoords = nullptr;
+    const TArray<FHexOffsetCoord>* PreviewPathCoords = nullptr;
 
-	bool IsValid() const { return GridManager && StepData; }
-	bool IsStepValid() const { return SelectionStep ? SelectionStep->bValid : TargetingStep != nullptr; }
+    bool IsValid() const { return SourceCharacter && GridManager && StepData && PresentationSettings; }
+    bool IsStepValid() const { return TargetingStep != nullptr; }
 
-	bool HasOriginCoord() const
-	{
-		return SelectionStep ? SelectionStep->HasOriginCoord() : TargetingStep && TargetingStep->ResolvedStep.HasOriginCoord();
-	}
+    bool HasOriginCoord() const { return TargetingStep && TargetingStep->Step.HasOriginCoord(); }
+    FHexOffsetCoord GetOriginCoord() const { return TargetingStep ? TargetingStep->Step.OriginCoord : FHexOffsetCoord::Invalid(); }
 
-	FHexOffsetCoord GetOriginCoord() const
-	{
-		if (SelectionStep) return SelectionStep->OriginCoord;
-		return TargetingStep ? TargetingStep->ResolvedStep.OriginCoord : FHexOffsetCoord::Invalid();
-	}
+    bool HasTargetCoord() const { return TargetingStep && TargetingStep->Step.HasTargetCoord(); }
+    FHexOffsetCoord GetTargetCoord() const { return TargetingStep ? TargetingStep->Step.TargetCoord : FHexOffsetCoord::Invalid(); }
 
-	bool HasTargetCoord() const
-	{
-		return SelectionStep ? SelectionStep->HasSelectedCoord() : TargetingStep && TargetingStep->ResolvedStep.HasResolvedCoord();
-	}
+    bool HasDirection() const { return TargetingStep && TargetingStep->Step.HasDirection(); }
+    int32 GetDirection() const { return TargetingStep ? TargetingStep->Step.Direction : INDEX_NONE; }
 
-	FHexOffsetCoord GetTargetCoord() const
-	{
-		if (SelectionStep) return SelectionStep->SelectedCoord;
-		return TargetingStep ? TargetingStep->ResolvedStep.ResolvedCoord : FHexOffsetCoord::Invalid();
-	}
+    const TArray<FHexOffsetCoord>* GetAffectedCoords() const
+    {
+        if (TargetingStep) return &TargetingStep->AffectedCoords;
+        return PreviewAffectedCoords;
+    }
 
-	bool HasDirection() const
-	{
-		return SelectionStep ? SelectionStep->HasSelectedDirection() : TargetingStep && TargetingStep->ResolvedStep.HasResolvedDirection();
-	}
-
-	int32 GetDirection() const
-	{
-		if (SelectionStep) return SelectionStep->SelectedDirection;
-		return TargetingStep ? TargetingStep->ResolvedStep.ResolvedDirection : INDEX_NONE;
-	}
-
-	const TArray<FHexOffsetCoord>* GetAffectedCoords() const
-	{
-		if (TargetingStep) return &TargetingStep->AffectedCoords;
-		return PreviewAffectedCoords;
-	}
-
-	const TArray<FHexOffsetCoord>* GetPathCoords() const
-	{
-		if (TargetingStep) return &TargetingStep->PathCoords;
-		return PreviewPathCoords;
-	}
+    const TArray<FHexOffsetCoord>* GetPathCoords() const
+    {
+        if (TargetingStep) return &TargetingStep->PathCoords;
+        return PreviewPathCoords;
+    }
 };

@@ -78,12 +78,34 @@ UBattleSimulationWorldRuntime* ABattleSimulationManager::GetSimulationWorldRunti
 	}
 }
 
-ABattleCharacterBase* ABattleSimulationManager::GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const
+ABattleCharacterBase* ABattleSimulationManager::GetCharacterForWorld(const ABattleCharacterBase* Character, EBattleSimulationWorldType WorldType) const
 {
-	if (!IsValid(SourceCharacter)) return nullptr;
-	if (!BattleSimulationWorld::UsesSimulationRuntime(WorldType)) return const_cast<ABattleCharacterBase*>(SourceCharacter);
+	if (!IsValid(Character))
+	{
+		return nullptr;
+	}
+
+	const ABattleCharacterBase* SourceCharacter = Character;
+
+	if (const ABattleSimulationCharacter* SimulationCharacter = Cast<ABattleSimulationCharacter>(Character))
+	{
+		SourceCharacter = SimulationCharacter->GetSourceCharacter();
+	}
+
+	if (!IsValid(SourceCharacter))
+	{
+		return nullptr;
+	}
+
+	if (!BattleSimulationWorld::UsesSimulationRuntime(WorldType))
+	{
+		return const_cast<ABattleCharacterBase*>(SourceCharacter);
+	}
+
 	UBattleSimulationWorldRuntime* WorldRuntime = GetSimulationWorldRuntime(WorldType);
-	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
+	return IsValid(WorldRuntime)
+		? WorldRuntime->GetSimulationCharacter(SourceCharacter)
+		: nullptr;
 }
 
 ABattleGridManager* ABattleSimulationManager::GetBattleGridManager() const
@@ -163,79 +185,39 @@ void ABattleSimulationManager::RefreshFastForwardForPrimarySimulationWorld()
 
 void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
-	if (!ShouldHandlePhaseEntry(NewPhase) || !TaskContext) return;
-	UBattlePhaseTask* Task = TaskContext->RegisterTask(this);
-	if (!Task) return;
-	if (!IsValid(BattleManager.Get()) || !IsValid(BattleManager->GetBattleRuntimeContext()) || !IsValid(BattleManager->GetBattleGridManager()))
+	(void)TaskContext;
+
+	if (OldPhase == EBattlePhase::Targeting && NewPhase != EBattlePhase::Targeting && PresentationController)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to resolve phase entry dependencies."));
-		Task->Complete();
-		return;
+		PresentationController->SetPlayerSimulationViewChangeLocked(false);
 	}
 
-	UpdateSimulationViewForPhaseTransition(OldPhase, NewPhase);
-	ExecutePhaseEntryOperation(NewPhase);
-	Task->Complete();
-}
-
-void ABattleSimulationManager::UpdateSimulationViewForPhaseTransition(EBattlePhase OldPhase, EBattlePhase NewPhase)
-{
-	if (NewPhase == EBattlePhase::Targeting)
-	{
-		if (PresentationController) PresentationController->SetPlayerSimulationView(EBattlePlayerSimulationView::ActualSelf);
-		if (PresentationController) PresentationController->SetPlayerSimulationViewChangeLocked(true);
-		return;
-	}
-
-	if (OldPhase == EBattlePhase::Targeting && PresentationController) PresentationController->SetPlayerSimulationViewChangeLocked(false);
-}
-
-void ABattleSimulationManager::ExecutePhaseEntryOperation(EBattlePhase NewPhase)
-{
 	switch (NewPhase)
 	{
-	case EBattlePhase::CardReveal:
-		PrepareExchangeOrRestartCardSelection();
+	case EBattlePhase::Targeting:
+		if (PresentationController)
+		{
+			PresentationController->SetPlayerSimulationView(EBattlePlayerSimulationView::ActualSelf);
+			PresentationController->SetPlayerSimulationViewChangeLocked(true);
+		}
 		break;
+
 	case EBattlePhase::ExchangeEnd:
 	case EBattlePhase::BattleActionSequenceStart:
-		if (PresentationController) PresentationController->ClearAllExecutionResults();
+		if (PresentationController) 
+			PresentationController->ClearAllExecutionResults();
 		break;
+
 	case EBattlePhase::RoundEnd:
 		DeactivateRoundSimulation();
 		break;
+
 	case EBattlePhase::BattleEnd:
 		StopSimulation();
 		break;
+
 	default:
 		break;
-	}
-}
-
-void ABattleSimulationManager::PrepareExchangeOrRestartCardSelection()
-{
-	if (PrepareCurrentExchangeSimulation()) return;
-
-	UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to prepare exchange simulation."));
-	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
-	{
-		if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::CardReveal) BattleManager->RestartCurrentExchangeCardSelection();
-	}));
-}
-
-bool ABattleSimulationManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
-{
-	switch (Phase)
-	{
-	case EBattlePhase::Targeting:
-	case EBattlePhase::CardReveal:
-	case EBattlePhase::ExchangeEnd:
-	case EBattlePhase::BattleActionSequenceStart:
-	case EBattlePhase::RoundEnd:
-	case EBattlePhase::BattleEnd:
-		return true;
-	default:
-		return false;
 	}
 }
 
@@ -284,6 +266,20 @@ void ABattleSimulationManager::ExecuteRoundStart()
 
 void ABattleSimulationManager::ExecuteSimulationSequence()
 {
+	if (!PrepareCurrentExchangeSimulation())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to prepare current exchange simulation."));
+		PhaseExecutionTask = nullptr;
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (BattleManager && BattleManager->GetCurrentPhase() == EBattlePhase::SimulationSequence)
+			{
+				BattleManager->RestartCurrentExchangeCardSelection();
+			}
+		}));
+		return;
+	}
+
 	if (StartCurrentExchangeSimulation()) return;
 
 	UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to execute current exchange simulation."));

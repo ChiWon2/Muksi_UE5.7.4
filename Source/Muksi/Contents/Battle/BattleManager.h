@@ -17,6 +17,9 @@ class ABattleSetupManager;
 class ABattleSimulationManager;
 class ABattleTargetingManager;
 class UBattleCardManager;
+class ABattleCharacterBase;
+class UMuksiBattleCardDataAsset;
+struct FTargetingIntent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnBattlePhaseStageRequested, EBattlePhase, OldPhase, EBattlePhase, NewPhase, UBattlePhaseTaskContext*, TaskContext);
 
@@ -83,6 +86,7 @@ public:
     void RestartCurrentExchangeCardSelection();
     void NotifyBattleCharacterDead();
     void NotifyBattleActionStart(const FBattleAction& BattleAction);
+    bool SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuksiBattleCardDataAsset* Card, const FTargetingIntent& TargetingIntent, bool bPlayerAction);
     void StartBattleFlow();
 
 private:

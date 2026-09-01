@@ -20,6 +20,8 @@ ABattleGridManager::ABattleGridManager()
 void ABattleGridManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GenerateGrid();
 }
 
 void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -31,8 +33,6 @@ void ABattleGridManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ABattleGridManager::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-
-	GenerateGrid();
 }
 
 bool ABattleGridManager::IsValidCoord(const FHexOffsetCoord& Coord) const
@@ -123,6 +123,48 @@ bool ABattleGridManager::GetPresentationWorldLocationByCoord(const FHexOffsetCoo
 	if (!ActualCells.IsValidIndex(Index)) return false;
 	OutWorldLocation = ActualCells[Index].WorldLocation;
 	return true;
+}
+
+bool ABattleGridManager::GetPresentationCoordFromHit(const FHitResult& HitResult, FHexOffsetCoord& OutCoord) const
+{
+	OutCoord = FHexOffsetCoord::Invalid();
+
+	AActor* HitActor = HitResult.GetActor();
+	if (const ABattleGridTile* HitTile = Cast<ABattleGridTile>(HitActor))
+	{
+		OutCoord = HitTile->GetGridCoord();
+		return OutCoord.IsValid();
+	}
+
+	if (const ABattleCharacterBase* HitCharacter = Cast<ABattleCharacterBase>(HitActor))
+	{
+		OutCoord = HitCharacter->GetCharacterCoord();
+		return OutCoord.IsValid();
+	}
+
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	for (int32 X = 0; X < GetGridWidth(); ++X)
+	{
+		for (int32 Y = 0; Y < GetGridHeight(); ++Y)
+		{
+			const FHexOffsetCoord Coord(X, Y);
+			FVector PresentationLocation = FVector::ZeroVector;
+			if (!GetPresentationWorldLocationByCoord(Coord, PresentationLocation))
+			{
+				continue;
+			}
+
+			const FVector Delta = PresentationLocation - HitResult.ImpactPoint;
+			const float DistanceSquared = FVector2D(Delta.X, Delta.Y).SizeSquared();
+			if (DistanceSquared < BestDistanceSquared)
+			{
+				BestDistanceSquared = DistanceSquared;
+				OutCoord = Coord;
+			}
+		}
+	}
+
+	return OutCoord.IsValid();
 }
 
 float ABattleGridManager::GetAdjacentTileCenterDistance()

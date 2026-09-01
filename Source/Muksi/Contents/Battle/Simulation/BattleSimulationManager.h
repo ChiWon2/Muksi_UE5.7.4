@@ -69,10 +69,6 @@ private:
 	UFUNCTION()
 	void HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
-	bool ShouldHandlePhaseEntry(EBattlePhase Phase) const;
-	void UpdateSimulationViewForPhaseTransition(EBattlePhase OldPhase, EBattlePhase NewPhase);
-	void ExecutePhaseEntryOperation(EBattlePhase NewPhase);
-	void PrepareExchangeOrRestartCardSelection();
 	void ExecuteBattleStart();
 	void ExecuteRoundStart();
 	void ExecuteSimulationSequence();

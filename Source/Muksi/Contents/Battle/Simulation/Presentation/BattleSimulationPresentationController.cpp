@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
+#include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
 
 bool UBattleSimulationPresentationController::Initialize(ABattleSimulationManager* InSimulationManager, UTargetingPresentationController* InTargetingPresentationController)
 {
@@ -189,14 +190,24 @@ void UBattleSimulationPresentationController::DisplayExecutionResult(UBattleSimu
 
 void UBattleSimulationPresentationController::ClearDisplayedExecutionResult()
 {
-	if (TargetingPresentationController) TargetingPresentationController->ClearTargetingResultPreviews();
+	if (TargetingPresentationController) TargetingPresentationController->ClearStepPreviews();
 }
 
 void UBattleSimulationPresentationController::AppendStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FTargetingResult& TargetingResult)
 {
 	const FTargetingPhasePresentationSettings& Settings = StepData.Presentation.Phases.Simulation;
-	const bool bShowPresentation = Settings.HasAnyPresentation();
-	if (bShowPresentation && TargetingPresentationController) TargetingPresentationController->AddTargetingResultPreview(RuntimeAttacker, WorldRuntime->GetWorldType(), Action.Card->TargetingData, TargetingResult, StepIndex, Settings, !Action.bPlayerAction);
+	if (!Settings.HasAnyPresentation() || !TargetingPresentationController || !IsValid(SimulationManager.Get())) return;
+
+	const FTargetingStepResult* StepResult = TargetingResult.GetStep(StepIndex);
+	if (!StepResult) return;
+
+	FTargetingPreviewContext PreviewContext;
+	PreviewContext.SourceCharacter = RuntimeAttacker;
+	PreviewContext.GridManager = SimulationManager->GetBattleGridManager();
+	PreviewContext.StepData = &StepData;
+	PreviewContext.TargetingStep = StepResult;
+	PreviewContext.PresentationSettings = &Settings;
+	TargetingPresentationController->AddStepPreview(PreviewContext);
 }
 
 

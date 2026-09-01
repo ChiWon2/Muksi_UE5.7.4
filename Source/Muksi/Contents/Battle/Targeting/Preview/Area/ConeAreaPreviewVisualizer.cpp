@@ -64,15 +64,15 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 	// AimWorldLocation is presentation input for path/selection previews only; using it
 	// here can point the cone away from StepResult.Direction during enemy/reveal/runtime phases.
 	const FHexOffsetCoord ResolvedAimCoord = FHexGridMath::GetNeighborCoord(Context.GetOriginCoord(), Context.GetDirection());
-	FVector ResolvedDirection = Context.GridManager->GetWorldLocationByCoord(ResolvedAimCoord) - LogicalOriginLocation;
-	ResolvedDirection.Z = 0.0f;
+	FVector Direction = Context.GridManager->GetWorldLocationByCoord(ResolvedAimCoord) - LogicalOriginLocation;
+	Direction.Z = 0.0f;
 
-	if (!ResolvedDirection.Normalize())
+	if (!Direction.Normalize())
 	{
 		return;
 	}
 
-	const float TargetYaw = ResolvedDirection.Rotation().Yaw;
+	const float TargetYaw = Direction.Rotation().Yaw;
 
 	// Do not interpolate from an unrelated previous phase/session direction.
 	// The pattern and indicator are discrete hex-direction results, so the area mesh

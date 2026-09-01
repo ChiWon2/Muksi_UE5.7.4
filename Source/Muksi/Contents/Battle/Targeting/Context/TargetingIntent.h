@@ -20,7 +20,7 @@ UENUM(BlueprintType)
 enum class EInvalidTargetResolvePolicy : uint8
 {
 	Cancel = 0,
-	// 1은 제거된 KeepResolvedCoord의 직렬화 값을 재사용하지 않기 위해 비워 둔다.
+	// 1은 제거된 KeepTargetCoord의 직렬화 값을 재사용하지 않기 위해 비워 둔다.
 	StopAtLastValid = 2,
 	FindNearestValid = 3
 };
@@ -30,11 +30,11 @@ struct FTargetingStepIntent
 {
 	GENERATED_BODY()
 
-	/** SelectedCoord minus the Step Origin in cube space. Targeting uses the selected Step Origin; Simulation/Execution reapplies it from the resolved Step Origin. */
+	/** OriginRelative target offset. TargetCharacter also keeps this as the fallback when the bound character cannot be found. */
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	FHexCubeCoord RelativeOffset;
 
-	/** Original selected grid coordinate. Required by WorldFixed and retained as the selection record for other bindings. */
+	/** Absolute target coordinate used only by WorldFixed binding. */
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	FHexOffsetCoord SelectedCoord = FHexOffsetCoord(INDEX_NONE, INDEX_NONE);
 
@@ -49,10 +49,6 @@ struct FTargetingStepIntent
 		return !TargetCharacterKey.IsNone();
 	}
 
-	bool HasSelectedCoord() const
-	{
-		return SelectedCoord.IsValid();
-	}
 
 	void Reset()
 	{

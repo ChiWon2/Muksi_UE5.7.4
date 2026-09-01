@@ -2,8 +2,6 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
-#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingStepPreviewInstance.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
 
@@ -12,109 +10,91 @@ void UTargetingPresentationController::Initialize(ABattleGridManager* InGridMana
 	GridManager = InGridManager;
 }
 
-bool UTargetingPresentationController::StartLivePreview(ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType GridWorldType)
+bool UTargetingPresentationController::PresentCurrentStep(const FTargetingPreviewContext& PreviewContext)
 {
-	ClearLivePreview();
-	if (!IsValid(SourceCharacter))
+	if (!PreviewContext.IsValid())
 	{
+		ClearCurrentStepPreview();
 		return false;
 	}
 
-	LiveSourceCharacter = SourceCharacter;
-	LiveGridWorldType = GridWorldType;
-	return true;
-}
+	const bool bNeedsNewInstance =
+		!CurrentStepPreview
+		|| CurrentStepSourceCharacter != PreviewContext.SourceCharacter
+		|| CurrentStepData != PreviewContext.StepData
+		|| CurrentPresentationSettings != PreviewContext.PresentationSettings;
 
-void UTargetingPresentationController::UpdateLivePreview(const FTargetingStepCardData& StepData, const FTargetingPreviewContext& PreviewContext)
-{
-	if (!LiveSourceCharacter)
+	if (bNeedsNewInstance)
 	{
-		return;
-	}
-
-	if (LivePreviewStepData != &StepData)
-	{
-		DestroyLiveStepPreview();
-		if (!CreateLiveStepPreview(StepData))
+		DestroyCurrentStepPreview();
+		if (!CreateCurrentStepPreview(PreviewContext))
 		{
 			RefreshAffectedHighlights();
-			return;
+			return false;
 		}
 	}
 
-	LiveStepPreview->UpdatePreview(PreviewContext);
+	CurrentStepPreview->UpdatePreview(PreviewContext);
 	RefreshAffectedHighlights();
-}
-
-bool UTargetingPresentationController::CreateLiveStepPreview(const FTargetingStepCardData& StepData)
-{
-	const FTargetingPhasePresentationSettings& PresentationSettings = StepData.Presentation.Phases.Targeting;
-	LiveStepPreview = NewObject<UTargetingStepPreviewInstance>(this);
-	if (!LiveStepPreview
-		|| !LiveStepPreview->Initialize(
-			LiveSourceCharacter.Get(),
-			GridManager.Get(),
-			LiveGridWorldType,
-			StepData,
-			PresentationSettings))
-	{
-		LiveStepPreview = nullptr;
-		LivePreviewStepData = nullptr;
-		return false;
-	}
-
-	LivePreviewStepData = &StepData;
 	return true;
 }
 
-void UTargetingPresentationController::DestroyLiveStepPreview()
+bool UTargetingPresentationController::CreateCurrentStepPreview(const FTargetingPreviewContext& PreviewContext)
 {
-	if (LiveStepPreview)
+	CurrentStepPreview = NewObject<UTargetingStepPreviewInstance>(this);
+	if (!CurrentStepPreview || !CurrentStepPreview->Initialize(PreviewContext))
 	{
-		LiveStepPreview->EndPresentation();
+		CurrentStepPreview = nullptr;
+		return false;
 	}
 
-	LiveStepPreview = nullptr;
-	LivePreviewStepData = nullptr;
+	CurrentStepSourceCharacter = PreviewContext.SourceCharacter;
+	CurrentStepData = PreviewContext.StepData;
+	CurrentPresentationSettings = PreviewContext.PresentationSettings;
+	return true;
 }
 
-void UTargetingPresentationController::ClearLivePreview()
+void UTargetingPresentationController::DestroyCurrentStepPreview()
 {
-	DestroyLiveStepPreview();
-	LiveSourceCharacter = nullptr;
-	LiveGridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
+	if (CurrentStepPreview)
+	{
+		CurrentStepPreview->EndPresentation();
+	}
+
+	CurrentStepPreview = nullptr;
+	CurrentStepSourceCharacter = nullptr;
+	CurrentStepData = nullptr;
+	CurrentPresentationSettings = nullptr;
+}
+
+void UTargetingPresentationController::ClearCurrentStepPreview()
+{
+	DestroyCurrentStepPreview();
 	RefreshAffectedHighlights();
 }
 
-bool UTargetingPresentationController::AddTargetingResultPreview(ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType GridWorldType, const FTargetingCardData& CardData, const FTargetingResult& TargetingResult, int32 StepIndex, const FTargetingPhasePresentationSettings& PresentationSettings, bool bEnemyStyle)
+bool UTargetingPresentationController::AddStepPreview(const FTargetingPreviewContext& PreviewContext)
 {
-	if (!IsValid(SourceCharacter)) return false;
-
-	const FTargetingStepCardData* StepData = CardData.GetStep(StepIndex);
-	const FTargetingStepResult* StepResult = TargetingResult.GetStep(StepIndex);
-	if (!StepData || !StepResult) return false;
+	if (!PreviewContext.IsValid())
+	{
+		return false;
+	}
 
 	UTargetingStepPreviewInstance* PreviewInstance = NewObject<UTargetingStepPreviewInstance>(this);
-	if (!PreviewInstance
-		|| !PreviewInstance->Initialize(SourceCharacter, GridManager.Get(), GridWorldType, *StepData, PresentationSettings, bEnemyStyle))
+	if (!PreviewInstance || !PreviewInstance->Initialize(PreviewContext))
 	{
 		return false;
 	}
 
-	FTargetingPreviewContext PreviewContext;
-	PreviewContext.GridManager = GridManager.Get();
-	PreviewContext.StepData = StepData;
-	PreviewContext.TargetingStep = StepResult;
 	PreviewInstance->UpdatePreview(PreviewContext);
-
-	TargetingResultPreviewInstances.Add(PreviewInstance);
+	StepPreviews.Add(PreviewInstance);
 	RefreshAffectedHighlights();
 	return true;
 }
 
-void UTargetingPresentationController::ClearTargetingResultPreviews()
+void UTargetingPresentationController::ClearStepPreviews()
 {
-	for (UTargetingStepPreviewInstance* PreviewInstance : TargetingResultPreviewInstances)
+	for (UTargetingStepPreviewInstance* PreviewInstance : StepPreviews)
 	{
 		if (PreviewInstance)
 		{
@@ -122,7 +102,7 @@ void UTargetingPresentationController::ClearTargetingResultPreviews()
 		}
 	}
 
-	TargetingResultPreviewInstances.Empty();
+	StepPreviews.Empty();
 	RefreshAffectedHighlights();
 }
 
@@ -130,15 +110,15 @@ void UTargetingPresentationController::RefreshAffectedHighlights()
 {
 	TArray<FHexOffsetCoord> Coords;
 
-	if (LiveStepPreview)
+	if (CurrentStepPreview)
 	{
-		for (const FHexOffsetCoord& Coord : LiveStepPreview->GetAffectedHighlightCoords())
+		for (const FHexOffsetCoord& Coord : CurrentStepPreview->GetAffectedHighlightCoords())
 		{
 			Coords.AddUnique(Coord);
 		}
 	}
 
-	for (const UTargetingStepPreviewInstance* PreviewInstance : TargetingResultPreviewInstances)
+	for (const UTargetingStepPreviewInstance* PreviewInstance : StepPreviews)
 	{
 		if (!PreviewInstance)
 		{
@@ -163,6 +143,6 @@ void UTargetingPresentationController::RefreshAffectedHighlights()
 
 void UTargetingPresentationController::ClearAllPresentation()
 {
-	ClearLivePreview();
-	ClearTargetingResultPreviews();
+	ClearCurrentStepPreview();
+	ClearStepPreviews();
 }

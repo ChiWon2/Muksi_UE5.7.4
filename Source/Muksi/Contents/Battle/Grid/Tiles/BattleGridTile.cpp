@@ -26,6 +26,7 @@ ABattleGridTile::ABattleGridTile()
 	
 	TargetIndicatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TargetIndicatorMesh"));
 	TargetIndicatorMesh->SetupAttachment(SceneRoot);
+	TargetIndicatorMesh->SetForceDisableNanite(true);
 }
 
 void ABattleGridTile::BeginPlay()

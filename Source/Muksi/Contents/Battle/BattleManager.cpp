@@ -2,6 +2,9 @@
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhasePipeline.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Data/BattleAction.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
@@ -83,6 +86,40 @@ bool ABattleManager::InitializeBattleFlow()
         return false;
 
     bBattleFlowInitialized = true;
+    return true;
+}
+
+
+bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuksiBattleCardDataAsset* Card, const FTargetingIntent& TargetingIntent, bool bPlayerAction)
+{
+    if (!IsValid(BattleRuntimeContext) || !IsValid(Attacker) || !IsValid(Card))
+    {
+        return false;
+    }
+
+    if (CurrentExchange < 0 || CurrentExchange >= MaxExchangeCount)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Invalid exchange index for targeting action: %d"), CurrentExchange);
+        return false;
+    }
+
+    FBattleAction BattleAction;
+    BattleAction.ExchangeIndex = CurrentExchange;
+    BattleAction.Card = Card;
+    BattleAction.Speed = Attacker->GetCharacterSpeed() + Card->CardSpeed;
+    BattleAction.Attacker = Attacker;
+    BattleAction.bPlayerAction = bPlayerAction;
+    BattleAction.TargetingIntent = TargetingIntent;
+
+    if (bPlayerAction)
+    {
+        BattleRuntimeContext->SetPlayerExchangeAction(CurrentExchange, BattleAction);
+    }
+    else
+    {
+        BattleRuntimeContext->SetEnemyExchangeAction(CurrentExchange, BattleAction);
+    }
+
     return true;
 }
 
@@ -297,7 +334,13 @@ void ABattleManager::AdvanceExchange()
 
 void ABattleManager::RestartCurrentExchangeCardSelection()
 {
-    if (CurrentPhase != EBattlePhase::Targeting && CurrentPhase != EBattlePhase::CardReveal) return;
+    if (CurrentPhase != EBattlePhase::Targeting
+        && CurrentPhase != EBattlePhase::CardReveal
+        && CurrentPhase != EBattlePhase::SimulationSequence)
+    {
+        return;
+    }
+
     ChangePhase(EBattlePhase::CardSelect);
 }
 

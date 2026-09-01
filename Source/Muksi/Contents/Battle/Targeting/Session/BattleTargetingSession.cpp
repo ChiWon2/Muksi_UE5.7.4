@@ -27,7 +27,6 @@ bool UBattleTargetingSession::StartSession(ABattleCharacterBase* InSourceCharact
 
     CurrentStepIndex = 0;
     State = EBattleTargetingSessionState::Selecting;
-    ResetCurrentStep();
     return true;
 }
 
@@ -39,50 +38,52 @@ bool UBattleTargetingSession::UpdateSelection(const FHexOffsetCoord& CandidateCo
         return false;
     }
 
-    FSelectionStepResult SelectionResult;
-
-    if (!EvaluateCandidate(CandidateCoord, SelectionResult))
+    FTargetingStep Step;
+    if (!EvaluateCandidate(CandidateCoord, Step))
     {
         ResetCurrentStep();
         return false;
     }
 
-    SelectionResult.SelectedDirection = Direction;
+    Step.Direction = Direction;
 
     const FTargetingStepCardData* StepData = GetCurrentStepData();
-
-    if (!SelectionResult.HasSelectedDirection()&& StepData && StepData->Origin.Source == ETargetingOriginSource::PreviousStep && !ConfirmedSteps.IsEmpty() && ConfirmedSteps.Last().HasSelectedDirection())
+    if (!Step.HasDirection()
+        && StepData
+        && StepData->Origin.Source == ETargetingOriginSource::PreviousStep
+        && !ConfirmedSteps.IsEmpty()
+        && ConfirmedSteps.Last().Step.HasDirection())
     {
-        SelectionResult.SelectedDirection = ConfirmedSteps.Last().SelectedDirection;
+        Step.Direction = ConfirmedSteps.Last().Step.Direction;
     }
 
     if (StepData && StepData->Pattern.PatternClass)
     {
         const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
-
-        if (Pattern && Pattern->RequiresDirection() && !SelectionResult.HasSelectedDirection())
+        if (Pattern && Pattern->RequiresDirection() && !Step.HasDirection())
         {
             ResetCurrentStep();
             return false;
         }
     }
 
-    CurrentStepResult = MoveTemp(SelectionResult);
+    FTargetingStepResult TargetingStepResult;
+    if (!BuildTargetingStepResult(Step, TargetingStepResult))
+    {
+        ResetCurrentStep();
+        return false;
+    }
+
+    CurrentStepResult = MoveTemp(TargetingStepResult);
     return true;
 }
 
 ETargetingConfirmResult UBattleTargetingSession::ConfirmStep()
 {
-    if (!IsSelecting() || !CardTargetingData.IsValidStepIndex(CurrentStepIndex) || !CurrentStepResult.bValid)
-        return ETargetingConfirmResult::Failed;
-
-    FTargetingStepIntent StepIntent;
-
-    if (!BuildCurrentStepIntent(StepIntent))
+    if (!IsSelecting() || !CardTargetingData.IsValidStepIndex(CurrentStepIndex) || !CurrentStepResult.Step.HasOriginCoord())
         return ETargetingConfirmResult::Failed;
 
     ConfirmedSteps.Add(CurrentStepResult);
-    Intent.Steps.Add(StepIntent);
 
     const int32 NextStepIndex = CurrentStepIndex + 1;
 
@@ -93,13 +94,19 @@ ETargetingConfirmResult UBattleTargetingSession::ConfirmStep()
         return ETargetingConfirmResult::AdvancedToNextStep;
     }
 
+    if (!BuildIntent())
+    {
+        ConfirmedSteps.Pop();
+        return ETargetingConfirmResult::Failed;
+    }
+
     State = EBattleTargetingSessionState::Completed;
     return ETargetingConfirmResult::Completed;
 }
 
 bool UBattleTargetingSession::UndoStep()
 {
-    if (ConfirmedSteps.IsEmpty() || Intent.Steps.IsEmpty())
+    if (ConfirmedSteps.IsEmpty())
         return false;
 
     const int32 RestoredStepIndex = ConfirmedSteps.Num() - 1;
@@ -108,9 +115,9 @@ bool UBattleTargetingSession::UndoStep()
         return false;
 
     CurrentStepResult = ConfirmedSteps.Pop();
-    Intent.Steps.Pop();
     CurrentStepIndex = RestoredStepIndex;
     State = EBattleTargetingSessionState::Selecting;
+    Intent.Reset();
     return true;
 }
 
@@ -134,9 +141,24 @@ const FTargetingIntent& UBattleTargetingSession::GetIntent() const
     return Intent;
 }
 
-const FSelectionStepResult& UBattleTargetingSession::GetCurrentStepResult() const
+const FTargetingStepResult& UBattleTargetingSession::GetCurrentStepResult() const
 {
     return CurrentStepResult;
+}
+
+const TArray<FTargetingStepResult>& UBattleTargetingSession::GetConfirmedSteps() const
+{
+    return ConfirmedSteps;
+}
+
+const FTargetingCardData& UBattleTargetingSession::GetCardTargetingData() const
+{
+    return CardTargetingData;
+}
+
+ABattleCharacterBase* UBattleTargetingSession::GetSourceCharacter() const
+{
+    return SourceCharacter.Get();
 }
 
 const FTargetingStepCardData* UBattleTargetingSession::GetCurrentStepData() const
@@ -163,17 +185,17 @@ bool UBattleTargetingSession::GetCurrentOriginCoord(FHexOffsetCoord& OutOriginCo
         break;
 
     case ETargetingOriginSource::PreviousStep:
-        if (ConfirmedSteps.IsEmpty() || !ConfirmedSteps.Last().HasSelectedCoord())
+        if (ConfirmedSteps.IsEmpty() || !ConfirmedSteps.Last().Step.HasTargetCoord())
             return false;
 
-        OutOriginCoord = ConfirmedSteps.Last().SelectedCoord;
+        OutOriginCoord = ConfirmedSteps.Last().Step.TargetCoord;
         break;
 
     case ETargetingOriginSource::SpecificStep:
-        if (!ConfirmedSteps.IsValidIndex(StepData->Origin.StepIndex) || !ConfirmedSteps[StepData->Origin.StepIndex].HasSelectedCoord())
+        if (!ConfirmedSteps.IsValidIndex(StepData->Origin.StepIndex) || !ConfirmedSteps[StepData->Origin.StepIndex].Step.HasTargetCoord())
             return false;
 
-        OutOriginCoord = ConfirmedSteps[StepData->Origin.StepIndex].SelectedCoord;
+        OutOriginCoord = ConfirmedSteps[StepData->Origin.StepIndex].Step.TargetCoord;
         break;
 
     default:
@@ -183,9 +205,9 @@ bool UBattleTargetingSession::GetCurrentOriginCoord(FHexOffsetCoord& OutOriginCo
     return IsValid(GridManager.Get()) && GridManager->IsValidCoord(OutOriginCoord);
 }
 
-bool UBattleTargetingSession::EvaluateCandidate(const FHexOffsetCoord& CandidateCoord, FSelectionStepResult& OutStepResult) const
+bool UBattleTargetingSession::EvaluateCandidate(const FHexOffsetCoord& CandidateCoord, FTargetingStep& OutStep) const
 {
-    OutStepResult.Reset();
+    OutStep.Reset();
 
     const FTargetingStepCardData* StepData = GetCurrentStepData();
 
@@ -202,37 +224,110 @@ bool UBattleTargetingSession::EvaluateCandidate(const FHexOffsetCoord& Candidate
     if (!GetCurrentOriginCoord(OriginCoord))
         return false;
 
-    Selection->EvaluateCandidate(GridManager.Get(), OriginCoord, CandidateCoord, StepData->Selection.RuleData, OutStepResult);
-    return OutStepResult.bValid;
+    return Selection->EvaluateCandidate(GridManager.Get(), OriginCoord, CandidateCoord, StepData->Selection.RuleData, OutStep);
 }
 
-bool UBattleTargetingSession::BuildCurrentStepIntent(FTargetingStepIntent& OutIntent) const
+bool UBattleTargetingSession::BuildTargetingStepResult(const FTargetingStep& Step, FTargetingStepResult& OutStepResult) const
+{
+    OutStepResult.Reset();
+
+    if (!Step.HasOriginCoord() || !Step.HasTargetCoord())
+        return false;
+
+    const FTargetingStepCardData* StepData = GetCurrentStepData();
+    if (!StepData || !IsValid(GridManager.Get()))
+        return false;
+
+    OutStepResult.Step = Step;
+
+    if (!StepData->Pattern.PatternClass)
+    {
+        OutStepResult.AffectedCoords.Add(Step.TargetCoord);
+    }
+    else
+    {
+        const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
+        if (!Pattern)
+            return false;
+
+        Pattern->ApplyPattern(
+            GridManager.Get(),
+            GridWorldType,
+            StepData->Pattern.PatternData,
+            Step.OriginCoord,
+            Step.TargetCoord,
+            Step.Direction,
+            OutStepResult.AffectedCoords,
+            OutStepResult.PathCoords);
+    }
+
+    GridManager->GetCharactersAtCoords(GridWorldType, OutStepResult.AffectedCoords, OutStepResult.Targets);
+    return true;
+}
+
+bool UBattleTargetingSession::BuildIntent()
+{
+    Intent.Reset();
+
+    if (ConfirmedSteps.Num() != CardTargetingData.Steps.Num())
+        return false;
+
+    Intent.Steps.Reserve(ConfirmedSteps.Num());
+
+    for (int32 StepIndex = 0; StepIndex < ConfirmedSteps.Num(); ++StepIndex)
+    {
+        const FTargetingStepCardData* StepData = CardTargetingData.GetStep(StepIndex);
+        if (!StepData)
+        {
+            Intent.Reset();
+            return false;
+        }
+
+        FTargetingStepIntent StepIntent;
+        if (!BuildStepIntent(ConfirmedSteps[StepIndex], *StepData, StepIntent))
+        {
+            Intent.Reset();
+            return false;
+        }
+
+        Intent.Steps.Add(MoveTemp(StepIntent));
+    }
+
+    return true;
+}
+
+bool UBattleTargetingSession::BuildStepIntent(const FTargetingStepResult& StepResult, const FTargetingStepCardData& StepData, FTargetingStepIntent& OutIntent) const
 {
     OutIntent.Reset();
 
-    if (!CurrentStepResult.bValid || !CurrentStepResult.HasOriginCoord())
+    const FTargetingStep& Step = StepResult.Step;
+    if (!Step.HasOriginCoord() || !Step.HasTargetCoord())
         return false;
 
-    OutIntent.SelectedCoord = CurrentStepResult.SelectedCoord;
-    OutIntent.Direction = CurrentStepResult.SelectedDirection;
+    OutIntent.Direction = Step.Direction;
 
-    if (CurrentStepResult.HasSelectedCoord())
+    switch (StepData.Intent.Binding)
     {
-        OutIntent.RelativeOffset = FHexGridMath::OffsetToCube(CurrentStepResult.SelectedCoord) - FHexGridMath::OffsetToCube(CurrentStepResult.OriginCoord);
+    case ETargetingIntentBinding::TargetCharacter:
+        OutIntent.RelativeOffset = FHexGridMath::OffsetToCube(Step.TargetCoord) - FHexGridMath::OffsetToCube(Step.OriginCoord);
 
-        if (const FBattleGridCell* Cell = GridManager->GetCellByCoord(GridWorldType, CurrentStepResult.SelectedCoord))
+        if (const FBattleGridCell* Cell = GridManager->GetCellByCoord(GridWorldType, Step.TargetCoord))
         {
             if (const ABattleCharacterBase* TargetCharacter = Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()))
                 OutIntent.TargetCharacterKey = TargetCharacter->GetTargetingCharacterKey();
         }
+
+        return OutIntent.HasTargetCharacterKey();
+
+    case ETargetingIntentBinding::WorldFixed:
+        OutIntent.SelectedCoord = Step.TargetCoord;
+        return OutIntent.SelectedCoord.IsValid();
+
+    case ETargetingIntentBinding::OriginRelative:
+    default:
+        OutIntent.RelativeOffset = FHexGridMath::OffsetToCube(Step.TargetCoord) - FHexGridMath::OffsetToCube(Step.OriginCoord);
+        return true;
     }
-
-    const FTargetingStepCardData* StepData = GetCurrentStepData();
-
-    if (StepData && StepData->Intent.Binding == ETargetingIntentBinding::TargetCharacter && !OutIntent.HasTargetCharacterKey())
-        return false;
-
-    return OutIntent.HasSelectedCoord() || OutIntent.Direction != INDEX_NONE || OutIntent.HasTargetCharacterKey();
 }
 
 void UBattleTargetingSession::ResetCurrentStep()

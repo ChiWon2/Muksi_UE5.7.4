@@ -17,12 +17,12 @@ class UMuksiBattleCardDataAsset;
 class UTargetingPresentationController;
 
 struct FHitResult;
-struct FTargetingResult;
+struct FTargetingIntent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnemyCardSelectionReady, UMuksiBattleCardDataAsset*, int32);
 
 /**
- * Exchange 카드 선택, Targeting Session, Action 생성과 카드 공개 Preview를 담당한다.
+ * Exchange 카드 선택, Targeting Session과 카드 공개 Preview를 담당한다.
  * Phase 순서는 결정하지 않으며 Pipeline의 Entry, UI, Execution Task 계약을 따른다.
  */
 UCLASS()
@@ -64,11 +64,11 @@ private:
 
     void ResetPlayerTargeting();
     void ResetEnemyTargeting();
-    void BuildAndPresentPlayerTargetingPreview();
+    void RefreshTargetingPresentation(const UBattleTargetingSession* Session);
     void ClearAllTargeting();
     bool StartPlayerTargeting();
     bool CompletePlayerTargeting();
-    bool BuildEnemyAction(FBattleAction& OutAction);
+    bool CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedCard, FTargetingIntent& OutIntent);
     bool CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, ABattleCharacterBase* TargetCharacter);
     void CompleteEnemyCardSelectionRequest();
     void TryCompleteTargetingPhase();
@@ -79,11 +79,10 @@ private:
     int32 CalculateDirectionToCoord(const UBattleTargetingSession* Session, const FHexOffsetCoord& TargetCoord) const;
 
     void StartCardRevealPresentation(int32 ExchangeIndex);
-    void ShowCardRevealActionPresentation(const FBattleAction& Action);
+    void PresentCardReveal(const UBattleTargetingSession* Session);
     void ClearCardRevealPresentation();
     void FinishCardRevealPresentation();
 
-    bool BuildCardRevealTargetingResult(const FBattleAction& Action, FTargetingResult& OutTargetingResult) const;
 
 private:
     UPROPERTY(Transient)

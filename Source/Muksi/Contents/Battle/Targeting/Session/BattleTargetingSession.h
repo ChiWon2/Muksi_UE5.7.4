@@ -5,7 +5,8 @@
 
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
-#include "Muksi/Contents/Battle/Targeting/Context/SelectionStepResult.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingConfirmResult.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
@@ -38,13 +39,18 @@ public:
     bool IsCompleted() const;
     int32 GetCurrentStepIndex() const;
     const FTargetingIntent& GetIntent() const;
-    const FSelectionStepResult& GetCurrentStepResult() const;
+    const FTargetingStepResult& GetCurrentStepResult() const;
+    const TArray<FTargetingStepResult>& GetConfirmedSteps() const;
+    const FTargetingCardData& GetCardTargetingData() const;
+    ABattleCharacterBase* GetSourceCharacter() const;
     const FTargetingStepCardData* GetCurrentStepData() const;
     bool GetCurrentOriginCoord(FHexOffsetCoord& OutOriginCoord) const;
 
 private:
-    bool EvaluateCandidate(const FHexOffsetCoord& CandidateCoord, FSelectionStepResult& OutStepResult) const;
-    bool BuildCurrentStepIntent(FTargetingStepIntent& OutIntent) const;
+    bool EvaluateCandidate(const FHexOffsetCoord& CandidateCoord, FTargetingStep& OutStep) const;
+    bool BuildTargetingStepResult(const FTargetingStep& Step, FTargetingStepResult& OutStepResult) const;
+    bool BuildIntent();
+    bool BuildStepIntent(const FTargetingStepResult& StepResult, const FTargetingStepCardData& StepData, FTargetingStepIntent& OutIntent) const;
     void ResetCurrentStep();
     void ResetSession();
 
@@ -58,8 +64,8 @@ private:
     EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
     FTargetingCardData CardTargetingData;
     int32 CurrentStepIndex = INDEX_NONE;
-    FSelectionStepResult CurrentStepResult;
-    TArray<FSelectionStepResult> ConfirmedSteps;
+    FTargetingStepResult CurrentStepResult;
+    TArray<FTargetingStepResult> ConfirmedSteps;
     FTargetingIntent Intent;
     EBattleTargetingSessionState State = EBattleTargetingSessionState::Idle;
 };
