@@ -10,7 +10,7 @@
 void UWidget_BattleTimer::NativeConstruct()
 {
 	Super::NativeConstruct();
-	SetVisibility(ESlateVisibility::Collapsed);
+	//SetVisibility(ESlateVisibility::Collapsed);
 
 	if (IsValid(TimerProgressBar))
 	{
@@ -19,25 +19,12 @@ void UWidget_BattleTimer::NativeConstruct()
 
 	if (IsValid(RemainingTimeText))
 	{
-		RemainingTimeText->SetText(
-			FText::AsNumber(0)
-		);
+		RemainingTimeText->SetText(FText::AsNumber(0));
 	}
 }
 
-void UWidget_BattleTimer::ShowTimer(float TotalDuration, float WarningTime)
+void UWidget_BattleTimer::ShowTimer(float TotalDuration)
 {
-	CurrentTotalDuration = FMath::Max(
-		TotalDuration,
-		0.0f
-	);
-
-	CurrentWarningTime = FMath::Clamp(
-		WarningTime,
-		0.0f,
-		CurrentTotalDuration
-	);
-
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 
 	if (IsValid(TimerProgressBar))
@@ -49,7 +36,9 @@ void UWidget_BattleTimer::ShowTimer(float TotalDuration, float WarningTime)
 	{
 		RemainingTimeText->SetText(
 			FText::AsNumber(
-				FMath::CeilToInt(CurrentTotalDuration)
+				FMath::CeilToInt(
+					FMath::Max(TotalDuration, 0.0f)
+				)
 			)
 		);
 	}
@@ -111,10 +100,14 @@ void UWidget_BattleTimer::ExpireTimer()
 
 void UWidget_BattleTimer::HideTimer()
 {
-	if (IsValid(WarningAnimation) &&
-	IsAnimationPlaying(WarningAnimation))
+	if (IsValid(WarningAnimation) && IsAnimationPlaying(WarningAnimation))
 	{
 		StopAnimation(WarningAnimation);
+	}
+
+	if (IsValid(ExpiredAnimation) && IsAnimationPlaying(ExpiredAnimation))
+	{
+		StopAnimation(ExpiredAnimation);
 	}
 
 	SetVisibility(ESlateVisibility::Collapsed);

@@ -24,6 +24,7 @@
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Widgets/Battle/Hand/ExchangeControl/ExchangeControlWidget.h"
 #include "Muksi/Widgets/Battle/Hand/ExchangeSlot/ExchangeSlotPanelWidget.h"
 #include "Muksi/Widgets/Battle/Passive/PassiveActivePopupWidget.h"
@@ -427,6 +428,8 @@ void UWidget_BattleMainScreen::HandlePipelineUIFinish()
 void UWidget_BattleMainScreen::ReadyStart()
 {
 	// UI 받아올 거 설정
+	//위젯 -> Widget_BattleMainScreen 바인딩
+	ExchangeControlWidget->OnExchangeTimeExpired.AddUObject(this, &UWidget_BattleMainScreen::TimeOutCardSelect);
 }
 
 void UWidget_BattleMainScreen::ReadyEnd()
@@ -588,6 +591,11 @@ void UWidget_BattleMainScreen::StartExchangeSelectCard(int32 ExchangeIndex)
 	//합 종료 버튼을 눌렀을 경우 해당 카드의 효과(이동/공격)방향 제시
 	HandleUIFinishCount = 0;
 	//Pipeline UI 표시
+	// Exchange 제한시간 시작
+	if (ExchangeControlWidget)
+	{
+		ExchangeControlWidget->StartExchangeTimer();
+	}
 	
 	BattlePipelineWidgetSetting(EBattlePhase::CardSelect);
 }
@@ -689,6 +697,44 @@ void UWidget_BattleMainScreen::ClearBattleCard()const
 {
 	HandWidget->InvisibleHandCards();
 	HandWidget->HitActiveHandCards(false);
+}
+
+void UWidget_BattleMainScreen::TimeOutCardSelect()
+{
+	UBattleCardManager* BattleCardManager = BattleManager->GetBattleCardManager();
+	if (!BattleManager || !BattleCardManager)
+	{
+		return;
+	}
+
+	const int32 CurrentExchange =
+		BattleManager->GetCurrentExchange();
+
+	FBattleCardInstance SelectedCard;
+	bool bAutoSelected = false;
+
+	if (!BattleCardManager->ResolvePlayerCardOnTimeout(CurrentExchange,SelectedCard, bAutoSelected))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("Timeout - Failed To Resolve Player Card")
+		);
+
+		return;
+	}
+	
+	if (bAutoSelected)
+	{
+		//HandWidget에 해당 카드 넣는 기능
+	}
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Timeout - Player Card Resolved: %s"),
+		*GetNameSafe(SelectedCard.CardData)
+	);
 }
 
 void UWidget_BattleMainScreen::HandleEnemyCardSelectionReady(

@@ -191,3 +191,103 @@ bool UBattleCardManager::ReplaceHandCard(ABattleCharacterBase* Character, const 
 }
 
 
+
+bool UBattleCardManager::SelectRandomPlayerCardOnTimeout(FBattleCardInstance& OutSelectedCard)
+{
+	if (!BattleManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleManager is null (BattleCardManager.cpp)"));
+		return false;
+	}
+	UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+	if (!RuntimeContext)
+	{
+		return false;
+	}
+	
+	
+	ABattleCharacterBase* PlayerCharacter = RuntimeContext->GetPlayerCharacter();
+
+	if (!PlayerCharacter)
+	{
+		return false;
+	}
+
+	UBattleCardComponent* CardComponent = PlayerCharacter->GetBattleCardComponent();
+
+	if (!CardComponent)
+	{
+		return false;
+	}
+
+	const TArray<FBattleCardInstance>& CurrentHand = CardComponent->GetCurrentHand();
+
+	if (CurrentHand.IsEmpty())
+	{
+		return false;
+	}
+
+	const int32 RandomIndex = FMath::RandRange(0, CurrentHand.Num() - 1);
+	
+	OutSelectedCard = CurrentHand[RandomIndex];
+
+	if (!CardComponent->CommitCard(OutSelectedCard.InstanceId))
+	{
+		return false;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Timeout Random Card Selected: %s"), *GetNameSafe(OutSelectedCard.CardData));
+
+	return true;
+}
+
+bool UBattleCardManager::ResolvePlayerCardOnTimeout(int32 ExchangeIndex, FBattleCardInstance& OutCard, bool& bOutAutoSelected)
+{
+	if (!BattleManager)
+	{
+		return false;
+	}
+
+	UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+	if (!RuntimeContext)
+	{
+		return false;
+	}
+
+	ABattleCharacterBase* PlayerCharacter = RuntimeContext->GetPlayerCharacter();
+
+	if (!PlayerCharacter)
+	{
+		return false;
+	}
+
+	UBattleCardComponent* CardComponent = PlayerCharacter->GetBattleCardComponent();
+
+	if (!CardComponent)
+	{
+		return false;
+	}
+
+	// 현재 Exchange에서 이미 Commit한 카드가 있으면 그대로 사용
+	if (const FBattleCardInstance* CommittedCard = CardComponent->GetCommittedCardByExchange(ExchangeIndex))
+	{
+		OutCard = *CommittedCard;
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("Timeout - Use Existing Card: %s"),
+			*GetNameSafe(OutCard.CardData)
+		);
+
+		return true;
+	}
+
+	// 없으면 랜덤 카드 Commit
+	bOutAutoSelected = true;
+	return SelectRandomPlayerCardOnTimeout(OutCard);
+}
+
+
