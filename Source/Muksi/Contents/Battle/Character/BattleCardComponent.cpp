@@ -67,6 +67,16 @@ const FBattleCardInstance* UBattleCardComponent::FindHandCardByData(UMuksiBattle
 		});
 }
 
+const FBattleCardInstance* UBattleCardComponent::GetCommittedCardByExchange(int32 ExchangeIndex) const
+{
+	if (!CommittedCards.IsValidIndex(ExchangeIndex))
+	{
+		return nullptr;
+	}
+
+	return &CommittedCards[ExchangeIndex];
+}
+
 
 //카드 이동이 성공했는지 실패했는지 호출한 쪽에서 알 수 있게 하기
 bool UBattleCardComponent::CommitCard(const FGuid& InstanceId)

@@ -207,6 +207,8 @@ protected:
 	void HandleEnemyCardRevealFinished(int32 ExchangeIndex);
 	void SetBattleCardToHand();
 	void ClearBattleCard()const;
+	
+	void TimeOutCardSelect();
 public:
 	
 	void HandleEnemyCardSelectionReady(UMuksiBattleCardDataAsset* EnemyCard, int32 ExchangeIndex);

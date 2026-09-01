@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "BattleCardManager.generated.h"
 
+struct FBattleCardInstance;
 class UBattlePhaseTaskContext;
 enum class EBattlePhase : uint8;
 class ABattleManager;
@@ -50,4 +51,11 @@ public:
 		const FGuid& InstanceId,
 		UMuksiBattleCardDataAsset* NewCardData);
 	//------------------------------------------------------------------------
+	
+	
+	//카드 선택 시간초과 시스템-------------------------------------------------------
+public:
+	bool SelectRandomPlayerCardOnTimeout(FBattleCardInstance& OutSelectedCard);
+	bool ResolvePlayerCardOnTimeout(int32 ExchangeIndex, FBattleCardInstance& OutCard, bool& bOutAutoSelected);
+	//----------------------------------------------------------------------------
 };

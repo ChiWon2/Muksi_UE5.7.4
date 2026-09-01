@@ -25,17 +25,11 @@ protected:
 public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Battle|Timer")
-	void ShowTimer(
-		float TotalDuration,
-		float WarningTime
-	);
+	void ShowTimer(float TotalDuration);
 
 	//남은 시간 텍스트/프로그래스 바
 	UFUNCTION(BlueprintCallable, Category = "Battle|Timer")
-	void UpdateTimerDisplay(
-		float RemainingTime,
-		float RemainingRatio
-	);
+	void UpdateTimerDisplay(float RemainingTime, float RemainingRatio);
 
 	//경고 연출
 	UFUNCTION(BlueprintCallable, Category = "Battle|Timer")
@@ -63,16 +57,10 @@ protected:
 	TObjectPtr<UImage> RopeBurnImage = nullptr;
 	//*** BindWidget
 
-	UPROPERTY(
-		Transient,
-		meta = (BindWidgetAnimOptional)
-	)
+	UPROPERTY(Transient, meta = (BindWidgetAnimOptional))
 	TObjectPtr<UWidgetAnimation> WarningAnimation = nullptr;
 
-	UPROPERTY(
-		Transient,
-		meta = (BindWidgetAnimOptional)
-	)
+	UPROPERTY(Transient, meta = (BindWidgetAnimOptional))
 	TObjectPtr<UWidgetAnimation> ExpiredAnimation = nullptr;
 
 private:
