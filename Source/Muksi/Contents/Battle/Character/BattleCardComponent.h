@@ -76,6 +76,7 @@ public:
 	
 	const FBattleCardInstance* FindHandCardById(const FGuid& InstanceId) const;
 	const FBattleCardInstance* FindHandCardByData(UMuksiBattleCardDataAsset* CardData) const;
+	const FBattleCardInstance* GetCommittedCardByExchange(int32 ExchangeIndex) const;
 	
 	
 	bool CommitCard(const FGuid& InstanceId);
