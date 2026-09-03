@@ -17,7 +17,8 @@ ABattleSimulationCharacter::ABattleSimulationCharacter()
 
 void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterBase* InSourceCharacter, UMaterialInterface* MaterialOverride)
 {
-	if (!IsValid(InSourceCharacter)) return;
+	if (!IsValid(InSourceCharacter))
+		return;
 	ResetActiveState();
 	CopyActorState(*InSourceCharacter);
 	CopyMeshPresentation(*InSourceCharacter, MaterialOverride);
@@ -26,9 +27,12 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 
 void ABattleSimulationCharacter::ResetActiveState()
 {
-	if (BattleMovementComponent) BattleMovementComponent->StopMovement(false);
-	if (MeshComponent && MeshComponent->GetAnimInstance()) MeshComponent->GetAnimInstance()->Montage_Stop(0.0f);
-	if (StatusEffectComponent) StatusEffectComponent->ResetRuntimeState();
+	if (BattleMovementComponent)
+		BattleMovementComponent->StopMovement(false);
+	if (MeshComponent && MeshComponent->GetAnimInstance())
+		MeshComponent->GetAnimInstance()->Montage_Stop(0.0f);
+	if (StatusEffectComponent)
+		StatusEffectComponent->ResetRuntimeState();
 }
 
 void ABattleSimulationCharacter::CopyActorState(const ABattleCharacterBase& InSourceCharacter)
@@ -41,7 +45,8 @@ void ABattleSimulationCharacter::CopyActorState(const ABattleCharacterBase& InSo
 void ABattleSimulationCharacter::CopyMeshPresentation(const ABattleCharacterBase& InSourceCharacter, UMaterialInterface* MaterialOverride)
 {
 	USkeletalMeshComponent* SourceMeshComponent = InSourceCharacter.GetMeshComponent();
-	if (!IsValid(SourceMeshComponent) || !IsValid(MeshComponent)) return;
+	if (!IsValid(SourceMeshComponent) || !IsValid(MeshComponent))
+		return;
 
 	MeshComponent->SetSkeletalMeshAsset(SourceMeshComponent->GetSkeletalMeshAsset());
 	MeshComponent->SetAnimInstanceClass(SourceMeshComponent->GetAnimClass());
@@ -53,14 +58,16 @@ void ABattleSimulationCharacter::CopyMeshPresentation(const ABattleCharacterBase
 
 	for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
 	{
-		if (MaterialToUse) MeshComponent->SetMaterial(MaterialIndex, MaterialToUse);
+		if (MaterialToUse)
+			MeshComponent->SetMaterial(MaterialIndex, MaterialToUse);
 		else MeshComponent->SetMaterial(MaterialIndex, SourceMeshComponent->GetMaterial(MaterialIndex));
 	}
 }
 
 void ABattleSimulationCharacter::CopyAnimationPresentation(const ABattleCharacterBase& InSourceCharacter)
 {
-	if (!IsValid(InSourceCharacter.BattleAnimationComponent.Get()) || !IsValid(BattleAnimationComponent.Get())) return;
+	if (!IsValid(InSourceCharacter.BattleAnimationComponent.Get()) || !IsValid(BattleAnimationComponent.Get()))
+		return;
 	BattleAnimationComponent->AnimationData = InSourceCharacter.BattleAnimationComponent->AnimationData;
 	BattleAnimationComponent->SetWeaponType(InSourceCharacter.BattleAnimationComponent->CurrentWeaponType);
 }

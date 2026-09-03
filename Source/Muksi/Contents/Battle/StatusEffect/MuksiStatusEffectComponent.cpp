@@ -308,7 +308,7 @@ void UMuksiStatusEffectComponent::ExecutePhaseExecutions(const TArray<FBattleExe
 
 	FBattleExecutionRunnerFinished OnFinished;
 	OnFinished.BindUObject(this, &UMuksiStatusEffectComponent::HandlePhaseExecutionRunnerFinished);
-	PhaseExecutionRunner->Run(ExecutionEntries, Context, FBattleExecutionEntryStarted(), FBattleExecutionEntryFinished(), OnFinished);
+	PhaseExecutionRunner->RunExecutions(ExecutionEntries, Context, FBattleExecutionEntryStarted(), FBattleExecutionEntryFinished(), OnFinished);
 }
 
 void UMuksiStatusEffectComponent::HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)

@@ -1,7 +1,7 @@
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 
 
-void UBattleExecutionRunner::Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished)
+void UBattleExecutionRunner::RunExecutions(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished)
 {
 	ExecutionEntries = InExecutionEntries;
 	CachedContext = Context;
@@ -36,7 +36,7 @@ void UBattleExecutionRunner::ExecuteNextExecution()
 
 	if (!ExecutionEntries.IsValidIndex(CurrentExecutionIndex))
 	{
-		TryFinishRunner();
+		TryCompleteExecutionSequence();
 		return;
 	}
 
@@ -114,7 +114,7 @@ bool UBattleExecutionRunner::HandleRuntimeExecutionChainRequested(const TArray<F
 
 	FBattleExecutionRunnerFinished OnFinished;
 	OnFinished.BindUObject(this, &UBattleExecutionRunner::HandleNestedExecutionRunnerFinished);
-	NestedRunner->Run(InExecutionEntries, NestedContext, CachedOnEntryStarted, CachedOnEntryFinished, OnFinished);
+	NestedRunner->RunExecutions(InExecutionEntries, NestedContext, CachedOnEntryStarted, CachedOnEntryFinished, OnFinished);
 	return true;
 }
 
@@ -133,18 +133,18 @@ void UBattleExecutionRunner::HandleNestedExecutionRunnerFinished(UBattleExecutio
 	}
 
 	CompletionDelegate.ExecuteIfBound();
-	TryFinishRunner();
+	TryCompleteExecutionSequence();
 }
 
-void UBattleExecutionRunner::TryFinishRunner()
+void UBattleExecutionRunner::TryCompleteExecutionSequence()
 {
 	if (!bRunnerFinished && !bWaitingForCurrentExecution && ActiveNestedExecutionRunners.IsEmpty() && !ExecutionEntries.IsValidIndex(CurrentExecutionIndex))
 	{
-		FinishRunner();
+		CompleteExecutionSequence();
 	}
 }
 
-void UBattleExecutionRunner::FinishRunner()
+void UBattleExecutionRunner::CompleteExecutionSequence()
 {
 	if (bRunnerFinished)
 	{

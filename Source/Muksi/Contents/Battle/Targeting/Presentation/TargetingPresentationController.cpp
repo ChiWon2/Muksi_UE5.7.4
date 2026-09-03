@@ -92,7 +92,7 @@ bool UTargetingPresentationController::AddStepPreview(const FTargetingPreviewCon
 	return true;
 }
 
-void UTargetingPresentationController::ClearStepPreviews()
+void UTargetingPresentationController::DestroyStepPreviews()
 {
 	for (UTargetingStepPreviewInstance* PreviewInstance : StepPreviews)
 	{
@@ -103,6 +103,11 @@ void UTargetingPresentationController::ClearStepPreviews()
 	}
 
 	StepPreviews.Empty();
+}
+
+void UTargetingPresentationController::ClearStepPreviews()
+{
+	DestroyStepPreviews();
 	RefreshAffectedHighlights();
 }
 
@@ -143,6 +148,7 @@ void UTargetingPresentationController::RefreshAffectedHighlights()
 
 void UTargetingPresentationController::ClearAllPresentation()
 {
-	ClearCurrentStepPreview();
-	ClearStepPreviews();
+	DestroyCurrentStepPreview();
+	DestroyStepPreviews();
+	RefreshAffectedHighlights();
 }

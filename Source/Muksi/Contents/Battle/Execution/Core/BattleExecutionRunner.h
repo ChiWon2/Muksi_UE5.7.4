@@ -18,15 +18,15 @@ class MUKSI_API UBattleExecutionRunner : public UObject
 	GENERATED_BODY()
 
 public:
-	void Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished);
+	void RunExecutions(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished);
 
 private:
 	void ExecuteNextExecution();
 	void HandleCurrentExecutionFinished();
 	bool HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate);
 	void HandleNestedExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
-	void TryFinishRunner();
-	void FinishRunner();
+	void TryCompleteExecutionSequence();
+	void CompleteExecutionSequence();
 	bool ShouldExecuteEntry(const FBattleExecutionEntry& Entry) const;
 
 private:

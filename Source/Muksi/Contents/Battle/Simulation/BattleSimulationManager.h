@@ -47,7 +47,6 @@ public:
 	bool IsSimulationPostProcessEnabled() const { return bEnableSimulationPostProcess; }
 	TSubclassOf<ABattleSimulationPostProcessVolume> GetSimulationPostProcessVolumeClass() const { return SimulationPostProcessVolumeClass; }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
-	void PresentSimulationWorldExecution(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult);
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -63,6 +62,8 @@ public:
 	FOnSimulationTimeScaleChanged SimulationTimeScaleChangedDelegate;
 
 private:
+	friend class UBattleSimulationWorldRuntime;
+
 	UFUNCTION()
 	void HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
@@ -73,7 +74,7 @@ private:
 	void ExecuteRoundStart();
 	void ExecuteSimulationSequence();
 	void CompletePhaseExecution(EBattlePhase FinishedPhase);
-	void NotifySimulationPhaseFinished(int32 FinishedExchangeIndex);
+	void TryCompleteSimulationSequencePhase(int32 FinishedExchangeIndex);
 
 	bool CreateSimulationWorldRuntimes(ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	bool CreateSimulationWorldRuntime(TObjectPtr<UBattleSimulationWorldRuntime>& InOutWorldRuntime, EBattleSimulationWorldType WorldType, ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
@@ -90,16 +91,17 @@ private:
 	bool IsManagedSimulationRuntime(const UBattleSimulationWorldRuntime* WorldRuntime) const;
 
 
-	void HandleSimulationWorldExchangeFinished(UBattleSimulationWorldRuntime* WorldRuntime, int32 FinishedExchangeIndex);
+	void NotifySimulationWorldExecutionStarted(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult);
+	void NotifySimulationWorldExchangeCompleted(UBattleSimulationWorldRuntime* WorldRuntime, int32 ExchangeIndex, bool bSucceeded);
 	void FinalizeCurrentExchangeSimulation(int32 FinishedExchangeIndex);
 	bool CommitActualExchangeActions(int32 ExchangeIndex);
 	bool ValidateActualExchangeAction(const FBattleAction& Action, int32 ExchangeIndex, bool bExpectedPlayerAction) const;
 	bool PrepareCurrentExchangeSimulation();
 	bool StartCurrentExchangeSimulation();
-	void RefreshFastForwardForPrimarySimulationWorld();
-	void ResetExchangeCompletionBarrier(int32 ExchangeIndex);
-	void ClearExchangeCompletionBarrier();
-	bool IsExchangeCompletionBarrierSatisfied() const;
+	void UpdateFastForwardAfterWorldCompletion();
+	void ResetExchangeCompletionTracking(int32 ExchangeIndex);
+	void ClearExchangeCompletionTracking();
+	bool IsCurrentExchangeCompletionTrackingComplete() const;
 	bool AreAllSimulationWorldsCompleted() const;
 
 protected:
@@ -136,8 +138,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
 	TSubclassOf<ABattleSimulationPostProcessVolume> SimulationPostProcessVolumeClass;
 
-	TSet<EBattleSimulationWorldType> FinishedWorldTypesForCurrentExchange;
-	int32 ExchangeCompletionBarrierIndex = INDEX_NONE;
+	TSet<EBattleSimulationWorldType> CompletedWorldTypesForCurrentExchange;
+	int32 CompletionTrackingExchangeIndex = INDEX_NONE;
 	UPROPERTY(Transient)
 	TObjectPtr<UBattlePhaseTask> PhaseExecutionTask = nullptr;
 };

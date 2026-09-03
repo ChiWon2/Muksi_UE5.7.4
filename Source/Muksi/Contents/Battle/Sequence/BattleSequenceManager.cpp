@@ -41,8 +41,8 @@ bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InManager, UBa
 	ActionExecutor = NewObject<UBattleActionExecutor>(this);
 	if (!ActionExecutor) return false;
 	if (!ActionExecutor->Initialize(BattleManager, BattleGridManager, EBattleSimulationWorldType::PlayerActualEnemyActual)) return false;
-	ActionExecutor->FinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandleActionExecutorFinished);
-	ActionExecutor->EntryStartedDelegate.AddUObject(this, &ABattleSequenceManager::HandleActionExecutorEntryStarted);
+	ActionExecutor->OnBattleActionCompleted.BindUObject(this, &ABattleSequenceManager::HandleActionExecutorFinished);
+	ActionExecutor->OnBattleExecutionStarted.BindUObject(this, &ABattleSequenceManager::HandleActionExecutorEntryStarted);
 	return true;
 }
 
@@ -83,7 +83,7 @@ void ABattleSequenceManager::NotifyBattleActionSequenceCompleted()
 bool ABattleSequenceManager::StartSequence(const FBattleAction& Action)
 {
 	if (!ActionExecutor || (bBattleActionSequenceRunning && !bStartingQueuedBattleAction)) return false;
-	return ActionExecutor->ExecuteAction(Action);
+	return ActionExecutor->ExecuteBattleAction(Action);
 }
 
 bool ABattleSequenceManager::IsSequenceRunning() const { return ActionExecutor && ActionExecutor->IsRunning(); }

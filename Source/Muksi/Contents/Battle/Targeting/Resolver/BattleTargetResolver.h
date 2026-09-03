@@ -37,7 +37,7 @@ private:
 		EBattleSimulationWorldType WorldType,
 		FHexOffsetCoord& OutDesiredCoord);
 
-	static bool ResolveCoord(
+	static bool ResolveStep(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& DesiredCoord,
 		int32 Direction,
@@ -45,9 +45,9 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutTargetCoord);
+		FTargetingStep& OutResolvedStep);
 
-	static bool BuildResolvedStepAtCoord(
+	static bool TryResolveStepAtCoord(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& CandidateCoord,
 		int32 Direction,
@@ -57,16 +57,7 @@ private:
 		EBattleSimulationWorldType WorldType,
 		FTargetingStep& OutResolvedStep);
 
-	static bool IsCoordValidForResolve(
-		const FHexOffsetCoord& OriginCoord,
-		const FHexOffsetCoord& Coord,
-		int32 Direction,
-		const FTargetingStepCardData& StepData,
-		ABattleCharacterBase* Attacker,
-		ABattleGridManager* GridManager,
-		EBattleSimulationWorldType WorldType);
-
-	static bool FindLastValidCoord(
+	static bool FindLastValidStep(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& DesiredCoord,
 		int32 Direction,
@@ -74,9 +65,9 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutTargetCoord);
+		FTargetingStep& OutResolvedStep);
 
-	static bool FindNearestValidCoord(
+	static bool FindNearestValidStep(
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& DesiredCoord,
 		int32 Direction,
@@ -84,5 +75,5 @@ private:
 		ABattleCharacterBase* Attacker,
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		FHexOffsetCoord& OutTargetCoord);
+		FTargetingStep& OutResolvedStep);
 };
