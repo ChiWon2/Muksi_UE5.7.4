@@ -24,6 +24,7 @@
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Widgets/Battle/Hand/ExchangeControl/ExchangeControlWidget.h"
 #include "Muksi/Widgets/Battle/Hand/ExchangeSlot/ExchangeSlotPanelWidget.h"
@@ -117,15 +118,21 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 	{
 		return;
 	}
+	HandWidget->OnPlayerCardEquipped.RemoveAll(this);
+	HandWidget->OnPlayerCardEquipped.AddUObject(this,&UWidget_BattleMainScreen::HandleCardSelect);//카드 슬롯에 장착했을 때 델리게이트
+	
 	HandWidget->OnPlayerCardReturned.RemoveAll(this);
-	HandWidget->OnPlayerCardReturned.AddUObject(this, &UWidget_BattleMainScreen::NotifyPlayerCardUnequipped);
+	HandWidget->OnPlayerCardReturned.AddUObject(this, &UWidget_BattleMainScreen::NotifyPlayerCardUnequipped);//카드 슬롯에서 제거했을 때 델리게이트
+	
 	if (UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget())
 	{
+		ExchangePanel->OnEnemyCardRevealFinished.RemoveAll(this);
 		ExchangePanel->OnEnemyCardRevealFinished.AddUObject(this, &UWidget_BattleMainScreen::HandleEnemyCardRevealFinished);
+		
+		ExchangePanel->OnTurnOrderAnimationsFinished.RemoveAll(this);
+		ExchangePanel->OnTurnOrderAnimationsFinished.AddUObject(this, &UWidget_BattleMainScreen::HandleTurnOrderAnimationsFinished);
 	}
 	
-	//아래 카드 선택 버튼은 나중에 따로 빼기 
-	ExchangeControlWidget->OnEndTurnRequested.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
 }
 
 void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
@@ -138,10 +145,9 @@ void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
 	if (UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget())
 	{
 		ExchangePanel->OnEnemyCardRevealFinished.RemoveAll(this);
+		ExchangePanel->OnTurnOrderAnimationsFinished.RemoveAll(this);
 	}
 	
-	//아래 카드 선택 버튼은 나중에 따로 빼기
-	ExchangeControlWidget->OnEndTurnRequested.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleCardSelect);
 }
 
 void UWidget_BattleMainScreen::BindBattlePipelineWidgetEvents()
@@ -232,7 +238,6 @@ void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAct
 
 void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
-	(void)OldPhase;
 	PhaseUITask = nullptr;
 	
 	if (NewPhase != EBattlePhase::CardReveal && TaskContext) 
@@ -263,7 +268,10 @@ void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBa
 		break;
 
 	case EBattlePhase::CardSelect:
-		StartExchangeSelectCard(BattleManager->GetCurrentExchange());
+		if (OldPhase != EBattlePhase::Targeting)
+		{
+			StartExchangeSelectCard(BattleManager->GetCurrentExchange());
+		}
 		CompletePhaseUI(EBattlePhase::CardSelect);
 		break;
 
@@ -272,10 +280,7 @@ void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBa
 		break;
 
 	case EBattlePhase::CardReveal:
-		if (!RevealEnemySelectedCard(BattleManager->GetCurrentExchange()) && BattleTargetingManager)
-		{
-			BattleTargetingManager->NotifyEnemyCardRevealUIFinished(BattleManager->GetCurrentExchange());
-		}
+		CardRevealed();
 		break;
 
 	case EBattlePhase::SimulationSequence:
@@ -326,6 +331,16 @@ void UWidget_BattleMainScreen::NotifyPlayerCardUnequipped()
 	{
         BattleTargetingManager->CancelPlayerTargeting();
 	}
+}
+
+void UWidget_BattleMainScreen::HandleDeceiveRevealFinished(UWidget_BattleCardBase* CardWidget)
+{
+	if (CardWidget)
+	{
+		CardWidget->OnDeceiveRevealFinished.RemoveAll(this);
+	}
+
+	NotifyDeceiveCardRevealFinished();
 }
 
 bool UWidget_BattleMainScreen::SetSimulationPlayerView(EBattlePlayerSimulationView View)
@@ -526,8 +541,19 @@ void UWidget_BattleMainScreen::RoundEnd()
 
 void UWidget_BattleMainScreen::ClearExchangeSlots() const
 {
+	if (!HandWidget)
+	{
+		return;
+	}
 	HandWidget->ClearPlayerSelectCard();
 	HandWidget->ClearEnemySelectCard();
+	
+	//기울어진 슬롯 원래대로 되돌리기
+	if (UExchangeSlotPanelWidget* ExchangePanel =
+		HandWidget->GetExchangeSlotPanelWidget())
+	{
+		ExchangePanel->ResetTurnOrderAnimations();
+	}
 }
 
 
@@ -552,7 +578,6 @@ void UWidget_BattleMainScreen::ExchangeStart()
 	{
 		return;
 	}
-	ExchangeControlWidget->ShowSelectButton(true);// 턴 종료 버튼 활성화 (없어질 예정)
 	HandleUIFinishCount = 0;
 	
 	BattlePipelineWidgetSetting(EBattlePhase::ExchangeStart);
@@ -614,9 +639,6 @@ void UWidget_BattleMainScreen::ExchangeEnd()
 {
 	HandleUIFinishCount = 0;
 	
-	ExchangeControlWidget->ShowSelectButton(false);// 턴 종료 버튼 비활성화 (없어질 예정)
-	
-	
 	//합 종료 UI 표시
 	BattlePipelineWidgetSetting(EBattlePhase::ExchangeEnd);
 }
@@ -648,26 +670,15 @@ void UWidget_BattleMainScreen::HandleExchangeSlot(int32 Index, bool bActive)
 		return;
 	}
 	HandWidget->EnableExchangeSlot(Index, bActive);
-
-	/*UExchangeSlotPanelWidget* ExchangePanel =
-		HandWidget->GetExchangeSlotPanelWidget();
-
-	if (!ExchangePanel)
-	{
-		return;
-	}
-
-	ExchangePanel->EnableExchangeSlot(Index, bActive);*/
 }
 
 void UWidget_BattleMainScreen::HandleEnemyCardRevealFinished(int32 ExchangeIndex)
 {
-	if (!BattleTargetingManager)
+	if (!PlayCurrentExchangeTurnOrderAnimation(ExchangeIndex))
 	{
-		return;
+		// Tilt 시작이 불가능해도 Phase는 멈추지 않게 한다.
+		HandleTurnOrderAnimationsFinished(ExchangeIndex);
 	}
-
-	BattleTargetingManager->NotifyEnemyCardRevealUIFinished(ExchangeIndex);
 }
 
 void UWidget_BattleMainScreen::SetBattleCardToHand()
@@ -701,40 +712,127 @@ void UWidget_BattleMainScreen::ClearBattleCard()const
 
 void UWidget_BattleMainScreen::TimeOutCardSelect()
 {
-	UBattleCardManager* BattleCardManager = BattleManager->GetBattleCardManager();
-	if (!BattleManager || !BattleCardManager)
-	{
-		return;
-	}
+	if (!BattleManager || !BattleTargetingManager)
+    {
+        return;
+    }
 
-	const int32 CurrentExchange =
-		BattleManager->GetCurrentExchange();
+    const EBattlePhase CurrentPhase = BattleManager->GetCurrentPhase();
 
-	FBattleCardInstance SelectedCard;
-	bool bAutoSelected = false;
+    if (CurrentPhase != EBattlePhase::CardSelect && CurrentPhase != EBattlePhase::Targeting)
+    {
+        return;
+    }
 
-	if (!BattleCardManager->ResolvePlayerCardOnTimeout(CurrentExchange,SelectedCard, bAutoSelected))
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("Timeout - Failed To Resolve Player Card")
-		);
+    UBattleCardManager* BattleCardManager = BattleManager->GetBattleCardManager();
 
-		return;
-	}
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+    if (!BattleCardManager || !RuntimeContext)
+    {
+        return;
+    }
+
+    const int32 CurrentExchange = BattleManager->GetCurrentExchange();
+
+    const bool bPlayerNeedsPanic = RuntimeContext->GetPlayerExchangeAction(CurrentExchange) == nullptr;
+
+    const bool bEnemyNeedsPanic = RuntimeContext->GetEnemyExchangeAction(CurrentExchange) == nullptr;
+
+    if (!bPlayerNeedsPanic && !bEnemyNeedsPanic)
+    {
+        return;
+    }
+
+	//Enemy가 선택 중이면 먼저 중단
+	//Player 먼저 중단시키면 Phase를 넘겨버릴 수 있음
+
+    if (bEnemyNeedsPanic)
+    {
+        BattleTargetingManager->CancelPendingEnemyCardSelection();
+    }
+
+    FCharacterPanicTimeoutResult PlayerTimeoutResult;
+    FCharacterPanicTimeoutResult EnemyTimeoutResult;
+
+    bool bPlayerPanicResolved = false;
+    bool bEnemyPanicResolved = false;
+
+	//Player 카드 데이터와 UI 처리
+
+    if (bPlayerNeedsPanic)
+    {
+        bPlayerPanicResolved = BattleCardManager->ResolvePlayerPanicOnTimeout(CurrentExchange,PlayerTimeoutResult);
+
+        if (!bPlayerPanicResolved)
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT("Failed to resolve player panic timeout"));
+        }
+        else if (!HandWidget)
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT("HandWidget is null during panic timeout"));
+        }
+        else if (!HandWidget->ApplyPlayerPanicTimeoutResult(CurrentExchange, PlayerTimeoutResult))
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT("Failed to apply player panic timeout UI"));
+        }
+    }
+
+	//Enemy 카드 데이터 처리
+
+    if (bEnemyNeedsPanic)
+    {
+        bEnemyPanicResolved = BattleCardManager->ResolveEnemyPanicOnTimeout(CurrentExchange,EnemyTimeoutResult);
+
+        if (!bEnemyPanicResolved)
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT("Failed to resolve enemy panic timeout"));
+        }
+        else
+        {
+            UE_LOG(
+                LogTemp,
+                Warning,
+                TEXT("Enemy Panic Card Committed: %s"),
+                *GetNameSafe(
+                    EnemyTimeoutResult.PanicCard.CardData));
+        }
+    }
+
+	//Targeting 시작
+    if (bPlayerPanicResolved)
+    {
+        if (!BattleTargetingManager->RequestPlayerPanicTargeting(PlayerTimeoutResult.PanicCard.CardData))
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT("Failed to complete player panic targeting"));
+        }
+    }
 	
-	if (bAutoSelected)
+	if (bEnemyPanicResolved)
 	{
-		//HandWidget에 해당 카드 넣는 기능
+		if (!BattleTargetingManager->RequestEnemyPanicTargeting(EnemyTimeoutResult.PanicCard.CardData))
+		{
+			UE_LOG(
+				LogTemp,
+				Error,
+				TEXT("Failed to complete enemy panic targeting"));
+		}
 	}
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Timeout - Player Card Resolved: %s"),
-		*GetNameSafe(SelectedCard.CardData)
-	);
 }
 
 void UWidget_BattleMainScreen::HandleEnemyCardSelectionReady(
@@ -816,6 +914,66 @@ bool UWidget_BattleMainScreen::RevealEnemySelectedCard(int32 ExchangeIndex)
 	return ExchangePanel->EnemySelectedBattleCardFlip(ExchangeIndex, true);
 }
 
+void UWidget_BattleMainScreen::HandleTurnOrderAnimationsFinished(int32 ExchangeIndex)
+{
+	if (!BattleManager || !BattleTargetingManager || BattleManager->GetCurrentPhase() != EBattlePhase::CardReveal || ExchangeIndex != BattleManager->GetCurrentExchange())
+	{
+		return;
+	}
+
+	BattleTargetingManager->NotifyEnemyCardRevealUIFinished(ExchangeIndex);
+}
+
+void UWidget_BattleMainScreen::CardRevealed() 
+{
+	//Timer 비활성화
+	if (!ExchangeControlWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ExchangeControlWidget is null (Widget_BattleMainScreen.cpp)"));
+		return;
+	}
+	ExchangeControlWidget->StopExchangeTimer();
+	
+	const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+	//적이 선택한 카드 표시
+	
+	if (!RevealEnemySelectedCard(ExchangeIndex))//적이 시간안에 선택을 못해서 공개 애니메이션을 건너 뛴 경우
+	{
+		// Flip 완료와 동일하게 다음 연출로 이동
+		HandleEnemyCardRevealFinished(ExchangeIndex);
+	}
+}
+
+bool UWidget_BattleMainScreen::PlayCurrentExchangeTurnOrderAnimation(int32 ExchangeIndex) const
+{
+	if (!BattleManager || !HandWidget || BattleManager->GetCurrentPhase() != EBattlePhase::CardReveal || ExchangeIndex != BattleManager->GetCurrentExchange())
+	{
+		return false;
+	}
+
+	UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+	UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget();
+
+	if (!RuntimeContext || !ExchangePanel)
+	{
+		return false;
+	}
+
+	const FBattleAction* PlayerAction = RuntimeContext->GetPlayerExchangeAction(ExchangeIndex);
+
+	const FBattleAction* EnemyAction = RuntimeContext->GetEnemyExchangeAction(ExchangeIndex);
+
+	if (!PlayerAction || !EnemyAction)
+	{
+		return false;
+	}
+
+	const bool bPlayerFirst = PlayerAction->Speed >= EnemyAction->Speed;
+
+	return ExchangePanel->PlayTurnOrderAnimations(ExchangeIndex, bPlayerFirst);
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //------------------------------------Battle Action Sequence------------------------------------------------------------
 
@@ -854,10 +1012,35 @@ void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUIFinish()
 
 bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard)
 {
-	(void)BattleAction;
+	if (!HandWidget || !IsValid(ActualCard))
+	{
+		return false;
+	}
+	UExchangeSlotPanelWidget* ExchangeSlotPanel = HandWidget->GetExchangeSlotPanelWidget();
+	if (!ExchangeSlotPanel)
+	{
+		return false;
+	}
+	UWidget_BattleCardBase* CardWidget = ExchangeSlotPanel->GetCardWidgetByExchangeIndex(BattleAction.ExchangeIndex, BattleAction.bPlayerAction);
+	
+	if (!CardWidget)
+	{
+		return false;
+	}
+	
+	CardWidget->OnDeceiveRevealFinished.RemoveAll(this);
+
+	CardWidget->OnDeceiveRevealFinished.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveRevealFinished);
+	
+	// 현재 DeceivedCard가 표시되어 있는 Widget을
+	// 실제 카드로 변경한다.
+	CardWidget->PlayDeceiveRevealEffect(ActualCard);
+	return true;
+	
+	/*(void)BattleAction;
 	(void)DeceivedCard;
 	(void)ActualCard;
-	return false;
+	return false;*/
 }
 
 void UWidget_BattleMainScreen::NotifyDeceiveCardRevealFinished()

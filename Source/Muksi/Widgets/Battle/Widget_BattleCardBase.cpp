@@ -39,6 +39,22 @@ void UWidget_BattleCardBase::OnAnimationFinished_Implementation(const UWidgetAni
 	{
 		OnCardFlipFinished.Broadcast(this);
 	}
+	
+	if (Animation == CardChangeAnimation)
+	{
+		StopCardChangeEffect();
+
+		// 일반 카드 변경
+		if (!bPlayingDeceiveReveal)
+		{
+			return;
+		}
+
+		// 변초 공개 CardChange
+		bPlayingDeceiveReveal = false;
+
+		OnDeceiveRevealFinished.Broadcast(this);
+	}
 }
 
 void UWidget_BattleCardBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -52,6 +68,7 @@ void UWidget_BattleCardBase::NativeTick(const FGeometry& MyGeometry, float InDel
 		OwningHandWidget &&
 		!bPlayingDrawAnimation)
 	{
+		SetCardRenderAngle(0.0f);
 		const FVector2D MouseScreenPos = FSlateApplication::Get().GetCursorPos();
 
 		const FGeometry& HandGeometry = OwningHandWidget->GetHandCanvasGeometry();
@@ -247,7 +264,8 @@ void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 	}
 	
 	// 드래그 중에는 카드 똑바로 보이게
-	SetRenderTransformAngle(0.0f);
+	//SetRenderTransformAngle(0.0f);
+	SetCardRenderAngle(0.0f);
 	
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
 	{
@@ -255,8 +273,7 @@ void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 		CanvasSlot->SetZOrder(9999);
 
 		const FGeometry& HandGeometry = OwningHandWidget->GetHandCanvasGeometry();
-		const FVector2D LocalMousePos =
-			HandGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		const FVector2D LocalMousePos = HandGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 
 		DragOffset = LocalMousePos - CanvasSlot->GetPosition();
 	}
@@ -281,14 +298,14 @@ void UWidget_BattleCardBase::StopDragging()
 				{
 					OwningHandWidget->RemoveHandCardWidget(this);
 
-					OwningHandWidget->OrganizeCards(
-						OwningHandWidget->GetDefaultCardSpacing());
+					OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
 
+					OwningHandWidget->NotifyPlayerCardEquipped();
 					return;
 				}
 
 				// 3. Commit은 성공했는데 UI 장착 실패
-				// → 게임 데이터 원상복구
+				// -> 게임 데이터 원상복구
 				OwningHandWidget->ReturnCommittedHandCard(this);
 			}
 		}
@@ -418,6 +435,25 @@ void UWidget_BattleCardBase::PlayCardChangeEffect(UMuksiBattleCardDataAsset* New
 	PendingCardData = NewCardData;
 	
 	PlayAnimation(CardChangeAnimation);
+	bPlayingDeceiveReveal = false;
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		CardChangeTimerHandle,
+		this,
+		&UWidget_BattleCardBase::PlayNiagaraWidget,
+		NiagaraWidgetStartTime,
+		false);
+}
+
+void UWidget_BattleCardBase::PlayDeceiveRevealEffect(UMuksiBattleCardDataAsset* ActualCardData)
+{
+	if (!IsValid(ActualCardData))
+	{
+		return;
+	}
+	
+	PlayAnimation(CardChangeAnimation);
+	bPlayingDeceiveReveal = true;
 	
 	GetWorld()->GetTimerManager().SetTimer(
 		CardChangeTimerHandle,

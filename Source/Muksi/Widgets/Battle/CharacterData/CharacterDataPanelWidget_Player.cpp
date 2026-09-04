@@ -56,7 +56,6 @@ void UCharacterDataPanelWidget_Player::ApplyCharacterData(ABattleCharacter_Playe
 	UBattleCardComponent* CardComponent = PlayerData->GetBattleCardComponent();
 	CharacterDeckPanelWidget->SetDeckData(CardComponent->GetFullDeck());
 	CharacterPassivePanelWidget->SetPassiveData(PlayerData->GetCharacterPassives());
-	
 }
 
 void UCharacterDataPanelWidget_Player::NativeConstruct()

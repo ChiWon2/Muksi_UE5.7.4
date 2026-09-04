@@ -6,6 +6,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
+#include "Muksi/Contents/Battle/Character/Panic/PanicStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
@@ -247,6 +248,80 @@ bool ABattleTargetingManager::RequestPlayerCardSelection(UMuksiBattleCardDataAss
     return CanProcessPlayerTargetingInput() || PlayerAction != nullptr;
 }
 
+bool ABattleTargetingManager::RequestPlayerPanicTargeting(UMuksiBattleCardDataAsset* PanicCard)
+{
+    if (!BattleManager || !IsValid(PanicCard))
+    {
+        return false;
+    }
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+    if (!RuntimeContext)
+    {
+        return false;
+    }
+
+    const EBattlePhase CurrentPhase = BattleManager->GetCurrentPhase();
+    
+    if (CurrentPhase == EBattlePhase::CardSelect)//카드 선택 못한 상태에서 타임아웃 된 경우
+    {
+        //일반 카드 선택 요청과 동일하게 CardSelectTask를 완료
+      
+        if (!RequestPlayerCardSelection(PanicCard))
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT(
+                    "[BattleTargetingManager] "
+                    "Failed to request panic card selection"));
+
+            return false;
+        }
+    }
+    else if (CurrentPhase == EBattlePhase::Targeting)//일반 카드 타게팅 도중 타임아웃된 경우 
+    {
+        //TargetingTask는 유지하고 기존 Player Session만 교체
+
+        PlayerTargetingSession = nullptr;
+        PlayerTargetingCard = PanicCard;
+
+        if (TargetingPresentationController)
+        {
+            TargetingPresentationController->ClearCurrentStepPreview();
+        }
+
+        RuntimeContext->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
+
+        if (!StartPlayerTargeting())
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT(
+                    "[BattleTargetingManager] "
+                    "Failed to start panic targeting"));
+
+            return false;
+        }
+    }
+    else
+    {
+        UE_LOG(
+            LogTemp,
+            Error,
+            TEXT(
+                "[BattleTargetingManager] "
+                "Panic targeting rejected. Phase=%d"),
+            static_cast<int32>(CurrentPhase));
+
+        return false;
+    }
+
+    return CompletePlayerPanicTargeting();
+}
+
 bool ABattleTargetingManager::StartPlayerTargeting()
 {
     if (!IsValid(PlayerTargetingCard))
@@ -446,6 +521,222 @@ bool ABattleTargetingManager::RequestEnemyCardSelection()
 
 
     return true;
+}
+
+bool ABattleTargetingManager::RequestEnemyPanicTargeting(UMuksiBattleCardDataAsset* PanicCard)
+{
+    if (!BattleManager || !IsValid(PanicCard))
+    {
+        return false;
+    }
+
+    const EBattlePhase CurrentPhase = BattleManager->GetCurrentPhase();
+
+    if (CurrentPhase != EBattlePhase::CardSelect && CurrentPhase != EBattlePhase::Targeting)
+    {
+        UE_LOG(
+            LogTemp,
+            Error,
+            TEXT(
+                "[BattleTargetingManager] "
+                "Enemy panic targeting rejected. Phase=%d"),
+            static_cast<int32>(CurrentPhase));
+
+        return false;
+    }
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+    ABattleGridManager* GridManager = BattleManager->GetBattleGridManager();
+
+    ABattleSimulationManager* SimulationManager = BattleManager->GetBattleSimulationManager();
+
+    if (!RuntimeContext || !GridManager || !SimulationManager)
+    {
+        return false;
+    }
+
+    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+
+    // 이미 EnemyAction이 완성됐다면 패닉 처리하지 않는다.
+    if (RuntimeContext->GetEnemyExchangeAction(ExchangeIndex))
+    {
+        return true;
+    }
+
+    ABattleCharacter_Enemy* EnemyCharacter = RuntimeContext->GetEnemyCharacter();
+
+    if (!IsValid(EnemyCharacter))
+    {
+        return false;
+    }
+
+
+    GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
+
+    EnemyTargetingSession = nullptr;
+    bEnemyCardPresentationFinished = false;
+
+    ABattleCharacterBase* EnemyTargetingActor = SimulationManager->GetCharacterForWorld(EnemyCharacter, EnemyTargetingWorldType);
+
+    if (!IsValid(EnemyTargetingActor))
+    {
+        return false;
+    }
+
+    EnemyTargetingSession = NewObject<UBattleTargetingSession>(this);
+
+    if (!EnemyTargetingSession
+        || !EnemyTargetingSession->StartSession(
+            EnemyTargetingActor,
+            GridManager,
+            EnemyTargetingWorldType,
+            PanicCard->TargetingData))
+    {
+        EnemyTargetingSession = nullptr;
+        return false;
+    }
+
+    //Targeting Step이 있으면 타임아웃 전용 Strategy 사용
+
+    if (EnemyTargetingSession->IsSelecting())
+    {
+        UClass* StrategyClass = PanicCard->PanicStrategyClass.Get();
+
+        if (!StrategyClass || StrategyClass->HasAnyClassFlags(CLASS_Abstract))
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT(
+                    "[BattleTargetingManager] "
+                    "Enemy PanicStrategyClass is invalid. "
+                    "Card=%s"),
+                *GetNameSafe(PanicCard));
+
+            EnemyTargetingSession = nullptr;
+            return false;
+        }
+
+        UPanicStrategyBase* PanicStrategy = NewObject<UPanicStrategyBase>(this, StrategyClass);
+
+        if (!PanicStrategy)
+        {
+            EnemyTargetingSession = nullptr;
+            return false;
+        }
+
+        FPanicStrategyContext Context;
+        Context.SourceCharacter = EnemyTargetingActor;
+        Context.BattleManager = BattleManager;
+        Context.PanicCard = PanicCard;
+        Context.WorldType = EnemyTargetingWorldType;
+
+        while (EnemyTargetingSession->IsSelecting())
+        {
+            const int32 StepIndex = EnemyTargetingSession->GetCurrentStepIndex();
+
+            // Enemy 패닉 좌표 결정
+            const FPanicStrategyResult StrategyResult = PanicStrategy->SelectTarget(Context);
+
+            if (!StrategyResult.IsValid())
+            {
+                UE_LOG(
+                    LogTemp,
+                    Error,
+                    TEXT(
+                        "[BattleTargetingManager] "
+                        "Enemy panic strategy returned "
+                        "invalid target. Card=%s Step=%d"),
+                    *GetNameSafe(PanicCard),
+                    StepIndex);
+
+                EnemyTargetingSession = nullptr;
+                return false;
+            }
+
+            // 카드 TargetingData로 좌표 검증
+            if (!EnemyTargetingSession->UpdateSelection(StrategyResult.TargetCoord, StrategyResult.Direction))
+            {
+                UE_LOG(
+                    LogTemp,
+                    Error,
+                    TEXT(
+                        "[BattleTargetingManager] "
+                        "Enemy panic target rejected. "
+                        "Card=%s Target=(%d,%d)"),
+                    *GetNameSafe(PanicCard),
+                    StrategyResult.TargetCoord.X,
+                    StrategyResult.TargetCoord.Y);
+
+                EnemyTargetingSession = nullptr;
+                return false;
+            }
+
+            if (EnemyTargetingSession->ConfirmStep() == ETargetingConfirmResult::Failed)
+            {
+                UE_LOG(
+                    LogTemp,
+                    Error,
+                    TEXT(
+                        "[BattleTargetingManager] "
+                        "Enemy panic target confirm failed. "
+                        "Card=%s Step=%d"),
+                    *GetNameSafe(PanicCard),
+                    StepIndex);
+
+                EnemyTargetingSession = nullptr;
+                return false;
+            }
+        }
+    }
+
+    if (!EnemyTargetingSession->IsCompleted())
+    {
+        EnemyTargetingSession = nullptr;
+        return false;
+    }
+
+    //EnemyAction 생성
+    if (!BattleManager->SubmitTargetingAction(
+        EnemyCharacter,
+        PanicCard,
+        EnemyTargetingSession->GetIntent(),
+        false))
+    {
+        EnemyTargetingSession = nullptr;
+        return false;
+    }
+    
+    UMuksiBattleCardDataAsset* PresentedCard = PanicCard;
+
+    if (UMuksiBattleCardDataAsset* DeceivedCard = PanicCard->GetDeceivedCard())
+    {
+        PresentedCard = DeceivedCard;
+    }
+
+    OnEnemyCardSelectionReady.Broadcast(PresentedCard, ExchangeIndex);//위젯 표시
+    return true;
+}
+
+void ABattleTargetingManager::CancelPendingEnemyCardSelection()
+{
+    const bool bWasTimerActive = GetWorldTimerManager().IsTimerActive(EnemyCardSelectionTimerHandle);
+
+    GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
+
+    // 아직 완성되지 않은 Enemy Targeting 결과 제거
+    EnemyTargetingSession = nullptr;
+    bEnemyCardPresentationFinished = false;
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT(
+            "[BattleTargetingManager] "
+            "Pending enemy card selection cancelled. "
+            "TimerActive=%s"),
+        bWasTimerActive ? TEXT("true") : TEXT("false"));
 }
 
 void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
@@ -701,6 +992,127 @@ void ABattleTargetingManager::FinishCardRevealPresentation()
     CardRevealTask = nullptr;
     if (CompletedTask)
         CompletedTask->Complete();
+}
+
+bool ABattleTargetingManager::CompletePlayerPanicTargeting()
+{
+    if (!BattleManager || !PlayerTargetingSession || !IsValid(PlayerTargetingCard))
+    {
+        return false;
+    }
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+    if (!RuntimeContext)
+    {
+        return false;
+    }
+
+    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+
+    //Targeting Step이 없는 카드 ex)그냥 방어, 자체 디버프 부여 같은 아무것도 안하는 카드
+    //바로 Completed
+    if (PlayerTargetingSession->IsCompleted())
+    {
+       
+        if (RuntimeContext->GetPlayerExchangeAction(ExchangeIndex))
+        {
+            // RequestPlayerCardSelection() 안에서
+            // 이미 Action을 만들졌으면 그거 보내기
+            return true;
+        }
+
+        return CompletePlayerTargeting();
+    }
+
+
+    //Targeting Step이 존재하는데 Strategy가 없다면 Error
+    UClass* StrategyClass = PlayerTargetingCard->PanicStrategyClass.Get();
+    if (!StrategyClass || StrategyClass->HasAnyClassFlags(CLASS_Abstract))
+    {
+        UE_LOG(LogTemp, Error, TEXT("PanicStrategyClass is invalid. Card=%s (BattleTargetingManager.cpp)"), *GetNameSafe(PlayerTargetingCard));
+        return false;
+    }
+    
+    UPanicStrategyBase* PanicStrategy = NewObject<UPanicStrategyBase>(this, StrategyClass);
+    if (!PanicStrategy)
+    {
+        return false;
+    }
+
+    FPanicStrategyContext Context;
+    Context.SourceCharacter = PlayerTargetingSession->GetSourceCharacter();
+    Context.BattleManager = BattleManager;
+    Context.PanicCard = PlayerTargetingCard;
+    Context.WorldType = PlayerTargetingWorldType;
+
+    while (PlayerTargetingSession->IsSelecting())
+    {
+        const int32 StepIndex = PlayerTargetingSession->GetCurrentStepIndex();
+
+        // 실제 좌표를 결정하는 부분
+        const FPanicStrategyResult StrategyResult = PanicStrategy->SelectTarget(Context);
+
+        if (!StrategyResult.IsValid())
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT(
+                    "[BattleTargetingManager] "
+                    "Panic strategy returned invalid target. "
+                    "Card=%s Step=%d"),
+                *GetNameSafe(PlayerTargetingCard),
+                StepIndex);
+
+            return false;
+        }
+
+        // 카드 TargetingData의 Selection Rule로 좌표 검증
+        if (!PlayerTargetingSession->UpdateSelection(
+            StrategyResult.TargetCoord,
+            StrategyResult.Direction))
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT(
+                    "[BattleTargetingManager] "
+                    "Panic target rejected. "
+                    "Card=%s Step=%d Target=(%d,%d)"),
+                *GetNameSafe(PlayerTargetingCard),
+                StepIndex,
+                StrategyResult.TargetCoord.X,
+                StrategyResult.TargetCoord.Y);
+
+            return false;
+        }
+
+        const ETargetingConfirmResult ConfirmResult = PlayerTargetingSession->ConfirmStep();
+
+        if (ConfirmResult == ETargetingConfirmResult::Failed)
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT(
+                    "[BattleTargetingManager] "
+                    "Panic target confirm failed. "
+                    "Card=%s Step=%d"),
+                *GetNameSafe(PlayerTargetingCard),
+                StepIndex);
+
+            return false;
+        }
+    }
+
+    if (!PlayerTargetingSession->IsCompleted())
+    {
+        return false;
+    }
+
+    // FBattleAction 생성
+    return CompletePlayerTargeting();
 }
 
 int32 ABattleTargetingManager::CalculateDirectionToCoord(const UBattleTargetingSession* Session, const FHexOffsetCoord& TargetCoord) const
