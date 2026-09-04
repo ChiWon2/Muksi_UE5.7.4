@@ -6,6 +6,7 @@
 #include "Controllers/PlayerMode/PlayerModeBase.h"
 #include "PlayerMode_Battle.generated.h"
 
+struct FStreamableHandle;
 class UDataTable;
 class UMuksiCharacterDataAsset;
 class UWidget_ActivatableBase;
@@ -51,4 +52,12 @@ private:
 	TObjectPtr<AActor> SelectedActor;
 	UPROPERTY(EditDefaultsOnly, Category = "Battle UI")
 	TSoftClassPtr<UWidget_ActivatableBase> WidgetCharacterDataClass;
+	
+	void PreloadCharacterDataWidget();
+	void HandleCharacterDataWidgetPreloaded();
+
+	TSharedPtr<FStreamableHandle> CharacterDataWidgetLoadHandle;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UClass> LoadedCharacterDataWidgetClass = nullptr;
 };

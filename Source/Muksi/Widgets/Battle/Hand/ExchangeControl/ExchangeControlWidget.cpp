@@ -10,16 +10,9 @@ void UExchangeControlWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	BindSelectButton();
 	BattleTimerWidget->HideTimer();
 }
 
-void UExchangeControlWidget::NativeDestruct()
-{
-	UnbindSelectButton();
-	
-	Super::NativeDestruct();
-}
 
 void UExchangeControlWidget::NativeTick(const FGeometry& Geometry, float TimeDelta)
 {
@@ -33,47 +26,7 @@ void UExchangeControlWidget::NativeTick(const FGeometry& Geometry, float TimeDel
 	UpdateExchangeTimer(TimeDelta);
 }
 
-void UExchangeControlWidget::ShowSelectButton(bool bShow)
-{
-	if (!Button_Select)
-	{
-		return;
-	}
 
-	Button_Select->SetVisibility(
-		bShow
-			? ESlateVisibility::Visible
-			: ESlateVisibility::Collapsed
-	);
-
-	Button_Select->SetIsEnabled(bShow);
-}
-
-void UExchangeControlWidget::BindSelectButton()
-{
-	if (!Button_Select)
-	{
-		return;
-	}
-
-	Button_Select->OnClicked().RemoveAll(this);
-	Button_Select->OnClicked().AddUObject(this,&UExchangeControlWidget::HandleSelectButtonClicked);
-}
-
-void UExchangeControlWidget::UnbindSelectButton()
-{
-	if (!Button_Select)
-	{
-		return;
-	}
-
-	Button_Select->OnClicked().RemoveAll(this);
-}
-
-void UExchangeControlWidget::HandleSelectButtonClicked()
-{
-	OnEndTurnRequested.Broadcast();
-}
 
 void UExchangeControlWidget::StartExchangeTimer()
 {
@@ -90,12 +43,9 @@ void UExchangeControlWidget::StartExchangeTimer()
 
 void UExchangeControlWidget::StopExchangeTimer()
 {
-	if (!bExchangeTimerActive)
-	{
-		return;
-	}
-
 	bExchangeTimerActive = false;
+	bWarningStarted = false;
+	ExchangeRemainingTime = 0.0f;
 
 	if (BattleTimerWidget)
 	{

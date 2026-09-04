@@ -34,6 +34,7 @@ public:
 protected:
 	//~ Begin UserWidget Interface
 	virtual void NativeConstruct() override;
+	virtual void NativeOnActivated() override;
 	virtual void NativeOnDeactivated() override;
 	//~ End UserWidget Interface
 	

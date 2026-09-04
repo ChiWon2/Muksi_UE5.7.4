@@ -7,6 +7,7 @@
 #include "Subsystems/MuksiUISubsystem.h"
 
 #include "MuksiDebugHelper.h"
+#include "Engine/AssetManager.h"
 #include "MuksiGameplayTags.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
@@ -30,6 +31,9 @@ void UPlayerMode_Battle::EnterMode(AMuksiPlayerController* PlayerController)
 	PC->bShowMouseCursor = true;
 	PC->bEnableClickEvents = true;
 	PC->bEnableMouseOverEvents = true;
+	
+	// CharacterData UI 미리 로드
+	PreloadCharacterDataWidget();
 
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 	{
@@ -65,6 +69,8 @@ void UPlayerMode_Battle::ExitMode()
 	PC->bShowMouseCursor = false;
 	PC->bEnableClickEvents = false;
 	PC->bEnableMouseOverEvents = false;
+	
+	
 }
 
 void UPlayerMode_Battle::TickPlayerMode()
@@ -267,4 +273,44 @@ void UPlayerMode_Battle::FocusCameraOnCharacter(ABattleCharacterBase* Character)
 	}
 
 	CameraManager->FocusCharacter(Character);
+}
+
+void UPlayerMode_Battle::PreloadCharacterDataWidget()
+{
+	if (WidgetCharacterDataClass.IsNull())
+	{
+		return;
+	}
+
+	// 이미 로드돼 있다면 그대로 보관
+	if (WidgetCharacterDataClass.IsValid())
+	{
+		LoadedCharacterDataWidgetClass = WidgetCharacterDataClass.Get();
+
+		return;
+	}
+
+	CharacterDataWidgetLoadHandle = UAssetManager::Get()
+		.GetStreamableManager()
+		.RequestAsyncLoad(
+			WidgetCharacterDataClass.ToSoftObjectPath(),
+			FStreamableDelegate::CreateUObject(
+				this,
+				&UPlayerMode_Battle::
+					HandleCharacterDataWidgetPreloaded
+			)
+		);
+}
+
+void UPlayerMode_Battle::HandleCharacterDataWidgetPreloaded()
+{
+	LoadedCharacterDataWidgetClass = WidgetCharacterDataClass.Get();
+
+	CharacterDataWidgetLoadHandle.Reset();
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("CharacterData Widget Preloaded")
+	);
 }

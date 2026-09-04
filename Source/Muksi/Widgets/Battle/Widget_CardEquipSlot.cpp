@@ -7,6 +7,7 @@
 #include "Components/Border.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
+#include "Animation/WidgetAnimation.h"
 
 
 FReply UWidget_CardEquipSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -357,32 +358,117 @@ void UWidget_CardEquipSlot::RefreshSlotVisual()
 	}
 }
 
-/*bool UWidget_CardEquipSlot::UnequipCard(UHandWidget* HandWidget)
+void UWidget_CardEquipSlot::OnAnimationFinished_Implementation(const UWidgetAnimation* Animation)
 {
-	if (!HandWidget)
+	Super::OnAnimationFinished_Implementation(Animation);
+	
+	if (!bWaitingForTurnOrderTiltFinish
+		|| Animation != ActiveTurnOrderAnimation.Get())
 	{
+		return;
+	}
+
+	bWaitingForTurnOrderTiltFinish = false;
+	ActiveTurnOrderAnimation = nullptr;
+
+	OnTurnOrderTiltFinished.Broadcast(this);
+}
+
+bool UWidget_CardEquipSlot::PlayTurnOrderTilt(bool bFirst)
+{
+	bWaitingForTurnOrderTiltFinish = false;
+	ActiveTurnOrderAnimation = nullptr;
+
+	StopTurnOrderAnimations();
+
+	UWidgetAnimation* TurnOrderAnimation = nullptr;
+
+	if (bPlayerSlot)
+	{
+		TurnOrderAnimation =
+			bFirst
+				? Anim_TurnorderTilit_First.Get()
+				: Anim_TurnorderTilit_Second.Get();
+	}
+	else
+	{
+		TurnOrderAnimation =
+			bFirst
+				? Anim_TurnorderTilit_First_Enemy.Get()
+				: Anim_TurnorderTilit_Second_Enemy.Get();
+	}
+
+	if (!TurnOrderAnimation)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT(
+				"[CardEquipSlot] Turn order animation is missing. "
+				"PlayerSlot=%s First=%s Exchange=%d"),
+			bPlayerSlot ? TEXT("true") : TEXT("false"),
+			bFirst ? TEXT("true") : TEXT("false"),
+			SlotData.ExchangeNumber);
+
 		return false;
 	}
 
-	UWidget_BattleCardBase* CardToReturn = ReleaseCard();
+	ActiveTurnOrderAnimation = TurnOrderAnimation;
+	bWaitingForTurnOrderTiltFinish = true;
 
-	if (!CardToReturn)
-	{
-		return false;
-	}
-
-	CardToReturn->SetCardRenderAngle(0.0f);
-	CardToReturn->SetVisibility(ESlateVisibility::Visible);
-
-	HandWidget->PlaceCardInHand(CardToReturn);
-	HandWidget->OrganizeCards(
-		HandWidget->GetDefaultCardSpacing()
-	);
-
-	if (HandWidget->BattleMainScreen)
-	{
-		HandWidget->BattleMainScreen->NotifyPlayerCardUnequipped();
-	}
+	PlayAnimation(TurnOrderAnimation);
 
 	return true;
-}*/
+}
+
+void UWidget_CardEquipSlot::PlayTurnOrderReset()
+{
+	bWaitingForTurnOrderTiltFinish = false;
+	ActiveTurnOrderAnimation = nullptr;
+
+	StopTurnOrderAnimations();
+
+	UWidgetAnimation* ResetAnimation =
+		bPlayerSlot
+			? Anim_TurnorderTilit_Reset.Get()
+			: Anim_TurnorderTilit_Reset_Enemy.Get();
+
+	if (!ResetAnimation)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT(
+				"[CardEquipSlot] Turn order reset animation "
+				"is missing. PlayerSlot=%s Exchange=%d"),
+			bPlayerSlot ? TEXT("true") : TEXT("false"),
+			SlotData.ExchangeNumber);
+
+		return;
+	}
+
+	PlayAnimation(ResetAnimation);
+}
+
+void UWidget_CardEquipSlot::StopTurnOrderAnimations()
+{
+	const TArray<UWidgetAnimation*> TurnOrderAnimations =
+	{
+		Anim_TurnorderTilit_First.Get(),
+		Anim_TurnorderTilit_Second.Get(),
+		Anim_TurnorderTilit_Reset.Get(),
+
+		Anim_TurnorderTilit_First_Enemy.Get(),
+		Anim_TurnorderTilit_Second_Enemy.Get(),
+		Anim_TurnorderTilit_Reset_Enemy.Get()
+	};
+
+	for (UWidgetAnimation* Animation : TurnOrderAnimations)
+	{
+		if (Animation)
+		{
+			StopAnimation(Animation);
+		}
+	}
+}
+

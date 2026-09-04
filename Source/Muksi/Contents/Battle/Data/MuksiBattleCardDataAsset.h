@@ -17,6 +17,7 @@ struct FBattleCardEffectContext;
 struct FBattleDamageContext;
 class UTexture2D;
 class UBattleCardEffect;
+class UPanicStrategyBase;
 
 UCLASS()
 class MUKSI_API UMuksiBattleCardDataAsset : public UPrimaryDataAsset
@@ -82,6 +83,12 @@ public:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
 	TArray<FText> CardEffectsDescription;
+	
+public:
+	// 패닉 상황에서 이 카드를 자동으로 사용할 때의 좌표 선택 방식.
+	// Targeting Step이 없는 카드는 설정하지 않아도 된다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Card|Panic")
+	TSubclassOf<UPanicStrategyBase> PanicStrategyClass;
 
 	
 	

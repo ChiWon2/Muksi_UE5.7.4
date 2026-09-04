@@ -7,6 +7,8 @@
 #include "HandWidget.generated.h"
 
 struct FBattleCardInstance;
+struct FCharacterPanicTimeoutResult;
+
 class UExchangeSlotPanelWidget;
 class UInkLineWidget;
 class UHorizontalBox;
@@ -25,7 +27,7 @@ class UWidget_CardEquipSlot;
 
 
 
-
+DECLARE_MULTICAST_DELEGATE(FOnPlayerCardEquipped);
 DECLARE_MULTICAST_DELEGATE(FOnPlayerCardReturned);
 
 /**
@@ -187,12 +189,18 @@ public:
 	
 	void EnableExchangeSlot(int32 Index, bool bActive);
 	
+	FOnPlayerCardEquipped OnPlayerCardEquipped;
 	FOnPlayerCardReturned OnPlayerCardReturned;
-
+	
+	void NotifyPlayerCardEquipped();
 private:
 	void HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget);
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleCharacterBase> BoundCharacter;
 	//-----------------------------------------------------------------------------------------------------------
+	
+	//타임아웃 관련 기능--------------------------------------------------------------------------------------------
+public:
+	bool ApplyPlayerPanicTimeoutResult(int32 ExchangeIndex, const FCharacterPanicTimeoutResult& Result);
 };
