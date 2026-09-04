@@ -36,9 +36,13 @@ public:
 
     // Widget command API. UI는 선택 요청과 UI 완료만 전달한다.
     bool RequestPlayerCardSelection(UMuksiBattleCardDataAsset* CardData);
+    bool RequestPlayerPanicTargeting(UMuksiBattleCardDataAsset* PanicCard);
     bool RequestEnemyCardSelection();
+    bool RequestEnemyPanicTargeting(UMuksiBattleCardDataAsset* PanicCard);
+    void CancelPendingEnemyCardSelection();
     void NotifyEnemyCardSelectionUIFinished();
     void NotifyEnemyCardRevealUIFinished(int32 ExchangeIndex);
+    
 
     // PlayerMode command API. 입력 상태 판단과 Confirm/Undo/Cancel 규칙은 Manager가 소유한다.
     bool RequestConfirmPlayerTargeting();
@@ -83,7 +87,7 @@ private:
     void ClearCardRevealPresentation();
     void FinishCardRevealPresentation();
 
-
+    bool CompletePlayerPanicTargeting();
 private:
     UPROPERTY(Transient)
     TObjectPtr<ABattleManager> BattleManager = nullptr;

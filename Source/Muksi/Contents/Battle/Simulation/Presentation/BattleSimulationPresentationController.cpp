@@ -108,8 +108,6 @@ void UBattleSimulationPresentationController::ExitSimulationPresentation(bool bC
 void UBattleSimulationPresentationController::ClearAllExecutionResults()
 {
 	ExecutionResultsByWorld.Empty();
-	if (bSimulationPresentationActive)
-		ClearDisplayedExecutionResult();
 }
 
 void UBattleSimulationPresentationController::UpdateExecutionResult(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult)

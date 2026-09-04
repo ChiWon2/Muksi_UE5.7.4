@@ -222,6 +222,7 @@ void UBattleSimulationWorldRuntime::HandleSimulationActionFinished()
 		const bool bPlayerFirst = PreparedPlayerAction.Speed >= PreparedEnemyAction.Speed;
 		const FBattleAction& SecondAction = bPlayerFirst ? PreparedEnemyAction : PreparedPlayerAction;
 		SimulationState = EBattleSimulationState::ExecutingSecondAction;
+
 		if (!ActionExecutor || !ActionExecutor->ExecuteBattleAction(SecondAction))
 			FailCurrentExchange();
 		return;

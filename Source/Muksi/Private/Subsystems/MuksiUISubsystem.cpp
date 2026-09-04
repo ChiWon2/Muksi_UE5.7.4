@@ -58,6 +58,9 @@ void UMuksiUISubsystem::PushSoftWidgetToStackAynsc(const FGameplayTag& InWidgetS
 				
 				UCommonActivatableWidgetContainerBase* FoundWidgetStack = CreatedPrimaryLayout->FindWidgetStackByTag(InWidgetStackTag);
 				checkf(FoundWidgetStack, TEXT("Can not find Widget tag %s"), *InWidgetStackTag.ToString());
+				
+				const double AddWidgetStartTime = FPlatformTime::Seconds();
+				
 				UWidget_ActivatableBase* CreatedWidget = FoundWidgetStack->AddWidget<UWidget_ActivatableBase>(
 					LoadedWidgetClass,
 					[AsyncPushStateCallback](UWidget_ActivatableBase& CreatedWidgetInstance)
@@ -65,6 +68,13 @@ void UMuksiUISubsystem::PushSoftWidgetToStackAynsc(const FGameplayTag& InWidgetS
 						AsyncPushStateCallback(EAsyncPushWidgetState::OnCreatedBeforePush, &CreatedWidgetInstance);
 					}
 				);
+				UE_LOG(
+	LogTemp,
+	Warning,
+	TEXT("[CharacterData Test] AddWidget Total : %.2f ms"),
+	(FPlatformTime::Seconds() - AddWidgetStartTime) * 1000.0
+);
+				
 				AsyncPushStateCallback(EAsyncPushWidgetState::AfterPush, CreatedWidget);
 			}	
 		)

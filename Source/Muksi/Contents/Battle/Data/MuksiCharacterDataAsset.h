@@ -12,6 +12,24 @@ class UMuksiBattleCardDataAsset;
 class ABattleCharacterBase;
 class UCharacterPassive;
 
+//캐릭터마다 달라지는 정적 설정이라 여기에
+USTRUCT(BlueprintType)
+struct FCharacterPanicData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UMuksiBattleCardDataAsset> PenaltyCard = nullptr;
+
+	// 이 캐릭터의 Panic 행동에 관한 설정 묘사
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (MultiLine = true))
+	FText CharacterDescription;
+
+	bool IsValid() const
+	{
+		return PenaltyCard != nullptr;
+	}
+};
 
 /**
  * 
@@ -60,6 +78,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Deck")
 	TArray<UMuksiBattleCardDataAsset*> CharacterDeck;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Timeout Penalty")
+	TArray<FCharacterPanicData> TimeoutPenalties;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|AI")
 	TSubclassOf<UEnemyCardSelectStrategyBase> CardSelectStrategyClass;

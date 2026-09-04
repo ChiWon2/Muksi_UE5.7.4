@@ -38,8 +38,7 @@ void UWidget_DeckCardEntry::RefreshCardData()
 	if (CardNameText)
 	{
 		CardNameText->SetText(CachedCardData->CardName);
-	}
-	else
+	}else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UWidget_DeckCardEntry::RefreshCardData - CardNameText is null"));
 	}
@@ -55,10 +54,5 @@ void UWidget_DeckCardEntry::RefreshCardData()
 		{
 			CardImage->SetBrushFromTexture(CachedCardData->CardTexture);
 		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UWidget_DeckCardEntry::RefreshCardData - CardTexture is null: %s"), *GetNameSafe(CachedCardData.Get()));
-		}
 	}
-	UE_LOG(LogTemp, Log, TEXT("UWidget_DeckCardEntry::RefreshCardData - Card Applied: %s"),*CachedCardData->CardName.ToString());
 }

@@ -19,6 +19,7 @@ class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
 class UBattlePipelineWidget;
 class UExchangeControlWidget;
+class UWidget_BattleCardBase;
 
 
 class ABattleCharacterBase;
@@ -124,6 +125,9 @@ public:
 
 	// 카드 슬롯에서 장착 해제될 때 진행 중인 타겟팅/대기 카드 상태를 함께 정리한다.
 	void NotifyPlayerCardUnequipped();
+	
+private:
+	void HandleDeceiveRevealFinished(UWidget_BattleCardBase* CardWidget);
 
 	//---------------------------중앙 텍스트 블록 관련 함수---------------------------------------------------------------
 public:
@@ -222,6 +226,16 @@ public:
 
 
 	bool RevealEnemySelectedCard(int32 ExchangeIndex);
+	//------------------------------------------------------------------------------------------------------------------
+	
+	//==========================Card Reveal=============================================================================
+public:
+	
+protected:
+	void HandleTurnOrderAnimationsFinished(int32 ExchangeIndex);
+	
+	void CardRevealed();
+	bool PlayCurrentExchangeTurnOrderAnimation(int32 ExchangeIndex) const;
 	//------------------------------------------------------------------------------------------------------------------
 
 	//==========================Battle Action Sequence==================================================================

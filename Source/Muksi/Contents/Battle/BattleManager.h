@@ -43,7 +43,7 @@ public:
     FOnBattlePhaseStageRequested PhaseUIRequestedDelegate;
 
     UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
-    FOnBattlePhaseStageRequested PhasePrepRequestedDelegate;
+    FOnBattlePhaseStageRequested PhasePrepRequestedDelegate;    
 
     UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
     FOnBattlePhaseStageRequested PhaseExecutionRequestedDelegate;

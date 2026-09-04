@@ -23,34 +23,58 @@ void UWidget_CharacterData::CloseActivatableWidget()
 
 void UWidget_CharacterData::NativeConstruct()
 {
+	const double StartTime = FPlatformTime::Seconds();
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[CharacterData Test] NativeConstruct Start")
+	);
+	
 	Super::NativeConstruct();
+	
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[CharacterData Test] NativeConstruct Super End : %.2f ms"),
+		(FPlatformTime::Seconds() - StartTime) * 1000.0
+	);
 	
 	if (CloseBackgroundButton)
 	{
+		CloseBackgroundButton->OnClicked.RemoveDynamic(this, &UWidget_CharacterData::CloseActivatableWidget);
 		CloseBackgroundButton->OnClicked.AddDynamic(this, &UWidget_CharacterData::CloseActivatableWidget);
 	}
-	SetWidgetVisible();
-	
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[CharacterData Test] NativeConstruct Total : %.2f ms"),
+		(FPlatformTime::Seconds() - StartTime) * 1000.0
+	);
+}
+
+void UWidget_CharacterData::NativeOnActivated()
+{
+	const double StartTime = FPlatformTime::Seconds();
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[CharacterData Test] NativeOnActivated Start")
+	);
+	Super::NativeOnActivated();
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[CharacterData Test] NativeOnActivated End : %.2f ms"),
+		(FPlatformTime::Seconds() - StartTime) * 1000.0
+	);
 }
 
 void UWidget_CharacterData::NativeOnDeactivated()
 {
-	/*UE_LOG(LogTemp, Log, TEXT("Widget_CharacterData Deactivated!!"));
-	if (AMuksiPlayerController* PC = GetOwningMuksiPlayerController())
-	{
-		PC->bShowMouseCursor = true;
-		PC->bEnableClickEvents = true;
-		PC->bEnableMouseOverEvents = true;
-
-		/*FInputModeGameAndUI InputMode;
-		//FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
-		Debug::Print(TEXT("Deactivated CharacterData"));#1#
-		
-		/*CloseBackgroundButton->SetVisibility(ESlateVisibility::HitTestInvisible);
-		PlayerDeckDataWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-		EnemyDeckDataWidget->SetVisibility(ESlateVisibility::HitTestInvisible);#1#
-	}*/
+	PlayerData = nullptr;
+	EnemyData = nullptr;
 	Super::NativeOnDeactivated();
 	
 }
@@ -79,14 +103,12 @@ void UWidget_CharacterData::SetWidgetVisible()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Player Data Print"));
 		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
-		PlayerDataPanelWidget->InitializeFromPlayerMode();
 		PlayerDataPanelWidget->ApplyCharacterData(PlayerData);
 		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
 	}else if (EnemyData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Enemy Data Print"));
 		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
-		EnemyDataPanelWidget->InitializeFromPlayerMode();
 		EnemyDataPanelWidget->ApplyCharacterData(EnemyData);
 		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
 	}

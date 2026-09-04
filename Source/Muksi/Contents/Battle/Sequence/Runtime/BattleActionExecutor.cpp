@@ -158,7 +158,8 @@ void UBattleActionExecutor::RunExecutionEntriesForNotify(FName NotifyKey)
 	if (!CurrentExecutionCard) return;
 	for (const FBattleExecutionNotify& ExecutionNotify : CurrentExecutionCard->ExecutionNotifies)
 	{
-		if (ExecutionNotify.IsValid() && ExecutionNotify.NotifyKey == NotifyKey) RunExecutionEntries(ExecutionNotify.ExecutionEntries);
+		if (ExecutionNotify.IsValid() && ExecutionNotify.NotifyKey == NotifyKey) 
+			RunExecutionEntries(ExecutionNotify.ExecutionEntries);
 	}
 }
 
@@ -172,9 +173,7 @@ bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEnt
 	FBattleExecutionContext Context;
 	Context.Attacker = CurrentAction.Attacker;
 	Context.Card = CurrentExecutionCard;
-	Context.ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType)
-		? EBattleExecutionMode::Simulation
-		: EBattleExecutionMode::ActualBattle;
+	Context.ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType)? EBattleExecutionMode::Simulation : EBattleExecutionMode::ActualBattle;
 	Context.TargetingResult = ActionTargetingResult;
 	Context.BattleGridManager = GridManager;
 	Context.GridWorldType = GridWorldType;
@@ -208,7 +207,8 @@ void UBattleActionExecutor::HandleExecutionRunnerFinished(UBattleExecutionRunner
 
 void UBattleActionExecutor::TryCompleteAction()
 {
-	if (bRunning && ActiveExecutionRunners.IsEmpty()) CompleteAction();
+	if (bRunning && ActiveExecutionRunners.IsEmpty())
+		CompleteAction();
 }
 
 void UBattleActionExecutor::CompleteAction()

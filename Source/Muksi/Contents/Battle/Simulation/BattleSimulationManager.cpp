@@ -206,7 +206,6 @@ void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, 
 		break;
 
 	case EBattlePhase::ExchangeEnd:
-	case EBattlePhase::BattleActionSequenceStart:
 		if (PresentationController) 
 			PresentationController->ClearAllExecutionResults();
 		break;

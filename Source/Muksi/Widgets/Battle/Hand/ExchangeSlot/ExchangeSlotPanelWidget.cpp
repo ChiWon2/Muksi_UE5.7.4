@@ -227,8 +227,7 @@ void UExchangeSlotPanelWidget::EnableExchangeSlot(int32 InIndex, bool bActive)
 
 bool UExchangeSlotPanelWidget::EnemySelectedBattleCardFlip(int32 InIndex, bool bFront)
 {
-	if (!EnemySelectedBattleCards.IsValidIndex(InIndex)
-		|| !EnemySelectedBattleCards[InIndex])
+	if (!EnemySelectedBattleCards.IsValidIndex(InIndex) || !EnemySelectedBattleCards[InIndex])
 	{
 		UE_LOG(
 			LogTemp,
@@ -240,8 +239,7 @@ bool UExchangeSlotPanelWidget::EnemySelectedBattleCardFlip(int32 InIndex, bool b
 		return false;
 	}
 
-	UWidget_BattleCardBase* CardWidget =
-		EnemySelectedBattleCards[InIndex];
+	UWidget_BattleCardBase* CardWidget = EnemySelectedBattleCards[InIndex];
 
 	if (!bFront)
 	{
@@ -283,11 +281,32 @@ void UExchangeSlotPanelWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* S
 	CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	EnemyExchangeSlots[ExchangeCount]->SetVisibility(ESlateVisibility::Visible);
 	EnemyExchangeSlots[ExchangeCount]->EquipCard_Enemy(CardWidget);
-
-	//TODO CardWidget 뒤집는 애니메이션
-	//EnemySelectCardVerticalBox->AddChildToVerticalBox(CardWidget);
+	
 	EnemySelectedBattleCards.SetNum(EnemyExchangeSlots.Num());
 	EnemySelectedBattleCards[ExchangeCount] = CardWidget;
+}
+
+UWidget_BattleCardBase* UExchangeSlotPanelWidget::GetCardWidgetByExchangeIndex(int32 ExchangeIndex,
+	bool bPlayerAction) const
+{
+	const TArray<TObjectPtr<UWidget_CardEquipSlot>>& Slots =
+		bPlayerAction
+			? PlayerExchangeSlots
+			: EnemyExchangeSlots;
+
+	if (!Slots.IsValidIndex(ExchangeIndex))
+	{
+		return nullptr;
+	}
+
+	UWidget_CardEquipSlot* EquipSlot = Slots[ExchangeIndex];
+
+	if (!EquipSlot)
+	{
+		return nullptr;
+	}
+
+	return EquipSlot->GetEquipSlot();
 }
 
 TArray<FReleasedExchangeCard> UExchangeSlotPanelWidget::ReleasePlayerCards()
@@ -390,15 +409,13 @@ void UExchangeSlotPanelWidget::HandleEnemySelectedCardFlipFinished(UWidget_Battl
 		return;
 	}
 
-	if (!EnemySelectedBattleCards.IsValidIndex(
-		PendingEnemyCardRevealIndex))
+	if (!EnemySelectedBattleCards.IsValidIndex(PendingEnemyCardRevealIndex))
 	{
 		PendingEnemyCardRevealIndex = INDEX_NONE;
 		return;
 	}
 
-	if (EnemySelectedBattleCards[PendingEnemyCardRevealIndex]
-		!= CardWidget)
+	if (EnemySelectedBattleCards[PendingEnemyCardRevealIndex] != CardWidget)
 	{
 		return;
 	}
@@ -444,6 +461,9 @@ void UExchangeSlotPanelWidget::InitializeExchangeSlots()
 		EquipSlot->SetSlotHighlighted(false);
 		EquipSlot->SetSlotConfirmed(false);
 		EquipSlot->OnCardUnequipRequested.AddUObject(this, &UExchangeSlotPanelWidget::HandleCardUnequipRequested);
+		
+		EquipSlot->OnTurnOrderTiltFinished.RemoveAll(this);
+		EquipSlot->OnTurnOrderTiltFinished.AddUObject(this,&UExchangeSlotPanelWidget::HandleTurnOrderTiltFinished);
 	}
 
 	EnemyExchangeSlots.Empty();
@@ -475,6 +495,9 @@ void UExchangeSlotPanelWidget::InitializeExchangeSlots()
 		EquipSlot->SetSlotEnabled(false);
 		EquipSlot->SetSlotHighlighted(false);
 		EquipSlot->SetSlotConfirmed(false);
+		
+		EquipSlot->OnTurnOrderTiltFinished.RemoveAll(this);
+		EquipSlot->OnTurnOrderTiltFinished.AddUObject(this,&UExchangeSlotPanelWidget::HandleTurnOrderTiltFinished);
 	}
 }
 
@@ -493,4 +516,103 @@ void UExchangeSlotPanelWidget::HandleCardUnequipRequested(UWidget_CardEquipSlot*
 	}
 
 	OnCardReturnRequested.Broadcast(CardWidget);
+}
+
+bool UExchangeSlotPanelWidget::PlayTurnOrderAnimations(int32 ExchangeIndex, bool bPlayerFirst)
+{
+	if (!PlayerExchangeSlots.IsValidIndex(ExchangeIndex) || !EnemyExchangeSlots.IsValidIndex(ExchangeIndex))
+	{
+		return false;
+	}
+
+	UWidget_CardEquipSlot* PlayerSlot = PlayerExchangeSlots[ExchangeIndex];
+
+	UWidget_CardEquipSlot* EnemySlot = EnemyExchangeSlots[ExchangeIndex];
+
+	if (!PlayerSlot || !EnemySlot)
+	{
+		return false;
+	}
+
+	PendingTurnOrderExchangeIndex = ExchangeIndex;
+	PendingTurnOrderAnimationCount = 2;
+
+	const bool bPlayerAnimationStarted = PlayerSlot->PlayTurnOrderTilt(bPlayerFirst);
+
+	if (!bPlayerAnimationStarted)
+	{
+		// 애니메이션이 없어도 Phase가 정지하지 않게 완료 처리
+		HandleTurnOrderTiltFinished(PlayerSlot);
+	}
+
+	const bool bEnemyAnimationStarted = EnemySlot->PlayTurnOrderTilt(!bPlayerFirst);
+
+	if (!bEnemyAnimationStarted)
+	{
+		HandleTurnOrderTiltFinished(EnemySlot);
+	}
+
+	return true;
+}
+
+void UExchangeSlotPanelWidget::ResetTurnOrderAnimations()
+{
+	PendingTurnOrderAnimationCount = 0;
+	PendingTurnOrderExchangeIndex = INDEX_NONE;
+	
+	for (UWidget_CardEquipSlot* PlayerSlot : PlayerExchangeSlots)
+	{
+		if (PlayerSlot)
+		{
+			PlayerSlot->PlayTurnOrderReset();
+		}
+	}
+
+	for (UWidget_CardEquipSlot* EnemySlot : EnemyExchangeSlots)
+	{
+		if (EnemySlot)
+		{
+			EnemySlot->PlayTurnOrderReset();
+		}
+	}
+}
+
+void UExchangeSlotPanelWidget::HandleTurnOrderTiltFinished(UWidget_CardEquipSlot* FinishedSlot)
+{
+	if (!FinishedSlot
+		|| PendingTurnOrderExchangeIndex == INDEX_NONE
+		|| PendingTurnOrderAnimationCount <= 0)
+	{
+		return;
+	}
+
+	const int32 ExchangeIndex =
+		PendingTurnOrderExchangeIndex;
+
+	if (!PlayerExchangeSlots.IsValidIndex(ExchangeIndex)
+		|| !EnemyExchangeSlots.IsValidIndex(ExchangeIndex))
+	{
+		return;
+	}
+
+	const bool bExpectedSlot =
+		PlayerExchangeSlots[ExchangeIndex] == FinishedSlot
+		|| EnemyExchangeSlots[ExchangeIndex] == FinishedSlot;
+
+	if (!bExpectedSlot)
+	{
+		return;
+	}
+
+	--PendingTurnOrderAnimationCount;
+
+	if (PendingTurnOrderAnimationCount > 0)
+	{
+		return;
+	}
+
+	PendingTurnOrderAnimationCount = 0;
+	PendingTurnOrderExchangeIndex = INDEX_NONE;
+
+	OnTurnOrderAnimationsFinished.Broadcast(ExchangeIndex);
 }
