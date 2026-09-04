@@ -133,8 +133,23 @@ bool UBattleCardComponent::ReturnCommittedCard(const FGuid& InstanceId)
 		
 		return false;
 	}
-
+	
 	FBattleCardInstance CardInstance = CommittedCards[CardIndex];
+	
+	//패닉 카드는 반환 금지
+	if (CardInstance.Source ==
+	EBattleCardInstanceSource::Panic)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT(
+				"[%s] Panic card cannot return to hand: %s"),
+			*GetNameSafe(GetOwner()),
+			*GetNameSafe(CardInstance.CardData));
+
+		return false;
+	}
 
 	CommittedCards.RemoveAt(CardIndex);
 	CurrentHand.Add(CardInstance);
@@ -204,6 +219,56 @@ bool UBattleCardComponent::RefillHandIfEmpty()
 	}
 
 	return CurrentHand.Num() > 0;
+}
+
+bool UBattleCardComponent::DiscardRandomHandCard(FBattleCardInstance& OutDiscardedCard)
+{
+	if (CurrentHand.IsEmpty())
+	{
+		return false;
+	}
+
+	const int32 RandomIndex =
+		FMath::RandRange(
+			0,
+			CurrentHand.Num() - 1);
+
+	OutDiscardedCard =
+		CurrentHand[RandomIndex];
+
+	CurrentHand.RemoveAt(RandomIndex);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT(
+			"[%s] Random hand card discarded: %s"),
+		*GetNameSafe(GetOwner()),
+		*GetNameSafe(OutDiscardedCard.CardData));
+
+	return true;
+}
+
+bool UBattleCardComponent::CommitPanicCard(UMuksiBattleCardDataAsset* PanicCard, FBattleCardInstance& OutCommittedCard)
+{
+	if (!IsValid(PanicCard))
+	{
+		return false;
+	}
+
+	OutCommittedCard = FBattleCardInstance(PanicCard, EBattleCardInstanceSource::Panic);
+
+	CommittedCards.Add(OutCommittedCard);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT(
+			"[%s] Panic card committed: %s"),
+		*GetNameSafe(GetOwner()),
+		*GetNameSafe(PanicCard));
+
+	return true;
 }
 
 

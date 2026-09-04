@@ -18,7 +18,7 @@ class UWidget_BattleCardBase;
 class UOverlay;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCardFlipFinished, UWidget_BattleCardBase*);
-
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveRevealFinished, UWidget_BattleCardBase*);
 /**
  * 
  */
@@ -164,11 +164,17 @@ private:
 	
 	//카드 변경 연출-------------------------------------------
 public:
+	//일반 카드 변경
 	UFUNCTION()
 	void PlayCardChangeEffect(UMuksiBattleCardDataAsset* NewCardData);
+	
+	//변초 카드 변경
+	void PlayDeceiveRevealEffect(UMuksiBattleCardDataAsset* ActualCardData);
 
 	UFUNCTION()
 	void StopCardChangeEffect();
+	
+	FOnDeceiveRevealFinished OnDeceiveRevealFinished; //변초 델리게이트
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UNiagaraSystemWidget> CardChangeNiagaraWidget;
@@ -188,6 +194,9 @@ private:
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleCardDataAsset> PendingCardData = nullptr;
+	
+	// 현재 CardChangeAnimation이 변초 공개용인지
+	bool bPlayingDeceiveReveal = false;
 
 	FTimerHandle CardChangeTimerHandle;
 	//-------------------------------------------------------

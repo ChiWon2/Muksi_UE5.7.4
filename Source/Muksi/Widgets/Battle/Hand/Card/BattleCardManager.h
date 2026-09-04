@@ -3,15 +3,28 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "UObject/Object.h"
 #include "BattleCardManager.generated.h"
 
-struct FBattleCardInstance;
 class UBattlePhaseTaskContext;
 enum class EBattlePhase : uint8;
 class ABattleManager;
 class ABattleCharacterBase;
 class UMuksiBattleCardDataAsset;
+
+
+struct FCharacterPanicTimeoutResult
+{
+	FBattleCardInstance PanicCard;
+	FBattleCardInstance DiscardedCard;
+
+	bool bDiscardedCard = false;
+	
+	FBattleCardInstance ReturnedCard;
+	bool bReturnedCard = false;
+
+};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattleHandCardChanged, FGuid, InstanceId, UMuksiBattleCardDataAsset*, NewCardData);
 
@@ -55,7 +68,9 @@ public:
 	
 	//카드 선택 시간초과 시스템-------------------------------------------------------
 public:
-	bool SelectRandomPlayerCardOnTimeout(FBattleCardInstance& OutSelectedCard);
-	bool ResolvePlayerCardOnTimeout(int32 ExchangeIndex, FBattleCardInstance& OutCard, bool& bOutAutoSelected);
+	bool ResolvePlayerPanicOnTimeout(int32 ExchangeIndex, FCharacterPanicTimeoutResult& OutResult);
+	bool ResolveEnemyPanicOnTimeout(int32 ExchangeIndex, FCharacterPanicTimeoutResult& OutResult);
+private:
+	bool ResolveCharacterPanicOnTimeout(ABattleCharacterBase* Character, int32 ExchangeIndex, FCharacterPanicTimeoutResult& OutResult);
 	//----------------------------------------------------------------------------
 };

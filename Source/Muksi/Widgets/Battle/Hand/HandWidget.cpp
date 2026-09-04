@@ -17,6 +17,7 @@
 #include "ExchangeSlot/ExchangeSlotPanelWidget.h"
 #include "ExchangeSlot/ExchangeSlotTypes.h"
 #include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
+#include "Muksi/Widgets/Battle/Widget_CardEquipSlot.h"
 
 
 void UHandWidget::NativeConstruct()
@@ -415,6 +416,143 @@ void UHandWidget::EnableExchangeSlot(int32 Index, bool bActive)
 	{
 		ExchangeSlotPanelWidget->EnableExchangeSlot(Index, bActive);
 	}
+}
+
+bool UHandWidget::ApplyPlayerPanicTimeoutResult(int32 ExchangeIndex, const FCharacterPanicTimeoutResult& Result)
+{
+	if (!ExchangeSlotPanelWidget || !Result.PanicCard.IsValid())
+    {
+        return false;
+    }
+	
+    UWidget_CardEquipSlot* CurrentSlot = ExchangeSlotPanelWidget->GetPlayerSlotByExchangeNumber(ExchangeIndex + 1);
+
+    if (!CurrentSlot)
+    {
+        return false;
+    }
+
+
+	//패닉 카드가 있으면 넘어가기
+    if (!Result.bReturnedCard)
+    {
+        UWidget_BattleCardBase* ExistingWidget = CurrentSlot->GetEquipSlot();
+
+        if (ExistingWidget && ExistingWidget->GetCardInstanceId() == Result.PanicCard.InstanceId)
+        {
+            CurrentSlot->ConfirmSlot();
+            return true;
+        }
+    }
+	
+	//1. 슬롯에 카드 위젯이 있을 경우 
+    if (Result.bReturnedCard)
+    {
+        UWidget_BattleCardBase* SlotCardWidget = CurrentSlot->GetEquipSlot();
+
+        if (!SlotCardWidget || SlotCardWidget->GetCardInstanceId() != Result.ReturnedCard.InstanceId)
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT(
+                    "[HandWidget] Returned slot card "
+                    "widget does not match result"));
+
+            return false;
+        }
+
+        // 카드Id 이미 반환되었으니 UI만 슬롯에서 분리
+        SlotCardWidget = CurrentSlot->ReleaseCard();
+
+        if (!SlotCardWidget)
+        {
+            return false;
+        }
+
+        const bool bReturnedCardWasDiscarded = Result.bDiscardedCard && Result.DiscardedCard.InstanceId == Result.ReturnedCard.InstanceId;
+
+        if (bReturnedCardWasDiscarded)
+        {
+            // 반환된 카드가 랜덤 제거 카드로 다시 선택된 경우
+            SlotCardWidget->RemoveFromParent();
+        }
+        else
+        {
+            // 반환됐지만 버려지지는 않았으므로 실제 위젯을 손패로 이동
+            SlotCardWidget->SetCardRenderAngle(0.0f);
+            SlotCardWidget->SetVisibility(
+                ESlateVisibility::Visible);
+
+            PlaceCardInHand(SlotCardWidget);
+        }
+    }
+
+    //2. 핸드에 있는 카드 한장 버리기
+    if (Result.bDiscardedCard)
+    {
+        const bool bDiscardedCardWasReturnedCard =
+            Result.bReturnedCard && Result.DiscardedCard.InstanceId == Result.ReturnedCard.InstanceId;
+
+        if (!bDiscardedCardWasReturnedCard)
+        {
+            UWidget_BattleCardBase* DiscardedWidget = FindBattleCardWidgetByInstanceId(Result.DiscardedCard.InstanceId);
+
+            if (DiscardedWidget)
+            {
+                RemoveHandCardWidget(DiscardedWidget);
+                DiscardedWidget->RemoveFromParent();
+            }
+            else
+            {
+                UE_LOG(
+                    LogTemp,
+                    Warning,
+                    TEXT(
+                        "[HandWidget] Discarded card widget "
+                        "not found: %s"),
+                    *GetNameSafe(
+                        Result.DiscardedCard.CardData));
+            }
+        }
+    }
+
+    //3. 패닉 카드 생성해 슬롯에 장착
+    UWidget_BattleCardBase* PanicCardWidget = CreateCardAtDrawSpawnPoint(Result.PanicCard);
+
+    if (!PanicCardWidget)
+    {
+        return false;
+    }
+
+    if (!CurrentSlot->EquipCard(PanicCardWidget))
+    {
+        RemoveHandCardWidget(PanicCardWidget);
+        PanicCardWidget->RemoveFromParent();
+
+        UE_LOG(
+            LogTemp,
+            Error,
+            TEXT("[HandWidget] Failed to equip panic card widget"));
+
+        return false;
+    }
+
+    // CreateCardAtDrawSpawnPoint가 BattleCards에 추가했으므로
+    // 슬롯 장착 후 손패 배열에서는 제거한다.
+    RemoveHandCardWidget(PanicCardWidget);
+
+    // 패닉 카드는 사용자가 다시 꺼낼 수 없게 한다.
+    CurrentSlot->ConfirmSlot();
+
+    OrganizeCards(GetDefaultCardSpacing());
+
+    return true;
+}
+
+void UHandWidget::NotifyPlayerCardEquipped()
+{
+	OnPlayerCardEquipped.Broadcast();
 }
 
 void UHandWidget::HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget)

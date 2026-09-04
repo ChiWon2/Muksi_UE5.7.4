@@ -8,6 +8,13 @@
 
 class UMuksiBattleCardDataAsset;
 
+UENUM(BlueprintType)
+enum class EBattleCardInstanceSource : uint8
+{
+	Deck,
+	Panic
+};
+
 USTRUCT(BlueprintType)
 struct FBattleCardInstance
 {
@@ -19,6 +26,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UMuksiBattleCardDataAsset> CardData = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	EBattleCardInstanceSource Source = EBattleCardInstanceSource::Deck;
 
 public:
 	FBattleCardInstance()
@@ -26,9 +36,12 @@ public:
 	{
 	}
 
-	explicit FBattleCardInstance(UMuksiBattleCardDataAsset* InCardData)
-		: InstanceId(FGuid::NewGuid())
-		, CardData(InCardData)
+	explicit FBattleCardInstance(
+	UMuksiBattleCardDataAsset* InCardData,
+	EBattleCardInstanceSource InSource = EBattleCardInstanceSource::Deck)
+	: InstanceId(FGuid::NewGuid())
+	, CardData(InCardData)
+	, Source(InSource)
 	{
 	}
 
@@ -85,6 +98,9 @@ public:
 	bool ReplaceHandCard(const FGuid& InstanceId, UMuksiBattleCardDataAsset* NewCardData);
 	void ConsumeCommittedCards();
 	bool RefillHandIfEmpty();
+	
+	bool DiscardRandomHandCard(FBattleCardInstance& OutDiscardedCard);
+	bool CommitPanicCard(UMuksiBattleCardDataAsset* PanicCard, FBattleCardInstance& OutCommittedCard);
 private:
 	
 	

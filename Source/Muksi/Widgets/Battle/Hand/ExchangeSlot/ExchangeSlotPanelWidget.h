@@ -21,6 +21,7 @@ struct FReleasedExchangeCard;
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnemyCardRevealFinished, int32);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCardReturnRequested,UWidget_BattleCardBase*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnTurnOrderAnimationsFinished, int32);
 UCLASS()
 class MUKSI_API UExchangeSlotPanelWidget : public UUserWidget
 {
@@ -49,6 +50,8 @@ public:
 	
 	UFUNCTION()
 	void PlaceEnemySelectCard(UMuksiBattleCardDataAsset* SelectCard, int32 ExchangeCount);
+	
+	UWidget_BattleCardBase* GetCardWidgetByExchangeIndex(int32 ExchangeIndex, bool bPlayerAction) const;
 	
 	TArray<FReleasedExchangeCard> ReleasePlayerCards();
 	TArray<FReleasedExchangeCard> ReleaseEnemyCards();
@@ -99,4 +102,19 @@ private:
 	
 	/*UPROPERTY()
 	TObjectPtr<UHandWidget> OwningHandWidget;*/
+	
+	//선 후공 슬롯 애니메이션----------------------------------------------------------------------------------------------
+public:
+	bool PlayTurnOrderAnimations(int32 ExchangeIndex, bool bPlayerFirst);
+
+	void ResetTurnOrderAnimations();
+	
+	FOnTurnOrderAnimationsFinished OnTurnOrderAnimationsFinished;
+protected:
+	void HandleTurnOrderTiltFinished(UWidget_CardEquipSlot* FinishedSlot);
+
+	int32 PendingTurnOrderAnimationCount = 0;
+	int32 PendingTurnOrderExchangeIndex = INDEX_NONE;
+	//------------------------------------------------------------------------------------------------------------------
+	
 };

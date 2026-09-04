@@ -12,11 +12,13 @@ class UMuksiBattleCardDataAsset;
 class UBorder;
 class UWidget_BattleCardBase;
 class UOverlay;
+class UWidgetAnimation;
 
 /**
  * 
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCardUnequipRequested, UWidget_CardEquipSlot*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnTurnOrderTiltFinished, UWidget_CardEquipSlot*);
 UCLASS()
 class MUKSI_API UWidget_CardEquipSlot : public UUserWidget
 {
@@ -83,6 +85,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "CardEquipSlot")
 	FCardEquipSlotData GetSlotData() const { return SlotData; }
 	
+	
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "CardEquipSlot")
 	bool bPlayerSlot = true;
 
@@ -110,5 +114,38 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CardEquipSlot")
 	bool bHighlighted = false;
+	
+	//선 후공 슬롯 애니메이션----------------------------------------------------------------------------------------------
+public:
+	virtual void OnAnimationFinished_Implementation(const UWidgetAnimation* Animation) override;
+	FOnTurnOrderTiltFinished OnTurnOrderTiltFinished;
+	
+	bool PlayTurnOrderTilt(bool bFirst);
+	void PlayTurnOrderReset();
+protected:
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_TurnorderTilit_First;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_TurnorderTilit_Second;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_TurnorderTilit_Reset;
+	
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_TurnorderTilit_First_Enemy;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_TurnorderTilit_Second_Enemy;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_TurnorderTilit_Reset_Enemy;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UWidgetAnimation> ActiveTurnOrderAnimation = nullptr;
+	
+	bool bWaitingForTurnOrderTiltFinish = false;
+	void StopTurnOrderAnimations();
+	//------------------------------------------------------------------------------------------------------------------
 	
 };
