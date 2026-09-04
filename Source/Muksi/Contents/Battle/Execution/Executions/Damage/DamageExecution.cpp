@@ -12,7 +12,7 @@ namespace
 {
 	struct FPendingHitResponse
 	{
-		TArray<FBattleExecutionEntry> Executions;
+		TArray<FBattleExecutionEntry> ExecutionEntries;
 		FBattleExecutionContext Context;
 	};
 }
@@ -42,20 +42,20 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		HitResponse.Context = Context;
 		HitResponse.Context.ExecutionTarget = TargetCharacter;
 		HitResponse.Context.ExecutionData.Reset();
-		BuildHitResponseExecutions(HitResponse.Context, *DamageData, TargetCharacter, HitResponse.Executions);
+		BuildHitResponseExecutionEntries(HitResponse.Context, *DamageData, TargetCharacter, HitResponse.ExecutionEntries);
 
-		if (!HitResponse.Executions.IsEmpty()) PendingHitResponses.Add(MoveTemp(HitResponse));
+		if (!HitResponse.ExecutionEntries.IsEmpty()) PendingHitResponses.Add(MoveTemp(HitResponse));
 	}
 
 	for (const FPendingHitResponse& HitResponse : PendingHitResponses)
 	{
-		if (!Context.CanRequestRuntimeExecutionChain())
+		if (!Context.CanRequestRuntimeExecutionEntries())
 		{
 			continue;
 		}
 
-		Context.RequestRuntimeExecutionChain.Execute(
-			HitResponse.Executions,
+		Context.RequestRuntimeExecutionEntries.Execute(
+			HitResponse.ExecutionEntries,
 			HitResponse.Context,
 			FSimpleDelegate());
 	}
@@ -104,7 +104,7 @@ void UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Contex
 
 }
 
-void UDamageExecution::BuildHitResponseExecutions(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, TArray<FBattleExecutionEntry>& OutExecutions) const
+void UDamageExecution::BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
 {
 	if (!TargetCharacter)
 	{
@@ -115,10 +115,10 @@ void UDamageExecution::BuildHitResponseExecutions(const FBattleExecutionContext&
 	{
 		FBattleExecutionEntry HitReactionEntry;
 		HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
-		OutExecutions.Add(MoveTemp(HitReactionEntry));
+		OutExecutionEntries.Add(MoveTemp(HitReactionEntry));
 	}
 
-	if (Context.ExecutionMode != EBattleExecutionMode::Sequence)
+	if (Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
 	{
 		return;
 	}
@@ -132,13 +132,13 @@ void UDamageExecution::BuildHitResponseExecutions(const FBattleExecutionContext&
 	{
 		if (UMuksiStatusEffectComponent* AttackerStatusEffects = Context.Attacker->GetStatusEffectComponent())
 		{
-			AttackerStatusEffects->AppendHitDealtExecutions(Context, DamageData.DamageValue, OutExecutions);
+			AttackerStatusEffects->AppendHitDealtExecutionEntries(Context, DamageData.DamageValue, OutExecutionEntries);
 		}
 	}
 
 	if (UMuksiStatusEffectComponent* TargetStatusEffects = TargetCharacter->GetStatusEffectComponent())
 	{
-		TargetStatusEffects->AppendHitReceivedExecutions(Context, DamageData.DamageValue, OutExecutions);
+		TargetStatusEffects->AppendHitReceivedExecutionEntries(Context, DamageData.DamageValue, OutExecutionEntries);
 	}
 }
 

@@ -64,7 +64,7 @@ public:
 	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
 
 	UPROPERTY()
-	EBattleExecutionMode ExecutionMode = EBattleExecutionMode::Sequence;
+	EBattleExecutionMode ExecutionMode = EBattleExecutionMode::ActualBattle;
 
 };
 

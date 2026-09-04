@@ -1,11 +1,11 @@
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 
 
-void UBattleExecutionRunner::RunExecutions(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished)
+void UBattleExecutionRunner::RunExecutionEntries(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished)
 {
 	ExecutionEntries = InExecutionEntries;
 	CachedContext = Context;
-	CachedContext.RequestRuntimeExecutionChain.BindUObject(this, &UBattleExecutionRunner::HandleRuntimeExecutionChainRequested);
+	CachedContext.RequestRuntimeExecutionEntries.BindUObject(this, &UBattleExecutionRunner::HandleRuntimeExecutionEntriesRequested);
 	CurrentExecutionContext = FBattleExecutionContext();
 	CachedOnEntryStarted = OnEntryStarted;
 	CachedOnEntryFinished = OnEntryFinished;
@@ -36,7 +36,7 @@ void UBattleExecutionRunner::ExecuteNextExecution()
 
 	if (!ExecutionEntries.IsValidIndex(CurrentExecutionIndex))
 	{
-		TryCompleteExecutionSequence();
+		TryCompleteRunner();
 		return;
 	}
 
@@ -87,16 +87,16 @@ void UBattleExecutionRunner::HandleCurrentExecutionFinished()
 	ExecuteNextExecution();
 }
 
-bool UBattleExecutionRunner::HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate)
+bool UBattleExecutionRunner::HandleRuntimeExecutionEntriesRequested(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate)
 {
 	if (bRunnerFinished || !bWaitingForCurrentExecution || InExecutionEntries.IsEmpty())
 	{
 		return false;
 	}
 
-	if (Context.NestedChainDepth >= MaxNestedChainDepth)
+	if (Context.NestedRunnerDepth >= MaxNestedRunnerDepth)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleExecutionRunner] Max nested Chain depth reached. Depth=%d"), Context.NestedChainDepth);
+		UE_LOG(LogTemp, Warning, TEXT("[BattleExecutionRunner] Max nested BattleExecutionRunner depth reached. Depth=%d"), Context.NestedRunnerDepth);
 		return false;
 	}
 
@@ -107,14 +107,14 @@ bool UBattleExecutionRunner::HandleRuntimeExecutionChainRequested(const TArray<F
 	}
 
 	FBattleExecutionContext NestedContext = Context;
-	NestedContext.NestedChainDepth = Context.NestedChainDepth + 1;
+	NestedContext.NestedRunnerDepth = Context.NestedRunnerDepth + 1;
 
 	ActiveNestedExecutionRunners.Add(NestedRunner);
 	NestedRunnerCompletionDelegates.Add(NestedRunner, MoveTemp(CompletionDelegate));
 
 	FBattleExecutionRunnerFinished OnFinished;
 	OnFinished.BindUObject(this, &UBattleExecutionRunner::HandleNestedExecutionRunnerFinished);
-	NestedRunner->RunExecutions(InExecutionEntries, NestedContext, CachedOnEntryStarted, CachedOnEntryFinished, OnFinished);
+	NestedRunner->RunExecutionEntries(InExecutionEntries, NestedContext, CachedOnEntryStarted, CachedOnEntryFinished, OnFinished);
 	return true;
 }
 
@@ -133,18 +133,18 @@ void UBattleExecutionRunner::HandleNestedExecutionRunnerFinished(UBattleExecutio
 	}
 
 	CompletionDelegate.ExecuteIfBound();
-	TryCompleteExecutionSequence();
+	TryCompleteRunner();
 }
 
-void UBattleExecutionRunner::TryCompleteExecutionSequence()
+void UBattleExecutionRunner::TryCompleteRunner()
 {
 	if (!bRunnerFinished && !bWaitingForCurrentExecution && ActiveNestedExecutionRunners.IsEmpty() && !ExecutionEntries.IsValidIndex(CurrentExecutionIndex))
 	{
-		CompleteExecutionSequence();
+		CompleteRunner();
 	}
 }
 
-void UBattleExecutionRunner::CompleteExecutionSequence()
+void UBattleExecutionRunner::CompleteRunner()
 {
 	if (bRunnerFinished)
 	{
@@ -185,5 +185,5 @@ bool UBattleExecutionRunner::ShouldExecuteEntry(const FBattleExecutionEntry& Ent
 		return Entry.ExecutionScope == EBattleExecutionScope::SimulationOnly;
 	}
 
-	return Entry.ExecutionScope == EBattleExecutionScope::SequenceOnly;
+	return Entry.ExecutionScope == EBattleExecutionScope::ActualBattleOnly;
 }

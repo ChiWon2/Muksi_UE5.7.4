@@ -14,7 +14,7 @@ class UMuksiBattleCardDataAsset;
 
 struct FBattleExecutionContext;
 
-DECLARE_DELEGATE_RetVal_ThreeParams(bool, FRequestRuntimeExecutionChain, const TArray<FBattleExecutionEntry>&, const FBattleExecutionContext&, FSimpleDelegate);
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FRequestRuntimeExecutionEntries, const TArray<FBattleExecutionEntry>&, const FBattleExecutionContext&, FSimpleDelegate);
 
 USTRUCT(BlueprintType)
 struct FBattleExecutionContext
@@ -22,7 +22,7 @@ struct FBattleExecutionContext
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly)
-	EBattleExecutionMode ExecutionMode = EBattleExecutionMode::Sequence;
+	EBattleExecutionMode ExecutionMode = EBattleExecutionMode::ActualBattle;
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<ABattleCharacterBase> Attacker = nullptr;
@@ -50,10 +50,10 @@ struct FBattleExecutionContext
 	TObjectPtr<ABattleCharacterBase> ExecutionTarget = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 NestedChainDepth = 0;
+	int32 NestedRunnerDepth = 0;
 
-	//런타임 결과에 따라 동적으로 발생하는 자식 Chain을 현재 Runner에 전달하는 통로이다.
-	FRequestRuntimeExecutionChain RequestRuntimeExecutionChain;
+	// BattleExecution 실행 중 추가 ExecutionEntries를 별도 BattleExecutionRunner로 실행하도록 요청하는 통로이다.
+	FRequestRuntimeExecutionEntries RequestRuntimeExecutionEntries;
 
 	bool IsValidContext() const
 	{
@@ -74,9 +74,9 @@ struct FBattleExecutionContext
 		return StepResult->AffectedCoords.IsValidIndex(0) ? StepResult->AffectedCoords[0] : FHexOffsetCoord::Invalid();
 	}
 
-	bool CanRequestRuntimeExecutionChain() const
+	bool CanRequestRuntimeExecutionEntries() const
 	{
-		return RequestRuntimeExecutionChain.IsBound();
+		return RequestRuntimeExecutionEntries.IsBound();
 	}
 
 	bool HasExecutionData() const

@@ -4,7 +4,7 @@
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-void UBurnStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions)
+void UBurnStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(OldPhase);
 
@@ -15,7 +15,7 @@ void UBurnStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase
 
 	FBattleExecutionEntry SubtractEntry;
 	SubtractEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
-	SubtractEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
+	SubtractEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData SubtractData;
 	SubtractData.Operation = EStatusEffectExecutionOperation::Subtract;
@@ -23,5 +23,5 @@ void UBurnStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase
 	SubtractData.Duration = 1;
 	SubtractEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(SubtractData);
 
-	OutExecutions.Add(MoveTemp(SubtractEntry));
+	OutExecutionEntries.Add(MoveTemp(SubtractEntry));
 }

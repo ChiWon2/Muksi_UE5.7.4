@@ -35,11 +35,11 @@ private:
 	UMuksiBattleCardDataAsset* ResolveExecutionCard(const FBattleAction& Action) const;
 	bool BindAttackerNotify();
 	void UnbindAttackerNotify();
-	bool StartMainExecutions();
-	void StartNotifyExecutionChains(FName NotifyKey);
-	bool RunExecutionSequence(const TArray<FBattleExecutionEntry>& ExecutionEntries);
+	bool RunMainExecutionEntries();
+	void RunExecutionEntriesForNotify(FName NotifyKey);
+	bool RunExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries);
 	void HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext);
-	void HandleExecutionSequenceFinished(UBattleExecutionRunner* FinishedRunner);
+	void HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
 	void TryCompleteAction();
 	void CompleteAction();
 	void ResetRuntime();

@@ -21,31 +21,31 @@ void UMuksiStatusEffect::CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEf
     RemainingDuration = SourceEffect.RemainingDuration;
 }
 
-void UMuksiStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions)
+void UMuksiStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(OldPhase);
 	static_cast<void>(NewPhase);
-	static_cast<void>(OutExecutions);
+	static_cast<void>(OutExecutionEntries);
 }
 
-void UMuksiStatusEffect::BuildBattleActionStartExecutions(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutions)
+void UMuksiStatusEffect::BuildBattleActionStartExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(BattleAction);
-	static_cast<void>(OutExecutions);
+	static_cast<void>(OutExecutionEntries);
 }
 
-void UMuksiStatusEffect::BuildHitDealtExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions)
+void UMuksiStatusEffect::BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(Context);
 	static_cast<void>(Damage);
-	static_cast<void>(OutExecutions);
+	static_cast<void>(OutExecutionEntries);
 }
 
-void UMuksiStatusEffect::BuildHitReceivedExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions)
+void UMuksiStatusEffect::BuildHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(Context);
 	static_cast<void>(Damage);
-	static_cast<void>(OutExecutions);
+	static_cast<void>(OutExecutionEntries);
 }
 
 void UMuksiStatusEffect::OnApplied()

@@ -8,7 +8,7 @@
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectIDs.h"
 
-void UPreBleedStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions)
+void UPreBleedStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(OldPhase);
 
@@ -19,7 +19,7 @@ void UPreBleedStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattleP
 
 	FBattleExecutionEntry AddBleedEntry;
 	AddBleedEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
-	AddBleedEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
+	AddBleedEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData AddBleedData;
 	AddBleedData.Operation = EStatusEffectExecutionOperation::Add;
@@ -27,15 +27,15 @@ void UPreBleedStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattleP
 	AddBleedData.StackCount = GetCurrentStack();
 	AddBleedData.Duration = 1;
 	AddBleedEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(AddBleedData);
-	OutExecutions.Add(MoveTemp(AddBleedEntry));
+	OutExecutionEntries.Add(MoveTemp(AddBleedEntry));
 
 	FBattleExecutionEntry RemoveEntry;
 	RemoveEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
-	RemoveEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
+	RemoveEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData RemoveData;
 	RemoveData.Operation = EStatusEffectExecutionOperation::Remove;
 	RemoveData.EffectID = GetEffectID();
 	RemoveEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(RemoveData);
-	OutExecutions.Add(MoveTemp(RemoveEntry));
+	OutExecutionEntries.Add(MoveTemp(RemoveEntry));
 }

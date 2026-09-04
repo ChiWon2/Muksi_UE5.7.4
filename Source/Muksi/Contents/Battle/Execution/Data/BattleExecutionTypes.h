@@ -10,7 +10,7 @@ UENUM(BlueprintType)
 enum class EBattleExecutionMode : uint8
 {
 	Simulation,
-	Sequence
+	ActualBattle
 };
 
 UENUM(BlueprintType)
@@ -18,7 +18,7 @@ enum class EBattleExecutionScope : uint8
 {
 	Both,
 	SimulationOnly,
-	SequenceOnly
+	ActualBattleOnly
 };
 
 USTRUCT(BlueprintType)
@@ -47,7 +47,7 @@ struct FBattleExecutionEntry
 };
 
 USTRUCT(BlueprintType)
-struct FBattleNotifyExecutionChain
+struct FBattleExecutionNotify
 {
 	GENERATED_BODY()
 
@@ -55,7 +55,7 @@ struct FBattleNotifyExecutionChain
 	FName NotifyKey = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Notify")
-	TArray<FBattleExecutionEntry> Executions;
+	TArray<FBattleExecutionEntry> ExecutionEntries;
 
 	bool IsValid() const;
 	void SyncExecutionDataTypes();

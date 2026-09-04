@@ -16,7 +16,7 @@ class UBattlePhaseTaskContext;
 class UBattleActionExecutor;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveCardRevealRequested, const FBattleAction&);
-DECLARE_MULTICAST_DELEGATE(FOnBattleSequenceFinished);
+DECLARE_MULTICAST_DELEGATE(FOnBattleActionCompleted);
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleExecutionEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
 
 UCLASS()
@@ -35,8 +35,8 @@ public:
 	// 실제 BattleActionQueue에서 변초 Action 실행 직전에 Reveal UI를 요청한다.
 	FOnDeceiveCardRevealRequested DeceiveCardRevealRequestedDelegate;
 
-	// 단일 Action의 Execution Chain 완료 이벤트. Simulation에서도 기존대로 사용한다.
-	FOnBattleSequenceFinished OnSequenceFinished;
+	// 단일 BattleAction 완료 이벤트.
+	FOnBattleActionCompleted OnBattleActionCompleted;
 
 	FOnBattleExecutionEntryStarted OnExecutionEntryStarted;
 
@@ -44,10 +44,10 @@ public:
 	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
-	bool StartSequence(const FBattleAction& InAction);
+	bool StartBattleAction(const FBattleAction& InAction);
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
-	bool IsSequenceRunning() const;
+	bool IsBattleActionRunning() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
 	bool StartBattleActionSequence(const TArray<FBattleAction>& InActions);

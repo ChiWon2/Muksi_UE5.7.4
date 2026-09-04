@@ -26,7 +26,7 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 	if (bRunning || !ValidateAction(Action) || !IsValid(GridManager)) return false;
 
 	UMuksiBattleCardDataAsset* ExecutionCard = ResolveExecutionCard(Action);
-	if (!IsValid(ExecutionCard) || ExecutionCard->MainExecutions.IsEmpty()) return false;
+	if (!IsValid(ExecutionCard) || ExecutionCard->MainExecutionEntries.IsEmpty()) return false;
 
 	FTargetingResult TargetingResult;
 	if (!ResolveActionTargetingResult(Action, TargetingResult)) return false;
@@ -43,8 +43,13 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 		return false;
 	}
 
-	if (BattleManager && GridWorldType == EBattleSimulationWorldType::PlayerActualEnemyActual) BattleManager->NotifyBattleActionStart(CurrentAction);
-	if (!StartMainExecutions())
+	//TODO :: AA에서만 BattleManager의 BattleActionStartDelegate.Broadcast 호출함
+	if (BattleManager && GridWorldType == EBattleSimulationWorldType::PlayerActualEnemyActual) 
+		BattleManager->NotifyBattleActionStart(CurrentAction);
+
+	//TODO :: 여기서 완료대기 해줘야함.
+
+	if (!RunMainExecutionEntries())
 	{
 		ResetRuntime();
 		return false;
@@ -115,7 +120,7 @@ UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBa
 
 bool UBattleActionExecutor::BindAttackerNotify()
 {
-	if (!CurrentExecutionCard || CurrentExecutionCard->NotifyExecutionChains.IsEmpty()) return true;
+	if (!CurrentExecutionCard || CurrentExecutionCard->ExecutionNotifies.IsEmpty()) return true;
 	if (!CurrentAction.Attacker) return false;
 	AttackerAnimationComponent = CurrentAction.Attacker->FindComponentByClass<UMuksiBattleAnimationComponent>();
 	if (!AttackerAnimationComponent) return false;
@@ -128,36 +133,36 @@ void UBattleActionExecutor::UnbindAttackerNotify()
 	if (AttackerAnimationComponent) AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
 }
 
-bool UBattleActionExecutor::StartMainExecutions()
+bool UBattleActionExecutor::RunMainExecutionEntries()
 {
-	TArray<FBattleExecutionEntry> MainExecutions;
+	TArray<FBattleExecutionEntry> MainExecutionEntries;
 	if (!BattleSimulationWorld::UsesSimulationRuntime(GridWorldType) && CurrentAction.Attacker)
 	{
 		if (UMuksiStatusEffectComponent* StatusEffectComponent = CurrentAction.Attacker->GetStatusEffectComponent())
 		{
-			StatusEffectComponent->AppendBattleActionStartExecutions(CurrentAction, MainExecutions);
+			StatusEffectComponent->AppendBattleActionStartExecutionEntries(CurrentAction, MainExecutionEntries);
 		}
 	}
 
-	MainExecutions.Append(CurrentExecutionCard->MainExecutions);
-	return RunExecutionSequence(MainExecutions);
+	MainExecutionEntries.Append(CurrentExecutionCard->MainExecutionEntries);
+	return RunExecutionEntries(MainExecutionEntries);
 }
 
 void UBattleActionExecutor::HandleBattleExecutionNotify(FName NotifyKey)
 {
-	if (bRunning && !NotifyKey.IsNone()) StartNotifyExecutionChains(NotifyKey);
+	if (bRunning && !NotifyKey.IsNone()) RunExecutionEntriesForNotify(NotifyKey);
 }
 
-void UBattleActionExecutor::StartNotifyExecutionChains(FName NotifyKey)
+void UBattleActionExecutor::RunExecutionEntriesForNotify(FName NotifyKey)
 {
 	if (!CurrentExecutionCard) return;
-	for (const FBattleNotifyExecutionChain& NotifyChain : CurrentExecutionCard->NotifyExecutionChains)
+	for (const FBattleExecutionNotify& ExecutionNotify : CurrentExecutionCard->ExecutionNotifies)
 	{
-		if (NotifyChain.IsValid() && NotifyChain.NotifyKey == NotifyKey) RunExecutionSequence(NotifyChain.Executions);
+		if (ExecutionNotify.IsValid() && ExecutionNotify.NotifyKey == NotifyKey) RunExecutionEntries(ExecutionNotify.ExecutionEntries);
 	}
 }
 
-bool UBattleActionExecutor::RunExecutionSequence(const TArray<FBattleExecutionEntry>& ExecutionEntries)
+bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
 	if (!bRunning || ExecutionEntries.IsEmpty()) return false;
 
@@ -169,7 +174,7 @@ bool UBattleActionExecutor::RunExecutionSequence(const TArray<FBattleExecutionEn
 	Context.Card = CurrentExecutionCard;
 	Context.ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType)
 		? EBattleExecutionMode::Simulation
-		: EBattleExecutionMode::Sequence;
+		: EBattleExecutionMode::ActualBattle;
 	Context.TargetingResult = ActionTargetingResult;
 	Context.BattleGridManager = GridManager;
 	Context.GridWorldType = GridWorldType;
@@ -180,9 +185,9 @@ bool UBattleActionExecutor::RunExecutionSequence(const TArray<FBattleExecutionEn
 	OnEntryStarted.BindUObject(this, &UBattleActionExecutor::HandleExecutionEntryStarted);
 
 	FBattleExecutionRunnerFinished OnFinished;
-	OnFinished.BindUObject(this, &UBattleActionExecutor::HandleExecutionSequenceFinished);
+	OnFinished.BindUObject(this, &UBattleActionExecutor::HandleExecutionRunnerFinished);
 
-	Runner->RunExecutions(ExecutionEntries, Context, OnEntryStarted, FBattleExecutionEntryFinished(), OnFinished);
+	Runner->RunExecutionEntries(ExecutionEntries, Context, OnEntryStarted, FBattleExecutionEntryFinished(), OnFinished);
 	return true;
 }
 
@@ -195,7 +200,7 @@ void UBattleActionExecutor::HandleExecutionEntryStarted(const FBattleExecutionEn
 	OnBattleExecutionStarted.ExecuteIfBound(CurrentAction, Entry, EntryIndex, ActionTargetingResult);
 }
 
-void UBattleActionExecutor::HandleExecutionSequenceFinished(UBattleExecutionRunner* FinishedRunner)
+void UBattleActionExecutor::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
 {
 	if (!bRunning || !FinishedRunner || ActiveExecutionRunners.RemoveSingle(FinishedRunner) == 0) return;
 	TryCompleteAction();

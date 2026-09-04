@@ -186,30 +186,30 @@ const TArray<TObjectPtr<UMuksiStatusEffect>>& UMuksiStatusEffectComponent::GetAc
     return ActiveEffects;
 }
 
-void UMuksiStatusEffectComponent::AppendBattleActionStartExecutions(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutions) const
+void UMuksiStatusEffectComponent::AppendBattleActionStartExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
 {
 	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
 	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
 	{
-		if (IsValid(Effect)) Effect->BuildBattleActionStartExecutions(BattleAction, OutExecutions);
+		if (IsValid(Effect)) Effect->BuildBattleActionStartExecutionEntries(BattleAction, OutExecutionEntries);
 	}
 }
 
-void UMuksiStatusEffectComponent::AppendHitDealtExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions) const
+void UMuksiStatusEffectComponent::AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
 {
 	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
 	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
 	{
-		if (IsValid(Effect)) Effect->BuildHitDealtExecutions(Context, Damage, OutExecutions);
+		if (IsValid(Effect)) Effect->BuildHitDealtExecutionEntries(Context, Damage, OutExecutionEntries);
 	}
 }
 
-void UMuksiStatusEffectComponent::AppendHitReceivedExecutions(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutions) const
+void UMuksiStatusEffectComponent::AppendHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
 {
 	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
 	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
 	{
-		if (IsValid(Effect)) Effect->BuildHitReceivedExecutions(Context, Damage, OutExecutions);
+		if (IsValid(Effect)) Effect->BuildHitReceivedExecutionEntries(Context, Damage, OutExecutionEntries);
 	}
 }
 
@@ -269,14 +269,14 @@ void UMuksiStatusEffectComponent::ExecuteNextStatusEffect()
             continue;
         }
 
-		TArray<FBattleExecutionEntry> PhaseExecutions;
-		Effect->BuildPhaseExecutions(ExecutingOldPhase, ExecutingNewPhase, PhaseExecutions);
-		if (PhaseExecutions.IsEmpty())
+		TArray<FBattleExecutionEntry> PhaseExecutionEntries;
+		Effect->BuildPhaseExecutionEntries(ExecutingOldPhase, ExecutingNewPhase, PhaseExecutionEntries);
+		if (PhaseExecutionEntries.IsEmpty())
 		{
 			continue;
 		}
 
-		ExecutePhaseExecutions(PhaseExecutions);
+		RunPhaseExecutionEntries(PhaseExecutionEntries);
 		return;
     }
 
@@ -284,7 +284,7 @@ void UMuksiStatusEffectComponent::ExecuteNextStatusEffect()
     FinishExecution();
 }
 
-void UMuksiStatusEffectComponent::ExecutePhaseExecutions(const TArray<FBattleExecutionEntry>& ExecutionEntries)
+void UMuksiStatusEffectComponent::RunPhaseExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
 	ABattleCharacterBase* OwnerCharacter = Cast<ABattleCharacterBase>(GetOwner());
 	if (!IsValid(OwnerCharacter) || ExecutionEntries.IsEmpty())
@@ -301,14 +301,14 @@ void UMuksiStatusEffectComponent::ExecutePhaseExecutions(const TArray<FBattleExe
 	}
 
 	FBattleExecutionContext Context;
-	Context.ExecutionMode = EBattleExecutionMode::Sequence;
+	Context.ExecutionMode = EBattleExecutionMode::ActualBattle;
 	Context.Attacker = OwnerCharacter;
 	Context.ExecutionTarget = OwnerCharacter;
 	Context.BattleGridManager = BattleManager ? BattleManager->GetBattleGridManager() : nullptr;
 
 	FBattleExecutionRunnerFinished OnFinished;
 	OnFinished.BindUObject(this, &UMuksiStatusEffectComponent::HandlePhaseExecutionRunnerFinished);
-	PhaseExecutionRunner->RunExecutions(ExecutionEntries, Context, FBattleExecutionEntryStarted(), FBattleExecutionEntryFinished(), OnFinished);
+	PhaseExecutionRunner->RunExecutionEntries(ExecutionEntries, Context, FBattleExecutionEntryStarted(), FBattleExecutionEntryFinished(), OnFinished);
 }
 
 void UMuksiStatusEffectComponent::HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)

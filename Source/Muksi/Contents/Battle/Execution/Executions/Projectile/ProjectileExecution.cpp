@@ -126,7 +126,7 @@ void UProjectileExecution::HandleProjectileFinished(bool bInterrupted)
 {
 	ActiveProjectile = nullptr;
 
-	if (!bInterrupted && PendingHitTarget && RequestOnHitExecutionChain())
+	if (!bInterrupted && PendingHitTarget && RequestOnHitExecutionEntries())
 	{
 		return;
 	}
@@ -134,11 +134,11 @@ void UProjectileExecution::HandleProjectileFinished(bool bInterrupted)
 	CompleteExecution();
 }
 
-bool UProjectileExecution::RequestOnHitExecutionChain()
+bool UProjectileExecution::RequestOnHitExecutionEntries()
 {
 	const FProjectileExecutionData* ProjectileData = CachedContext.GetExecutionData<FProjectileExecutionData>();
 
-	if (!ProjectileData || ProjectileData->OnHitExecutionChain.IsEmpty() || !CachedContext.CanRequestRuntimeExecutionChain())
+	if (!ProjectileData || ProjectileData->OnHitExecutionEntries.IsEmpty() || !CachedContext.CanRequestRuntimeExecutionEntries())
 	{
 		return false;
 	}
@@ -146,8 +146,8 @@ bool UProjectileExecution::RequestOnHitExecutionChain()
 	FBattleExecutionContext RuntimeContext = CachedContext;
 	RuntimeContext.ExecutionTarget = PendingHitTarget;
 
-	return CachedContext.RequestRuntimeExecutionChain.Execute(
-		ProjectileData->OnHitExecutionChain,
+	return CachedContext.RequestRuntimeExecutionEntries.Execute(
+		ProjectileData->OnHitExecutionEntries,
 		RuntimeContext,
 		FSimpleDelegate::CreateUObject(this, &UProjectileExecution::CompleteExecution));
 }

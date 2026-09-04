@@ -53,13 +53,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	float CardSpeed = 1.0f;
 
-	// 카드 시작 시 순서대로 실행되는 Main Execution 목록.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
-	TArray<FBattleExecutionEntry> MainExecutions;
+	// 카드 시작 시 순서대로 실행할 Main BattleExecutionEntry 목록.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Execution")
+	TArray<FBattleExecutionEntry> MainExecutionEntries;
 
-	// Montage NotifyKey에서 시작되는 Execution Chain 목록.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
-	TArray<FBattleNotifyExecutionChain> NotifyExecutionChains;
+	// Montage NotifyKey와 해당 시점에 실행할 ExecutionEntries를 연결한다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Execution")
+	TArray<FBattleExecutionNotify> ExecutionNotifies;
 
 	// Selection / Resolve / Presentation으로 구성되는 카드 Targeting 설정.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Targeting", meta = (DisplayName = "Targeting"))

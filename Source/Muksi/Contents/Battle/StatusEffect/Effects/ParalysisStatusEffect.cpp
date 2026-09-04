@@ -4,7 +4,7 @@
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-void UParalysisStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions)
+void UParalysisStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(OldPhase);
 
@@ -15,7 +15,7 @@ void UParalysisStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattle
 
 	FBattleExecutionEntry StatusEntry;
 	StatusEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
-	StatusEntry.ExecutionScope = EBattleExecutionScope::SequenceOnly;
+	StatusEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData StatusData;
 	StatusData.Operation = NewPhase == EBattlePhase::RoundStart ? EStatusEffectExecutionOperation::Subtract : EStatusEffectExecutionOperation::Remove;
@@ -23,5 +23,5 @@ void UParalysisStatusEffect::BuildPhaseExecutions(EBattlePhase OldPhase, EBattle
 	StatusData.Duration = NewPhase == EBattlePhase::RoundStart ? 1 : 0;
 	StatusEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(StatusData);
 
-	OutExecutions.Add(MoveTemp(StatusEntry));
+	OutExecutionEntries.Add(MoveTemp(StatusEntry));
 }
