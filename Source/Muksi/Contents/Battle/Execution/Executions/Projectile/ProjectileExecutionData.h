@@ -25,7 +25,7 @@ struct FProjectileExecutionData : public FBattleExecutionData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 	FName SpawnSocketName = NAME_None;
 
-	// 투사체가 대상에게 정상 도착했을 때 요청할 Runtime Execution Chain.
+	// 투사체가 대상에게 정상 도착했을 때 요청할 Runtime ExecutionEntries.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
-	TArray<FBattleExecutionEntry> OnHitExecutionChain;
+	TArray<FBattleExecutionEntry> OnHitExecutionEntries;
 };

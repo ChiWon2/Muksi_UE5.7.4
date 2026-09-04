@@ -8,7 +8,7 @@
 
 void UApplyStatusEffectCardEffect::ExecuteEffect(const FBattleCardEffectContext& Context)
 {
-	if (Context.ExecutionMode != EBattleExecutionMode::Sequence)
+	if (Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
 	{
 		return;
 	}

@@ -18,15 +18,15 @@ class MUKSI_API UBattleExecutionRunner : public UObject
 	GENERATED_BODY()
 
 public:
-	void Run(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished);
+	void RunExecutionEntries(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished);
 
 private:
 	void ExecuteNextExecution();
 	void HandleCurrentExecutionFinished();
-	bool HandleRuntimeExecutionChainRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate);
+	bool HandleRuntimeExecutionEntriesRequested(const TArray<FBattleExecutionEntry>& ExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate);
 	void HandleNestedExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
-	void TryFinishRunner();
-	void FinishRunner();
+	void TryCompleteRunner();
+	void CompleteRunner();
 	bool ShouldExecuteEntry(const FBattleExecutionEntry& Entry) const;
 
 private:
@@ -49,5 +49,5 @@ private:
 	int32 CurrentExecutionIndex = INDEX_NONE;
 	bool bWaitingForCurrentExecution = false;
 	bool bRunnerFinished = false;
-	static constexpr int32 MaxNestedChainDepth = 16;
+	static constexpr int32 MaxNestedRunnerDepth = 16;
 };

@@ -48,6 +48,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
     FOnBattlePhaseStageRequested PhaseExecutionRequestedDelegate;
 
+    //TODO:: Delete this , BattleSequenceManager ม฿บน
     FOnBattleActionStart BattleActionStartDelegate;
 
 public:

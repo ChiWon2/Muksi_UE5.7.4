@@ -39,14 +39,14 @@ void FBattleExecutionEntry::SyncExecutionDataType()
 	ExecutionData.InitializeAs(ExpectedStruct);
 }
 
-bool FBattleNotifyExecutionChain::IsValid() const
+bool FBattleExecutionNotify::IsValid() const
 {
-	return !NotifyKey.IsNone() && !Executions.IsEmpty();
+	return !NotifyKey.IsNone() && !ExecutionEntries.IsEmpty();
 }
 
-void FBattleNotifyExecutionChain::SyncExecutionDataTypes()
+void FBattleExecutionNotify::SyncExecutionDataTypes()
 {
-	for (FBattleExecutionEntry& Entry : Executions)
+	for (FBattleExecutionEntry& Entry : ExecutionEntries)
 	{
 		Entry.SyncExecutionDataType();
 	}

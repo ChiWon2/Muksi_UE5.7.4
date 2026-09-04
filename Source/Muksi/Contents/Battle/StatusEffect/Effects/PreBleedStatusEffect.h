@@ -14,5 +14,5 @@ class MUKSI_API UPreBleedStatusEffect : public UMuksiStatusEffect
 {
 	GENERATED_BODY()
 public:
-	virtual void BuildPhaseExecutions(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutions) override;
+	virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries) override;
 };

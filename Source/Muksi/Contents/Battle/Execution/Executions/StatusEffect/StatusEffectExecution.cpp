@@ -10,7 +10,7 @@ void UStatusEffectExecution::Execute(const FBattleExecutionContext& Context, FBa
 	ABattleCharacterBase* TargetCharacter = Context.ExecutionTarget ? Context.ExecutionTarget.Get() : Context.Attacker.Get();
 	UMuksiStatusEffectComponent* StatusEffectComponent = TargetCharacter ? TargetCharacter->GetStatusEffectComponent() : nullptr;
 
-	if (!StatusEffectData || StatusEffectData->EffectID.IsNone() || !StatusEffectComponent || Context.ExecutionMode != EBattleExecutionMode::Sequence)
+	if (!StatusEffectData || StatusEffectData->EffectID.IsNone() || !StatusEffectComponent || Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
 	{
 		FinishExecution(OnFinished);
 		return;

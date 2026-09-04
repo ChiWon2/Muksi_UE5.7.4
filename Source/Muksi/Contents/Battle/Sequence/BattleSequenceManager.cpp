@@ -41,8 +41,8 @@ bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InManager, UBa
 	ActionExecutor = NewObject<UBattleActionExecutor>(this);
 	if (!ActionExecutor) return false;
 	if (!ActionExecutor->Initialize(BattleManager, BattleGridManager, EBattleSimulationWorldType::PlayerActualEnemyActual)) return false;
-	ActionExecutor->FinishedDelegate.AddUObject(this, &ABattleSequenceManager::HandleActionExecutorFinished);
-	ActionExecutor->EntryStartedDelegate.AddUObject(this, &ABattleSequenceManager::HandleActionExecutorEntryStarted);
+	ActionExecutor->OnBattleActionCompleted.BindUObject(this, &ABattleSequenceManager::HandleActionExecutorFinished);
+	ActionExecutor->OnBattleExecutionStarted.BindUObject(this, &ABattleSequenceManager::HandleActionExecutorEntryStarted);
 	return true;
 }
 
@@ -80,17 +80,17 @@ void ABattleSequenceManager::NotifyBattleActionSequenceCompleted()
 	if (CompletedTask) CompletedTask->Complete();
 }
 
-bool ABattleSequenceManager::StartSequence(const FBattleAction& Action)
+bool ABattleSequenceManager::StartBattleAction(const FBattleAction& Action)
 {
 	if (!ActionExecutor || (bBattleActionSequenceRunning && !bStartingQueuedBattleAction)) return false;
-	return ActionExecutor->ExecuteAction(Action);
+	return ActionExecutor->ExecuteBattleAction(Action);
 }
 
-bool ABattleSequenceManager::IsSequenceRunning() const { return ActionExecutor && ActionExecutor->IsRunning(); }
+bool ABattleSequenceManager::IsBattleActionRunning() const { return ActionExecutor && ActionExecutor->IsRunning(); }
 
 bool ABattleSequenceManager::StartBattleActionSequence(const TArray<FBattleAction>& Actions)
 {
-	if (bBattleActionSequenceRunning || IsSequenceRunning() || Actions.IsEmpty()) return false;
+	if (bBattleActionSequenceRunning || IsBattleActionRunning() || Actions.IsEmpty()) return false;
 	BattleActionQueue = Actions;
 	SortBattleActionQueue();
 	CurrentBattleActionIndex = 0;
@@ -150,7 +150,7 @@ void ABattleSequenceManager::StartCurrentBattleActionExecution()
 {
 	if (!bBattleActionSequenceRunning || !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex)) return;
 	bStartingQueuedBattleAction = true;
-	const bool bStarted = StartSequence(BattleActionQueue[CurrentBattleActionIndex]);
+	const bool bStarted = StartBattleAction(BattleActionQueue[CurrentBattleActionIndex]);
 	bStartingQueuedBattleAction = false;
 	if (!bStarted) HandleCurrentBattleActionFinished();
 }
@@ -163,7 +163,7 @@ void ABattleSequenceManager::HandleActionExecutorEntryStarted(const FBattleActio
 
 void ABattleSequenceManager::HandleActionExecutorFinished()
 {
-	OnSequenceFinished.Broadcast();
+	OnBattleActionCompleted.Broadcast();
 	if (bBattleActionSequenceRunning) HandleCurrentBattleActionFinished();
 }
 

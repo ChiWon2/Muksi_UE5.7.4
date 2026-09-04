@@ -11,12 +11,9 @@ class ABattleCharacterBase;
 class ABattleGridManager;
 class ABattleSimulationCharacter;
 class ABattleSimulationManager;
-class UBattleSimulationWorldRuntime;
 class UBattleActionExecutor;
 struct FBattleExecutionEntry;
 struct FTargetingResult;
-
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSimulationWorldExchangeFinished, UBattleSimulationWorldRuntime*, int32);
 
 /**
  * AD / DD / DA 중 할당받은 Simulation World 하나의 Persistent Runtime을 소유한다.
@@ -32,7 +29,7 @@ public:
 	bool Initialize(ABattleSimulationManager* InSimulationManager, EBattleSimulationWorldType InWorldType, ABattleGridManager* SourceGridManager, const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void Shutdown();
 	bool ResetFromActualBattleState(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	bool PrepareExchange(int32 ExchangeIndex, const FBattleAction& PlayerAction, const FBattleAction& EnemyAction);
+	bool PrepareExchange(const FBattleAction& PlayerAction, const FBattleAction& EnemyAction);
 	bool ExecuteCurrentExchange();
 	void SetCharactersVisible(bool bVisible);
 
@@ -40,8 +37,6 @@ public:
 	EBattleSimulationState GetSimulationState() const { return SimulationState; }
 	EBattleSimulationWorldType GetWorldType() const { return WorldType; }
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
-
-	FOnBattleSimulationWorldExchangeFinished ExchangeFinishedDelegate;
 
 protected:
 	virtual void BeginDestroy() override;
@@ -52,11 +47,11 @@ private:
 	bool CreateActionExecutor(ABattleGridManager* InSourceGridManager);
 	bool ResetGridStateFromActual();
 	bool BuildSimulationAction(const FBattleAction& Action, FBattleAction& OutAction) const;
-	bool ExecuteSimulationAction(const FBattleAction& Action);
 	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
-	void HandleSimulationSequenceFinished();
+	void HandleSimulationActionFinished();
 	void FinishCurrentExchange();
-	void AbortSimulation();
+	void FailCurrentExchange();
+	void ClearPreparedActions();
 	void DestroySimulationRuntime();
 
 private:

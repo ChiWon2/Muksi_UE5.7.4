@@ -12,5 +12,5 @@ class MUKSI_API USaeMaekStatusEffect : public UMuksiStatusEffect
 	GENERATED_BODY()
 
 public:
-	virtual void BuildBattleActionStartExecutions(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutions) override;
+	virtual void BuildBattleActionStartExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutionEntries) override;
 };

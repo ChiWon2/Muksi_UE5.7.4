@@ -32,14 +32,14 @@ void UMuksiBattleCardDataAsset::PostEditChangeProperty(FPropertyChangedEvent& Pr
 
 void UMuksiBattleCardDataAsset::SyncExecutionDataTypes()
 {
-	for (FBattleExecutionEntry& Entry : MainExecutions)
+	for (FBattleExecutionEntry& Entry : MainExecutionEntries)
 	{
 		Entry.SyncExecutionDataType();
 	}
 
-	for (FBattleNotifyExecutionChain& NotifyChain : NotifyExecutionChains)
+	for (FBattleExecutionNotify& ExecutionNotify : ExecutionNotifies)
 	{
-		NotifyChain.SyncExecutionDataTypes();
+		ExecutionNotify.SyncExecutionDataTypes();
 	}
 }
 

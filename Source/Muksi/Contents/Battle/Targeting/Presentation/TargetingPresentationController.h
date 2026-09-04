@@ -39,6 +39,7 @@ public:
 private:
 	bool CreateCurrentStepPreview(const FTargetingPreviewContext& PreviewContext);
 	void DestroyCurrentStepPreview();
+	void DestroyStepPreviews();
 	void RefreshAffectedHighlights();
 
 private:

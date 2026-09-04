@@ -21,7 +21,7 @@ public:
 private:
 	void HandleProjectileFinished(bool bInterrupted);
 	ABattleCharacterBase* FindHitTarget(const FBattleExecutionContext& Context, const FHexOffsetCoord& DestinationCoord) const;
-	bool RequestOnHitExecutionChain();
+	bool RequestOnHitExecutionEntries();
 	void CompleteExecution();
 
 private:
