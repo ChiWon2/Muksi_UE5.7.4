@@ -118,7 +118,6 @@ void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, E
 
     case EBattlePhase::SimulationSequence:
     case EBattlePhase::ExchangeEnd:
-    case EBattlePhase::BattleActionSequenceStart:
     case EBattlePhase::RoundEnd:
     case EBattlePhase::BattleEnd:
         ClearAllTargeting();

@@ -7,13 +7,13 @@
 #include "BattleActionExecutor.generated.h"
 
 class ABattleGridManager;
-class ABattleManager;
 class UBattleExecutionRunner;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 
+DECLARE_DELEGATE_OneParam(FBattleActionStartedDelegate, const FBattleAction&);
 DECLARE_DELEGATE(FBattleActionCompletedDelegate);
-DECLARE_DELEGATE_FourParams(FBattleExecutionStartedDelegate, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
+DECLARE_DELEGATE_FourParams(FBattleActionExecutionEntryStartedDelegate, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
 
 UCLASS()
 class MUKSI_API UBattleActionExecutor : public UObject
@@ -21,13 +21,14 @@ class MUKSI_API UBattleActionExecutor : public UObject
 	GENERATED_BODY()
 
 public:
-	bool Initialize(ABattleManager* InBattleManager, ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType);
+	bool Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType);
 	bool ExecuteBattleAction(const FBattleAction& Action);
 	void Stop();
 	bool IsRunning() const { return bRunning; }
 
+	FBattleActionStartedDelegate OnBattleActionStarted;
 	FBattleActionCompletedDelegate OnBattleActionCompleted;
-	FBattleExecutionStartedDelegate OnBattleExecutionStarted;
+	FBattleActionExecutionEntryStartedDelegate OnExecutionEntryStarted;
 
 private:
 	bool ValidateAction(const FBattleAction& Action) const;
@@ -48,9 +49,6 @@ private:
 	void HandleBattleExecutionNotify(FName NotifyKey);
 
 private:
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleManager> BattleManager = nullptr;
-
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 

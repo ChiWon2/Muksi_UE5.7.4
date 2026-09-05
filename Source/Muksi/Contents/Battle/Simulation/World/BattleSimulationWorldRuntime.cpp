@@ -67,6 +67,7 @@ bool UBattleSimulationWorldRuntime::ResetFromActualBattleState(const TArray<ABat
 	}
 	ABattleGridManager* GridManager = SimulationManager->GetBattleGridManager();
 	GridManager->ClearAllTargetIndicators();
+	SetSimulationTimeScale(1.0f);
 	ClearPreparedActions();
 	SimulationState = EBattleSimulationState::Ready;
 	return true;
@@ -78,6 +79,20 @@ void UBattleSimulationWorldRuntime::SetCharactersVisible(bool bVisible)
 	{
 		if (IsValid(Pair.Value.Get()))
 			Pair.Value->SetActorHiddenInGame(!bVisible);
+	}
+}
+
+void UBattleSimulationWorldRuntime::SetSimulationTimeScale(float TimeScale)
+{
+	const float SafeTimeScale = FMath::Max(TimeScale, 0.01f);
+	if (FMath::IsNearlyEqual(SimulationTimeScale, SafeTimeScale))
+		return;
+	SimulationTimeScale = SafeTimeScale;
+	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : SimulationCharacterMap)
+	{
+		ABattleSimulationCharacter* SimulationCharacter = Pair.Value.Get();
+		if (IsValid(SimulationCharacter))
+			SimulationCharacter->CustomTimeDilation = SimulationTimeScale;
 	}
 }
 
@@ -182,10 +197,10 @@ bool UBattleSimulationWorldRuntime::CreateActionExecutor(ABattleGridManager* InS
 		return false;
 	ActionExecutor = NewObject<UBattleActionExecutor>(this);
 	ABattleManager* OwningBattleManager = IsValid(SimulationManager.Get()) ? SimulationManager->GetBattleManager() : nullptr;
-	if (!ActionExecutor || !ActionExecutor->Initialize(OwningBattleManager, InSourceGridManager, WorldType))
+	if (!ActionExecutor || !ActionExecutor->Initialize(InSourceGridManager, WorldType))
 		return false;
 	ActionExecutor->OnBattleActionCompleted.BindUObject(this, &UBattleSimulationWorldRuntime::HandleSimulationActionFinished);
-	ActionExecutor->OnBattleExecutionStarted.BindUObject(this, &UBattleSimulationWorldRuntime::HandleSimulationExecutionStarted);
+	ActionExecutor->OnExecutionEntryStarted.BindUObject(this, &UBattleSimulationWorldRuntime::HandleExecutionEntryStarted);
 	return true;
 }
 
@@ -207,7 +222,7 @@ bool UBattleSimulationWorldRuntime::BuildSimulationAction(const FBattleAction& A
 	return true;
 }
 
-void UBattleSimulationWorldRuntime::HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult)
+void UBattleSimulationWorldRuntime::HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult)
 {
 	(void)Entry;
 	(void)EntryIndex;
@@ -254,7 +269,7 @@ void UBattleSimulationWorldRuntime::DestroySimulationRuntime()
 	if (ActionExecutor)
 	{
 		ActionExecutor->OnBattleActionCompleted.Unbind();
-		ActionExecutor->OnBattleExecutionStarted.Unbind();
+		ActionExecutor->OnExecutionEntryStarted.Unbind();
 		ActionExecutor->Stop();
 		ActionExecutor = nullptr;
 	}

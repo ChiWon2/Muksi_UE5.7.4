@@ -67,7 +67,11 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	ActiveProjectile = World->SpawnActor<ABattleProjectileActor>(ProjectileData->ProjectileActorClass, SpawnTransform, SpawnParameters);
-	if (ActiveProjectile) ActiveProjectile->SetActorHiddenInGame(Context.Attacker->IsHidden());
+	if (ActiveProjectile)
+	{
+		ActiveProjectile->CustomTimeDilation = Context.Attacker->CustomTimeDilation;
+		ActiveProjectile->SetActorHiddenInGame(Context.Attacker->IsHidden());
+	}
 
 	if (!ActiveProjectile)
 	{

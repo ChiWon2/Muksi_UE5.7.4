@@ -24,7 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float
 /**
  * Round Simulation 전체를 조율한다.
  * AD / DD / DA WorldRuntime을 생성하고 동시에 실행하며 완료를 집계한다.
- * 표시 World와 시간 및 PostProcess는 PresentationController에 위임하고 AA Action만 실제 전투 Queue에 반영한다.
+ * 표시 World와 PostProcess는 PresentationController에 위임하고, World별 시간 배율과 완료 집계 및 AA Action Commit을 관리한다.
  * 개별 World의 Character / Grid 복제와 Sequence 실행은 UBattleSimulationWorldRuntime이 담당한다.
  */
 UCLASS()
@@ -47,6 +47,7 @@ public:
 	bool IsSimulationPostProcessEnabled() const { return bEnableSimulationPostProcess; }
 	TSubclassOf<ABattleSimulationPostProcessVolume> GetSimulationPostProcessVolumeClass() const { return SimulationPostProcessVolumeClass; }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
+	float GetCurrentSimulationTimeScale() const { return CurrentSimulationTimeScale; }
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -58,11 +59,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	bool IsSimulationRunning() const;
 
+	// Hidden Simulation World 중 하나라도 배속 중이면 FastForwardSimulationTimeScale, 아니면 1.0을 전달한다.
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Simulation|Time")
 	FOnSimulationTimeScaleChanged SimulationTimeScaleChangedDelegate;
 
 private:
 	friend class UBattleSimulationWorldRuntime;
+	friend class UBattleSimulationPresentationController;
 
 	UFUNCTION()
 	void HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
@@ -98,7 +101,8 @@ private:
 	bool ValidateActualExchangeAction(const FBattleAction& Action, int32 ExchangeIndex, bool bExpectedPlayerAction) const;
 	bool PrepareCurrentExchangeSimulation();
 	bool StartCurrentExchangeSimulation();
-	void UpdateFastForwardAfterWorldCompletion();
+	void RefreshSimulationWorldTimeScales();
+	void ResetSimulationWorldTimeScales();
 	void ResetExchangeCompletionTracking(int32 ExchangeIndex);
 	void ClearExchangeCompletionTracking();
 	bool IsCurrentExchangeCompletionTrackingComplete() const;
@@ -131,6 +135,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Time", meta = (ClampMin = "1.0"))
 	float FastForwardSimulationTimeScale = 3.0f;
+
+	float CurrentSimulationTimeScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
 	bool bEnableSimulationPostProcess = false;

@@ -34,7 +34,11 @@ void ABattleProjectileActor::BeginPlay()
 void ABattleProjectileActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (AActor* OwnerActor = GetOwner()) SetActorHiddenInGame(OwnerActor->IsHidden());
+	if (AActor* OwnerActor = GetOwner())
+	{
+		CustomTimeDilation = OwnerActor->CustomTimeDilation;
+		SetActorHiddenInGame(OwnerActor->IsHidden());
+	}
 
 	if (!bProjectileLaunched || bProjectileFinished)
 	{

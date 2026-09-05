@@ -20,10 +20,17 @@ void ABattleSequenceManager::BeginPlay() { Super::BeginPlay(); }
 void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
-	if (BattleManager) BattleManager->PhaseExecutionRequestedDelegate.RemoveDynamic(this, &ABattleSequenceManager::HandlePhaseExecutionRequested);
+	if (BattleManager)
+		BattleManager->PhaseExecutionRequestedDelegate.RemoveDynamic(this, &ABattleSequenceManager::HandlePhaseExecutionRequested);
 	ClearBattleActionPresentation();
 	ResetBattleActionSequence();
-	if (ActionExecutor) ActionExecutor->Stop();
+	if (ActionExecutor)
+	{
+		ActionExecutor->OnBattleActionStarted.Unbind();
+		ActionExecutor->OnBattleActionCompleted.Unbind();
+		ActionExecutor->OnExecutionEntryStarted.Unbind();
+		ActionExecutor->Stop();
+	}
 	ActionExecutor = nullptr;
 	PhaseExecutionTask = nullptr;
 	BattleManager = nullptr;
@@ -33,16 +40,20 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type Reason)
 
 bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InManager, UBattleRuntimeContext* InContext, ABattleGridManager* InGrid)
 {
-	if (!IsValid(InManager) || !IsValid(InContext) || !IsValid(InGrid)) return false;
+	if (!IsValid(InManager) || !IsValid(InContext) || !IsValid(InGrid))
+		return false;
 	BattleManager = InManager;
 	BattleRuntimeContext = InContext;
 	BattleGridManager = InGrid;
 	BattleManager->PhaseExecutionRequestedDelegate.AddUniqueDynamic(this, &ABattleSequenceManager::HandlePhaseExecutionRequested);
 	ActionExecutor = NewObject<UBattleActionExecutor>(this);
-	if (!ActionExecutor) return false;
-	if (!ActionExecutor->Initialize(BattleManager, BattleGridManager, EBattleSimulationWorldType::PlayerActualEnemyActual)) return false;
-	ActionExecutor->OnBattleActionCompleted.BindUObject(this, &ABattleSequenceManager::HandleActionExecutorFinished);
-	ActionExecutor->OnBattleExecutionStarted.BindUObject(this, &ABattleSequenceManager::HandleActionExecutorEntryStarted);
+	if (!ActionExecutor)
+		return false;
+	if (!ActionExecutor->Initialize(BattleGridManager, EBattleSimulationWorldType::PlayerActualEnemyActual))
+		return false;
+	ActionExecutor->OnBattleActionStarted.BindUObject(this, &ABattleSequenceManager::HandleBattleActionStarted);
+	ActionExecutor->OnBattleActionCompleted.BindUObject(this, &ABattleSequenceManager::HandleBattleActionCompleted);
+	ActionExecutor->OnExecutionEntryStarted.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryStarted);
 	return true;
 }
 
@@ -51,24 +62,28 @@ void ABattleSequenceManager::InitializeBattleRuntimeContext(UBattleRuntimeContex
 void ABattleSequenceManager::HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	(void)OldPhase;
-	if (NewPhase != EBattlePhase::BattleActionSequenceStart || !TaskContext) return;
+	if (NewPhase != EBattlePhase::BattleActionSequenceStart || !TaskContext)
+		return;
 	PhaseExecutionTask = TaskContext->RegisterTask(this);
-	if (PhaseExecutionTask) ExecuteBattleActionSequence();
+	if (PhaseExecutionTask)
+		ExecuteBattleActionSequence();
 }
 
 void ABattleSequenceManager::ExecuteBattleActionSequence()
 {
-	if (!IsValid(BattleRuntimeContext) && IsValid(BattleManager)) InitializeBattleRuntimeContext(BattleManager->GetBattleRuntimeContext());
+	if (!IsValid(BattleRuntimeContext) && IsValid(BattleManager))
+		InitializeBattleRuntimeContext(BattleManager->GetBattleRuntimeContext());
 	if (!IsValid(BattleRuntimeContext))
 	{
-		NotifyBattleActionSequenceCompleted();
+		CompleteBattleActionSequencePhase();
 		return;
 	}
-	const TArray<FBattleAction>& Actions = BattleRuntimeContext->GetBattleActionSequenceQueue();
-	if (Actions.IsEmpty() || !StartBattleActionSequence(Actions)) NotifyBattleActionSequenceCompleted();
+	const TArray<FBattleAction>& BattleActions = BattleRuntimeContext->GetBattleActionSequenceQueue();
+	if (BattleActions.IsEmpty() || !StartBattleActionSequence(BattleActions))
+		CompleteBattleActionSequencePhase();
 }
 
-void ABattleSequenceManager::NotifyBattleActionSequenceCompleted()
+void ABattleSequenceManager::CompleteBattleActionSequencePhase()
 {
 	if (IsValid(BattleManager) && BattleManager->GetCurrentPhase() != EBattlePhase::BattleActionSequenceStart)
 	{
@@ -77,21 +92,17 @@ void ABattleSequenceManager::NotifyBattleActionSequenceCompleted()
 	}
 	UBattlePhaseTask* CompletedTask = PhaseExecutionTask;
 	PhaseExecutionTask = nullptr;
-	if (CompletedTask) CompletedTask->Complete();
-}
-
-bool ABattleSequenceManager::StartBattleAction(const FBattleAction& Action)
-{
-	if (!ActionExecutor || (bBattleActionSequenceRunning && !bStartingQueuedBattleAction)) return false;
-	return ActionExecutor->ExecuteBattleAction(Action);
+	if (CompletedTask)
+		CompletedTask->Complete();
 }
 
 bool ABattleSequenceManager::IsBattleActionRunning() const { return ActionExecutor && ActionExecutor->IsRunning(); }
 
-bool ABattleSequenceManager::StartBattleActionSequence(const TArray<FBattleAction>& Actions)
+bool ABattleSequenceManager::StartBattleActionSequence(const TArray<FBattleAction>& InBattleActions)
 {
-	if (bBattleActionSequenceRunning || IsBattleActionRunning() || Actions.IsEmpty()) return false;
-	BattleActionQueue = Actions;
+	if (bBattleActionSequenceRunning || IsBattleActionRunning() || InBattleActions.IsEmpty())
+		return false;
+	BattleActionQueue = InBattleActions;
 	SortBattleActionQueue();
 	CurrentBattleActionIndex = 0;
 	bBattleActionSequenceRunning = true;
@@ -104,16 +115,20 @@ void ABattleSequenceManager::SortBattleActionQueue()
 {
 	BattleActionQueue.Sort([](const FBattleAction& A, const FBattleAction& B)
 	{
-		if (A.ExchangeIndex != B.ExchangeIndex) return A.ExchangeIndex < B.ExchangeIndex;
-		if (A.Speed != B.Speed) return A.Speed > B.Speed;
-		if (A.bPlayerAction != B.bPlayerAction) return A.bPlayerAction;
+		if (A.ExchangeIndex != B.ExchangeIndex)
+			return A.ExchangeIndex < B.ExchangeIndex;
+		if (A.Speed != B.Speed)
+			return A.Speed > B.Speed;
+		if (A.bPlayerAction != B.bPlayerAction)
+			return A.bPlayerAction;
 		return false;
 	});
 }
 
 void ABattleSequenceManager::StartCurrentBattleAction()
 {
-	if (!bBattleActionSequenceRunning || bWaitingForDeceiveCardReveal) return;
+	if (!bBattleActionSequenceRunning || bWaitingForDeceiveCardReveal)
+		return;
 	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
 	{
 		FinishBattleActionSequence();
@@ -122,7 +137,7 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 	const FBattleAction& Action = BattleActionQueue[CurrentBattleActionIndex];
 	if (!IsValid(Action.Attacker.Get()) || !IsValid(Action.Card.Get()))
 	{
-		HandleCurrentBattleActionFinished();
+		FinishCurrentBattleAction();
 		return;
 	}
 	if (ShouldRequestDeceiveCardReveal(Action) && DeceiveCardRevealRequestedDelegate.IsBound())
@@ -131,7 +146,7 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 		DeceiveCardRevealRequestedDelegate.Broadcast(Action);
 		return;
 	}
-	StartCurrentBattleActionExecution();
+	ExecuteCurrentBattleAction();
 }
 
 bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const
@@ -141,42 +156,53 @@ bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction&
 
 void ABattleSequenceManager::NotifyDeceiveCardRevealFinished()
 {
-	if (!bBattleActionSequenceRunning || !bWaitingForDeceiveCardReveal) return;
+	if (!bBattleActionSequenceRunning || !bWaitingForDeceiveCardReveal)
+		return;
 	bWaitingForDeceiveCardReveal = false;
-	StartCurrentBattleActionExecution();
+	ExecuteCurrentBattleAction();
 }
 
-void ABattleSequenceManager::StartCurrentBattleActionExecution()
+void ABattleSequenceManager::ExecuteCurrentBattleAction()
 {
-	if (!bBattleActionSequenceRunning || !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex)) return;
-	bStartingQueuedBattleAction = true;
-	const bool bStarted = StartBattleAction(BattleActionQueue[CurrentBattleActionIndex]);
-	bStartingQueuedBattleAction = false;
-	if (!bStarted) HandleCurrentBattleActionFinished();
+	if (!bBattleActionSequenceRunning || !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+		return;
+	const FBattleAction& Action = BattleActionQueue[CurrentBattleActionIndex];
+	if (!ActionExecutor)
+	{
+		FinishCurrentBattleAction();
+		return;
+	}
+
+	if (!ActionExecutor->ExecuteBattleAction(Action))
+		FinishCurrentBattleAction();
 }
 
-void ABattleSequenceManager::HandleActionExecutorEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 Index, const FTargetingResult& Targeting)
+void ABattleSequenceManager::HandleBattleActionStarted(const FBattleAction& Action)
 {
-	if (bBattleActionSequenceRunning) PresentBattleActionTargetingResult(Action, Targeting);
-	OnExecutionEntryStarted.Broadcast(Action, Entry, Index, Targeting);
+	BattleActionStartedDelegate.Broadcast(Action);
 }
 
-void ABattleSequenceManager::HandleActionExecutorFinished()
+void ABattleSequenceManager::HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult)
 {
-	OnBattleActionCompleted.Broadcast();
-	if (bBattleActionSequenceRunning) HandleCurrentBattleActionFinished();
+	if (bBattleActionSequenceRunning)
+		PresentBattleActionTargetingResult(Action, TargetingResult);
 }
 
-void ABattleSequenceManager::HandleCurrentBattleActionFinished()
+void ABattleSequenceManager::HandleBattleActionCompleted()
 {
-	if (!bBattleActionSequenceRunning || bBattleActionCompletionPending) return;
-	bBattleActionCompletionPending = true;
-	ClearBattleActionPresentation();
-	FinishCurrentBattleAction();
+	if (BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+		BattleActionCompletedDelegate.Broadcast(BattleActionQueue[CurrentBattleActionIndex]);
+
+	if (bBattleActionSequenceRunning)
+		FinishCurrentBattleAction();
 }
 
 void ABattleSequenceManager::FinishCurrentBattleAction()
 {
+	if (!bBattleActionSequenceRunning || bBattleActionCompletionPending)
+		return;
+	bBattleActionCompletionPending = true;
+	ClearBattleActionPresentation();
 	++CurrentBattleActionIndex;
 	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
 	{
@@ -195,10 +221,10 @@ void ABattleSequenceManager::StartNextBattleActionDeferred()
 
 void ABattleSequenceManager::FinishBattleActionSequence()
 {
-	if (!bBattleActionSequenceRunning) return;
-	ClearBattleActionPresentation();
+	if (!bBattleActionSequenceRunning)
+		return;
 	ResetBattleActionSequence();
-	NotifyBattleActionSequenceCompleted();
+	CompleteBattleActionSequencePhase();
 }
 
 void ABattleSequenceManager::ResetBattleActionSequence()
@@ -208,26 +234,29 @@ void ABattleSequenceManager::ResetBattleActionSequence()
 	CurrentBattleActionIndex = INDEX_NONE;
 	bBattleActionSequenceRunning = false;
 	bBattleActionCompletionPending = false;
-	bStartingQueuedBattleAction = false;
 	bWaitingForDeceiveCardReveal = false;
 }
 
 void ABattleSequenceManager::PresentBattleActionTargetingResult(const FBattleAction& Action, const FTargetingResult& TargetingResult)
 {
 	ClearBattleActionPresentation();
-	if (!IsValid(BattleGridManager) || !IsValid(Action.Card.Get()) || !IsValid(BattleManager.Get())) return;
+	if (!IsValid(BattleGridManager) || !IsValid(Action.Card.Get()) || !IsValid(BattleManager.Get()))
+		return;
 
 	ABattleTargetingManager* TargetingManager = BattleManager->GetBattleTargetingManager();
 	UTargetingPresentationController* PresentationController = TargetingManager ? TargetingManager->GetPresentationController() : nullptr;
-	if (!PresentationController) return;
+	if (!PresentationController)
+		return;
 
 	for (int32 StepIndex = 0; StepIndex < Action.Card->TargetingData.Steps.Num(); ++StepIndex)
 	{
 		const FTargetingStepCardData* StepData = Action.Card->TargetingData.GetStep(StepIndex);
 		const FTargetingStepResult* StepResult = TargetingResult.GetStep(StepIndex);
-		if (!StepData || !StepResult) continue;
+		if (!StepData || !StepResult)
+			continue;
 		const FTargetingPhasePresentationSettings& Settings = StepData->Presentation.Phases.ActualBattle;
-		if (!Settings.HasAnyPresentation()) continue;
+		if (!Settings.HasAnyPresentation())
+			continue;
 
 		FTargetingPreviewContext PreviewContext;
 		PreviewContext.SourceCharacter = Action.Attacker.Get();
@@ -241,8 +270,10 @@ void ABattleSequenceManager::PresentBattleActionTargetingResult(const FBattleAct
 
 void ABattleSequenceManager::ClearBattleActionPresentation()
 {
-	if (!IsValid(BattleManager.Get())) return;
+	if (!IsValid(BattleManager.Get()))
+		return;
 	ABattleTargetingManager* TargetingManager = BattleManager->GetBattleTargetingManager();
 	UTargetingPresentationController* PresentationController = TargetingManager ? TargetingManager->GetPresentationController() : nullptr;
-	if (PresentationController) PresentationController->ClearStepPreviews();
+	if (PresentationController)
+		PresentationController->ClearStepPreviews();
 }
