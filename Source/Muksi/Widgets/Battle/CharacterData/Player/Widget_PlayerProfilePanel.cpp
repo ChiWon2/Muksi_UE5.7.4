@@ -4,7 +4,7 @@
 #include "Muksi/Widgets/Battle/CharacterData/Player/Widget_PlayerProfilePanel.h"
 
 #include "Components/Image.h"
-#include "Components/Slider.h"
+#include "Components/ProgressBar.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
@@ -28,21 +28,23 @@ void UWidget_PlayerProfilePanel::SetData(UMuksiCharacterDataAsset* DataAsset)
 
 void UWidget_PlayerProfilePanel::SetHP(int32 CurrentHP)
 {
-	if (!IsValid(PlayerHPSlider))
+	if (!IsValid(CharacterHPProgressBar))
 	{
 		return;
 	}
 
 	if (MaxHP <= 0)
 	{
-		PlayerHPSlider->SetValue(0.0f);
+		CharacterHPProgressBar->SetPercent(0.0f);
 		return;
 	}
 
-	const float HPRatio = static_cast<float>(CurrentHP)
-		/ static_cast<float>(MaxHP);
+	const float HPRatio =
+		static_cast<float>(CurrentHP) /
+		static_cast<float>(MaxHP);
 
-	PlayerHPSlider->SetValue(FMath::Clamp(HPRatio, 0.0f, 1.0f));
+	CharacterHPProgressBar->SetPercent(
+		FMath::Clamp(HPRatio, 0.0f, 1.0f));
 }
 
 void UWidget_PlayerProfilePanel::HPChanged(float PreHP, float AftHP)
@@ -56,19 +58,17 @@ void UWidget_PlayerProfilePanel::HPChanged(float PreHP, float AftHP)
 	}
 }
 
-//대미지 받는 효과/ 힐하는 효과 다르게 표시 할 수 있기에 나눠놈
+//대미지 받는 효과/힐하는 효과 다르게 표시 할 수 있기에 나눠놓음
 void UWidget_PlayerProfilePanel::HPUp(float PreHP, float AftHP)
 {
-	const float HPRatio = static_cast<float>(AftHP)
-		/ static_cast<float>(MaxHP);
-	PlayerHPSlider->SetValue(FMath::Clamp(HPRatio, 0.0f, 1.0f));
+	const float HPRatio = AftHP / MaxHP;
+	CharacterHPProgressBar->SetPercent(FMath::Clamp(HPRatio, 0.0f, 1.0f));
 }
 
 void UWidget_PlayerProfilePanel::HPDown(float PreHP, float AftHP)
 {
-	const float HPRatio = static_cast<float>(AftHP)
-		/ static_cast<float>(MaxHP);
-	PlayerHPSlider->SetValue(FMath::Clamp(HPRatio, 0.0f, 1.0f));
+	const float HPRatio = AftHP / MaxHP;
+	CharacterHPProgressBar->SetPercent(FMath::Clamp(HPRatio, 0.0f, 1.0f));
 }
 
 

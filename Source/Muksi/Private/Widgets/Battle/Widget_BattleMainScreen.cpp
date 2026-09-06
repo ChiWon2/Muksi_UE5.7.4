@@ -1030,13 +1030,8 @@ bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattl
 	
 	// 현재 DeceivedCard가 표시되어 있는 Widget을
 	// 실제 카드로 변경한다.
-	CardWidget->PlayDeceiveRevealEffect(ActualCard);
+	CardWidget->PlayDeceiveRevealEffect(DeceivedCard);
 	return true;
-	
-	/*(void)BattleAction;
-	(void)DeceivedCard;
-	(void)ActualCard;
-	return false;*/
 }
 
 void UWidget_BattleMainScreen::NotifyDeceiveCardRevealFinished()
