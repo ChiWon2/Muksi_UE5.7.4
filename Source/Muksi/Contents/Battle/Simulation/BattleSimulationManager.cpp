@@ -175,15 +175,42 @@ bool ABattleSimulationManager::IsManagedSimulationRuntime(const UBattleSimulatio
 	return WorldRuntime == ADWorldRuntime.Get() || WorldRuntime == DDWorldRuntime.Get() || WorldRuntime == DAWorldRuntime.Get();
 }
 
-void ABattleSimulationManager::UpdateFastForwardAfterWorldCompletion()
+void ABattleSimulationManager::RefreshSimulationWorldTimeScales()
 {
-	// AD를 고정 Primary 완료 기준으로 사용해 Player의 AD/DD 토글이 배속 의미를 바꾸지 않게 한다.
-	if (CompletionTrackingExchangeIndex == INDEX_NONE || IsCurrentExchangeCompletionTrackingComplete())
+	UBattleSimulationWorldRuntime* VisibleWorldRuntime = PresentationController ? PresentationController->GetPlayerPresentationWorldRuntime() : nullptr;
+	const bool bCanFastForward = CompletionTrackingExchangeIndex != INDEX_NONE && !IsCurrentExchangeCompletionTrackingComplete();
+	const bool bVisibleWorldCompleted = IsValid(VisibleWorldRuntime) && CompletedWorldTypesForCurrentExchange.Contains(VisibleWorldRuntime->GetWorldType());
+	bool bAnyWorldFastForwarding = false;
+
+	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
+	{
+		if (!IsValid(WorldRuntime))
+			continue;
+		const bool bWorldCompleted = CompletedWorldTypesForCurrentExchange.Contains(WorldRuntime->GetWorldType());
+		const bool bShouldFastForward = bCanFastForward && bVisibleWorldCompleted && WorldRuntime != VisibleWorldRuntime && !bWorldCompleted;
+		WorldRuntime->SetSimulationTimeScale(bShouldFastForward ? FastForwardSimulationTimeScale : 1.0f);
+		bAnyWorldFastForwarding |= bShouldFastForward;
+	}
+
+	const float NewTimeScale = bAnyWorldFastForwarding ? FastForwardSimulationTimeScale : 1.0f;
+	if (FMath::IsNearlyEqual(CurrentSimulationTimeScale, NewTimeScale))
 		return;
-	if (!CompletedWorldTypesForCurrentExchange.Contains(EBattleSimulationWorldType::PlayerActualEnemyDeceived))
+	CurrentSimulationTimeScale = NewTimeScale;
+	SimulationTimeScaleChangedDelegate.Broadcast(CurrentSimulationTimeScale);
+}
+
+void ABattleSimulationManager::ResetSimulationWorldTimeScales()
+{
+	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
+	{
+		if (IsValid(WorldRuntime))
+			WorldRuntime->SetSimulationTimeScale(1.0f);
+	}
+
+	if (FMath::IsNearlyEqual(CurrentSimulationTimeScale, 1.0f))
 		return;
-	if (PresentationController)
-		PresentationController->StartSimulationFastForward();
+	CurrentSimulationTimeScale = 1.0f;
+	SimulationTimeScaleChangedDelegate.Broadcast(CurrentSimulationTimeScale);
 }
 
 void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
@@ -206,9 +233,8 @@ void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, 
 		break;
 
 	case EBattlePhase::ExchangeEnd:
-	case EBattlePhase::BattleActionSequenceStart:
 		if (PresentationController) 
-			PresentationController->ClearAllExecutionResults();
+			PresentationController->ClearAllPreviewData();
 		break;
 
 	case EBattlePhase::RoundEnd:
@@ -296,7 +322,7 @@ void ABattleSimulationManager::NotifySimulationWorldExecutionStarted(UBattleSimu
 {
 	if (!IsManagedSimulationRuntime(WorldRuntime) || !PresentationController)
 		return;
-	PresentationController->UpdateExecutionResult(WorldRuntime, Action, TargetingResult);
+	PresentationController->UpdatePreviewData(WorldRuntime, Action, TargetingResult);
 }
 
 void ABattleSimulationManager::NotifySimulationWorldExchangeCompleted(UBattleSimulationWorldRuntime* WorldRuntime, int32 ExchangeIndex, bool bSucceeded)
@@ -310,10 +336,10 @@ void ABattleSimulationManager::NotifySimulationWorldExchangeCompleted(UBattleSim
 	}
 
 	if (PresentationController)
-		PresentationController->RemoveExecutionResult(WorldRuntime);
+		PresentationController->RemovePreviewData(WorldRuntime);
 
 	CompletedWorldTypesForCurrentExchange.Add(WorldRuntime->GetWorldType());
-	UpdateFastForwardAfterWorldCompletion();
+	RefreshSimulationWorldTimeScales();
 	if (!IsCurrentExchangeCompletionTrackingComplete())
 		return;
 
@@ -322,8 +348,7 @@ void ABattleSimulationManager::NotifySimulationWorldExchangeCompleted(UBattleSim
 
 void ABattleSimulationManager::FinalizeCurrentExchangeSimulation(int32 FinishedExchangeIndex)
 {
-	if (PresentationController)
-		PresentationController->StopSimulationFastForward();
+	ResetSimulationWorldTimeScales();
 	if (!CommitActualExchangeActions(FinishedExchangeIndex))
 	{
 		UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to commit AA actual exchange actions. Exchange=%d"), FinishedExchangeIndex);
@@ -476,8 +501,7 @@ bool ABattleSimulationManager::StartCurrentExchangeSimulation()
 	}
 
 	const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
-	if (PresentationController)
-		PresentationController->StopSimulationFastForward();
+	ResetSimulationWorldTimeScales();
 	ResetExchangeCompletionTracking(ExchangeIndex);
 
 	for (UBattleSimulationWorldRuntime* WorldRuntime : WorldRuntimes)
@@ -520,6 +544,7 @@ void ABattleSimulationManager::StopSimulation()
 
 void ABattleSimulationManager::DeactivateRoundSimulation()
 {
+	ResetSimulationWorldTimeScales();
 	if (PresentationController)
 		PresentationController->ExitSimulationPresentation(true);
 	ClearExchangeCompletionTracking();

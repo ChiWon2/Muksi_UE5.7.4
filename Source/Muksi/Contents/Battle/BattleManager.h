@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
-#include "Muksi/Contents/Battle/Flow/BattleFlowDelegates.h"
 #include "BattleManager.generated.h"
 
 class UBattlePhasePipeline;
@@ -43,13 +42,11 @@ public:
     FOnBattlePhaseStageRequested PhaseUIRequestedDelegate;
 
     UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
-    FOnBattlePhaseStageRequested PhasePrepRequestedDelegate;
+    FOnBattlePhaseStageRequested PhasePrepRequestedDelegate;    
 
     UPROPERTY(BlueprintAssignable, Category = "Battle|Phase")
     FOnBattlePhaseStageRequested PhaseExecutionRequestedDelegate;
 
-    //TODO:: Delete this , BattleSequenceManager ม฿บน
-    FOnBattleActionStart BattleActionStartDelegate;
 
 public:
     UFUNCTION(BlueprintPure, Category = "Battle")
@@ -86,7 +83,6 @@ public:
 
     void RestartCurrentExchangeCardSelection();
     void NotifyBattleCharacterDead();
-    void NotifyBattleActionStart(const FBattleAction& BattleAction);
     bool SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuksiBattleCardDataAsset* Card, const FTargetingIntent& TargetingIntent, bool bPlayerAction);
     void StartBattleFlow();
 

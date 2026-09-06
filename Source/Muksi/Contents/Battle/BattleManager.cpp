@@ -138,11 +138,6 @@ void ABattleManager::StartBattleFlow()
     ReadyStart();
 }
 
-void ABattleManager::NotifyBattleActionStart(const FBattleAction& BattleAction)
-{
-    BattleActionStartDelegate.Broadcast(BattleAction);
-}
-
 void ABattleManager::ReadyStart()
 {
     bIsCharacterDead = false;

@@ -15,9 +15,9 @@ class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
 class UBattleActionExecutor;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeceiveCardRevealRequested, const FBattleAction&);
-DECLARE_MULTICAST_DELEGATE(FOnBattleActionCompleted);
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnBattleExecutionEntryStarted, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDeceiveCardRevealRequestedDelegate, const FBattleAction&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FBattleSequenceActionStartedDelegate, const FBattleAction&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FBattleSequenceActionCompletedDelegate, const FBattleAction&);
 
 UCLASS()
 class MUKSI_API ABattleSequenceManager : public AActor
@@ -33,24 +33,21 @@ protected:
 
 public:
 	// 실제 BattleActionQueue에서 변초 Action 실행 직전에 Reveal UI를 요청한다.
-	FOnDeceiveCardRevealRequested DeceiveCardRevealRequestedDelegate;
+	FDeceiveCardRevealRequestedDelegate DeceiveCardRevealRequestedDelegate;
+
+	// 실제 AA BattleAction 실행 시작 이벤트.
+	FBattleSequenceActionStartedDelegate BattleActionStartedDelegate;
 
 	// 단일 BattleAction 완료 이벤트.
-	FOnBattleActionCompleted OnBattleActionCompleted;
-
-	FOnBattleExecutionEntryStarted OnExecutionEntryStarted;
+	FBattleSequenceActionCompletedDelegate BattleActionCompletedDelegate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
 	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
-	bool StartBattleAction(const FBattleAction& InAction);
-
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
 	bool IsBattleActionRunning() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
-	bool StartBattleActionSequence(const TArray<FBattleAction>& InActions);
+	bool StartBattleActionSequence(const TArray<FBattleAction>& InBattleActions);
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
 	bool IsBattleActionSequenceRunning() const { return bBattleActionSequenceRunning; }
@@ -71,7 +68,6 @@ private:
 	FTimerHandle NextBattleActionTimerHandle;
 	bool bBattleActionSequenceRunning = false;
 	bool bBattleActionCompletionPending = false;
-	bool bStartingQueuedBattleAction = false;
 	bool bWaitingForDeceiveCardReveal = false;
 	UPROPERTY(Transient)
 	TObjectPtr<UBattlePhaseTask> PhaseExecutionTask = nullptr;
@@ -91,18 +87,18 @@ private:
 	void HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
 	void ExecuteBattleActionSequence();
-	void NotifyBattleActionSequenceCompleted();
+	void CompleteBattleActionSequencePhase();
 	void PresentBattleActionTargetingResult(const FBattleAction& Action, const FTargetingResult& TargetingResult);
 	void ClearBattleActionPresentation();
 
-	void HandleActionExecutorEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
-	void HandleActionExecutorFinished();
+	void HandleBattleActionStarted(const FBattleAction& Action);
+	void HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
+	void HandleBattleActionCompleted();
 
 	void SortBattleActionQueue();
 	void StartCurrentBattleAction();
 	bool ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const;
-	void StartCurrentBattleActionExecution();
-	void HandleCurrentBattleActionFinished();
+	void ExecuteCurrentBattleAction();
 	void FinishCurrentBattleAction();
 	void StartNextBattleActionDeferred();
 	void FinishBattleActionSequence();

@@ -32,10 +32,12 @@ public:
 	bool PrepareExchange(const FBattleAction& PlayerAction, const FBattleAction& EnemyAction);
 	bool ExecuteCurrentExchange();
 	void SetCharactersVisible(bool bVisible);
+	void SetSimulationTimeScale(float TimeScale);
 
 	bool IsSimulationRunning() const;
 	EBattleSimulationState GetSimulationState() const { return SimulationState; }
 	EBattleSimulationWorldType GetWorldType() const { return WorldType; }
+	float GetSimulationTimeScale() const { return SimulationTimeScale; }
 	ABattleSimulationCharacter* GetSimulationCharacter(const ABattleCharacterBase* SourceCharacter) const;
 
 protected:
@@ -47,7 +49,7 @@ private:
 	bool CreateActionExecutor(ABattleGridManager* InSourceGridManager);
 	bool ResetGridStateFromActual();
 	bool BuildSimulationAction(const FBattleAction& Action, FBattleAction& OutAction) const;
-	void HandleSimulationExecutionStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
+	void HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
 	void HandleSimulationActionFinished();
 	void FinishCurrentExchange();
 	void FailCurrentExchange();
@@ -63,6 +65,8 @@ private:
 
 	UPROPERTY(Transient)
 	EBattleSimulationState SimulationState = EBattleSimulationState::Idle;
+
+	float SimulationTimeScale = 1.0f;
 
 	UPROPERTY(Transient)
 	FBattleAction PreparedPlayerAction;

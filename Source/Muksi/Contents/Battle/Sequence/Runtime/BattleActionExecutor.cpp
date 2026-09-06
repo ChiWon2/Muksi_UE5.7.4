@@ -1,7 +1,6 @@
 #include "Muksi/Contents/Battle/Sequence/Runtime/BattleActionExecutor.h"
 
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
-#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
@@ -12,10 +11,10 @@
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 
-bool UBattleActionExecutor::Initialize(ABattleManager* InBattleManager, ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType)
+bool UBattleActionExecutor::Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType)
 {
-	if (!IsValid(InGridManager)) return false;
-	BattleManager = InBattleManager;
+	if (!IsValid(InGridManager))
+		return false;
 	GridManager = InGridManager;
 	GridWorldType = InGridWorldType;
 	return true;
@@ -23,13 +22,16 @@ bool UBattleActionExecutor::Initialize(ABattleManager* InBattleManager, ABattleG
 
 bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 {
-	if (bRunning || !ValidateAction(Action) || !IsValid(GridManager)) return false;
+	if (bRunning || !ValidateAction(Action) || !IsValid(GridManager))
+		return false;
 
 	UMuksiBattleCardDataAsset* ExecutionCard = ResolveExecutionCard(Action);
-	if (!IsValid(ExecutionCard) || ExecutionCard->MainExecutionEntries.IsEmpty()) return false;
+	if (!IsValid(ExecutionCard) || ExecutionCard->MainExecutionEntries.IsEmpty())
+		return false;
 
 	FTargetingResult TargetingResult;
-	if (!ResolveActionTargetingResult(Action, TargetingResult)) return false;
+	if (!ResolveActionTargetingResult(Action, TargetingResult))
+		return false;
 
 	CurrentAction = Action;
 	CurrentExecutionCard = ExecutionCard;
@@ -43,11 +45,7 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 		return false;
 	}
 
-	//TODO :: AA에서만 BattleManager의 BattleActionStartDelegate.Broadcast 호출함
-	if (BattleManager && GridWorldType == EBattleSimulationWorldType::PlayerActualEnemyActual) 
-		BattleManager->NotifyBattleActionStart(CurrentAction);
-
-	//TODO :: 여기서 완료대기 해줘야함.
+	OnBattleActionStarted.ExecuteIfBound(CurrentAction);
 
 	if (!RunMainExecutionEntries())
 	{
@@ -59,7 +57,8 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 
 void UBattleActionExecutor::Stop()
 {
-	if (!bRunning) return;
+	if (!bRunning)
+		return;
 	ResetRuntime();
 }
 
@@ -68,17 +67,20 @@ bool UBattleActionExecutor::ResolveActionTargetingResult(const FBattleAction& Ac
 	OutTargetingResult.Reset();
 	const FTargetingCardData& TargetingData = Action.Card->TargetingData;
 	TArray<FTargetingStep> ResolvedSteps;
-	if (!FBattleTargetResolver::ResolveIntent(Action.Attacker.Get(), GridManager, GridWorldType, TargetingData, Action.TargetingIntent, ResolvedSteps)) return false;
+	if (!FBattleTargetResolver::ResolveIntent(Action.Attacker.Get(), GridManager, GridWorldType, TargetingData, Action.TargetingIntent, ResolvedSteps))
+		return false;
 
 	OutTargetingResult.Steps.Reserve(ResolvedSteps.Num());
 	for (int32 StepIndex = 0; StepIndex < ResolvedSteps.Num(); ++StepIndex)
 	{
 		const FTargetingStepCardData* StepData = TargetingData.GetStep(StepIndex);
-		if (!StepData) return false;
+		if (!StepData)
+			return false;
 
 		FTargetingStepResult StepResult;
 		StepResult.Step = ResolvedSteps[StepIndex];
-		if (!StepResult.Step.HasTargetCoord()) return false;
+		if (!StepResult.Step.HasTargetCoord())
+			return false;
 
 		if (!StepData->Pattern.PatternClass)
 		{
@@ -87,7 +89,8 @@ bool UBattleActionExecutor::ResolveActionTargetingResult(const FBattleAction& Ac
 		else
 		{
 			const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
-			if (!Pattern) return false;
+			if (!Pattern)
+				return false;
 
 			Pattern->ApplyPattern(
 				GridManager,
@@ -120,17 +123,21 @@ UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBa
 
 bool UBattleActionExecutor::BindAttackerNotify()
 {
-	if (!CurrentExecutionCard || CurrentExecutionCard->ExecutionNotifies.IsEmpty()) return true;
-	if (!CurrentAction.Attacker) return false;
+	if (!CurrentExecutionCard || CurrentExecutionCard->ExecutionNotifies.IsEmpty())
+		return true;
+	if (!CurrentAction.Attacker)
+		return false;
 	AttackerAnimationComponent = CurrentAction.Attacker->FindComponentByClass<UMuksiBattleAnimationComponent>();
-	if (!AttackerAnimationComponent) return false;
+	if (!AttackerAnimationComponent)
+		return false;
 	AttackerAnimationComponent->OnBattleExecutionNotify.AddUniqueDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
 	return true;
 }
 
 void UBattleActionExecutor::UnbindAttackerNotify()
 {
-	if (AttackerAnimationComponent) AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
+	if (AttackerAnimationComponent)
+		AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
 }
 
 bool UBattleActionExecutor::RunMainExecutionEntries()
@@ -150,31 +157,34 @@ bool UBattleActionExecutor::RunMainExecutionEntries()
 
 void UBattleActionExecutor::HandleBattleExecutionNotify(FName NotifyKey)
 {
-	if (bRunning && !NotifyKey.IsNone()) RunExecutionEntriesForNotify(NotifyKey);
+	if (bRunning && !NotifyKey.IsNone())
+		RunExecutionEntriesForNotify(NotifyKey);
 }
 
 void UBattleActionExecutor::RunExecutionEntriesForNotify(FName NotifyKey)
 {
-	if (!CurrentExecutionCard) return;
+	if (!CurrentExecutionCard)
+		return;
 	for (const FBattleExecutionNotify& ExecutionNotify : CurrentExecutionCard->ExecutionNotifies)
 	{
-		if (ExecutionNotify.IsValid() && ExecutionNotify.NotifyKey == NotifyKey) RunExecutionEntries(ExecutionNotify.ExecutionEntries);
+		if (ExecutionNotify.IsValid() && ExecutionNotify.NotifyKey == NotifyKey) 
+			RunExecutionEntries(ExecutionNotify.ExecutionEntries);
 	}
 }
 
 bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
-	if (!bRunning || ExecutionEntries.IsEmpty()) return false;
+	if (!bRunning || ExecutionEntries.IsEmpty())
+		return false;
 
 	UBattleExecutionRunner* Runner = NewObject<UBattleExecutionRunner>(this);
-	if (!Runner) return false;
+	if (!Runner)
+		return false;
 
 	FBattleExecutionContext Context;
 	Context.Attacker = CurrentAction.Attacker;
 	Context.Card = CurrentExecutionCard;
-	Context.ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType)
-		? EBattleExecutionMode::Simulation
-		: EBattleExecutionMode::ActualBattle;
+	Context.ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType)? EBattleExecutionMode::Simulation : EBattleExecutionMode::ActualBattle;
 	Context.TargetingResult = ActionTargetingResult;
 	Context.BattleGridManager = GridManager;
 	Context.GridWorldType = GridWorldType;
@@ -193,27 +203,31 @@ bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEnt
 
 void UBattleActionExecutor::HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext)
 {
-	if (!bRunning) return;
+	if (!bRunning)
+		return;
 
 	// Action 시작 시 Resolve한 Targeting 스냅샷을 모든 Entry에 유지한다.
 	InOutExecutionContext.TargetingResult = ActionTargetingResult;
-	OnBattleExecutionStarted.ExecuteIfBound(CurrentAction, Entry, EntryIndex, ActionTargetingResult);
+	OnExecutionEntryStarted.ExecuteIfBound(CurrentAction, Entry, EntryIndex, ActionTargetingResult);
 }
 
 void UBattleActionExecutor::HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
 {
-	if (!bRunning || !FinishedRunner || ActiveExecutionRunners.RemoveSingle(FinishedRunner) == 0) return;
+	if (!bRunning || !FinishedRunner || ActiveExecutionRunners.RemoveSingle(FinishedRunner) == 0)
+		return;
 	TryCompleteAction();
 }
 
 void UBattleActionExecutor::TryCompleteAction()
 {
-	if (bRunning && ActiveExecutionRunners.IsEmpty()) CompleteAction();
+	if (bRunning && ActiveExecutionRunners.IsEmpty())
+		CompleteAction();
 }
 
 void UBattleActionExecutor::CompleteAction()
 {
-	if (!bRunning) return;
+	if (!bRunning)
+		return;
 	ResetRuntime();
 	OnBattleActionCompleted.ExecuteIfBound();
 }

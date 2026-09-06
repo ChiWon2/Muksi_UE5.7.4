@@ -187,9 +187,7 @@ void UWidget_BattleMainScreen::UnbindBattleManagerEvents()
 void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
 {
 	if (!BattleSequenceManager)
-	{
 		return;
-	}
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested);
 }
@@ -197,9 +195,7 @@ void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
 void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 {
 	if (!BattleSequenceManager)
-	{
 		return;
-	}
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
 }
