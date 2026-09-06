@@ -264,7 +264,6 @@ void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 	}
 	
 	// 드래그 중에는 카드 똑바로 보이게
-	//SetRenderTransformAngle(0.0f);
 	SetCardRenderAngle(0.0f);
 	
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
@@ -274,8 +273,16 @@ void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 
 		const FGeometry& HandGeometry = OwningHandWidget->GetHandCanvasGeometry();
 		const FVector2D LocalMousePos = HandGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		const FVector2D HandSize = HandGeometry.GetLocalSize();
+		
+		const FVector2D CardSize = GetCachedGeometry().GetLocalSize();
 
-		DragOffset = LocalMousePos - CanvasSlot->GetPosition();
+		// 즉 HandCanvas의 아래 중앙이 Position (0, 0)의 기준점
+		const FVector2D AnchorLocalPosition(HandSize.X * 0.5f, HandSize.Y);
+
+		// 카드 Alignment = (0.5, 1.0)이므로
+		// 카드 중앙을 마우스에 맞추기 위한 Offset
+		DragOffset = AnchorLocalPosition + FVector2D(0.0f, -CardSize.Y * 0.5f);
 	}
 }
 
@@ -454,6 +461,7 @@ void UWidget_BattleCardBase::PlayDeceiveRevealEffect(UMuksiBattleCardDataAsset* 
 	
 	PlayAnimation(CardChangeAnimation);
 	bPlayingDeceiveReveal = true;
+	PendingCardData = ActualCardData;
 	
 	GetWorld()->GetTimerManager().SetTimer(
 		CardChangeTimerHandle,

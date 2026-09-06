@@ -587,26 +587,21 @@ void UHandWidget::BindingBattleCardManager(UBattleCardManager* InBattleCardManag
 {
 	if (BattleCardManager)
 	{
-		BattleCardManager->OnBattleHandCardChanged.RemoveDynamic(
-			this,
-			&UHandWidget::HandleBattleHandCardChanged);
+		BattleCardManager->OnBattleHandCardChanged.RemoveDynamic(this, &UHandWidget::HandleBattleHandCardChanged);
 	}
 
 	BattleCardManager = InBattleCardManager;
 
 	if (BattleCardManager)
 	{
-		BattleCardManager->OnBattleHandCardChanged.AddUniqueDynamic(
-			this,
-			&UHandWidget::HandleBattleHandCardChanged);
+		BattleCardManager->OnBattleHandCardChanged.AddUniqueDynamic(this, &UHandWidget::HandleBattleHandCardChanged);
 	}
 }
 
 void UHandWidget::HandleBattleHandCardChanged(FGuid InstanceId,
 	UMuksiBattleCardDataAsset* NewCardData)
 {
-	UWidget_BattleCardBase* CardWidget =
-		FindBattleCardWidgetByInstanceId(InstanceId);
+	UWidget_BattleCardBase* CardWidget = FindBattleCardWidgetByInstanceId(InstanceId);
 
 	if (!IsValid(CardWidget))
 	{

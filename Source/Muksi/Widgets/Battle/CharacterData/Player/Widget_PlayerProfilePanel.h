@@ -10,7 +10,7 @@ class ABattleCharacterBase;
 class UMuksiCharacterDataAsset;
 class UImage;
 class UTextBlock;
-class USlider;
+class UProgressBar;
 class UVerticalCommonTextBlock;
 /**
  * 
@@ -36,7 +36,7 @@ protected:
 	TObjectPtr<UVerticalCommonTextBlock> PlayerIntroduction;
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<USlider> PlayerHPSlider;
+	TObjectPtr<UProgressBar> CharacterHPProgressBar;
 	//***** BindWidget *****	End
 	
 	void SetHP(int32 CurrentHP);
