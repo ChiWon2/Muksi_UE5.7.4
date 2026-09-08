@@ -63,6 +63,9 @@ public:
 
 	void SetHoveredCard(UWidget_BattleCardBase* InHoveredCard);
 	void ClearHoveredCard(UWidget_BattleCardBase* InCard);
+	
+	void HandleCardDragStarted(UWidget_BattleCardBase* InCard);
+	void HandleCardDragEnded(UWidget_BattleCardBase* InCard);
 
 	float GetDefaultCardSpacing() const { return DefaultCardSpacing; }
 
@@ -165,6 +168,24 @@ public:
 		return BoundCharacter;
 	}
 	
+	// 변초 Hover Preview ----------------------------------------------------------------------------------------
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget_BattleCardBase> DeceivedCardPreview = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget_BattleCardBase> DeceivedCardPreviewSource = nullptr;
+	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive")
+	float DeceivedCardPreviewGap = 20.0f;
+
+	void ShowDeceivedCardPreview(UWidget_BattleCardBase* SourceCard);
+
+	void HideDeceivedCardPreview(UWidget_BattleCardBase* SourceCard = nullptr);
+
+	void UpdateDeceivedCardPreviewPosition(UWidget_BattleCardBase* SourceCard);
+	//----------------------------------------------------------------------------------------------------------
+	
 	//카드 변경 기능----------------------------------------------------------------------------------------------
 public:
 	void BindingBattleCardManager(UBattleCardManager* InBattleCardManager);
@@ -203,4 +224,5 @@ private:
 	//타임아웃 관련 기능--------------------------------------------------------------------------------------------
 public:
 	bool ApplyPlayerPanicTimeoutResult(int32 ExchangeIndex, const FCharacterPanicTimeoutResult& Result);
+	//-----------------------------------------------------------------------------------------------------------
 };
