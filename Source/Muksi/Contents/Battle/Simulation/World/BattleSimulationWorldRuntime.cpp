@@ -57,7 +57,7 @@ bool UBattleSimulationWorldRuntime::ResetFromActualBattleState(const TArray<ABat
 			SimulationState = EBattleSimulationState::Idle;
 			return false;
 		}
-		UMaterialInterface* TeamMaterial = SourceCharacter->IsA<ABattleCharacter_Player>() ? SimulationManager->GetPlayerSimulationMaterial() : SimulationManager->GetEnemySimulationMaterial();
+		UMaterialInterface* TeamMaterial = SimulationManager->GetSimulationMaterial(WorldType, SourceCharacter->IsA<ABattleCharacter_Player>());
 		SimulationCharacter->InitializeFromCharacter(SourceCharacter, TeamMaterial);
 	}
 	if (!ResetGridStateFromActual())
@@ -184,7 +184,7 @@ bool UBattleSimulationWorldRuntime::CreateSimulationCharacters(const TArray<ABat
 
 		if (!SimulationCharacter) 
 			return false;
-		UMaterialInterface* TeamMaterial = SourceCharacter->IsA<ABattleCharacter_Player>() ? SimulationManager->GetPlayerSimulationMaterial() : SimulationManager->GetEnemySimulationMaterial();
+		UMaterialInterface* TeamMaterial = SimulationManager->GetSimulationMaterial(WorldType, SourceCharacter->IsA<ABattleCharacter_Player>());
 		SimulationCharacter->InitializeFromCharacter(SourceCharacter, TeamMaterial);
 		SimulationCharacterMap.Add(SourceCharacter, SimulationCharacter);
 	}

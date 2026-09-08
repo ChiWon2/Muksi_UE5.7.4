@@ -109,18 +109,6 @@ public:
 	void UnbindBattlePipelineWidgetEvents();
 
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool SetSimulationPlayerView(EBattlePlayerSimulationView View);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool ToggleSimulationPlayerView();
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	EBattlePlayerSimulationView GetSimulationPlayerView() const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	bool CanToggleSimulationPlayerView() const;
-
 	bool CanRequestEndExchange();
 
 	// 카드 슬롯에서 장착 해제될 때 진행 중인 타겟팅/대기 카드 상태를 함께 정리한다.

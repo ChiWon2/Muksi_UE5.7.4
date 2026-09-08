@@ -9,7 +9,6 @@
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
-#include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 
@@ -333,30 +332,6 @@ void UWidget_BattleMainScreen::HandleDeceiveRevealFinished(UWidget_BattleCardBas
 	}
 
 	NotifyDeceiveCardRevealFinished();
-}
-
-bool UWidget_BattleMainScreen::SetSimulationPlayerView(EBattlePlayerSimulationView View)
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->RequestPlayerSimulationView(View) : false;
-}
-
-bool UWidget_BattleMainScreen::ToggleSimulationPlayerView()
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->TogglePlayerSimulationView() : false;
-}
-
-EBattlePlayerSimulationView UWidget_BattleMainScreen::GetSimulationPlayerView() const
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->GetPlayerSimulationView() : EBattlePlayerSimulationView::ActualSelf;
-}
-
-bool UWidget_BattleMainScreen::CanToggleSimulationPlayerView() const
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->CanChangePlayerSimulationView() : false;
 }
 
 bool UWidget_BattleMainScreen::CanRequestEndExchange()

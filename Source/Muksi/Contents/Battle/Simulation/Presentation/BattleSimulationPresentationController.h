@@ -36,23 +36,10 @@ public:
 	bool Initialize(ABattleSimulationManager* InSimulationManager, UTargetingPresentationController* InTargetingPresentationController);
 	void Shutdown();
 
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	EBattlePlayerSimulationView GetPlayerSimulationView() const { return PlayerSimulationView; }
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	bool CanChangePlayerSimulationView() const { return bSimulationPresentationActive && !bPlayerSimulationViewChangeLocked; }
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Time")
 	float GetSimulationTimeScale() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool RequestPlayerSimulationView(EBattlePlayerSimulationView NewView);
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool TogglePlayerSimulationView();
-	void SetPlayerSimulationView(EBattlePlayerSimulationView NewView);
-	void SetPlayerSimulationViewChangeLocked(bool bLocked);
-
-	UBattleSimulationWorldRuntime* GetPlayerPresentationWorldRuntime() const;
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	ABattleCharacterBase* GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const;
+	UBattleSimulationWorldRuntime* GetPrimaryPresentationWorldRuntime() const;
 
 	bool EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void ExitSimulationPresentation(bool bClearPreviewData);
@@ -85,7 +72,5 @@ private:
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
-	EBattlePlayerSimulationView PlayerSimulationView = EBattlePlayerSimulationView::ActualSelf;
 	bool bSimulationPresentationActive = false;
-	bool bPlayerSimulationViewChangeLocked = false;
 };
