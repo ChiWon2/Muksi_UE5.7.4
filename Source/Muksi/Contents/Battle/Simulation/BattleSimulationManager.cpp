@@ -17,8 +17,16 @@
 
 ABattleSimulationManager::ABattleSimulationManager()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	SimulationPostProcessVolumeClass = ABattleSimulationPostProcessVolume::StaticClass();
+}
+
+void ABattleSimulationManager::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (PresentationController)
+		PresentationController->UpdateDeceivedGhostPresentation();
 }
 
 void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -55,16 +63,14 @@ EBattleSimulationState ABattleSimulationManager::GetSimulationState() const
 	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationState() : EBattleSimulationState::Idle;
 }
 
-UMaterialInterface* ABattleSimulationManager::GetSimulationMaterial(EBattleSimulationWorldType WorldType, bool bPlayerCharacter) const
+UMaterialInterface* ABattleSimulationManager::GetSimulationMaterial(bool bPlayerCharacter) const
 {
-	if (WorldType == EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived)
-	{
-		UMaterialInterface* GhostMaterial = bPlayerCharacter ? PlayerDeceivedGhostMaterial.Get() : EnemyDeceivedGhostMaterial.Get();
-		if (GhostMaterial)
-			return GhostMaterial;
-	}
-
 	return bPlayerCharacter ? PlayerSimulationMaterial.Get() : EnemySimulationMaterial.Get();
+}
+
+UMaterialInterface* ABattleSimulationManager::GetDeceivedGhostMaterial(bool bPlayerCharacter) const
+{
+	return bPlayerCharacter ? PlayerDeceivedGhostMaterial.Get() : EnemyDeceivedGhostMaterial.Get();
 }
 
 bool ABattleSimulationManager::IsSimulationRunning() const
