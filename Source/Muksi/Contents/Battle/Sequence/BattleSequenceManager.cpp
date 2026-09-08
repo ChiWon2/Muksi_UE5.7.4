@@ -151,7 +151,7 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 
 bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const
 {
-	return IsValid(Action.Card.Get()) && IsValid(Action.Card->GetDeceivedCard());
+	return IsValid(Action.Card.Get()) && IsValid(Action.Card->GetActualCard());
 }
 
 void ABattleSequenceManager::NotifyDeceiveCardRevealFinished()

@@ -215,21 +215,17 @@ void UWidget_BattleMainScreen::BattlePipelineWidgetSetting(EBattlePhase BattlePh
 void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction)
 {
 	if (!BattleSequenceManager || !IsValid(BattleAction.Card))
-	{
 		return;
-	}
 
-	UMuksiBattleCardDataAsset* DeceivedCard = BattleAction.Card->GetDeceivedCard();
-	if (!IsValid(DeceivedCard))
+	UMuksiBattleCardDataAsset* ActualCard = BattleAction.Card->GetActualCard();
+	if (!IsValid(ActualCard))
 	{
 		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
 		return;
 	}
 
-	if (!PlayDeceiveCardReveal(BattleAction, DeceivedCard, BattleAction.Card.Get()))
-	{
+	if (!PlayDeceiveCardReveal(BattleAction, BattleAction.Card.Get(), ActualCard))
 		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
-	}
 }
 
 void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
@@ -1006,31 +1002,25 @@ void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUIFinish()
 	}
 }
 
-bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard)
+bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* PresentedCard, UMuksiBattleCardDataAsset* ActualCard)
 {
 	if (!HandWidget || !IsValid(ActualCard))
-	{
 		return false;
-	}
+
 	UExchangeSlotPanelWidget* ExchangeSlotPanel = HandWidget->GetExchangeSlotPanelWidget();
 	if (!ExchangeSlotPanel)
-	{
 		return false;
-	}
+
 	UWidget_BattleCardBase* CardWidget = ExchangeSlotPanel->GetCardWidgetByExchangeIndex(BattleAction.ExchangeIndex, BattleAction.bPlayerAction);
-	
 	if (!CardWidget)
-	{
 		return false;
-	}
 	
 	CardWidget->OnDeceiveRevealFinished.RemoveAll(this);
 
 	CardWidget->OnDeceiveRevealFinished.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveRevealFinished);
 	
-	// 현재 DeceivedCard가 표시되어 있는 Widget을
-	// 실제 카드로 변경한다.
-	CardWidget->PlayDeceiveRevealEffect(DeceivedCard);
+	// 현재 속임 카드가 표시되어 있는 Widget을 Actual World에서 동작할 실제 카드로 변경한다.
+	CardWidget->PlayDeceiveRevealEffect(ActualCard);
 	return true;
 }
 

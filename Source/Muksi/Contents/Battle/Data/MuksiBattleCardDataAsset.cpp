@@ -10,15 +10,14 @@ UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
 	CardTexture = nullptr;
 }
 
-UMuksiBattleCardDataAsset* UMuksiBattleCardDataAsset::GetDeceivedCard() const
+UMuksiBattleCardDataAsset* UMuksiBattleCardDataAsset::GetActualCard() const
 {
-	if (!bIsDeceiveCard || !IsValid(DeceivedCard) || DeceivedCard.Get() == this)
-	{
+	if (!bIsDeceiveCard || !IsValid(ActualCard) || ActualCard.Get() == this)
 		return nullptr;
-	}
 
-	return DeceivedCard.Get();
+	return ActualCard.Get();
 }
+
 
 #if WITH_EDITOR
 

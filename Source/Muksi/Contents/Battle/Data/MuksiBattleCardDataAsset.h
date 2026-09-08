@@ -66,15 +66,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Targeting", meta = (DisplayName = "Targeting"))
 	FTargetingCardData TargetingData;
 
-	// 변초 카드는 Targeting은 원본을 유지하고 Simulation Execution만 DeceivedCard를 사용한다.
+	// 기만 카드는 자신의 CardData / Targeting / Execution을 표시 정보로 사용하고, Actual World에서만 ActualCard의 Execution으로 동작한다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive")
 	bool bIsDeceiveCard = false;
 
+	// Actual World에서 실제 동작에 사용할 카드.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive", meta = (EditCondition = "bIsDeceiveCard"))
-	TObjectPtr<UMuksiBattleCardDataAsset> DeceivedCard = nullptr;
+	TObjectPtr<UMuksiBattleCardDataAsset> ActualCard = nullptr;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Deceive")
-	UMuksiBattleCardDataAsset* GetDeceivedCard() const;
+	UMuksiBattleCardDataAsset* GetActualCard() const;
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "Card|Type")
 	FBattleCardTypeInfoData CardTypeInfo;

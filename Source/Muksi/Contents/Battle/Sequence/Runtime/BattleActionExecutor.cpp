@@ -116,9 +116,11 @@ bool UBattleActionExecutor::ValidateAction(const FBattleAction& Action) const
 
 UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBattleAction& Action) const
 {
-	if (BattleSimulationWorld::UsesActualCard(GridWorldType, Action.bPlayerAction)) return Action.Card.Get();
-	UMuksiBattleCardDataAsset* DeceivedCard = Action.Card->GetDeceivedCard();
-	return IsValid(DeceivedCard) ? DeceivedCard : Action.Card.Get();
+	if (!BattleSimulationWorld::UsesActualCard(GridWorldType, Action.bPlayerAction))
+		return Action.Card.Get();
+
+	UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetActualCard();
+	return IsValid(ActualCard) ? ActualCard : Action.Card.Get();
 }
 
 bool UBattleActionExecutor::BindAttackerNotify()
