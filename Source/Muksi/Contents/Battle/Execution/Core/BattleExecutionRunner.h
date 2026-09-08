@@ -19,6 +19,7 @@ class MUKSI_API UBattleExecutionRunner : public UObject
 
 public:
 	void RunExecutionEntries(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FBattleExecutionEntryStarted OnEntryStarted, FBattleExecutionEntryFinished OnEntryFinished, FBattleExecutionRunnerFinished OnFinished);
+	void StopAfterCurrentExecution();
 
 private:
 	void ExecuteNextExecution();
@@ -49,5 +50,6 @@ private:
 	int32 CurrentExecutionIndex = INDEX_NONE;
 	bool bWaitingForCurrentExecution = false;
 	bool bRunnerFinished = false;
+	bool bStopAfterCurrentExecution = false;
 	static constexpr int32 MaxNestedRunnerDepth = 16;
 };

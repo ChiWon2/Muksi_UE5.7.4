@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include"MuksiTypes/MuksiWeaponTypes.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationKeys.h"
+#include "Muksi/Contents/Battle/Animations/MuksiBattleAnimInstance.h"
 #include "MuksiBattleAnimationComponent.generated.h"
 
 class UAnimMontage;
@@ -45,6 +46,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
 	void SetWeaponType(EMuksiWeaponTypes InWeaponType);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
+	void SetCharacterState(EMuksiBattleCharacterState NewState);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
+	void StopCurrentMontage(float BlendOutTime);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
 	bool PlayBattleAnimation(const FName& AnimKey);

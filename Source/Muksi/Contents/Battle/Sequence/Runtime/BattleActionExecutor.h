@@ -24,6 +24,7 @@ public:
 	bool Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType);
 	bool ExecuteBattleAction(const FBattleAction& Action);
 	void Stop();
+	void StopAfterCurrentExecution();
 	bool IsRunning() const { return bRunning; }
 
 	FBattleActionStartedDelegate OnBattleActionStarted;
@@ -69,4 +70,5 @@ private:
 
 	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 	bool bRunning = false;
+	bool bStopAfterCurrentExecution = false;
 };

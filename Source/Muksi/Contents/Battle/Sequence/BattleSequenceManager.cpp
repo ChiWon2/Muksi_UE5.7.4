@@ -107,6 +107,7 @@ bool ABattleSequenceManager::StartBattleActionSequence(const TArray<FBattleActio
 	CurrentBattleActionIndex = 0;
 	bBattleActionSequenceRunning = true;
 	bBattleActionCompletionPending = false;
+	bStopAfterCurrentExecution = false;
 	StartCurrentBattleAction();
 	return true;
 }
@@ -152,6 +153,21 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const
 {
 	return IsValid(Action.Card.Get()) && IsValid(Action.Card->GetActualCard());
+}
+
+void ABattleSequenceManager::StopAfterCurrentExecution()
+{
+	if (!bBattleActionSequenceRunning || bStopAfterCurrentExecution)
+		return;
+
+	bStopAfterCurrentExecution = true;
+	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
+
+	if (BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+		BattleActionQueue.SetNum(CurrentBattleActionIndex + 1);
+
+	if (ActionExecutor)
+		ActionExecutor->StopAfterCurrentExecution();
 }
 
 void ABattleSequenceManager::NotifyDeceiveCardRevealFinished()
@@ -235,6 +251,7 @@ void ABattleSequenceManager::ResetBattleActionSequence()
 	bBattleActionSequenceRunning = false;
 	bBattleActionCompletionPending = false;
 	bWaitingForDeceiveCardReveal = false;
+	bStopAfterCurrentExecution = false;
 }
 
 void ABattleSequenceManager::PresentBattleActionTargetingResult(const FBattleAction& Action, const FTargetingResult& TargetingResult)

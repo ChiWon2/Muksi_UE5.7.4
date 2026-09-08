@@ -82,7 +82,10 @@ public:
     EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
 
     void RestartCurrentExchangeCardSelection();
-    void NotifyBattleCharacterDead();
+    void NotifyBattleCharacterDead(ABattleCharacterBase* DeadCharacter);
+
+    UFUNCTION(BlueprintCallable, Category = "Battle")
+    void RequestBattleEnd();
     bool SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuksiBattleCardDataAsset* Card, const FTargetingIntent& TargetingIntent, bool bPlayerAction);
     void StartBattleFlow();
 
@@ -116,6 +119,10 @@ private:
     void BattleActionSequenceStart();
     void BattleActionSequenceEnd();
     bool ShouldEndBattle() const;
+    void PrepareBattleEnd();
+    void StartDeathHitSlowMotion(ABattleCharacterBase* DeadCharacter);
+    void FinishDeathHitSlowMotion();
+    void FinishDeathBattleEndDelay();
     void EndBattleLevel();
 
     void AdvanceExchange();
@@ -161,7 +168,22 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
     EBattlePhase PreviousPhase = EBattlePhase::None;
 
-    bool bIsCharacterDead = false;
+    UPROPERTY(EditAnywhere, Category = "Battle|End")
+    float DeathHitSlowMotionTimeDilation = 0.15f;
+
+    UPROPERTY(EditAnywhere, Category = "Battle|End")
+    float DeathHitSlowMotionDuration = 0.6f;
+
+    UPROPERTY(EditAnywhere, Category = "Battle|End")
+    float DeathMontageBlendOutTime = 0.1f;
+
+    UPROPERTY(EditAnywhere, Category = "Battle|End")
+    float DeathBattleEndDelay = 1.0f;
+
+    TWeakObjectPtr<ABattleCharacterBase> DeadBattleCharacter;
+    FTimerHandle DeathHitSlowMotionTimerHandle;
+    FTimerHandle DeathBattleEndTimerHandle;
+    bool bBattleEndRequested = false;
     bool bBattleFlowInitialized = false;
     bool bBattleFlowStarted = false;
 };
