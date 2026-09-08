@@ -24,7 +24,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float
 /**
  * Round Simulation 전체를 조율한다.
  * AD / DD / DA WorldRuntime을 생성하고 동시에 실행하며 완료를 집계한다.
- * 표시 World와 PostProcess는 PresentationController에 위임하고, World별 시간 배율과 완료 집계 및 AA Action Commit을 관리한다.
+ * AD만 실제 Simulation Presentation으로 표시하고, DD는 PresentationController의 Ghost Character로 위치와 방향만 표현한다.
+ * World별 시간 배율과 완료 집계 및 AA Action Commit을 관리한다.
  * 개별 World의 Character / Grid 복제와 Sequence 실행은 UBattleSimulationWorldRuntime이 담당한다.
  */
 UCLASS()
@@ -34,13 +35,14 @@ class MUKSI_API ABattleSimulationManager : public AActor
 
 public:
 	ABattleSimulationManager();
+	virtual void Tick(float DeltaSeconds) override;
 	bool InitializeBattleFlow(ABattleManager* InBattleManager);
 	ABattleManager* GetBattleManager() const { return BattleManager.Get(); }
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Presentation")
 	UBattleSimulationPresentationController* GetPresentationController() const { return PresentationController.Get(); }
 	TSubclassOf<ABattleSimulationCharacter> GetSimulationCharacterClass() const { return SimulationCharacterClass; }
-	UMaterialInterface* GetPlayerSimulationMaterial() const { return PlayerSimulationMaterial.Get(); }
-	UMaterialInterface* GetEnemySimulationMaterial() const { return EnemySimulationMaterial.Get(); }
+	UMaterialInterface* GetSimulationMaterial(bool bPlayerCharacter) const;
+	UMaterialInterface* GetDeceivedGhostMaterial(bool bPlayerCharacter) const;
 	UBattleSimulationWorldRuntime* GetSimulationWorldRuntime(EBattleSimulationWorldType WorldType) const;
 	ABattleCharacterBase* GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const;
 	ABattleGridManager* GetBattleGridManager() const;
@@ -117,6 +119,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
 	TObjectPtr<UMaterialInterface> EnemySimulationMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
+	TObjectPtr<UMaterialInterface> PlayerDeceivedGhostMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
+	TObjectPtr<UMaterialInterface> EnemyDeceivedGhostMaterial = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleManager> BattleManager = nullptr;

@@ -707,14 +707,7 @@ bool ABattleTargetingManager::RequestEnemyPanicTargeting(UMuksiBattleCardDataAss
         return false;
     }
     
-    UMuksiBattleCardDataAsset* PresentedCard = PanicCard;
-
-    if (UMuksiBattleCardDataAsset* DeceivedCard = PanicCard->GetDeceivedCard())
-    {
-        PresentedCard = DeceivedCard;
-    }
-
-    OnEnemyCardSelectionReady.Broadcast(PresentedCard, ExchangeIndex);//위젯 표시
+    OnEnemyCardSelectionReady.Broadcast(PanicCard, ExchangeIndex);//위젯 표시
     return true;
 }
 
@@ -757,12 +750,6 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
     if (!BattleManager->SubmitTargetingAction(EnemyCharacter, SelectedCard, TargetingIntent, false))
     {
         return;
-    }
-
-    UMuksiBattleCardDataAsset* PresentedCard = SelectedCard;
-    if (UMuksiBattleCardDataAsset* DeceivedCard = SelectedCard->GetDeceivedCard())
-    {
-        PresentedCard = DeceivedCard;
     }
 
     OnEnemyCardSelectionReady.Broadcast(SelectedCard, BattleManager->GetCurrentExchange());

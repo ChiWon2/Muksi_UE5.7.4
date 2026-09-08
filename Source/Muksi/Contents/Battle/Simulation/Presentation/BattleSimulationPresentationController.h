@@ -10,6 +10,7 @@
 class ABattleCharacterBase;
 class ABattleSimulationManager;
 class ABattleSimulationPostProcessVolume;
+class ABattleSimulationCharacter;
 class UBattleSimulationWorldRuntime;
 class UTargetingPresentationController;
 struct FTargetingStepCardData;
@@ -36,33 +37,24 @@ public:
 	bool Initialize(ABattleSimulationManager* InSimulationManager, UTargetingPresentationController* InTargetingPresentationController);
 	void Shutdown();
 
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	EBattlePlayerSimulationView GetPlayerSimulationView() const { return PlayerSimulationView; }
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	bool CanChangePlayerSimulationView() const { return bSimulationPresentationActive && !bPlayerSimulationViewChangeLocked; }
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Time")
 	float GetSimulationTimeScale() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool RequestPlayerSimulationView(EBattlePlayerSimulationView NewView);
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool TogglePlayerSimulationView();
-	void SetPlayerSimulationView(EBattlePlayerSimulationView NewView);
-	void SetPlayerSimulationViewChangeLocked(bool bLocked);
-
-	UBattleSimulationWorldRuntime* GetPlayerPresentationWorldRuntime() const;
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	ABattleCharacterBase* GetPresentationCharacter(const ABattleCharacterBase* SourceCharacter) const;
+	UBattleSimulationWorldRuntime* GetPrimaryPresentationWorldRuntime() const;
 
 	bool EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters);
 	void ExitSimulationPresentation(bool bClearPreviewData);
 	void ClearAllPreviewData();
 	void UpdatePreviewData(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult);
 	void RemovePreviewData(UBattleSimulationWorldRuntime* WorldRuntime);
+	void UpdateDeceivedGhostPresentation();
 
 
 private:
 	void SynchronizeSimulationPresentation();
+	bool CreateDeceivedGhosts(const TArray<ABattleCharacterBase*>& SourceCharacters);
+	void DestroyDeceivedGhosts();
+	void SynchronizeDeceivedGhost(ABattleCharacterBase* SourceCharacter, ABattleSimulationCharacter* GhostCharacter);
 	void DisplayExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPreviewData& PreviewData);
 	void ClearExecutionPreview();
 	void AddExecutionStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FTargetingResult& TargetingResult);
@@ -85,7 +77,8 @@ private:
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
-	EBattlePlayerSimulationView PlayerSimulationView = EBattlePlayerSimulationView::ActualSelf;
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> DeceivedGhostCharacterMap;
+
 	bool bSimulationPresentationActive = false;
-	bool bPlayerSimulationViewChangeLocked = false;
 };

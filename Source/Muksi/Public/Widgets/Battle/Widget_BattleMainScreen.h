@@ -109,18 +109,6 @@ public:
 	void UnbindBattlePipelineWidgetEvents();
 
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool SetSimulationPlayerView(EBattlePlayerSimulationView View);
-
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|View")
-	bool ToggleSimulationPlayerView();
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	EBattlePlayerSimulationView GetSimulationPlayerView() const;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|View")
-	bool CanToggleSimulationPlayerView() const;
-
 	bool CanRequestEndExchange();
 
 	// 카드 슬롯에서 장착 해제될 때 진행 중인 타겟팅/대기 카드 상태를 함께 정리한다.
@@ -247,8 +235,8 @@ public:
 
 	// 비동기 Reveal 연출을 시작했으면 true를 반환하고, 연출 종료 시 NotifyDeceiveCardRevealFinished()를 호출한다.
 	UFUNCTION(BlueprintNativeEvent, Category = "Battle|Deceive")
-	bool PlayDeceiveCardReveal(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard);
-	virtual bool PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard);
+	bool PlayDeceiveCardReveal(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* PresentedCard, UMuksiBattleCardDataAsset* ActualCard);
+	virtual bool PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* PresentedCard, UMuksiBattleCardDataAsset* ActualCard);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Deceive")
 	void NotifyDeceiveCardRevealFinished();

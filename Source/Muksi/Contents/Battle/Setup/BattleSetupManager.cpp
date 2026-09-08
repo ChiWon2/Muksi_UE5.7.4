@@ -255,10 +255,6 @@ void ABattleSetupManager::UnbindBattleEndEvents()
 
 void ABattleSetupManager::HandleBattleCharacterDead(ABattleCharacterBase* DeadCharacter)
 {
-    (void)DeadCharacter;
-
     if (BattleManager)
-    {
-        BattleManager->NotifyBattleCharacterDead();
-    }
+        BattleManager->NotifyBattleCharacterDead(DeadCharacter);
 }

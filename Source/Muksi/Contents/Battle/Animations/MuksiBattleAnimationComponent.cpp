@@ -53,6 +53,34 @@ void UMuksiBattleAnimationComponent::SetWeaponType(EMuksiWeaponTypes InWeaponTyp
 	ApplyWeaponTypeToAnimInstance();
 }
 
+void UMuksiBattleAnimationComponent::SetCharacterState(EMuksiBattleCharacterState NewState)
+{
+	CacheMeshComponent();
+
+	if (!CachedMeshComponent)
+		return;
+
+	UMuksiBattleAnimInstance* BattleAnimInstance = Cast<UMuksiBattleAnimInstance>(CachedMeshComponent->GetAnimInstance());
+	if (!BattleAnimInstance)
+		return;
+
+	BattleAnimInstance->CharacterState = NewState;
+}
+
+void UMuksiBattleAnimationComponent::StopCurrentMontage(float BlendOutTime)
+{
+	CacheMeshComponent();
+
+	if (!CachedMeshComponent || !CurrentMontage)
+		return;
+
+	UAnimInstance* AnimInstance = CachedMeshComponent->GetAnimInstance();
+	if (!AnimInstance)
+		return;
+
+	AnimInstance->Montage_Stop(FMath::Max(0.0f, BlendOutTime), CurrentMontage);
+}
+
 void UMuksiBattleAnimationComponent::ApplyWeaponTypeToAnimInstance()
 {
 	CacheMeshComponent();

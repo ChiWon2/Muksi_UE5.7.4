@@ -636,10 +636,9 @@ void UHandWidget::ShowDeceivedCardPreview(UWidget_BattleCardBase* SourceCard)
 
     // 기존 GetDeceivedCard()가
     // bIsDeceiveCard, nullptr, 자기 자신 참조까지 모두 검사해준다.
-    UMuksiBattleCardDataAsset* DeceivedCardData =
-        CardData->GetDeceivedCard();
+    UMuksiBattleCardDataAsset* ActualCardData = CardData->GetActualCard();
 
-    if (!DeceivedCardData)
+    if (!ActualCardData)
     {
         HideDeceivedCardPreview();
         return;
@@ -696,9 +695,7 @@ void UHandWidget::ShowDeceivedCardPreview(UWidget_BattleCardBase* SourceCard)
 
     DeceivedCardPreviewSource = SourceCard;
 
-    DeceivedCardPreview->SetCardData(
-        DeceivedCardData
-    );
+    DeceivedCardPreview->SetCardData(ActualCardData);
 
     DeceivedCardPreview->SetCardRenderAngle(0.0f);
 

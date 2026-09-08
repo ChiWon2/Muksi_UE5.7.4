@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
@@ -9,7 +9,6 @@
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
-#include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 
 
@@ -215,21 +214,17 @@ void UWidget_BattleMainScreen::BattlePipelineWidgetSetting(EBattlePhase BattlePh
 void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction)
 {
 	if (!BattleSequenceManager || !IsValid(BattleAction.Card))
-	{
 		return;
-	}
 
-	UMuksiBattleCardDataAsset* DeceivedCard = BattleAction.Card->GetDeceivedCard();
-	if (!IsValid(DeceivedCard))
+	UMuksiBattleCardDataAsset* ActualCard = BattleAction.Card->GetActualCard();
+	if (!IsValid(ActualCard))
 	{
 		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
 		return;
 	}
 
-	if (!PlayDeceiveCardReveal(BattleAction, DeceivedCard, BattleAction.Card.Get()))
-	{
+	if (!PlayDeceiveCardReveal(BattleAction, BattleAction.Card.Get(), ActualCard))
 		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
-	}
 }
 
 void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
@@ -337,30 +332,6 @@ void UWidget_BattleMainScreen::HandleDeceiveRevealFinished(UWidget_BattleCardBas
 	}
 
 	NotifyDeceiveCardRevealFinished();
-}
-
-bool UWidget_BattleMainScreen::SetSimulationPlayerView(EBattlePlayerSimulationView View)
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->RequestPlayerSimulationView(View) : false;
-}
-
-bool UWidget_BattleMainScreen::ToggleSimulationPlayerView()
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->TogglePlayerSimulationView() : false;
-}
-
-EBattlePlayerSimulationView UWidget_BattleMainScreen::GetSimulationPlayerView() const
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->GetPlayerSimulationView() : EBattlePlayerSimulationView::ActualSelf;
-}
-
-bool UWidget_BattleMainScreen::CanToggleSimulationPlayerView() const
-{
-	UBattleSimulationPresentationController* PresentationController = BattleSimulationManager ? BattleSimulationManager->GetPresentationController() : nullptr;
-	return PresentationController ? PresentationController->CanChangePlayerSimulationView() : false;
 }
 
 bool UWidget_BattleMainScreen::CanRequestEndExchange()
@@ -525,6 +496,8 @@ void UWidget_BattleMainScreen::DisplayRoundStartUIFinish()
 
 void UWidget_BattleMainScreen::RoundEnd()
 {
+	HandleUIFinishCount = 0;
+
 	// Exchange Slot 비우기
 	ClearExchangeSlots();
 	// Round 동안 유지한 핸드를 Round 종료 시 정리한다.
@@ -976,6 +949,8 @@ bool UWidget_BattleMainScreen::PlayCurrentExchangeTurnOrderAnimation(int32 Excha
 
 void UWidget_BattleMainScreen::BattleActionSequenceStart()
 {
+	HandleUIFinishCount = 0;
+
 	if (!HandWidget || !BattleManager)
 	{
 		return;
@@ -1007,31 +982,25 @@ void UWidget_BattleMainScreen::DisplayBattleActionSequenceStartUIFinish()
 	}
 }
 
-bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* DeceivedCard, UMuksiBattleCardDataAsset* ActualCard)
+bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattleAction& BattleAction, UMuksiBattleCardDataAsset* PresentedCard, UMuksiBattleCardDataAsset* ActualCard)
 {
 	if (!HandWidget || !IsValid(ActualCard))
-	{
 		return false;
-	}
+
 	UExchangeSlotPanelWidget* ExchangeSlotPanel = HandWidget->GetExchangeSlotPanelWidget();
 	if (!ExchangeSlotPanel)
-	{
 		return false;
-	}
+
 	UWidget_BattleCardBase* CardWidget = ExchangeSlotPanel->GetCardWidgetByExchangeIndex(BattleAction.ExchangeIndex, BattleAction.bPlayerAction);
-	
 	if (!CardWidget)
-	{
 		return false;
-	}
 	
 	CardWidget->OnDeceiveRevealFinished.RemoveAll(this);
 
 	CardWidget->OnDeceiveRevealFinished.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveRevealFinished);
 	
-	// 현재 DeceivedCard가 표시되어 있는 Widget을
-	// 실제 카드로 변경한다.
-	CardWidget->PlayDeceiveRevealEffect(DeceivedCard);
+	// 현재 속임 카드가 표시되어 있는 Widget을 Actual World에서 동작할 실제 카드로 변경한다.
+	CardWidget->PlayDeceiveRevealEffect(ActualCard);
 	return true;
 }
 
@@ -1053,6 +1022,8 @@ void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterB
 
 void UWidget_BattleMainScreen::BattleActionSequenceEnd()
 {
+	HandleUIFinishCount = 0;
+
 	//UI 기능적으로 일단 뭐 없음
 	BattlePipelineWidgetSetting(EBattlePhase::BattleActionSequenceEnd);
 }

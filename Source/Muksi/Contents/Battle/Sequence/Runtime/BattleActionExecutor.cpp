@@ -37,6 +37,7 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 	CurrentExecutionCard = ExecutionCard;
 	ActionTargetingResult = MoveTemp(TargetingResult);
 	bRunning = true;
+	bStopAfterCurrentExecution = false;
 	ActiveExecutionRunners.Reset();
 
 	if (!BindAttackerNotify())
@@ -53,6 +54,21 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 		return false;
 	}
 	return true;
+}
+
+void UBattleActionExecutor::StopAfterCurrentExecution()
+{
+	if (!bRunning || bStopAfterCurrentExecution)
+		return;
+
+	bStopAfterCurrentExecution = true;
+	UnbindAttackerNotify();
+
+	for (UBattleExecutionRunner* Runner : ActiveExecutionRunners)
+	{
+		if (Runner)
+			Runner->StopAfterCurrentExecution();
+	}
 }
 
 void UBattleActionExecutor::Stop()
@@ -116,9 +132,11 @@ bool UBattleActionExecutor::ValidateAction(const FBattleAction& Action) const
 
 UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBattleAction& Action) const
 {
-	if (BattleSimulationWorld::UsesActualCard(GridWorldType, Action.bPlayerAction)) return Action.Card.Get();
-	UMuksiBattleCardDataAsset* DeceivedCard = Action.Card->GetDeceivedCard();
-	return IsValid(DeceivedCard) ? DeceivedCard : Action.Card.Get();
+	if (!BattleSimulationWorld::UsesActualCard(GridWorldType, Action.bPlayerAction))
+		return Action.Card.Get();
+
+	UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetActualCard();
+	return IsValid(ActualCard) ? ActualCard : Action.Card.Get();
 }
 
 bool UBattleActionExecutor::BindAttackerNotify()
@@ -157,7 +175,7 @@ bool UBattleActionExecutor::RunMainExecutionEntries()
 
 void UBattleActionExecutor::HandleBattleExecutionNotify(FName NotifyKey)
 {
-	if (bRunning && !NotifyKey.IsNone())
+	if (bRunning && !bStopAfterCurrentExecution && !NotifyKey.IsNone())
 		RunExecutionEntriesForNotify(NotifyKey);
 }
 
@@ -174,7 +192,7 @@ void UBattleActionExecutor::RunExecutionEntriesForNotify(FName NotifyKey)
 
 bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
-	if (!bRunning || ExecutionEntries.IsEmpty())
+	if (!bRunning || bStopAfterCurrentExecution || ExecutionEntries.IsEmpty())
 		return false;
 
 	UBattleExecutionRunner* Runner = NewObject<UBattleExecutionRunner>(this);
@@ -236,6 +254,7 @@ void UBattleActionExecutor::ResetRuntime()
 {
 	UnbindAttackerNotify();
 	bRunning = false;
+	bStopAfterCurrentExecution = false;
 	CurrentAction = FBattleAction();
 	CurrentExecutionCard = nullptr;
 	ActionTargetingResult.Reset();

@@ -57,6 +57,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
 	void NotifyDeceiveCardRevealFinished();
+	void StopAfterCurrentExecution();
 
 	void InitializeBattleRuntimeContext(UBattleRuntimeContext* InBattleRuntimeContext);
 
@@ -69,6 +70,7 @@ private:
 	bool bBattleActionSequenceRunning = false;
 	bool bBattleActionCompletionPending = false;
 	bool bWaitingForDeceiveCardReveal = false;
+	bool bStopAfterCurrentExecution = false;
 	UPROPERTY(Transient)
 	TObjectPtr<UBattlePhaseTask> PhaseExecutionTask = nullptr;
 

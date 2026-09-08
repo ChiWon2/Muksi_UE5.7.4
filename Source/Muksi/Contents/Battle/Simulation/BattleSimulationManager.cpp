@@ -17,8 +17,16 @@
 
 ABattleSimulationManager::ABattleSimulationManager()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	SimulationPostProcessVolumeClass = ABattleSimulationPostProcessVolume::StaticClass();
+}
+
+void ABattleSimulationManager::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (PresentationController)
+		PresentationController->UpdateDeceivedGhostPresentation();
 }
 
 void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -51,8 +59,18 @@ bool ABattleSimulationManager::InitializeBattleFlow(ABattleManager* InBattleMana
 
 EBattleSimulationState ABattleSimulationManager::GetSimulationState() const
 {
-	UBattleSimulationWorldRuntime* WorldRuntime = PresentationController ? PresentationController->GetPlayerPresentationWorldRuntime() : nullptr;
+	UBattleSimulationWorldRuntime* WorldRuntime = GetSimulationWorldRuntime(EBattleSimulationWorldType::PlayerActualEnemyDeceived);
 	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationState() : EBattleSimulationState::Idle;
+}
+
+UMaterialInterface* ABattleSimulationManager::GetSimulationMaterial(bool bPlayerCharacter) const
+{
+	return bPlayerCharacter ? PlayerSimulationMaterial.Get() : EnemySimulationMaterial.Get();
+}
+
+UMaterialInterface* ABattleSimulationManager::GetDeceivedGhostMaterial(bool bPlayerCharacter) const
+{
+	return bPlayerCharacter ? PlayerDeceivedGhostMaterial.Get() : EnemyDeceivedGhostMaterial.Get();
 }
 
 bool ABattleSimulationManager::IsSimulationRunning() const
@@ -177,17 +195,20 @@ bool ABattleSimulationManager::IsManagedSimulationRuntime(const UBattleSimulatio
 
 void ABattleSimulationManager::RefreshSimulationWorldTimeScales()
 {
-	UBattleSimulationWorldRuntime* VisibleWorldRuntime = PresentationController ? PresentationController->GetPlayerPresentationWorldRuntime() : nullptr;
 	const bool bCanFastForward = CompletionTrackingExchangeIndex != INDEX_NONE && !IsCurrentExchangeCompletionTrackingComplete();
-	const bool bVisibleWorldCompleted = IsValid(VisibleWorldRuntime) && CompletedWorldTypesForCurrentExchange.Contains(VisibleWorldRuntime->GetWorldType());
+	const bool bADCompleted = CompletedWorldTypesForCurrentExchange.Contains(EBattleSimulationWorldType::PlayerActualEnemyDeceived);
+	const bool bDDCompleted = CompletedWorldTypesForCurrentExchange.Contains(EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived);
+	const bool bPresentationWorldsCompleted = bADCompleted && bDDCompleted;
 	bool bAnyWorldFastForwarding = false;
 
 	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())
 	{
 		if (!IsValid(WorldRuntime))
 			continue;
+
 		const bool bWorldCompleted = CompletedWorldTypesForCurrentExchange.Contains(WorldRuntime->GetWorldType());
-		const bool bShouldFastForward = bCanFastForward && bVisibleWorldCompleted && WorldRuntime != VisibleWorldRuntime && !bWorldCompleted;
+		const bool bHiddenWorld = WorldRuntime->GetWorldType() == EBattleSimulationWorldType::PlayerDeceivedEnemyActual;
+		const bool bShouldFastForward = bCanFastForward && bPresentationWorldsCompleted && bHiddenWorld && !bWorldCompleted;
 		WorldRuntime->SetSimulationTimeScale(bShouldFastForward ? FastForwardSimulationTimeScale : 1.0f);
 		bAnyWorldFastForwarding |= bShouldFastForward;
 	}
@@ -215,23 +236,11 @@ void ABattleSimulationManager::ResetSimulationWorldTimeScales()
 
 void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
+	(void)OldPhase;
 	(void)TaskContext;
-
-	if (OldPhase == EBattlePhase::Targeting && NewPhase != EBattlePhase::Targeting && PresentationController)
-	{
-		PresentationController->SetPlayerSimulationViewChangeLocked(false);
-	}
 
 	switch (NewPhase)
 	{
-	case EBattlePhase::Targeting:
-		if (PresentationController)
-		{
-			PresentationController->SetPlayerSimulationView(EBattlePlayerSimulationView::ActualSelf);
-			PresentationController->SetPlayerSimulationViewChangeLocked(true);
-		}
-		break;
-
 	case EBattlePhase::ExchangeEnd:
 		if (PresentationController) 
 			PresentationController->ClearAllPreviewData();

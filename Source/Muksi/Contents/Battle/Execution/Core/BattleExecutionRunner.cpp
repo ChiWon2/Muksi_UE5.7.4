@@ -16,8 +16,29 @@ void UBattleExecutionRunner::RunExecutionEntries(const TArray<FBattleExecutionEn
 	CurrentExecutionIndex = INDEX_NONE;
 	bWaitingForCurrentExecution = false;
 	bRunnerFinished = false;
+	bStopAfterCurrentExecution = false;
 
 	ExecuteNextExecution();
+}
+
+void UBattleExecutionRunner::StopAfterCurrentExecution()
+{
+	if (bRunnerFinished || bStopAfterCurrentExecution)
+		return;
+
+	bStopAfterCurrentExecution = true;
+
+	if (ExecutionEntries.IsValidIndex(CurrentExecutionIndex))
+		ExecutionEntries.SetNum(CurrentExecutionIndex + 1);
+
+	for (UBattleExecutionRunner* NestedRunner : ActiveNestedExecutionRunners)
+	{
+		if (NestedRunner)
+			NestedRunner->StopAfterCurrentExecution();
+	}
+
+	if (!bWaitingForCurrentExecution)
+		TryCompleteRunner();
 }
 
 void UBattleExecutionRunner::ExecuteNextExecution()
@@ -84,12 +105,19 @@ void UBattleExecutionRunner::HandleCurrentExecutionFinished()
 		CachedOnEntryFinished.ExecuteIfBound(FinishedEntry, FinishedEntryIndex, FinishedContext);
 	}
 
+	if (bStopAfterCurrentExecution)
+	{
+		CurrentExecutionIndex = ExecutionEntries.Num();
+		TryCompleteRunner();
+		return;
+	}
+
 	ExecuteNextExecution();
 }
 
 bool UBattleExecutionRunner::HandleRuntimeExecutionEntriesRequested(const TArray<FBattleExecutionEntry>& InExecutionEntries, const FBattleExecutionContext& Context, FSimpleDelegate CompletionDelegate)
 {
-	if (bRunnerFinished || !bWaitingForCurrentExecution || InExecutionEntries.IsEmpty())
+	if (bRunnerFinished || bStopAfterCurrentExecution || !bWaitingForCurrentExecution || InExecutionEntries.IsEmpty())
 	{
 		return false;
 	}
@@ -153,6 +181,7 @@ void UBattleExecutionRunner::CompleteRunner()
 
 	bRunnerFinished = true;
 	bWaitingForCurrentExecution = false;
+	bStopAfterCurrentExecution = false;
 	CurrentExecution = nullptr;
 	ExecutionEntries.Empty();
 	ActiveNestedExecutionRunners.Empty();
