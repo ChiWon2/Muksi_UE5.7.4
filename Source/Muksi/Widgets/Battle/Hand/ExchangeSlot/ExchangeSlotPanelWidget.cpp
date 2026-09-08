@@ -4,6 +4,7 @@
 #include "ExchangeSlotPanelWidget.h"
 
 #include "ExchangeSlotTypes.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 #include "Muksi/Widgets/Battle/Widget_CardEquipSlot.h"
 
@@ -276,6 +277,21 @@ void UExchangeSlotPanelWidget::PlaceEnemySelectCard(UMuksiBattleCardDataAsset* S
 		UE_LOG(LogTemp, Warning, TEXT("AddCardToHand failed: CreateWidget failed (HandWidget.cpp)"));
 		return;
 	}
+	/*UMuksiBattleCardDataAsset* PresentedCard = SelectCard;
+
+	UE_LOG(
+	LogTemp,
+	Error,
+	TEXT("SelectCard Name: %s"),
+	*GetNameSafe(SelectCard)
+);
+	
+	if (UMuksiBattleCardDataAsset* DeceivedCard = SelectCard->GetDeceivedCard())
+	{
+		UE_LOG(LogTemp, Error, TEXT("DeceivedCard"));
+		PresentedCard = DeceivedCard;
+	}*/
+	
 	CardWidget->SetCardData_(SelectCard, false);
 
 	CardWidget->SetVisibility(ESlateVisibility::HitTestInvisible);

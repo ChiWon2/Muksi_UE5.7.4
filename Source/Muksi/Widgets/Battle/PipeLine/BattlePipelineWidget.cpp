@@ -32,7 +32,7 @@ void UBattlePipelineWidget::DisplayPhase(FBattlePhasePresentationContext& PhaseC
 	case EBattlePhase::RoundStart:
 		{
 			FString DisplayText =
-				FString::Printf(TEXT("%d "), PhaseContext.RoundNum + 1)
+				FString::Printf(TEXT("%d "), PhaseContext.RoundNum)
 				+ RoundStartText;
 			DisplayInkLine(DisplayText, InkTime);
 			break;

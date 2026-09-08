@@ -615,7 +615,8 @@ void UWidget_BattleMainScreen::StartExchangeSelectCard(int32 ExchangeIndex)
 	// Exchange 제한시간 시작
 	if (ExchangeControlWidget)
 	{
-		ExchangeControlWidget->StartExchangeTimer();
+		//ExchangeControlWidget->StartExchangeTimer();
+		ExchangeControlWidget->StartExchangeTimer(ExchangeIndex);
 	}
 	
 	BattlePipelineWidgetSetting(EBattlePhase::CardSelect);

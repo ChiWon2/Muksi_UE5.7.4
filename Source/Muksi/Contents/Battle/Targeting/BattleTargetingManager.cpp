@@ -765,7 +765,7 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
         PresentedCard = DeceivedCard;
     }
 
-    OnEnemyCardSelectionReady.Broadcast(PresentedCard, BattleManager->GetCurrentExchange());
+    OnEnemyCardSelectionReady.Broadcast(SelectedCard, BattleManager->GetCurrentExchange());
 }
 
 bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedCard, FTargetingIntent& OutIntent)

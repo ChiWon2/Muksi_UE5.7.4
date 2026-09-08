@@ -30,6 +30,25 @@ void UExchangeControlWidget::NativeTick(const FGeometry& Geometry, float TimeDel
 
 void UExchangeControlWidget::StartExchangeTimer()
 {
+	
+	ExchangeRemainingTime = ExchangeTotalDuration;
+
+	bExchangeTimerActive = true;
+	bWarningStarted = false;
+
+	if (BattleTimerWidget)
+	{
+		BattleTimerWidget->ShowTimer(ExchangeTotalDuration);
+	}
+}
+
+void UExchangeControlWidget::StartExchangeTimer(int32 ExchangeIndex)
+{
+	if (ExchangeDurationCurve)
+	{
+		ExchangeTotalDuration =ExchangeDurationCurve->GetFloatValue(static_cast<float>(ExchangeIndex));
+	}
+
 	ExchangeRemainingTime = ExchangeTotalDuration;
 
 	bExchangeTimerActive = true;

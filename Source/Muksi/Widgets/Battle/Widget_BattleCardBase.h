@@ -60,6 +60,12 @@ public:
 	void SetCardInstance(
 	const FGuid& InInstanceId,
 	UMuksiBattleCardDataAsset* InCardData);
+	
+	bool IsDragging() const
+	{
+		return bIsDragging;
+	}
+	
 protected:
 	UFUNCTION()
 	void OnMoveTimelineUpdate(float Alpha);
