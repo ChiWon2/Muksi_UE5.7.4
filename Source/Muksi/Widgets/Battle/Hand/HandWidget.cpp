@@ -365,7 +365,10 @@ void UHandWidget::HitActiveHandCards(bool bHitActive)
 void UHandWidget::SetHoveredCard(UWidget_BattleCardBase* InHoveredCard)
 {
 	HoveredCard = InHoveredCard;
+
 	RequestOrganizeCards(DefaultCardSpacing);
+
+	ShowDeceivedCardPreview(InHoveredCard);
 }
 
 void UHandWidget::ClearHoveredCard(UWidget_BattleCardBase* InCard)
@@ -373,7 +376,34 @@ void UHandWidget::ClearHoveredCard(UWidget_BattleCardBase* InCard)
 	if (HoveredCard == InCard)
 	{
 		HoveredCard = nullptr;
+
+		HideDeceivedCardPreview(InCard);
+
 		RequestOrganizeCards(DefaultCardSpacing);
+	}
+}
+
+void UHandWidget::HandleCardDragStarted(UWidget_BattleCardBase* InCard)
+{
+	if (!InCard)
+	{
+		return;
+	}
+
+	HideDeceivedCardPreview(InCard);
+}
+
+void UHandWidget::HandleCardDragEnded(UWidget_BattleCardBase* InCard)
+{
+	if (!InCard)
+	{
+		return;
+	}
+	
+	
+	if (InCard->IsHovered() && BattleCards.Contains(InCard))
+	{
+		ShowDeceivedCardPreview(InCard);
 	}
 }
 
@@ -582,6 +612,169 @@ void UHandWidget::HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget)
 	OnPlayerCardReturned.Broadcast();
 }
 
+
+void UHandWidget::ShowDeceivedCardPreview(UWidget_BattleCardBase* SourceCard)
+{
+	if (!SourceCard || !HandCanvas || !BattleCardClass)
+    {
+        return;
+    }
+
+    // 드래그하고 있는 카드는 Preview를 띄우지 않는다.
+	if (SourceCard->IsDragging())
+	{
+		return;
+	}
+
+    UMuksiBattleCardDataAsset* CardData = SourceCard->GetCardData();
+
+    if (!CardData)
+    {
+        HideDeceivedCardPreview();
+        return;
+    }
+
+    // 기존 GetDeceivedCard()가
+    // bIsDeceiveCard, nullptr, 자기 자신 참조까지 모두 검사해준다.
+    UMuksiBattleCardDataAsset* ActualCardData = CardData->GetActualCard();
+
+    if (!ActualCardData)
+    {
+        HideDeceivedCardPreview();
+        return;
+    }
+
+    // Preview Widget은 한 번만 생성하고 재사용
+    if (!DeceivedCardPreview)
+    {
+        DeceivedCardPreview =
+            CreateWidget<UWidget_BattleCardBase>(
+                GetOwningPlayer(),
+                BattleCardClass
+            );
+
+        if (!DeceivedCardPreview)
+        {
+            return;
+        }
+
+        UCanvasPanelSlot* PreviewSlot =
+            HandCanvas->AddChildToCanvas(
+                DeceivedCardPreview
+            );
+
+        if (!PreviewSlot)
+        {
+            DeceivedCardPreview->RemoveFromParent();
+            DeceivedCardPreview = nullptr;
+            return;
+        }
+
+        PreviewSlot->SetAutoSize(true);
+
+        PreviewSlot->SetAnchors(
+            FAnchors(
+                0.5f,
+                1.0f,
+                0.5f,
+                1.0f
+            )
+        );
+
+        PreviewSlot->SetAlignment(
+            FVector2D(0.5f, 1.0f)
+        );
+
+        PreviewSlot->SetZOrder(10000);
+
+        // Preview 자체는 Mouse Hit를 절대 가져가면 안 됨.
+        DeceivedCardPreview->SetVisibility(
+            ESlateVisibility::HitTestInvisible
+        );
+    }
+
+    DeceivedCardPreviewSource = SourceCard;
+
+    DeceivedCardPreview->SetCardData(ActualCardData);
+
+    DeceivedCardPreview->SetCardRenderAngle(0.0f);
+
+    UpdateDeceivedCardPreviewPosition(
+        SourceCard
+    );
+
+    DeceivedCardPreview->SetVisibility(
+        ESlateVisibility::HitTestInvisible
+    );
+}
+
+void UHandWidget::HideDeceivedCardPreview(UWidget_BattleCardBase* SourceCard)
+{
+	// 이미 다른 카드의 Preview로 전환됐다면
+	// 이전 카드 MouseLeave가 새 Preview를 꺼버리지 않게 한다.
+	if (SourceCard &&
+		DeceivedCardPreviewSource != SourceCard)
+	{
+		return;
+	}
+
+	DeceivedCardPreviewSource = nullptr;
+
+	if (DeceivedCardPreview)
+	{
+		DeceivedCardPreview->SetVisibility(
+			ESlateVisibility::Collapsed
+		);
+	}
+}
+
+void UHandWidget::UpdateDeceivedCardPreviewPosition(UWidget_BattleCardBase* SourceCard)
+{
+	if (!SourceCard || !DeceivedCardPreview)
+	{
+		return;
+	}
+
+	UCanvasPanelSlot* SourceSlot =
+		Cast<UCanvasPanelSlot>(SourceCard->Slot);
+
+	UCanvasPanelSlot* PreviewSlot =
+		Cast<UCanvasPanelSlot>(
+			DeceivedCardPreview->Slot
+		);
+
+	if (!SourceSlot || !PreviewSlot)
+	{
+		return;
+	}
+
+	const FVector2D SourcePosition =
+		SourceSlot->GetPosition();
+
+	float CardHeight =
+		SourceCard
+		->GetCachedGeometry()
+		.GetLocalSize()
+		.Y;
+
+	// Hover가 가능한 시점이면 보통 Geometry가 이미 유효하지만
+	// 혹시 모르니 최소값 처리
+	if (CardHeight <= 1.0f)
+	{
+		CardHeight = 250.0f;
+	}
+
+	const FVector2D PreviewPosition(
+		SourcePosition.X,
+		SourcePosition.Y
+			- CardHeight
+			- DeceivedCardPreviewGap
+	);
+
+	PreviewSlot->SetPosition(
+		PreviewPosition
+	);
+}
 
 void UHandWidget::BindingBattleCardManager(UBattleCardManager* InBattleCardManager)
 {

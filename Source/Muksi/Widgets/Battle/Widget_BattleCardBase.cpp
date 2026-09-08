@@ -263,6 +263,8 @@ void UWidget_BattleCardBase::StartDragging(const FPointerEvent& InMouseEvent)
 		return;
 	}
 	
+	OwningHandWidget->HideDeceivedCardPreview(this);
+	
 	// 드래그 중에는 카드 똑바로 보이게
 	SetCardRenderAngle(0.0f);
 	
@@ -306,7 +308,7 @@ void UWidget_BattleCardBase::StopDragging()
 					OwningHandWidget->RemoveHandCardWidget(this);
 
 					OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
-
+					
 					OwningHandWidget->NotifyPlayerCardEquipped();
 					return;
 				}
@@ -323,6 +325,7 @@ void UWidget_BattleCardBase::StopDragging()
 	if (OwningHandWidget)
 	{
 		OwningHandWidget->OrganizeCards(OwningHandWidget->GetDefaultCardSpacing());
+		OwningHandWidget->HandleCardDragEnded(this);
 	}
 }
 

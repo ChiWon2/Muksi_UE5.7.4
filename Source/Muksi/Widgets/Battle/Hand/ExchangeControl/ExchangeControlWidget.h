@@ -20,7 +20,7 @@ class MUKSI_API UExchangeControlWidget : public UUserWidget
 	GENERATED_BODY()
 public:
 	virtual void NativeConstruct() override;
-	virtual void NativeTick(const FGeometry& Geometry, float TimeDelta);
+	virtual void NativeTick(const FGeometry& Geometry, float TimeDelta) override;
 	
 	
 	//턴 시간 표시 위젯-------------------------------------------------
@@ -28,10 +28,14 @@ public:
 	FOnExchangeTimeExpired OnExchangeTimeExpired;
 	
 	void StartExchangeTimer();
+	void StartExchangeTimer(int32 ExchangeIndex);
 	void StopExchangeTimer();
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget_BattleTimer> BattleTimerWidget;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Timer")
+	TObjectPtr<UCurveFloat> ExchangeDurationCurve;
 	
 
 	void UpdateExchangeTimer(float DeltaTime);

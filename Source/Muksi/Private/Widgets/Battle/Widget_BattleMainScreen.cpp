@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
@@ -496,6 +496,8 @@ void UWidget_BattleMainScreen::DisplayRoundStartUIFinish()
 
 void UWidget_BattleMainScreen::RoundEnd()
 {
+	HandleUIFinishCount = 0;
+
 	// Exchange Slot 비우기
 	ClearExchangeSlots();
 	// Round 동안 유지한 핸드를 Round 종료 시 정리한다.
@@ -586,7 +588,8 @@ void UWidget_BattleMainScreen::StartExchangeSelectCard(int32 ExchangeIndex)
 	// Exchange 제한시간 시작
 	if (ExchangeControlWidget)
 	{
-		ExchangeControlWidget->StartExchangeTimer();
+		//ExchangeControlWidget->StartExchangeTimer();
+		ExchangeControlWidget->StartExchangeTimer(ExchangeIndex);
 	}
 	
 	BattlePipelineWidgetSetting(EBattlePhase::CardSelect);
@@ -946,6 +949,8 @@ bool UWidget_BattleMainScreen::PlayCurrentExchangeTurnOrderAnimation(int32 Excha
 
 void UWidget_BattleMainScreen::BattleActionSequenceStart()
 {
+	HandleUIFinishCount = 0;
+
 	if (!HandWidget || !BattleManager)
 	{
 		return;
@@ -1017,6 +1022,8 @@ void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterB
 
 void UWidget_BattleMainScreen::BattleActionSequenceEnd()
 {
+	HandleUIFinishCount = 0;
+
 	//UI 기능적으로 일단 뭐 없음
 	BattlePipelineWidgetSetting(EBattlePhase::BattleActionSequenceEnd);
 }
