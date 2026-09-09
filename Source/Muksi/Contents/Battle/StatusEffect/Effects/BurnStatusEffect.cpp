@@ -18,6 +18,7 @@ void UBurnStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattl
 	SubtractEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData SubtractData;
+	SubtractData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	SubtractData.Operation = EStatusEffectExecutionOperation::Subtract;
 	SubtractData.EffectID = GetEffectID();
 	SubtractData.Duration = 1;

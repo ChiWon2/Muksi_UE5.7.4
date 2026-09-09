@@ -4,21 +4,13 @@
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "DamageExecutionData.generated.h"
 
-UENUM(BlueprintType)
-enum class EDamageExecutionTargetPolicy : uint8
-{
-	TargetingResult,
-	ExecutionTarget,
-	Attacker
-};
-
 USTRUCT(BlueprintType)
 struct FDamageExecutionData : public FBattleExecutionData
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
-	EDamageExecutionTargetPolicy TargetPolicy = EDamageExecutionTargetPolicy::TargetingResult;
+	EBattleExecutionTargetPolicy TargetPolicy = EBattleExecutionTargetPolicy::TargetingResult;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage", meta = (ClampMin = "0"))
 	int32 DamageValue = 0;

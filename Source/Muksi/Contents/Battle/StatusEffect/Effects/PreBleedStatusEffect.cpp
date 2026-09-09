@@ -22,6 +22,7 @@ void UPreBleedStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EB
 	AddBleedEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData AddBleedData;
+	AddBleedData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	AddBleedData.Operation = EStatusEffectExecutionOperation::Add;
 	AddBleedData.EffectID = MuksiStatusEffectIDs::Bleed;
 	AddBleedData.StackCount = GetCurrentStack();
@@ -34,6 +35,7 @@ void UPreBleedStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EB
 	RemoveEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData RemoveData;
+	RemoveData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	RemoveData.Operation = EStatusEffectExecutionOperation::Remove;
 	RemoveData.EffectID = GetEffectID();
 	RemoveEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(RemoveData);

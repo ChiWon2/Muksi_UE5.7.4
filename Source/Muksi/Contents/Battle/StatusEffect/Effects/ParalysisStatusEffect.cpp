@@ -18,6 +18,7 @@ void UParalysisStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, E
 	StatusEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData StatusData;
+	StatusData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	StatusData.Operation = NewPhase == EBattlePhase::RoundStart ? EStatusEffectExecutionOperation::Subtract : EStatusEffectExecutionOperation::Remove;
 	StatusData.EffectID = GetEffectID();
 	StatusData.Duration = NewPhase == EBattlePhase::RoundStart ? 1 : 0;

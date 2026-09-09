@@ -22,7 +22,7 @@ void USaeMaekStatusEffect::EditBattleActionExecutionEntries(const FBattleAction&
 	DamageEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FDamageExecutionData DamageData;
-	DamageData.TargetPolicy = EDamageExecutionTargetPolicy::Attacker;
+	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 	DamageData.DamageValue = GetCurrentStack();
 	DamageData.bTriggerHitReaction = false;
 	DamageData.bTriggerStatusEffectReactions = true;
@@ -41,6 +41,7 @@ void USaeMaekStatusEffect::EditBattleActionExecutionEntries(const FBattleAction&
 	SubtractEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData SubtractData;
+	SubtractData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 	SubtractData.Operation = EStatusEffectExecutionOperation::Subtract;
 	SubtractData.EffectID = GetEffectID();
 	SubtractData.StackCount = 1;

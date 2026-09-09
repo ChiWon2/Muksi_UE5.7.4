@@ -18,6 +18,9 @@ struct FStatusEffectExecutionData : public FBattleExecutionData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "StatusEffect")
+	EBattleExecutionTargetPolicy TargetPolicy = EBattleExecutionTargetPolicy::TargetingResult;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "StatusEffect")
 	EStatusEffectExecutionOperation Operation = EStatusEffectExecutionOperation::Add;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "StatusEffect")

@@ -6,17 +6,13 @@
 #include "Engine/DataAsset.h"
 #include "StructUtils/InstancedStruct.h"
 
-#include "MuksiBattleCardEffectData.h"
+#include "MuksiBattleCardType.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 
 #include "MuksiBattleCardDataAsset.generated.h"
 
-enum class EBattleCardEffectTrigger : uint8;
-struct FBattleCardEffectContext;
-struct FBattleDamageContext;
 class UTexture2D;
-class UBattleCardEffect;
 class UPanicStrategyBase;
 
 UCLASS()
