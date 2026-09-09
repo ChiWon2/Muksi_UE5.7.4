@@ -193,9 +193,9 @@ void ABattleSequenceManager::ExecuteCurrentBattleAction()
 		FinishCurrentBattleAction();
 }
 
-void ABattleSequenceManager::HandleBattleActionStarted(const FBattleAction& Action)
+void ABattleSequenceManager::HandleBattleActionStarted(const FBattleAction& Action, TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
-	BattleActionStartedDelegate.Broadcast(Action);
+	BattleActionStartedDelegate.Broadcast(Action, ExecutionEntries);
 }
 
 void ABattleSequenceManager::HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult)

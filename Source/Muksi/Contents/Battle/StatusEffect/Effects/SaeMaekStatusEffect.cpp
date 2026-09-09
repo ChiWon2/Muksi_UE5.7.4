@@ -12,12 +12,10 @@
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-void USaeMaekStatusEffect::BuildBattleActionStartExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutionEntries)
+void USaeMaekStatusEffect::EditBattleActionExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
 	if (!BattleAction.Card || BattleAction.Card->CardTypeInfo.CardType != EMuksiBattleCardType::Attack || GetCurrentStack() <= 0)
-	{
 		return;
-	}
 
 	FBattleExecutionEntry DamageEntry;
 	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
@@ -30,13 +28,13 @@ void USaeMaekStatusEffect::BuildBattleActionStartExecutionEntries(const FBattleA
 	DamageData.bTriggerStatusEffectReactions = true;
 	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
 
-	OutExecutionEntries.Add(MoveTemp(DamageEntry));
+	ExecutionEntries.Insert(MoveTemp(DamageEntry), 0);
 
 	FBattleExecutionEntry HitReactionEntry;
 	HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
 	HitReactionEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
-	OutExecutionEntries.Add(MoveTemp(HitReactionEntry));
+	ExecutionEntries.Insert(MoveTemp(HitReactionEntry), 1);
 
 	FBattleExecutionEntry SubtractEntry;
 	SubtractEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
@@ -48,5 +46,5 @@ void USaeMaekStatusEffect::BuildBattleActionStartExecutionEntries(const FBattleA
 	SubtractData.StackCount = 1;
 	SubtractEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(SubtractData);
 
-	OutExecutionEntries.Add(MoveTemp(SubtractEntry));
+	ExecutionEntries.Insert(MoveTemp(SubtractEntry), 2);
 }

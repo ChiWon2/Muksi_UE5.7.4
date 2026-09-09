@@ -5,7 +5,6 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
@@ -45,8 +44,6 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 		ResetRuntime();
 		return false;
 	}
-
-	OnBattleActionStarted.ExecuteIfBound(CurrentAction);
 
 	if (!RunMainExecutionEntries())
 	{
@@ -160,16 +157,9 @@ void UBattleActionExecutor::UnbindAttackerNotify()
 
 bool UBattleActionExecutor::RunMainExecutionEntries()
 {
-	TArray<FBattleExecutionEntry> MainExecutionEntries;
-	if (!BattleSimulationWorld::UsesSimulationRuntime(GridWorldType) && CurrentAction.Attacker)
-	{
-		if (UMuksiStatusEffectComponent* StatusEffectComponent = CurrentAction.Attacker->GetStatusEffectComponent())
-		{
-			StatusEffectComponent->AppendBattleActionStartExecutionEntries(CurrentAction, MainExecutionEntries);
-		}
-	}
+	TArray<FBattleExecutionEntry> MainExecutionEntries = CurrentExecutionCard->MainExecutionEntries;
+	OnBattleActionStarted.ExecuteIfBound(CurrentAction, MainExecutionEntries);
 
-	MainExecutionEntries.Append(CurrentExecutionCard->MainExecutionEntries);
 	return RunExecutionEntries(MainExecutionEntries);
 }
 
