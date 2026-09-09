@@ -48,6 +48,7 @@ public:
 
 private:
     bool EvaluateCandidate(const FHexOffsetCoord& CandidateCoord, FTargetingStep& OutStep) const;
+    bool FindNearestValidSelectionStep(const FHexOffsetCoord& DesiredCoord, FTargetingStep& OutStep) const;
     bool BuildTargetingStepResult(const FTargetingStep& Step, FTargetingStepResult& OutStepResult) const;
     bool BuildIntent();
     bool BuildStepIntent(const FTargetingStepResult& StepResult, const FTargetingStepCardData& StepData, FTargetingStepIntent& OutIntent) const;
