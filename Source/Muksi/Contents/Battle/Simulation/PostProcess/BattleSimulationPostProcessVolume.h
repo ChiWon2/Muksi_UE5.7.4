@@ -4,6 +4,8 @@
 #include "Engine/PostProcessVolume.h"
 #include "BattleSimulationPostProcessVolume.generated.h"
 
+class UMaterialInterface;
+
 UCLASS(BlueprintType, Blueprintable)
 class MUKSI_API ABattleSimulationPostProcessVolume : public APostProcessVolume
 {
@@ -21,13 +23,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|PostProcess")
 	bool IsSimulationPostProcessActive() const;
 
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
-	FVector4 GrayscaleSaturation = FVector4(0.0, 0.0, 0.0, 1.0);
+	// Runtime configuration is injected by BattleSimulationManager.
+	// A Blueprint subclass of PostProcessVolume is not required.
+	void InitializeSimulationPostProcess(UMaterialInterface* InMaterial, float InBlendWeight);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
-	FVector4 GrayscaleContrast = FVector4(1.35, 1.35, 1.35, 1.0);
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> SimulationPostProcessMaterial = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float SimulationBlendWeight = 1.0f;
+
+	void EnsureSimulationPostProcessMaterial();
 };

@@ -63,16 +63,6 @@ EBattleSimulationState ABattleSimulationManager::GetSimulationState() const
 	return IsValid(WorldRuntime) ? WorldRuntime->GetSimulationState() : EBattleSimulationState::Idle;
 }
 
-UMaterialInterface* ABattleSimulationManager::GetSimulationMaterial(bool bPlayerCharacter) const
-{
-	return bPlayerCharacter ? PlayerSimulationMaterial.Get() : EnemySimulationMaterial.Get();
-}
-
-UMaterialInterface* ABattleSimulationManager::GetDeceivedGhostMaterial(bool bPlayerCharacter) const
-{
-	return bPlayerCharacter ? PlayerDeceivedGhostMaterial.Get() : EnemyDeceivedGhostMaterial.Get();
-}
-
 bool ABattleSimulationManager::IsSimulationRunning() const
 {
 	for (UBattleSimulationWorldRuntime* WorldRuntime : GetSimulationWorldRuntimes())

@@ -22,22 +22,25 @@ void UMuksiBattleAnimationComponent::BeginPlay()
 
 void UMuksiBattleAnimationComponent::CacheMeshComponent()
 {
-	if (CachedMeshComponent)
+	ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(GetOwner());
+	if (!BattleCharacter)
 	{
+		CachedMeshComponent = nullptr;
 		return;
 	}
 
-	AActor* Owner = GetOwner();
-	if (!Owner)
+	// Always follow the character's authoritative MeshComponent pointer.
+	// Simulation characters replace that pointer with a runtime-cloned source mesh
+	// after BeginPlay, so a one-time FindComponentByClass cache can become stale.
+	USkeletalMeshComponent* CurrentMeshComponent = BattleCharacter->GetMeshComponent();
+	if (CachedMeshComponent != CurrentMeshComponent)
 	{
-		return;
+		CachedMeshComponent = CurrentMeshComponent;
 	}
-
-	CachedMeshComponent = Owner->FindComponentByClass<USkeletalMeshComponent>();
 
 	if (!CachedMeshComponent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleAnimationComponent] SkeletalMeshComponent not found. Owner=%s"),*GetNameSafe(Owner));
+		UE_LOG(LogTemp, Error, TEXT("[BattleAnimationComponent] SkeletalMeshComponent not found. Owner=%s"), *GetNameSafe(BattleCharacter));
 	}
 }
 

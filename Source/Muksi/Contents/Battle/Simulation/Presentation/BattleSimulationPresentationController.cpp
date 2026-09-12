@@ -1,7 +1,6 @@
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
@@ -182,8 +181,7 @@ bool UBattleSimulationPresentationController::CreateDeceivedGhosts(const TArray<
 			return false;
 		}
 
-		UMaterialInterface* GhostMaterial = Manager->GetDeceivedGhostMaterial(SourceCharacter->IsA<ABattleCharacter_Player>());
-		GhostCharacter->InitializeFromCharacter(SourceCharacter, GhostMaterial);
+		GhostCharacter->InitializeFromCharacter(SourceCharacter);
 		GhostCharacter->SetActorEnableCollision(false);
 		GhostCharacter->SetCanBeDamaged(false);
 		GhostCharacter->SetActorHiddenInGame(true);
@@ -288,6 +286,9 @@ bool UBattleSimulationPresentationController::CreateSimulationPostProcess()
 	}
 	if (IsValid(SimulationPostProcessVolume.Get()))
 	{
+		SimulationPostProcessVolume->InitializeSimulationPostProcess(
+			SimulationManager->GetSimulationPostProcessMaterial(),
+			SimulationManager->GetSimulationPostProcessBlendWeight());
 		SimulationPostProcessVolume->ActivateSimulationPostProcess();
 		return true;
 	}
@@ -302,6 +303,10 @@ bool UBattleSimulationPresentationController::CreateSimulationPostProcess()
 	SimulationPostProcessVolume = World->SpawnActor<ABattleSimulationPostProcessVolume>(PostProcessVolumeClass, SimulationManager->GetActorTransform(), SpawnParameters);
 	if (!SimulationPostProcessVolume)
 		return false;
+
+	SimulationPostProcessVolume->InitializeSimulationPostProcess(
+		SimulationManager->GetSimulationPostProcessMaterial(),
+		SimulationManager->GetSimulationPostProcessBlendWeight());
 	SimulationPostProcessVolume->ActivateSimulationPostProcess();
 	return true;
 }

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Materials/MaterialInterface.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleSimulationManager.generated.h"
@@ -15,7 +16,6 @@ class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
 class UBattleSimulationPresentationController;
 class UBattleSimulationWorldRuntime;
-class UMaterialInterface;
 struct FBattleAction;
 struct FTargetingResult;
 
@@ -41,13 +41,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Presentation")
 	UBattleSimulationPresentationController* GetPresentationController() const { return PresentationController.Get(); }
 	TSubclassOf<ABattleSimulationCharacter> GetSimulationCharacterClass() const { return SimulationCharacterClass; }
-	UMaterialInterface* GetSimulationMaterial(bool bPlayerCharacter) const;
-	UMaterialInterface* GetDeceivedGhostMaterial(bool bPlayerCharacter) const;
 	UBattleSimulationWorldRuntime* GetSimulationWorldRuntime(EBattleSimulationWorldType WorldType) const;
 	ABattleCharacterBase* GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const;
 	ABattleGridManager* GetBattleGridManager() const;
 	bool IsSimulationPostProcessEnabled() const { return bEnableSimulationPostProcess; }
 	TSubclassOf<ABattleSimulationPostProcessVolume> GetSimulationPostProcessVolumeClass() const { return SimulationPostProcessVolumeClass; }
+	UMaterialInterface* GetSimulationPostProcessMaterial() const { return SimulationPostProcessMaterial.Get(); }
+	float GetSimulationPostProcessBlendWeight() const { return SimulationPostProcessBlendWeight; }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
 	float GetCurrentSimulationTimeScale() const { return CurrentSimulationTimeScale; }
 
@@ -114,18 +114,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
 	TSubclassOf<ABattleSimulationCharacter> SimulationCharacterClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> PlayerSimulationMaterial = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> EnemySimulationMaterial = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> PlayerDeceivedGhostMaterial = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> EnemyDeceivedGhostMaterial = nullptr;
-
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
 
@@ -151,6 +139,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
 	TSubclassOf<ABattleSimulationPostProcessVolume> SimulationPostProcessVolumeClass;
+
+	// Configured on the BattleSimulationManager BP/defaults.
+	// The spawned PostProcessVolume receives this material at runtime.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
+	TObjectPtr<UMaterialInterface> SimulationPostProcessMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess", ClampMin = "0.0", ClampMax = "1.0"))
+	float SimulationPostProcessBlendWeight = 1.0f;
 
 	TSet<EBattleSimulationWorldType> CompletedWorldTypesForCurrentExchange;
 	int32 CompletionTrackingExchangeIndex = INDEX_NONE;

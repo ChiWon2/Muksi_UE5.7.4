@@ -1,9 +1,7 @@
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
 
-#include "Materials/MaterialInterface.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Sequence/Runtime/BattleActionExecutor.h"
@@ -57,8 +55,7 @@ bool UBattleSimulationWorldRuntime::ResetFromActualBattleState(const TArray<ABat
 			SimulationState = EBattleSimulationState::Idle;
 			return false;
 		}
-		UMaterialInterface* TeamMaterial = SimulationManager->GetSimulationMaterial(SourceCharacter->IsA<ABattleCharacter_Player>());
-		SimulationCharacter->InitializeFromCharacter(SourceCharacter, TeamMaterial);
+		SimulationCharacter->InitializeFromCharacter(SourceCharacter);
 	}
 	if (!ResetGridStateFromActual())
 	{
@@ -184,8 +181,7 @@ bool UBattleSimulationWorldRuntime::CreateSimulationCharacters(const TArray<ABat
 
 		if (!SimulationCharacter) 
 			return false;
-		UMaterialInterface* TeamMaterial = SimulationManager->GetSimulationMaterial(SourceCharacter->IsA<ABattleCharacter_Player>());
-		SimulationCharacter->InitializeFromCharacter(SourceCharacter, TeamMaterial);
+		SimulationCharacter->InitializeFromCharacter(SourceCharacter);
 		SimulationCharacterMap.Add(SourceCharacter, SimulationCharacter);
 	}
 	return SimulationCharacterMap.Num() == SourceCharacters.Num();
