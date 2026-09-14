@@ -10,7 +10,6 @@
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
-#include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleDDPresentationActor.h"
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
@@ -19,7 +18,6 @@
 ABattleSimulationManager::ABattleSimulationManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	SimulationPostProcessVolumeClass = ABattleSimulationPostProcessVolume::StaticClass();
 	DDPresentationActorClass = ABattleDDPresentationActor::StaticClass();
 }
 

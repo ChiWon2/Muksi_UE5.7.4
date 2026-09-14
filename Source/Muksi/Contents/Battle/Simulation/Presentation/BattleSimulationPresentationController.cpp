@@ -287,25 +287,31 @@ bool UBattleSimulationPresentationController::CreateSimulationPostProcess()
 	{
 		SimulationPostProcessVolume->InitializeSimulationPostProcess(
 			SimulationManager->GetSimulationPostProcessMaterial(),
-			SimulationManager->GetSimulationPostProcessBlendWeight());
+			SimulationManager->GetSimulationPostProcessBlendWeight(),
+			SimulationManager->ShouldLockSimulationAutoExposure(),
+			SimulationManager->GetSimulationFixedExposure());
 		SimulationPostProcessVolume->ActivateSimulationPostProcess();
 		return true;
 	}
 	UWorld* World = IsValid(SimulationManager.Get()) ? SimulationManager->GetWorld() : nullptr;
-	TSubclassOf<ABattleSimulationPostProcessVolume> PostProcessVolumeClass = SimulationManager->GetSimulationPostProcessVolumeClass();
-	if (!World || !PostProcessVolumeClass)
+	if (!World)
 		return false;
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = SimulationManager;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnParameters.ObjectFlags |= RF_Transient;
-	SimulationPostProcessVolume = World->SpawnActor<ABattleSimulationPostProcessVolume>(PostProcessVolumeClass, SimulationManager->GetActorTransform(), SpawnParameters);
+	SimulationPostProcessVolume = World->SpawnActor<ABattleSimulationPostProcessVolume>(
+		ABattleSimulationPostProcessVolume::StaticClass(),
+		SimulationManager->GetActorTransform(),
+		SpawnParameters);
 	if (!SimulationPostProcessVolume)
 		return false;
 
 	SimulationPostProcessVolume->InitializeSimulationPostProcess(
 		SimulationManager->GetSimulationPostProcessMaterial(),
-		SimulationManager->GetSimulationPostProcessBlendWeight());
+		SimulationManager->GetSimulationPostProcessBlendWeight(),
+		SimulationManager->ShouldLockSimulationAutoExposure(),
+		SimulationManager->GetSimulationFixedExposure());
 	SimulationPostProcessVolume->ActivateSimulationPostProcess();
 	return true;
 }

@@ -47,9 +47,10 @@ public:
 	ABattleCharacterBase* GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const;
 	ABattleGridManager* GetBattleGridManager() const;
 	bool IsSimulationPostProcessEnabled() const { return bEnableSimulationPostProcess; }
-	TSubclassOf<ABattleSimulationPostProcessVolume> GetSimulationPostProcessVolumeClass() const { return SimulationPostProcessVolumeClass; }
 	UMaterialInterface* GetSimulationPostProcessMaterial() const { return SimulationPostProcessMaterial.Get(); }
 	float GetSimulationPostProcessBlendWeight() const { return SimulationPostProcessBlendWeight; }
+	bool ShouldLockSimulationAutoExposure() const { return bLockSimulationAutoExposure; }
+	float GetSimulationFixedExposure() const { return SimulationFixedExposure; }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
 	float GetCurrentSimulationTimeScale() const { return CurrentSimulationTimeScale; }
 
@@ -144,9 +145,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
 	bool bEnableSimulationPostProcess = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
-	TSubclassOf<ABattleSimulationPostProcessVolume> SimulationPostProcessVolumeClass;
-
 	// Configured on the BattleSimulationManager BP/defaults.
 	// The spawned PostProcessVolume receives this material at runtime.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
@@ -154,6 +152,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess", ClampMin = "0.0", ClampMax = "1.0"))
 	float SimulationPostProcessBlendWeight = 1.0f;
+
+	// Locks eye adaptation while the simulation post process is active.
+	// The same value is applied to the volume's Auto Exposure min/max, which disables adaptation.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
+	bool bLockSimulationAutoExposure = true;
+
+	// In projects using the extended luminance range this is displayed conceptually as EV100.
+	// Keeping min/max equal is what disables automatic adaptation; 0 is a neutral test default.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess && bLockSimulationAutoExposure", EditConditionHides))
+	float SimulationFixedExposure = 0.0f;
 
 	TSet<EBattleSimulationWorldType> CompletedWorldTypesForCurrentExchange;
 	int32 CompletionTrackingExchangeIndex = INDEX_NONE;

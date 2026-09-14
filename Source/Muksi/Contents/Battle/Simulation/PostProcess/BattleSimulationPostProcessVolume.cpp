@@ -11,7 +11,11 @@ ABattleSimulationPostProcessVolume::ABattleSimulationPostProcessVolume()
 }
 
 
-void ABattleSimulationPostProcessVolume::InitializeSimulationPostProcess(UMaterialInterface* InMaterial, float InBlendWeight)
+void ABattleSimulationPostProcessVolume::InitializeSimulationPostProcess(
+	UMaterialInterface* InMaterial,
+	float InBlendWeight,
+	bool bInLockAutoExposure,
+	float InFixedExposure)
 {
 	SimulationPostProcessMaterial = InMaterial;
 	SimulationBlendWeight = FMath::Clamp(InBlendWeight, 0.0f, 1.0f);
@@ -20,6 +24,18 @@ void ABattleSimulationPostProcessVolume::InitializeSimulationPostProcess(UMateri
 	// manager-owned configuration so Blueprint defaults on APostProcessVolume
 	// are not required.
 	Settings.WeightedBlendables.Array.Reset();
+
+	// Equal Auto Exposure min/max values disable eye adaptation.
+	// The editor may label these values as EV100 when the extended luminance range is enabled,
+	// but FPostProcessSettings keeps the MinBrightness/MaxBrightness C++ member names.
+	Settings.bOverride_AutoExposureMinBrightness = bInLockAutoExposure;
+	Settings.bOverride_AutoExposureMaxBrightness = bInLockAutoExposure;
+	if (bInLockAutoExposure)
+	{
+		Settings.AutoExposureMinBrightness = InFixedExposure;
+		Settings.AutoExposureMaxBrightness = InFixedExposure;
+	}
+
 	EnsureSimulationPostProcessMaterial();
 }
 

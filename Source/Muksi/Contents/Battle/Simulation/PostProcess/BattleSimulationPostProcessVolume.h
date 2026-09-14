@@ -25,7 +25,11 @@ public:
 
 	// Runtime configuration is injected by BattleSimulationManager.
 	// A Blueprint subclass of PostProcessVolume is not required.
-	void InitializeSimulationPostProcess(UMaterialInterface* InMaterial, float InBlendWeight);
+	void InitializeSimulationPostProcess(
+		UMaterialInterface* InMaterial,
+		float InBlendWeight,
+		bool bInLockAutoExposure,
+		float InFixedExposure);
 
 private:
 	UPROPERTY(Transient)
