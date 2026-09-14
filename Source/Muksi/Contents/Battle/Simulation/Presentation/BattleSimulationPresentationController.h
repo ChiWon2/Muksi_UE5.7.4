@@ -8,6 +8,7 @@
 #include "BattleSimulationPresentationController.generated.h"
 
 class ABattleCharacterBase;
+class ABattleCharacter_Enemy;
 class ABattleSimulationManager;
 class ABattleSimulationPostProcessVolume;
 class ABattleSimulationCharacter;
@@ -48,18 +49,21 @@ public:
 	void ClearAllPreviewData();
 	void UpdatePreviewData(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult);
 	void RemovePreviewData(UBattleSimulationWorldRuntime* WorldRuntime);
-	void UpdateDDPresentation();
-
+	// ExchangeEnd에서 AD/DD 적 위치를 한 번 비교해 DD 위치 표기를 갱신한다.
+	// 표시 여부는 위치 차이만 사용하며 회전/애니메이션 차이는 무시한다.
+	void RefreshDDPresentationAtExchangeEnd();
+	// BattleActionSequence에 들어가기 직전 DD 위치 표기를 숨긴다. Actor는 BattleEnd까지 재사용한다.
+	void HideDDPresentation();
+	bool PrewarmDDPresentationActor(ABattleCharacter_Enemy* SourceEnemy);
 
 private:
 	void SynchronizeSimulationPresentation();
-	bool CreateDDPresentationActors(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	void DestroyDDPresentationActors();
-	void SynchronizeDDPresentationActor(ABattleCharacterBase* SourceCharacter, ABattleDDPresentationActor* PresentationActor);
+	void DestroyDDPresentationActor();
 	void DisplayExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPreviewData& PreviewData);
 	void ClearExecutionPreview();
 	void AddExecutionStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FTargetingResult& TargetingResult);
-	bool CreateSimulationPostProcess();
+	bool CreateSimulationPostProcess(const FVector& TransitionOrigin);
+	FVector ResolveSimulationPostProcessTransitionOrigin(const TArray<ABattleCharacterBase*>& SourceCharacters) const;
 	void DestroySimulationPostProcess();
 
 private:
@@ -78,8 +82,12 @@ private:
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
+	// The battle has exactly one enemy. Spawn this once during BattleStart and reuse it for every round/simulation.
 	UPROPERTY(Transient)
-	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleDDPresentationActor>> DDPresentationActorMap;
+	TObjectPtr<ABattleDDPresentationActor> DDPresentationActor = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleCharacter_Enemy> DDPresentationSourceEnemy = nullptr;
 
 	bool bSimulationPresentationActive = false;
 };

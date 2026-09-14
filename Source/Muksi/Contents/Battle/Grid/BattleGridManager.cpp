@@ -415,7 +415,15 @@ FBattleGridMoveResult ABattleGridManager::ExecuteGridMove(const FBattleGridMoveR
 
 	if (Request.bSnapActorToGrid)
 	{
-		Character->SetActorTransform(GetTransformToPosition(Request.ToCoord));
+		const FTransform DestinationTransform = GetTransformToPosition(Request.ToCoord);
+		if (Request.bPreserveActorRotation)
+		{
+			Character->SetActorLocation(DestinationTransform.GetLocation());
+		}
+		else
+		{
+			Character->SetActorTransform(DestinationTransform);
+		}
 	}
 
 	Result.bSucceeded = true;

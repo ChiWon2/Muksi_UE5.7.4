@@ -17,17 +17,10 @@
 
 ABattleSimulationManager::ABattleSimulationManager()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	DDPresentationActorClass = ABattleDDPresentationActor::StaticClass();
 }
 
-void ABattleSimulationManager::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	if (PresentationController)
-		PresentationController->UpdateDDPresentation();
-}
 
 void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -252,7 +245,11 @@ void ABattleSimulationManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, 
 void ABattleSimulationManager::HandlePhaseExecutionRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	(void)OldPhase;
-	if ((NewPhase != EBattlePhase::BattleStart && NewPhase != EBattlePhase::RoundStart && NewPhase != EBattlePhase::SimulationSequence) || !TaskContext)
+	if ((NewPhase != EBattlePhase::BattleStart &&
+		 NewPhase != EBattlePhase::RoundStart &&
+		 NewPhase != EBattlePhase::SimulationSequence &&
+		 NewPhase != EBattlePhase::ExchangeEnd &&
+		 NewPhase != EBattlePhase::BattleActionSequenceStart) || !TaskContext)
 		return;
 	PhaseExecutionTask = TaskContext->RegisterTask(this);
 	if (!PhaseExecutionTask)
@@ -268,6 +265,12 @@ void ABattleSimulationManager::HandlePhaseExecutionRequested(EBattlePhase OldPha
 		break;
 	case EBattlePhase::SimulationSequence:
 		ExecuteSimulationSequence();
+		break;
+	case EBattlePhase::ExchangeEnd:
+		ExecuteExchangeEnd();
+		break;
+	case EBattlePhase::BattleActionSequenceStart:
+		ExecuteBattleActionSequenceStart();
 		break;
 	default:
 		break;
@@ -315,6 +318,26 @@ void ABattleSimulationManager::ExecuteSimulationSequence()
 
 	UE_LOG(LogTemp, Error, TEXT("[BattleSimulationManager] Failed to execute current exchange simulation."));
 	CompletePhaseExecution(EBattlePhase::SimulationSequence);
+}
+
+void ABattleSimulationManager::ExecuteExchangeEnd()
+{
+	// SimulationSequence가 끝난 직후의 AD/DD 결과 위치를 사용한다.
+	// DD Presentation Actor는 BattleStart에서 이미 생성되어 있으므로 여기서는 Transform/Visibility만 갱신한다.
+	if (bCreateDDActor && IsValid(PresentationController.Get()))
+		PresentationController->RefreshDDPresentationAtExchangeEnd();
+
+	CompletePhaseExecution(EBattlePhase::ExchangeEnd);
+}
+
+void ABattleSimulationManager::ExecuteBattleActionSequenceStart()
+{
+	// DD marker는 simulation 결과 확인용 presentation이다.
+	// 실제 BattleAction 재생에 들어가기 전에 숨기고, prewarmed actor 자체는 재사용한다.
+	if (IsValid(PresentationController.Get()))
+		PresentationController->HideDDPresentation();
+
+	CompletePhaseExecution(EBattlePhase::BattleActionSequenceStart);
 }
 
 void ABattleSimulationManager::NotifySimulationWorldExecutionStarted(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult)
@@ -407,6 +430,21 @@ bool ABattleSimulationManager::InitializeBattleSimulation()
 		DestroySimulationWorldRuntimes();
 		return false;
 	}
+
+	// DD presentation is optional. When enabled, prewarm the enemy-only marker once during BattleStart.
+	// Round/Simulation presentation only reuses this actor by moving and hiding/showing it.
+	if (bCreateDDActor)
+	{
+		ABattleCharacter_Enemy* SourceEnemy = RuntimeContext->GetEnemyCharacter();
+		if (!IsValid(SourceEnemy) || !PresentationController->PrewarmDDPresentationActor(SourceEnemy))
+		{
+			DestroySimulationWorldRuntimes();
+			PresentationController->Shutdown();
+			PresentationController = nullptr;
+			return false;
+		}
+	}
+
 	return true;
 }
 

@@ -14,6 +14,7 @@ class ABattleSimulationCharacter;
 class ABattleSimulationPostProcessVolume;
 class ABattleDDPresentationActor;
 class UBattlePhaseTask;
+class UCurveFloat;
 class UBattlePhaseTaskContext;
 class UBattleSimulationPresentationController;
 class UBattleSimulationWorldRuntime;
@@ -36,13 +37,13 @@ class MUKSI_API ABattleSimulationManager : public AActor
 
 public:
 	ABattleSimulationManager();
-	virtual void Tick(float DeltaSeconds) override;
 	bool InitializeBattleFlow(ABattleManager* InBattleManager);
 	ABattleManager* GetBattleManager() const { return BattleManager.Get(); }
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Presentation")
 	UBattleSimulationPresentationController* GetPresentationController() const { return PresentationController.Get(); }
 	TSubclassOf<ABattleSimulationCharacter> GetSimulationCharacterClass() const { return SimulationCharacterClass; }
 	TSubclassOf<ABattleDDPresentationActor> GetDDPresentationActorClass() const { return DDPresentationActorClass; }
+	bool ShouldCreateDDActor() const { return bCreateDDActor; }
 	UBattleSimulationWorldRuntime* GetSimulationWorldRuntime(EBattleSimulationWorldType WorldType) const;
 	ABattleCharacterBase* GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const;
 	ABattleGridManager* GetBattleGridManager() const;
@@ -51,6 +52,9 @@ public:
 	float GetSimulationPostProcessBlendWeight() const { return SimulationPostProcessBlendWeight; }
 	bool ShouldLockSimulationAutoExposure() const { return bLockSimulationAutoExposure; }
 	float GetSimulationFixedExposure() const { return SimulationFixedExposure; }
+	float GetSimulationPostProcessTransitionDuration() const { return SimulationPostProcessTransitionDuration; }
+	float GetSimulationPostProcessTransitionMaxRadius() const { return SimulationPostProcessTransitionMaxRadius; }
+	UCurveFloat* GetSimulationPostProcessTransitionCurve() const { return SimulationPostProcessTransitionCurve.Get(); }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
 	float GetCurrentSimulationTimeScale() const { return CurrentSimulationTimeScale; }
 
@@ -81,6 +85,8 @@ private:
 	void ExecuteBattleStart();
 	void ExecuteRoundStart();
 	void ExecuteSimulationSequence();
+	void ExecuteExchangeEnd();
+	void ExecuteBattleActionSequenceStart();
 	void CompletePhaseExecution(EBattlePhase FinishedPhase);
 	void TryCompleteSimulationSequencePhase(int32 FinishedExchangeIndex);
 
@@ -117,9 +123,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
 	TSubclassOf<ABattleSimulationCharacter> SimulationCharacterClass;
 
+	// Whether the AD-side DD position marker should be created and presented.
+	// When disabled, BattleStart skips DDPresentationActor prewarm and ExchangeEnd never shows it.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Presentation")
+	bool bCreateDDActor = true;
+
 	// Lightweight AD-side marker for the position resolved by the DD world.
 	// This class should not depend on the source character presentation hierarchy.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Presentation")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Presentation", meta = (EditCondition = "bCreateDDActor", EditConditionHides))
 	TSubclassOf<ABattleDDPresentationActor> DDPresentationActorClass;
 
 	UPROPERTY(Transient)
@@ -162,6 +173,18 @@ protected:
 	// Keeping min/max equal is what disables automatic adaptation; 0 is a neutral test default.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess && bLockSimulationAutoExposure", EditConditionHides))
 	float SimulationFixedExposure = 0.0f;
+
+	// Spatial sphere wipe used when entering/exiting the simulation presentation.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess|Transition", meta = (EditCondition = "bEnableSimulationPostProcess", ClampMin = "0.0"))
+	float SimulationPostProcessTransitionDuration = 0.35f;
+
+	// Unreal units (cm). Increase this if the visible battlefield is larger than the default 1 km radius.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess|Transition", meta = (EditCondition = "bEnableSimulationPostProcess", ClampMin = "0.0"))
+	float SimulationPostProcessTransitionMaxRadius = 100000.0f;
+
+	// Optional 0..1 -> 0..1 easing curve. When unset, the volume uses SmoothStep.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess|Transition", meta = (EditCondition = "bEnableSimulationPostProcess"))
+	TObjectPtr<UCurveFloat> SimulationPostProcessTransitionCurve = nullptr;
 
 	TSet<EBattleSimulationWorldType> CompletedWorldTypesForCurrentExchange;
 	int32 CompletionTrackingExchangeIndex = INDEX_NONE;
