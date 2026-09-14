@@ -12,6 +12,7 @@ class ABattleGridManager;
 class ABattleManager;
 class ABattleSimulationCharacter;
 class ABattleSimulationPostProcessVolume;
+class ABattleDDPresentationActor;
 class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
 class UBattleSimulationPresentationController;
@@ -24,7 +25,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float
 /**
  * Round Simulation 전체를 조율한다.
  * AD / DD / DA WorldRuntime을 생성하고 동시에 실행하며 완료를 집계한다.
- * AD만 실제 Simulation Presentation으로 표시하고, DD는 PresentationController의 Ghost Character로 위치와 방향만 표현한다.
+ * AD만 실제 Simulation Presentation으로 표시하고, DD는 PresentationController의 경량 DD Presentation Actor로 위치와 방향만 표현한다.
  * World별 시간 배율과 완료 집계 및 AA Action Commit을 관리한다.
  * 개별 World의 Character / Grid 복제와 Sequence 실행은 UBattleSimulationWorldRuntime이 담당한다.
  */
@@ -41,6 +42,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Presentation")
 	UBattleSimulationPresentationController* GetPresentationController() const { return PresentationController.Get(); }
 	TSubclassOf<ABattleSimulationCharacter> GetSimulationCharacterClass() const { return SimulationCharacterClass; }
+	TSubclassOf<ABattleDDPresentationActor> GetDDPresentationActorClass() const { return DDPresentationActorClass; }
 	UBattleSimulationWorldRuntime* GetSimulationWorldRuntime(EBattleSimulationWorldType WorldType) const;
 	ABattleCharacterBase* GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const;
 	ABattleGridManager* GetBattleGridManager() const;
@@ -113,6 +115,11 @@ private:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
 	TSubclassOf<ABattleSimulationCharacter> SimulationCharacterClass;
+
+	// Lightweight AD-side marker for the position resolved by the DD world.
+	// This class should not depend on the source character presentation hierarchy.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Presentation")
+	TSubclassOf<ABattleDDPresentationActor> DDPresentationActorClass;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleManager> BattleManager = nullptr;

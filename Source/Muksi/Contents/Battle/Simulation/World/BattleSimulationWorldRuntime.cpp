@@ -55,7 +55,7 @@ bool UBattleSimulationWorldRuntime::ResetFromActualBattleState(const TArray<ABat
 			SimulationState = EBattleSimulationState::Idle;
 			return false;
 		}
-		SimulationCharacter->InitializeFromCharacter(SourceCharacter);
+		SimulationCharacter->InitializeFromCharacter(SourceCharacter, BattleSimulationWorld::UsesFullCharacterPresentation(WorldType));
 	}
 	if (!ResetGridStateFromActual())
 	{
@@ -181,7 +181,7 @@ bool UBattleSimulationWorldRuntime::CreateSimulationCharacters(const TArray<ABat
 
 		if (!SimulationCharacter) 
 			return false;
-		SimulationCharacter->InitializeFromCharacter(SourceCharacter);
+		SimulationCharacter->InitializeFromCharacter(SourceCharacter, BattleSimulationWorld::UsesFullCharacterPresentation(WorldType));
 		SimulationCharacterMap.Add(SourceCharacter, SimulationCharacter);
 	}
 	return SimulationCharacterMap.Num() == SourceCharacters.Num();

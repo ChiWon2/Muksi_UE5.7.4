@@ -17,7 +17,7 @@ class MUKSI_API ABattleSimulationCharacter : public ABattleCharacterBase
 public:
 	ABattleSimulationCharacter();
 
-	void InitializeFromCharacter(const ABattleCharacterBase* SourceCharacter);
+	void InitializeFromCharacter(const ABattleCharacterBase* SourceCharacter, bool bUseFullPresentation = true);
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation")
 	ABattleCharacterBase* GetSourceCharacter() const { return SourceCharacter; }
@@ -28,7 +28,7 @@ private:
 	void ResetActiveState();
 	void ResetPresentationHierarchy();
 	void CopyActorState(const ABattleCharacterBase& InSourceCharacter);
-	void CopyPresentationHierarchy(const ABattleCharacterBase& InSourceCharacter);
+	void CopyPresentationHierarchy(const ABattleCharacterBase& InSourceCharacter, bool bCopyChildren);
 	void CopyAnimationPresentation(const ABattleCharacterBase& InSourceCharacter);
 	void ApplySimulationStencil();
 

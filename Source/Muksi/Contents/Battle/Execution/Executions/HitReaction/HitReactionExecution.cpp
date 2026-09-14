@@ -4,6 +4,12 @@
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationKeys.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
+
+UHitReactionExecution::UHitReactionExecution()
+{
+	bPresentationOnly = true;
+}
+
 void UHitReactionExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	CachedOnFinished = OnFinished;

@@ -204,6 +204,15 @@ bool UBattleExecutionRunner::ShouldExecuteEntry(const FBattleExecutionEntry& Ent
 		return false;
 	}
 
+	if (BattleSimulationWorld::IsNonPresentedSimulationWorld(CachedContext.GridWorldType))
+	{
+		const UBattleExecution* ExecutionCDO = Entry.ExecutionClass->GetDefaultObject<UBattleExecution>();
+		if (IsValid(ExecutionCDO) && ExecutionCDO->IsPresentationOnly())
+		{
+			return false;
+		}
+	}
+
 	if (Entry.ExecutionScope == EBattleExecutionScope::Both)
 	{
 		return true;

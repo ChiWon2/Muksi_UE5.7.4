@@ -12,6 +12,7 @@
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
 #include "Muksi/Contents/Battle/Simulation/PostProcess/BattleSimulationPostProcessVolume.h"
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
+#include "Muksi/Contents/Battle/Simulation/Presentation/BattleDDPresentationActor.h"
 #include "Muksi/Contents/Battle/Simulation/World/BattleSimulationWorldRuntime.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 
@@ -19,6 +20,7 @@ ABattleSimulationManager::ABattleSimulationManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	SimulationPostProcessVolumeClass = ABattleSimulationPostProcessVolume::StaticClass();
+	DDPresentationActorClass = ABattleDDPresentationActor::StaticClass();
 }
 
 void ABattleSimulationManager::Tick(float DeltaSeconds)
@@ -26,7 +28,7 @@ void ABattleSimulationManager::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	if (PresentationController)
-		PresentationController->UpdateDeceivedGhostPresentation();
+		PresentationController->UpdateDDPresentation();
 }
 
 void ABattleSimulationManager::EndPlay(const EEndPlayReason::Type EndPlayReason)

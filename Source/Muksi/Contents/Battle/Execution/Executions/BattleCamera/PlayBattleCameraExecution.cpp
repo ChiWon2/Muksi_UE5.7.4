@@ -7,6 +7,12 @@
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
+
+UPlayBattleCameraExecution::UPlayBattleCameraExecution()
+{
+	bPresentationOnly = true;
+}
+
 void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	const FPlayBattleCameraExecutionData* CameraData =

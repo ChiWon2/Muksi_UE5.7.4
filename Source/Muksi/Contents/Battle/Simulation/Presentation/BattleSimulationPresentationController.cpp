@@ -1,5 +1,7 @@
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 
+#include "Muksi/Contents/Battle/Simulation/Presentation/BattleDDPresentationActor.h"
+
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
@@ -41,7 +43,7 @@ bool UBattleSimulationPresentationController::EnterSimulationPresentation(const 
 	if (!CreateSimulationPostProcess())
 		return false;
 
-	if (!CreateDeceivedGhosts(SourceCharacters))
+	if (!CreateDDPresentationActors(SourceCharacters))
 	{
 		DestroySimulationPostProcess();
 		return false;
@@ -67,7 +69,7 @@ void UBattleSimulationPresentationController::ExitSimulationPresentation(bool bC
 
 	bSimulationPresentationActive = false;
 	SynchronizeSimulationPresentation();
-	DestroyDeceivedGhosts();
+	DestroyDDPresentationActors();
 	SourceCharacterHiddenStates.Empty();
 	DestroySimulationPostProcess();
 }
@@ -129,7 +131,7 @@ void UBattleSimulationPresentationController::SynchronizeSimulationPresentation(
 	if (IsValid(DAWorldRuntime))
 		DAWorldRuntime->SetCharactersVisible(false);
 
-	UpdateDeceivedGhostPresentation();
+	UpdateDDPresentation();
 
 	if (!bSimulationPresentationActive || !IsValid(ADWorldRuntime))
 	{
@@ -144,28 +146,28 @@ void UBattleSimulationPresentationController::SynchronizeSimulationPresentation(
 		ClearExecutionPreview();
 }
 
-void UBattleSimulationPresentationController::UpdateDeceivedGhostPresentation()
+void UBattleSimulationPresentationController::UpdateDDPresentation()
 {
-	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : DeceivedGhostCharacterMap)
-		SynchronizeDeceivedGhost(Pair.Key.Get(), Pair.Value.Get());
+	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleDDPresentationActor>>& Pair : DDPresentationActorMap)
+		SynchronizeDDPresentationActor(Pair.Key.Get(), Pair.Value.Get());
 }
 
-bool UBattleSimulationPresentationController::CreateDeceivedGhosts(const TArray<ABattleCharacterBase*>& SourceCharacters)
+bool UBattleSimulationPresentationController::CreateDDPresentationActors(const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	DestroyDeceivedGhosts();
+	DestroyDDPresentationActors();
 
 	ABattleSimulationManager* Manager = SimulationManager.Get();
 	UWorld* World = IsValid(Manager) ? Manager->GetWorld() : nullptr;
-	TSubclassOf<ABattleSimulationCharacter> CharacterClass = IsValid(Manager) ? Manager->GetSimulationCharacterClass() : nullptr;
+	TSubclassOf<ABattleDDPresentationActor> PresentationActorClass = IsValid(Manager) ? Manager->GetDDPresentationActorClass() : nullptr;
 
-	if (!World || !CharacterClass)
+	if (!World || !PresentationActorClass)
 		return false;
 
 	for (ABattleCharacterBase* SourceCharacter : SourceCharacters)
 	{
 		if (!IsValid(SourceCharacter))
 		{
-			DestroyDeceivedGhosts();
+			DestroyDDPresentationActors();
 			return false;
 		}
 
@@ -174,40 +176,37 @@ bool UBattleSimulationPresentationController::CreateDeceivedGhosts(const TArray<
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnParameters.ObjectFlags |= RF_Transient;
 
-		ABattleSimulationCharacter* GhostCharacter = World->SpawnActor<ABattleSimulationCharacter>(CharacterClass, SourceCharacter->GetActorTransform(), SpawnParameters);
-		if (!GhostCharacter)
+		ABattleDDPresentationActor* PresentationActor = World->SpawnActor<ABattleDDPresentationActor>(PresentationActorClass, SourceCharacter->GetActorTransform(), SpawnParameters);
+		if (!PresentationActor)
 		{
-			DestroyDeceivedGhosts();
+			DestroyDDPresentationActors();
 			return false;
 		}
 
-		GhostCharacter->InitializeFromCharacter(SourceCharacter);
-		GhostCharacter->SetActorEnableCollision(false);
-		GhostCharacter->SetCanBeDamaged(false);
-		GhostCharacter->SetActorHiddenInGame(true);
-		DeceivedGhostCharacterMap.Add(SourceCharacter, GhostCharacter);
+		PresentationActor->SetActorHiddenInGame(true);
+		DDPresentationActorMap.Add(SourceCharacter, PresentationActor);
 	}
 
 	return true;
 }
 
-void UBattleSimulationPresentationController::DestroyDeceivedGhosts()
+void UBattleSimulationPresentationController::DestroyDDPresentationActors()
 {
-	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : DeceivedGhostCharacterMap)
+	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleDDPresentationActor>>& Pair : DDPresentationActorMap)
 	{
 		if (IsValid(Pair.Value.Get()))
 			Pair.Value->Destroy();
 	}
 
-	DeceivedGhostCharacterMap.Empty();
+	DDPresentationActorMap.Empty();
 }
 
-void UBattleSimulationPresentationController::SynchronizeDeceivedGhost(ABattleCharacterBase* SourceCharacter, ABattleSimulationCharacter* GhostCharacter)
+void UBattleSimulationPresentationController::SynchronizeDDPresentationActor(ABattleCharacterBase* SourceCharacter, ABattleDDPresentationActor* PresentationActor)
 {
-	if (!IsValid(SourceCharacter) || !IsValid(GhostCharacter) || !bSimulationPresentationActive)
+	if (!IsValid(SourceCharacter) || !IsValid(PresentationActor) || !bSimulationPresentationActive)
 	{
-		if (IsValid(GhostCharacter))
-			GhostCharacter->SetActorHiddenInGame(true);
+		if (IsValid(PresentationActor))
+			PresentationActor->SetActorHiddenInGame(true);
 
 		return;
 	}
@@ -215,7 +214,7 @@ void UBattleSimulationPresentationController::SynchronizeDeceivedGhost(ABattleCh
 	ABattleSimulationManager* Manager = SimulationManager.Get();
 	if (!IsValid(Manager))
 	{
-		GhostCharacter->SetActorHiddenInGame(true);
+		PresentationActor->SetActorHiddenInGame(true);
 		return;
 	}
 
@@ -226,15 +225,15 @@ void UBattleSimulationPresentationController::SynchronizeDeceivedGhost(ABattleCh
 
 	if (!IsValid(ADCharacter) || !IsValid(DDCharacter))
 	{
-		GhostCharacter->SetActorHiddenInGame(true);
+		PresentationActor->SetActorHiddenInGame(true);
 		return;
 	}
 
 	const bool bLocationDiffers = !ADCharacter->GetActorLocation().Equals(DDCharacter->GetActorLocation(), 1.0f);
 	const bool bRotationDiffers = !ADCharacter->GetActorRotation().Equals(DDCharacter->GetActorRotation(), 1.0f);
 
-	GhostCharacter->SetActorTransform(DDCharacter->GetActorTransform());
-	GhostCharacter->SetActorHiddenInGame(!bLocationDiffers && !bRotationDiffers);
+	PresentationActor->SetActorTransform(DDCharacter->GetActorTransform());
+	PresentationActor->SetActorHiddenInGame(!bLocationDiffers && !bRotationDiffers);
 }
 
 void UBattleSimulationPresentationController::DisplayExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPreviewData& PreviewData)

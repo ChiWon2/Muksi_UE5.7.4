@@ -11,6 +11,7 @@ class ABattleCharacterBase;
 class ABattleSimulationManager;
 class ABattleSimulationPostProcessVolume;
 class ABattleSimulationCharacter;
+class ABattleDDPresentationActor;
 class UBattleSimulationWorldRuntime;
 class UTargetingPresentationController;
 struct FTargetingStepCardData;
@@ -47,14 +48,14 @@ public:
 	void ClearAllPreviewData();
 	void UpdatePreviewData(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleAction& Action, const FTargetingResult& TargetingResult);
 	void RemovePreviewData(UBattleSimulationWorldRuntime* WorldRuntime);
-	void UpdateDeceivedGhostPresentation();
+	void UpdateDDPresentation();
 
 
 private:
 	void SynchronizeSimulationPresentation();
-	bool CreateDeceivedGhosts(const TArray<ABattleCharacterBase*>& SourceCharacters);
-	void DestroyDeceivedGhosts();
-	void SynchronizeDeceivedGhost(ABattleCharacterBase* SourceCharacter, ABattleSimulationCharacter* GhostCharacter);
+	bool CreateDDPresentationActors(const TArray<ABattleCharacterBase*>& SourceCharacters);
+	void DestroyDDPresentationActors();
+	void SynchronizeDDPresentationActor(ABattleCharacterBase* SourceCharacter, ABattleDDPresentationActor* PresentationActor);
 	void DisplayExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPreviewData& PreviewData);
 	void ClearExecutionPreview();
 	void AddExecutionStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FTargetingResult& TargetingResult);
@@ -78,7 +79,7 @@ private:
 	TMap<TObjectPtr<ABattleCharacterBase>, bool> SourceCharacterHiddenStates;
 
 	UPROPERTY(Transient)
-	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>> DeceivedGhostCharacterMap;
+	TMap<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleDDPresentationActor>> DDPresentationActorMap;
 
 	bool bSimulationPresentationActive = false;
 };

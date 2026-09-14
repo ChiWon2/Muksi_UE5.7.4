@@ -33,7 +33,7 @@ ABattleSimulationCharacter::ABattleSimulationCharacter()
 	IgnoredPresentationComponentClasses.Add(UCharacterCameraComponent::StaticClass());
 }
 
-void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterBase* InSourceCharacter)
+void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterBase* InSourceCharacter, bool bUseFullPresentation)
 {
 	if (!IsValid(InSourceCharacter))
 		return;
@@ -41,9 +41,19 @@ void ABattleSimulationCharacter::InitializeFromCharacter(const ABattleCharacterB
 	ResetActiveState();
 	ResetPresentationHierarchy();
 	CopyActorState(*InSourceCharacter);
-	CopyPresentationHierarchy(*InSourceCharacter);
+	CopyPresentationHierarchy(*InSourceCharacter, bUseFullPresentation);
 	CopyAnimationPresentation(*InSourceCharacter);
-	ApplySimulationStencil();
+
+	if (bUseFullPresentation)
+	{
+		ApplySimulationStencil();
+	}
+	else
+	{
+		// DD/DA still need a live skeletal mesh for Montage/Notify/socket-driven
+		// execution, but never need to render the animation proxy.
+		SetActorHiddenInGame(true);
+	}
 }
 
 void ABattleSimulationCharacter::ResetActiveState()
@@ -81,7 +91,7 @@ void ABattleSimulationCharacter::CopyActorState(const ABattleCharacterBase& InSo
 	SetActorTransform(InSourceCharacter.GetActorTransform());
 }
 
-void ABattleSimulationCharacter::CopyPresentationHierarchy(const ABattleCharacterBase& InSourceCharacter)
+void ABattleSimulationCharacter::CopyPresentationHierarchy(const ABattleCharacterBase& InSourceCharacter, bool bCopyChildren)
 {
 	USkeletalMeshComponent* SourceMeshComponent = InSourceCharacter.GetMeshComponent();
 	if (!IsValid(SourceMeshComponent) || !IsValid(SceneRoot))
@@ -124,11 +134,25 @@ void ABattleSimulationCharacter::CopyPresentationHierarchy(const ABattleCharacte
 	ClonedPresentationComponents.Add(ClonedMeshComponent);
 	MeshComponent = ClonedMeshComponent;
 
+	if (!bCopyChildren)
+	{
+		// DD/DA proxies are never rendered, but their animation must keep evaluating
+		// so Montage notifies and socket transforms remain valid for executions.
+		ClonedMeshComponent->SetVisibility(false, true);
+		ClonedMeshComponent->SetHiddenInGame(true, true);
+		ClonedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ClonedMeshComponent->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+		ClonedMeshComponent->SetComponentTickEnabled(true);
+	}
+
 	TMap<const USceneComponent*, USceneComponent*> ComponentMap;
 	ComponentMap.Add(SourceMeshComponent, ClonedMeshComponent);
 
-	ClonePresentationChildren(SourceMeshComponent, ClonedMeshComponent, ComponentMap);
-	RestorePresentationReferences(ComponentMap);
+	if (bCopyChildren)
+	{
+		ClonePresentationChildren(SourceMeshComponent, ClonedMeshComponent, ComponentMap);
+		RestorePresentationReferences(ComponentMap);
+	}
 }
 
 bool ABattleSimulationCharacter::ShouldClonePresentationComponent(const USceneComponent* SourceComponent) const
