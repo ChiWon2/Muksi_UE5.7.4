@@ -40,6 +40,7 @@ private:
     bool ShouldHandlePhaseEntry(EBattlePhase Phase) const;
     void LoadEncounterEnemyCharacterData();
     bool CreateBattleCharacters();
+    void FaceCharactersTowardEachOther(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter) const;
     void BindBattleEndEvents();
     void UnbindBattleEndEvents();
 

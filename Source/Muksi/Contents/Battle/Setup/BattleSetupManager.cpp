@@ -8,6 +8,7 @@
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
@@ -195,8 +196,47 @@ bool ABattleSetupManager::CreateBattleCharacters()
 
     BattleGridManager->PlaceCharacter(EBattleSimulationWorldType::PlayerActualEnemyActual, PlayerCharacter, StartPlayerCoord);
     BattleGridManager->PlaceCharacter(EBattleSimulationWorldType::PlayerActualEnemyActual, EnemyCharacter, StartEnemyCoord);
+
+    // PlaceCharacter() applies the tile spawn transform, including its rotation.
+    // Face the combatants only after both final world positions are established.
+    FaceCharactersTowardEachOther(PlayerCharacter, EnemyCharacter);
+
     RuntimeContext->SetBattleCharacters(PlayerCharacter, EnemyCharacter);
     return true;
+}
+
+void ABattleSetupManager::FaceCharactersTowardEachOther(ABattleCharacterBase* PlayerCharacter, ABattleCharacterBase* EnemyCharacter) const
+{
+    if (!IsValid(PlayerCharacter) || !IsValid(EnemyCharacter))
+    {
+        return;
+    }
+
+    FVector PlayerToEnemy = EnemyCharacter->GetActorLocation() - PlayerCharacter->GetActorLocation();
+
+    // Characters should only turn on the ground plane.
+    // Ignoring Z prevents small terrain-height differences from introducing pitch.
+    PlayerToEnemy.Z = 0.0f;
+
+    if (PlayerToEnemy.IsNearlyZero())
+    {
+        return;
+    }
+
+    const UMuksiBattleMovementComponent* PlayerMovement = PlayerCharacter->GetBattleMovementComponent();
+    const UMuksiBattleMovementComponent* EnemyMovement = EnemyCharacter->GetBattleMovementComponent();
+
+    // Keep initial facing consistent with the rotation/movement system.
+    // Character meshes can have their own forward-axis correction (for example -90 degrees),
+    // so apply the same MovementYawOffset used by UMuksiBattleMovementComponent.
+    const float PlayerYawOffset = IsValid(PlayerMovement) ? PlayerMovement->MovementYawOffset : 0.0f;
+    const float EnemyYawOffset = IsValid(EnemyMovement) ? EnemyMovement->MovementYawOffset : 0.0f;
+
+    const float PlayerYaw = PlayerToEnemy.Rotation().Yaw + PlayerYawOffset;
+    const float EnemyYaw = (-PlayerToEnemy).Rotation().Yaw + EnemyYawOffset;
+
+    PlayerCharacter->SetActorRotation(FRotator(0.0f, PlayerYaw, 0.0f));
+    EnemyCharacter->SetActorRotation(FRotator(0.0f, EnemyYaw, 0.0f));
 }
 
 void ABattleSetupManager::BindBattleEndEvents()

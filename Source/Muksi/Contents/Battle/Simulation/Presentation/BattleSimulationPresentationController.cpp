@@ -4,6 +4,7 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
@@ -42,7 +43,7 @@ UBattleSimulationWorldRuntime* UBattleSimulationPresentationController::GetPrima
 
 bool UBattleSimulationPresentationController::EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	const FVector TransitionOrigin = ResolveSimulationPostProcessTransitionOrigin(SourceCharacters);
+	const FVector TransitionOrigin = ResolveSimulationPostProcessTransitionOrigin();
 	if (!CreateSimulationPostProcess(TransitionOrigin))
 		return false;
 
@@ -278,19 +279,22 @@ void UBattleSimulationPresentationController::AddExecutionStepPreview(UBattleSim
 
 
 
-FVector UBattleSimulationPresentationController::ResolveSimulationPostProcessTransitionOrigin(const TArray<ABattleCharacterBase*>& SourceCharacters) const
+FVector UBattleSimulationPresentationController::ResolveSimulationPostProcessTransitionOrigin() const
 {
-	// InitializeRoundSimulation passes Player first, then Enemy. Keeping this
-	// generic also gives us a safe fallback if that ordering ever changes.
-	for (ABattleCharacterBase* SourceCharacter : SourceCharacters)
+	ABattleSimulationManager* Manager = SimulationManager.Get();
+	if (!IsValid(Manager))
 	{
-		if (IsValid(SourceCharacter))
-			return SourceCharacter->GetActorLocation();
+		return FVector::ZeroVector;
 	}
 
-	return IsValid(SimulationManager.Get())
-		? SimulationManager->GetActorLocation()
-		: FVector::ZeroVector;
+	if (ABattleGridManager* GridManager = Manager->GetBattleGridManager(); IsValid(GridManager))
+	{
+		return GridManager->GetGridCenterWorldLocation();
+	}
+
+	// Defensive fallback for unusual initialization paths where the grid manager
+	// is temporarily unavailable.
+	return Manager->GetActorLocation();
 }
 
 bool UBattleSimulationPresentationController::CreateSimulationPostProcess(const FVector& TransitionOrigin)

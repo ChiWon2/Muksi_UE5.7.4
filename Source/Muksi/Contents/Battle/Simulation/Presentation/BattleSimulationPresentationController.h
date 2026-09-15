@@ -63,7 +63,7 @@ private:
 	void ClearExecutionPreview();
 	void AddExecutionStepPreview(UBattleSimulationWorldRuntime* WorldRuntime, ABattleCharacterBase* RuntimeAttacker, const FBattleAction& Action, int32 StepIndex, const FTargetingStepCardData& StepData, const FTargetingResult& TargetingResult);
 	bool CreateSimulationPostProcess(const FVector& TransitionOrigin);
-	FVector ResolveSimulationPostProcessTransitionOrigin(const TArray<ABattleCharacterBase*>& SourceCharacters) const;
+	FVector ResolveSimulationPostProcessTransitionOrigin() const;
 	void DestroySimulationPostProcess();
 
 private:
