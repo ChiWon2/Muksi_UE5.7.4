@@ -8,15 +8,18 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
 
 void SEffectKeywordButton::Construct(
 	const FArguments& InArgs)
 {
 	EffectId = InArgs._EffectId;
+	IconScale = InArgs._IconScale;
 	
 	OnEffectClicked = InArgs._OnEffectClicked;
 	OnEffectHovered = InArgs._OnEffectHovered;
 	OnEffectUnhovered = InArgs._OnEffectUnhovered;
+	
 
 	if (InArgs._ButtonStyle)
 	{
@@ -60,20 +63,77 @@ void SEffectKeywordButton::Construct(
 			&SEffectKeywordButton::HandleUnhovered
 		)
 		[
-			SNew(SHorizontalBox)
+			//버튼 위치 조절
+			SNew(SBox)
+	.MinDesiredHeight(50.0f)
+	.VAlign(VAlign_Center)
+	[
+		SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+		[
+			SNew(SBox)
+			.WidthOverride(
+				bHasIcon
+					? CachedIconBrush.ImageSize.X * IconScale
+					: 0.0f
+			)
+			.HeightOverride(
+				bHasIcon
+					? CachedIconBrush.ImageSize.Y * IconScale
+					: 0.0f
+			)
+			.VAlign(VAlign_Center)
+			.Visibility(
+				bHasIcon
+					? EVisibility::Visible
+					: EVisibility::Collapsed
+			)
+			[
+				SNew(SImage)
+				.Image(bHasIcon ? &CachedIconBrush : nullptr)
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(InArgs._DisplayText)
+		]
+	]
+			/*SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
 			.Padding(0.0f, 0.0f, 4.0f, 0.0f)
 			[
-				SNew(SImage)
-				.Image(bHasIcon ? &CachedIconBrush : nullptr)
-				.Visibility(
-					bHasIcon
-						? EVisibility::Visible
-						: EVisibility::Collapsed
-				)
+				SNew(SBox)
+					.WidthOverride(
+						bHasIcon
+							? CachedIconBrush.ImageSize.X * IconScale
+							: 0.0f
+					)
+					.HeightOverride(
+						bHasIcon
+							? CachedIconBrush.ImageSize.Y * IconScale
+							: 0.0f
+					)
+					.VAlign(VAlign_Center)
+					.Visibility(
+						bHasIcon
+							? EVisibility::Visible
+							: EVisibility::Collapsed
+					)
+					[
+						SNew(SImage)
+						.Image(bHasIcon ? &CachedIconBrush : nullptr)
+					]
 			]
 
 			+ SHorizontalBox::Slot()
@@ -82,7 +142,7 @@ void SEffectKeywordButton::Construct(
 			[
 				SNew(STextBlock)
 				.Text(InArgs._DisplayText)
-			]
+			]*/
 		]
 	];
 }

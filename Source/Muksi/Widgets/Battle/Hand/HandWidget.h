@@ -30,6 +30,9 @@ class UWidget_CardEquipSlot;
 DECLARE_MULTICAST_DELEGATE(FOnPlayerCardEquipped);
 DECLARE_MULTICAST_DELEGATE(FOnPlayerCardReturned);
 
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleCardHovered, UWidget_BattleCardBase*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleCardHoverEnded, UWidget_BattleCardBase*);
 /**
  *
  */
@@ -61,8 +64,7 @@ public:
 	void HitActiveHandCards(bool bHitActive);
 
 
-	void SetHoveredCard(UWidget_BattleCardBase* InHoveredCard);
-	void ClearHoveredCard(UWidget_BattleCardBase* InCard);
+	
 	
 	void HandleCardDragStarted(UWidget_BattleCardBase* InCard);
 	void HandleCardDragEnded(UWidget_BattleCardBase* InCard);
@@ -167,6 +169,16 @@ public:
 	{
 		return BoundCharacter;
 	}
+	
+	// 카드 Hover Preview----------------------------------------------------------------------------------------
+public:
+	void SetHoveredCard(UWidget_BattleCardBase* InHoveredCard);
+	void ClearHoveredCard(UWidget_BattleCardBase* InCard);
+	
+	FOnBattleCardHovered OnBattleCardHovered;
+	FOnBattleCardHoverEnded OnBattleCardHoverEnded;
+	
+	//----------------------------------------------------------------------------------------------------------
 	
 	// 변초 Hover Preview ----------------------------------------------------------------------------------------
 	UPROPERTY(Transient)

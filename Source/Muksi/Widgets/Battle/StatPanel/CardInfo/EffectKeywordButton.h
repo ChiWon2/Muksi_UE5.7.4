@@ -30,17 +30,19 @@ public:
 		, _EffectId()
 		, _DisplayText(FText::GetEmpty())
 		, _IconBrush(nullptr)
+		, _IconScale(1.0f)
 	{
 	}
 
-	SLATE_ARGUMENT(const FButtonStyle*, ButtonStyle)
-	SLATE_ARGUMENT(FString, EffectId)
-	SLATE_ARGUMENT(FText, DisplayText)
-	SLATE_ARGUMENT(const FSlateBrush*, IconBrush)
-	SLATE_EVENT(FOnEffectKeywordClicked, OnEffectClicked)
+		SLATE_ARGUMENT(const FButtonStyle*, ButtonStyle)
+		SLATE_ARGUMENT(FString, EffectId)
+		SLATE_ARGUMENT(FText, DisplayText)
+		SLATE_ARGUMENT(const FSlateBrush*, IconBrush)
+		SLATE_ARGUMENT(float, IconScale)
 
+		SLATE_EVENT(FOnEffectKeywordClicked, OnEffectClicked)
 		SLATE_EVENT(FOnEffectKeywordHovered, OnEffectHovered)
-	SLATE_EVENT(FOnEffectKeywordUnhovered, OnEffectUnhovered)
+		SLATE_EVENT(FOnEffectKeywordUnhovered, OnEffectUnhovered)
 
 SLATE_END_ARGS()
 
@@ -54,6 +56,8 @@ private:
 	void HandleUnhovered();
 
 	FString EffectId;
+	
+	float IconScale = 1.0f;
 
 	FOnEffectKeywordClicked OnEffectClicked;
 	FOnEffectKeywordHovered OnEffectHovered;

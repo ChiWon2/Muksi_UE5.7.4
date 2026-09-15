@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "Widget_BattleMainScreen.generated.h"
 
+class UCardPreviewPanel;
 class UBattleStatusHUDWidget;
 class UWidget_CharacterData;
 class UHandWidget;
@@ -62,6 +63,9 @@ protected:
 	//***** Bound Widgets ****
 	UPROPERTY(meta = (BindWidget))
 	UHandWidget* HandWidget;
+	
+	UPROPERTY(meta = (BindWidget))
+	UCardPreviewPanel* CardPreviewPanel;
 
 	UPROPERTY(meta = (BindWidget))
 	UPassiveActivePopupWidget* ActivePassiveWidget;

@@ -3,6 +3,7 @@
 
 #include "Muksi/Widgets/Battle/StatPanel/CardInfo/CardInfoPanel.h"
 
+#include "CardInfoEffectEntry.h"
 #include "EffectRichTextBlock.h"
 #include "RichTextBlockWidget.h"
 #include "Blueprint/WidgetTree.h"
@@ -34,24 +35,36 @@ void UCardInfoPanel::SetCardData(UMuksiBattleCardDataAsset* CardData)
 	}
 	TextBlock_CardName->SetText(CardData->CardName);
 	
-	if (!RichTextBlockWidgetClass)
+	EffectVerticalBox->ClearChildren();
+	
+	for (const FCardEffectDisplayData& EffectData : CardData->EffectDisplayData)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("RichTextBlockWidgetClass가 설정되지 않았습니다.")
-		);
+		UCardInfoEffectEntry* EffectEntry = CreateWidget<UCardInfoEffectEntry>(GetOwningPlayer(), CardInfoEffectEntryClass);
 
-		return;
+		if (!EffectEntry)
+		{
+			continue;
+		}
+
+		EffectEntry->SetEffectData(EffectData);
+
+		UVerticalBoxSlot* VerticalSlot =
+			EffectVerticalBox->AddChildToVerticalBox(EffectEntry);
+
+		if (VerticalSlot)
+		{
+			VerticalSlot->SetPadding(
+				FMargin(0.f, 5.f, 0.f, 8.f));
+
+			VerticalSlot->SetHorizontalAlignment(HAlign_Fill);
+			VerticalSlot->SetVerticalAlignment(VAlign_Center);
+		}
 	}
 	
-	for (FText EffectText : CardData->CardEffectsDescription)
+	/*for (FText EffectText : CardData->CardEffectsDescription)
 	{
-		URichTextBlockWidget* EffectEntry =
-			CreateWidget<URichTextBlockWidget>(
-				GetOwningPlayer(),
-				RichTextBlockWidgetClass
-			);
+		URichTextBlockWidget* EffectEntry = CreateWidget<URichTextBlockWidget>(GetOwningPlayer(), RichTextBlockWidgetClass);
+		
 		if (!EffectEntry)
 		{
 			UE_LOG(
@@ -86,5 +99,5 @@ void UCardInfoPanel::SetCardData(UMuksiBattleCardDataAsset* CardData)
 			);
 		}
 		
-	}
+	}*/
 }
