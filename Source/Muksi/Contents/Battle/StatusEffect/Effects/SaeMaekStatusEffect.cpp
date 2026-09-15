@@ -12,41 +12,40 @@
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-void USaeMaekStatusEffect::BuildBattleActionStartExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutionEntries)
+void USaeMaekStatusEffect::EditBattleActionExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
 	if (!BattleAction.Card || BattleAction.Card->CardTypeInfo.CardType != EMuksiBattleCardType::Attack || GetCurrentStack() <= 0)
-	{
 		return;
-	}
 
 	FBattleExecutionEntry DamageEntry;
 	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
 	DamageEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FDamageExecutionData DamageData;
-	DamageData.TargetPolicy = EDamageExecutionTargetPolicy::Attacker;
+	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 	DamageData.DamageValue = GetCurrentStack();
 	DamageData.bTriggerHitReaction = false;
 	DamageData.bTriggerStatusEffectReactions = true;
 	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
 
-	OutExecutionEntries.Add(MoveTemp(DamageEntry));
+	ExecutionEntries.Insert(MoveTemp(DamageEntry), 0);
 
 	FBattleExecutionEntry HitReactionEntry;
 	HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
 	HitReactionEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
-	OutExecutionEntries.Add(MoveTemp(HitReactionEntry));
+	ExecutionEntries.Insert(MoveTemp(HitReactionEntry), 1);
 
 	FBattleExecutionEntry SubtractEntry;
 	SubtractEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
 	SubtractEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData SubtractData;
+	SubtractData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 	SubtractData.Operation = EStatusEffectExecutionOperation::Subtract;
 	SubtractData.EffectID = GetEffectID();
 	SubtractData.StackCount = 1;
 	SubtractEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(SubtractData);
 
-	OutExecutionEntries.Add(MoveTemp(SubtractEntry));
+	ExecutionEntries.Insert(MoveTemp(SubtractEntry), 2);
 }

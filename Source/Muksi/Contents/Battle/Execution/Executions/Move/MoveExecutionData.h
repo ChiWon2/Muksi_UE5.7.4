@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Muksi/Contents/Battle/Data/MuksiBattleCardEffectData.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleMoveType.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "MoveExecutionData.generated.h"
 

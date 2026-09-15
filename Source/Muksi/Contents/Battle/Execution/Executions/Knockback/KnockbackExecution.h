@@ -34,6 +34,7 @@ private:
 
 	FHexOffsetCoord StartCoord = FHexOffsetCoord();
 	FHexOffsetCoord DestinationCoord = FHexOffsetCoord();
+	FQuat StartRotation = FQuat::Identity;
 	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 	FBattleExecutionFinished CachedOnFinished;
 };

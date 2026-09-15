@@ -12,6 +12,7 @@ class MUKSI_API UHitReactionExecution : public UBattleExecution
 	GENERATED_BODY()
 
 public:
+	UHitReactionExecution();
 	virtual void Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished) override;
 
 private:

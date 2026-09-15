@@ -39,7 +39,7 @@ bool UBattleTargetingSession::UpdateSelection(const FHexOffsetCoord& CandidateCo
     }
 
     FTargetingStep Step;
-    if (!EvaluateCandidate(CandidateCoord, Step))
+    if (!EvaluateCandidate(CandidateCoord, Step) && !FindNearestValidSelectionStep(CandidateCoord, Step))
     {
         ResetCurrentStep();
         return false;
@@ -225,6 +225,48 @@ bool UBattleTargetingSession::EvaluateCandidate(const FHexOffsetCoord& Candidate
         return false;
 
     return Selection->EvaluateCandidate(GridManager.Get(), OriginCoord, CandidateCoord, StepData->Selection.RuleData, OutStep);
+}
+
+bool UBattleTargetingSession::FindNearestValidSelectionStep(const FHexOffsetCoord& DesiredCoord, FTargetingStep& OutStep) const
+{
+    OutStep.Reset();
+
+    const FTargetingStepCardData* StepData = GetCurrentStepData();
+    if (!StepData || !StepData->Selection.RuleClass || !IsValid(GridManager.Get()))
+        return false;
+
+    const UTargetSelection* Selection = StepData->Selection.RuleClass->GetDefaultObject<UTargetSelection>();
+    if (!Selection)
+        return false;
+
+    FHexOffsetCoord OriginCoord;
+    if (!GetCurrentOriginCoord(OriginCoord))
+        return false;
+
+    TArray<FHexOffsetCoord> CandidateCoords;
+    Selection->CollectCandidateCoords(GridManager.Get(), OriginCoord, StepData->Selection.RuleData, CandidateCoords);
+
+    int32 BestDesiredDistance = MAX_int32;
+    int32 BestOriginDistance = MAX_int32;
+
+    for (const FHexOffsetCoord& CandidateCoord : CandidateCoords)
+    {
+        FTargetingStep CandidateStep;
+        if (!Selection->EvaluateCandidate(GridManager.Get(), OriginCoord, CandidateCoord, StepData->Selection.RuleData, CandidateStep))
+            continue;
+
+        const int32 DesiredDistance = FHexGridMath::GetHexDistance(DesiredCoord, CandidateCoord);
+        const int32 OriginDistance = FHexGridMath::GetHexDistance(OriginCoord, CandidateCoord);
+
+        if (DesiredDistance > BestDesiredDistance || (DesiredDistance == BestDesiredDistance && OriginDistance >= BestOriginDistance))
+            continue;
+
+        BestDesiredDistance = DesiredDistance;
+        BestOriginDistance = OriginDistance;
+        OutStep = MoveTemp(CandidateStep);
+    }
+
+    return OutStep.HasTargetCoord();
 }
 
 bool UBattleTargetingSession::BuildTargetingStepResult(const FTargetingStep& Step, FTargetingStepResult& OutStepResult) const

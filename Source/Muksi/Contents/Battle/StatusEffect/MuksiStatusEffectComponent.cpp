@@ -7,6 +7,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
+#include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 
 UMuksiStatusEffectComponent::UMuksiStatusEffectComponent()
 {
@@ -15,7 +16,13 @@ UMuksiStatusEffectComponent::UMuksiStatusEffectComponent()
 
 void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 {
-    BattleManager = InBattleManager;
+	if (IsValid(BattleManager) && IsValid(BattleManager->GetBattleSequenceManager()))
+		BattleManager->GetBattleSequenceManager()->BattleActionStartedDelegate.RemoveAll(this);
+
+	BattleManager = InBattleManager;
+
+	if (IsValid(BattleManager) && IsValid(BattleManager->GetBattleSequenceManager()))
+		BattleManager->GetBattleSequenceManager()->BattleActionStartedDelegate.AddUObject(this, &UMuksiStatusEffectComponent::HandleBattleActionStarted);
 }
 
 void UMuksiStatusEffectComponent::CopyRuntimeStateFrom(const UMuksiStatusEffectComponent& SourceComponent)
@@ -42,11 +49,14 @@ void UMuksiStatusEffectComponent::ResetRuntimeState()
 
 void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    FinishExecution();
+	FinishExecution();
 
-    BattleManager = nullptr;
+	if (IsValid(BattleManager) && IsValid(BattleManager->GetBattleSequenceManager()))
+		BattleManager->GetBattleSequenceManager()->BattleActionStartedDelegate.RemoveAll(this);
 
-    Super::EndPlay(EndPlayReason);
+	BattleManager = nullptr;
+
+	Super::EndPlay(EndPlayReason);
 }
 
 UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,int32 StackCount,int32 Duration)
@@ -186,12 +196,16 @@ const TArray<TObjectPtr<UMuksiStatusEffect>>& UMuksiStatusEffectComponent::GetAc
     return ActiveEffects;
 }
 
-void UMuksiStatusEffectComponent::AppendBattleActionStartExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
+void UMuksiStatusEffectComponent::HandleBattleActionStarted(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries)
 {
+	if (BattleAction.Attacker.Get() != GetOwner())
+		return;
+
 	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
 	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
 	{
-		if (IsValid(Effect)) Effect->BuildBattleActionStartExecutionEntries(BattleAction, OutExecutionEntries);
+		if (IsValid(Effect))
+			Effect->EditBattleActionExecutionEntries(BattleAction, ExecutionEntries);
 	}
 }
 

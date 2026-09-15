@@ -4,6 +4,10 @@
 #include "Engine/PostProcessVolume.h"
 #include "BattleSimulationPostProcessVolume.generated.h"
 
+class UCurveFloat;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+
 UCLASS(BlueprintType, Blueprintable)
 class MUKSI_API ABattleSimulationPostProcessVolume : public APostProcessVolume
 {
@@ -11,23 +15,50 @@ class MUKSI_API ABattleSimulationPostProcessVolume : public APostProcessVolume
 
 public:
 	ABattleSimulationPostProcessVolume();
+	virtual void Tick(float DeltaSeconds) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|PostProcess")
-	void ActivateSimulationPostProcess();
+	// Expands the simulation post process from InTransitionOrigin.
+	void ActivateSimulationPostProcess(const FVector& InTransitionOrigin);
 
-	UFUNCTION(BlueprintCallable, Category = "Battle|Simulation|PostProcess")
+	// Reverses the sphere transition. When complete, the runtime volume destroys itself.
 	void DeactivateSimulationPostProcess();
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|PostProcess")
 	bool IsSimulationPostProcessActive() const;
 
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
-	FVector4 GrayscaleSaturation = FVector4(0.0, 0.0, 0.0, 1.0);
+	// Runtime configuration is injected by BattleSimulationManager.
+	// A Blueprint subclass of PostProcessVolume is not required.
+	void InitializeSimulationPostProcess(
+		UMaterialInterface* InMaterial,
+		float InBlendWeight,
+		bool bInLockAutoExposure,
+		float InFixedExposure,
+		float InTransitionDuration,
+		float InTransitionMaxRadius,
+		UCurveFloat* InTransitionCurve);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
-	FVector4 GrayscaleContrast = FVector4(1.35, 1.35, 1.35, 1.0);
+private:
+	void EnsureSimulationPostProcessMaterial();
+	void StartTransition(bool bEntering);
+	void UpdateTransitionMaterialParameters();
+	void CompleteTransition();
+	float EvaluateTransitionAlpha(float InAlpha) const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> SimulationPostProcessMaterial = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> SimulationPostProcessMID = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCurveFloat> TransitionCurve = nullptr;
+
 	float SimulationBlendWeight = 1.0f;
+	float TransitionDuration = 0.35f;
+	float TransitionMaxRadius = 100000.0f;
+	float TransitionAlpha = 0.0f;
+	FVector TransitionOrigin = FVector::ZeroVector;
+	bool bTransitionPlaying = false;
+	bool bTransitionEntering = false;
 };

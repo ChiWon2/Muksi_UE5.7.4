@@ -1,7 +1,6 @@
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Data/BattleCardEffectTypes.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
@@ -69,13 +68,13 @@ void UDamageExecution::CollectTargets(const FBattleExecutionContext& Context, co
 
 	switch (DamageData.TargetPolicy)
 	{
-	case EDamageExecutionTargetPolicy::ExecutionTarget:
+	case EBattleExecutionTargetPolicy::ExecutionTarget:
 		if (Context.ExecutionTarget) OutTargets.Add(Context.ExecutionTarget);
 		return;
-	case EDamageExecutionTargetPolicy::Attacker:
+	case EBattleExecutionTargetPolicy::Attacker:
 		if (Context.Attacker) OutTargets.Add(Context.Attacker);
 		return;
-	case EDamageExecutionTargetPolicy::TargetingResult:
+	case EBattleExecutionTargetPolicy::TargetingResult:
 	default:
 		break;
 	}

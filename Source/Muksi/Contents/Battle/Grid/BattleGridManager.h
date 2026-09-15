@@ -70,6 +70,8 @@ public:
 
 	FTransform GetTransformToPosition(const FHexOffsetCoord& InPosition);
 	FVector GetWorldLocationByCoord(const FHexOffsetCoord& Coord) const;
+	UFUNCTION(BlueprintPure, Category = "Battle|Grid")
+	FVector GetGridCenterWorldLocation() const;
 	bool GetPresentationWorldLocationByCoord(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const;
 	bool GetPresentationCoordFromHit(const FHitResult& HitResult, FHexOffsetCoord& OutCoord) const;
 

@@ -23,7 +23,7 @@ void UBleedStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBatt
 	DamageEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FDamageExecutionData DamageData;
-	DamageData.TargetPolicy = EDamageExecutionTargetPolicy::ExecutionTarget;
+	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	DamageData.DamageValue = GetCurrentStack();
 	DamageData.bTriggerHitReaction = true;
 	DamageData.bTriggerStatusEffectReactions = false;
@@ -35,6 +35,7 @@ void UBleedStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBatt
 	RemoveEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FStatusEffectExecutionData RemoveData;
+	RemoveData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	RemoveData.Operation = EStatusEffectExecutionOperation::Remove;
 	RemoveData.EffectID = GetEffectID();
 	RemoveEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(RemoveData);

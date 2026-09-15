@@ -15,6 +15,7 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 	KnockbackTarget = Context.ExecutionTarget;
 	StartCoord = FHexOffsetCoord();
 	DestinationCoord = FHexOffsetCoord();
+	StartRotation = KnockbackTarget ? KnockbackTarget->GetActorQuat() : FQuat::Identity;
 
 	const FKnockbackExecutionData* KnockbackData = Context.GetExecutionData<FKnockbackExecutionData>();
 
@@ -188,8 +189,10 @@ void UKnockbackExecution::HandleMovementFinished(bool bInterrupted)
 
 	if (bInterrupted)
 	{
-		// Grid 상태는 아직 StartCoord 그대로이므로 월드 위치만 원위치로 복구한다.
-		KnockbackTarget->SetActorTransform(CachedGridManager->GetTransformToPosition(StartCoord));
+		// Grid 상태는 아직 StartCoord 그대로이므로 시작 위치/회전으로 복구한다.
+		const FTransform StartTransform = CachedGridManager->GetTransformToPosition(StartCoord);
+		KnockbackTarget->SetActorLocation(StartTransform.GetLocation());
+		KnockbackTarget->SetActorRotation(StartRotation);
 		CompleteExecution();
 		return;
 	}
@@ -200,12 +203,16 @@ void UKnockbackExecution::HandleMovementFinished(bool bInterrupted)
 	Request.WorldType = GridWorldType;
 	Request.FromCoord = StartCoord;
 	Request.ToCoord = DestinationCoord;
+	Request.MoveType = EBattleGridMoveType::Knockback;
 	Request.bSnapActorToGrid = true;
+	Request.bPreserveActorRotation = true;
 	if (!CachedGridManager->ExecuteGridMove(Request).bSucceeded)
 	{
 		// 예상치 못한 점유 충돌이 발생하면 논리 상태는 StartCoord에 남아 있으므로
-		// 시각 위치도 시작 지점으로 복구한다.
-		KnockbackTarget->SetActorTransform(CachedGridManager->GetTransformToPosition(StartCoord));
+		// 시각 위치와 Knockback 시작 시점의 회전을 복구한다.
+		const FTransform StartTransform = CachedGridManager->GetTransformToPosition(StartCoord);
+		KnockbackTarget->SetActorLocation(StartTransform.GetLocation());
+		KnockbackTarget->SetActorRotation(StartRotation);
 	}
 
 	CompleteExecution();
@@ -222,6 +229,7 @@ void UKnockbackExecution::CompleteExecution()
 	KnockbackTarget = nullptr;
 	StartCoord = FHexOffsetCoord();
 	DestinationCoord = FHexOffsetCoord();
+	StartRotation = FQuat::Identity;
 	GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
 
 	FinishExecution(CachedOnFinished);

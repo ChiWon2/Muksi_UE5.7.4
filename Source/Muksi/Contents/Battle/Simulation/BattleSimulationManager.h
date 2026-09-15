@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Materials/MaterialInterface.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "BattleSimulationManager.generated.h"
@@ -11,11 +12,12 @@ class ABattleGridManager;
 class ABattleManager;
 class ABattleSimulationCharacter;
 class ABattleSimulationPostProcessVolume;
+class ABattleDDPresentationActor;
 class UBattlePhaseTask;
+class UCurveFloat;
 class UBattlePhaseTaskContext;
 class UBattleSimulationPresentationController;
 class UBattleSimulationWorldRuntime;
-class UMaterialInterface;
 struct FBattleAction;
 struct FTargetingResult;
 
@@ -24,7 +26,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSimulationTimeScaleChanged, float
 /**
  * Round Simulation 전체를 조율한다.
  * AD / DD / DA WorldRuntime을 생성하고 동시에 실행하며 완료를 집계한다.
- * AD만 실제 Simulation Presentation으로 표시하고, DD는 PresentationController의 Ghost Character로 위치와 방향만 표현한다.
+ * AD만 실제 Simulation Presentation으로 표시하고, DD는 PresentationController의 경량 DD Presentation Actor로 위치와 방향만 표현한다.
  * World별 시간 배율과 완료 집계 및 AA Action Commit을 관리한다.
  * 개별 World의 Character / Grid 복제와 Sequence 실행은 UBattleSimulationWorldRuntime이 담당한다.
  */
@@ -35,19 +37,24 @@ class MUKSI_API ABattleSimulationManager : public AActor
 
 public:
 	ABattleSimulationManager();
-	virtual void Tick(float DeltaSeconds) override;
 	bool InitializeBattleFlow(ABattleManager* InBattleManager);
 	ABattleManager* GetBattleManager() const { return BattleManager.Get(); }
 	UFUNCTION(BlueprintPure, Category = "Battle|Simulation|Presentation")
 	UBattleSimulationPresentationController* GetPresentationController() const { return PresentationController.Get(); }
 	TSubclassOf<ABattleSimulationCharacter> GetSimulationCharacterClass() const { return SimulationCharacterClass; }
-	UMaterialInterface* GetSimulationMaterial(bool bPlayerCharacter) const;
-	UMaterialInterface* GetDeceivedGhostMaterial(bool bPlayerCharacter) const;
+	TSubclassOf<ABattleDDPresentationActor> GetDDPresentationActorClass() const { return DDPresentationActorClass; }
+	bool ShouldCreateDDActor() const { return bCreateDDActor; }
 	UBattleSimulationWorldRuntime* GetSimulationWorldRuntime(EBattleSimulationWorldType WorldType) const;
 	ABattleCharacterBase* GetCharacterForWorld(const ABattleCharacterBase* SourceCharacter, EBattleSimulationWorldType WorldType) const;
 	ABattleGridManager* GetBattleGridManager() const;
 	bool IsSimulationPostProcessEnabled() const { return bEnableSimulationPostProcess; }
-	TSubclassOf<ABattleSimulationPostProcessVolume> GetSimulationPostProcessVolumeClass() const { return SimulationPostProcessVolumeClass; }
+	UMaterialInterface* GetSimulationPostProcessMaterial() const { return SimulationPostProcessMaterial.Get(); }
+	float GetSimulationPostProcessBlendWeight() const { return SimulationPostProcessBlendWeight; }
+	bool ShouldLockSimulationAutoExposure() const { return bLockSimulationAutoExposure; }
+	float GetSimulationFixedExposure() const { return SimulationFixedExposure; }
+	float GetSimulationPostProcessTransitionDuration() const { return SimulationPostProcessTransitionDuration; }
+	float GetSimulationPostProcessTransitionMaxRadius() const { return SimulationPostProcessTransitionMaxRadius; }
+	UCurveFloat* GetSimulationPostProcessTransitionCurve() const { return SimulationPostProcessTransitionCurve.Get(); }
 	float GetFastForwardSimulationTimeScale() const { return FastForwardSimulationTimeScale; }
 	float GetCurrentSimulationTimeScale() const { return CurrentSimulationTimeScale; }
 
@@ -78,6 +85,8 @@ private:
 	void ExecuteBattleStart();
 	void ExecuteRoundStart();
 	void ExecuteSimulationSequence();
+	void ExecuteExchangeEnd();
+	void ExecuteBattleActionSequenceStart();
 	void CompletePhaseExecution(EBattlePhase FinishedPhase);
 	void TryCompleteSimulationSequencePhase(int32 FinishedExchangeIndex);
 
@@ -114,17 +123,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation")
 	TSubclassOf<ABattleSimulationCharacter> SimulationCharacterClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> PlayerSimulationMaterial = nullptr;
+	// Whether the AD-side DD position marker should be created and presented.
+	// When disabled, BattleStart skips DDPresentationActor prewarm and ExchangeEnd never shows it.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Presentation")
+	bool bCreateDDActor = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> EnemySimulationMaterial = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> PlayerDeceivedGhostMaterial = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Material")
-	TObjectPtr<UMaterialInterface> EnemyDeceivedGhostMaterial = nullptr;
+	// Lightweight AD-side marker for the position resolved by the DD world.
+	// This class should not depend on the source character presentation hierarchy.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|Presentation", meta = (EditCondition = "bCreateDDActor", EditConditionHides))
+	TSubclassOf<ABattleDDPresentationActor> DDPresentationActorClass;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
@@ -149,8 +156,35 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess")
 	bool bEnableSimulationPostProcess = false;
 
+	// Configured on the BattleSimulationManager BP/defaults.
+	// The spawned PostProcessVolume receives this material at runtime.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
-	TSubclassOf<ABattleSimulationPostProcessVolume> SimulationPostProcessVolumeClass;
+	TObjectPtr<UMaterialInterface> SimulationPostProcessMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess", ClampMin = "0.0", ClampMax = "1.0"))
+	float SimulationPostProcessBlendWeight = 1.0f;
+
+	// Locks eye adaptation while the simulation post process is active.
+	// The same value is applied to the volume's Auto Exposure min/max, which disables adaptation.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess"))
+	bool bLockSimulationAutoExposure = true;
+
+	// In projects using the extended luminance range this is displayed conceptually as EV100.
+	// Keeping min/max equal is what disables automatic adaptation; 0 is a neutral test default.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess", meta = (EditCondition = "bEnableSimulationPostProcess && bLockSimulationAutoExposure", EditConditionHides))
+	float SimulationFixedExposure = 0.0f;
+
+	// Spatial sphere wipe used when entering/exiting the simulation presentation.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess|Transition", meta = (EditCondition = "bEnableSimulationPostProcess", ClampMin = "0.0"))
+	float SimulationPostProcessTransitionDuration = 0.35f;
+
+	// Unreal units (cm). Increase this if the visible battlefield is larger than the default 1 km radius.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess|Transition", meta = (EditCondition = "bEnableSimulationPostProcess", ClampMin = "0.0"))
+	float SimulationPostProcessTransitionMaxRadius = 100000.0f;
+
+	// Optional 0..1 -> 0..1 easing curve. When unset, the volume uses SmoothStep.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Simulation|PostProcess|Transition", meta = (EditCondition = "bEnableSimulationPostProcess"))
+	TObjectPtr<UCurveFloat> SimulationPostProcessTransitionCurve = nullptr;
 
 	TSet<EBattleSimulationWorldType> CompletedWorldTypesForCurrentExchange;
 	int32 CompletionTrackingExchangeIndex = INDEX_NONE;

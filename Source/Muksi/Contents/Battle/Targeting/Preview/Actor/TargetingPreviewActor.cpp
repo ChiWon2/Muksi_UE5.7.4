@@ -21,6 +21,9 @@ ATargetingPreviewActor::ATargetingPreviewActor()
 	SelectionPreviewMesh->SetupAttachment(SceneRoot);
 	SelectionPreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SelectionPreviewMesh->SetCastShadow(false);
+	SelectionPreviewMesh->SetAffectDynamicIndirectLighting(false);
+	SelectionPreviewMesh->SetAffectDistanceFieldLighting(false);
+	SelectionPreviewMesh->SetVisibleInRayTracing(false);
 	SelectionPreviewMesh->SetCanEverAffectNavigation(false);
 	SelectionPreviewMesh->SetVisibility(false);
 
@@ -29,6 +32,9 @@ ATargetingPreviewActor::ATargetingPreviewActor()
 	AreaPreviewMesh->SetupAttachment(SceneRoot);
 	AreaPreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AreaPreviewMesh->SetCastShadow(false);
+	AreaPreviewMesh->SetAffectDynamicIndirectLighting(false);
+	AreaPreviewMesh->SetAffectDistanceFieldLighting(false);
+	AreaPreviewMesh->SetVisibleInRayTracing(false);
 	AreaPreviewMesh->SetCanEverAffectNavigation(false);
 	AreaPreviewMesh->SetVisibility(false);
 
@@ -37,6 +43,9 @@ ATargetingPreviewActor::ATargetingPreviewActor()
 	ArrowPreviewMesh->SetupAttachment(SceneRoot);
 	ArrowPreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ArrowPreviewMesh->SetCastShadow(false);
+	ArrowPreviewMesh->SetAffectDynamicIndirectLighting(false);
+	ArrowPreviewMesh->SetAffectDistanceFieldLighting(false);
+	ArrowPreviewMesh->SetVisibleInRayTracing(false);
 	ArrowPreviewMesh->SetCanEverAffectNavigation(false);
 	ArrowPreviewMesh->SetVisibility(false);
 
@@ -131,6 +140,9 @@ USplineMeshComponent* ATargetingPreviewActor::CreatePathMeshComponent()
 	PathMeshComponent->SetupAttachment(SceneRoot);
 	PathMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	PathMeshComponent->SetCastShadow(false);
+	PathMeshComponent->SetAffectDynamicIndirectLighting(false);
+	PathMeshComponent->SetAffectDistanceFieldLighting(false);
+	PathMeshComponent->SetVisibleInRayTracing(false);
 	PathMeshComponent->SetCanEverAffectNavigation(false);
 	AddInstanceComponent(PathMeshComponent);
 	PathMeshComponent->RegisterComponent();

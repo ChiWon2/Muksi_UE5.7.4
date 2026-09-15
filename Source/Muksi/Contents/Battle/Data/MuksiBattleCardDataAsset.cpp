@@ -1,7 +1,5 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
-#include "Muksi/Contents/Battle/Card/Effect/BattleCardEffect.h"
-
 UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
 {
 	CardID = NAME_None;

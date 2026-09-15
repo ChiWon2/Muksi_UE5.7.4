@@ -1,7 +1,10 @@
 #include "Muksi/Contents/Battle/Simulation/Presentation/BattleSimulationPresentationController.h"
 
+#include "Muksi/Contents/Battle/Simulation/Presentation/BattleDDPresentationActor.h"
+
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
-#include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
@@ -23,6 +26,7 @@ bool UBattleSimulationPresentationController::Initialize(ABattleSimulationManage
 void UBattleSimulationPresentationController::Shutdown()
 {
 	ExitSimulationPresentation(true);
+	DestroyDDPresentationActor();
 	TargetingPresentationController = nullptr;
 	SimulationManager = nullptr;
 }
@@ -39,14 +43,9 @@ UBattleSimulationWorldRuntime* UBattleSimulationPresentationController::GetPrima
 
 bool UBattleSimulationPresentationController::EnterSimulationPresentation(const TArray<ABattleCharacterBase*>& SourceCharacters)
 {
-	if (!CreateSimulationPostProcess())
+	const FVector TransitionOrigin = ResolveSimulationPostProcessTransitionOrigin();
+	if (!CreateSimulationPostProcess(TransitionOrigin))
 		return false;
-
-	if (!CreateDeceivedGhosts(SourceCharacters))
-	{
-		DestroySimulationPostProcess();
-		return false;
-	}
 
 	for (ABattleCharacterBase* SourceCharacter : SourceCharacters)
 	{
@@ -68,7 +67,8 @@ void UBattleSimulationPresentationController::ExitSimulationPresentation(bool bC
 
 	bSimulationPresentationActive = false;
 	SynchronizeSimulationPresentation();
-	DestroyDeceivedGhosts();
+	if (IsValid(DDPresentationActor.Get()))
+		DDPresentationActor->SetActorHiddenInGame(true);
 	SourceCharacterHiddenStates.Empty();
 	DestroySimulationPostProcess();
 }
@@ -130,7 +130,6 @@ void UBattleSimulationPresentationController::SynchronizeSimulationPresentation(
 	if (IsValid(DAWorldRuntime))
 		DAWorldRuntime->SetCharactersVisible(false);
 
-	UpdateDeceivedGhostPresentation();
 
 	if (!bSimulationPresentationActive || !IsValid(ADWorldRuntime))
 	{
@@ -145,98 +144,98 @@ void UBattleSimulationPresentationController::SynchronizeSimulationPresentation(
 		ClearExecutionPreview();
 }
 
-void UBattleSimulationPresentationController::UpdateDeceivedGhostPresentation()
+bool UBattleSimulationPresentationController::PrewarmDDPresentationActor(ABattleCharacter_Enemy* SourceEnemy)
 {
-	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : DeceivedGhostCharacterMap)
-		SynchronizeDeceivedGhost(Pair.Key.Get(), Pair.Value.Get());
-}
+	if (!IsValid(SourceEnemy))
+		return false;
 
-bool UBattleSimulationPresentationController::CreateDeceivedGhosts(const TArray<ABattleCharacterBase*>& SourceCharacters)
-{
-	DestroyDeceivedGhosts();
+	// BattleStart can be re-entered during development/reinitialization. Keep the operation idempotent.
+	if (IsValid(DDPresentationActor.Get()) && DDPresentationSourceEnemy.Get() == SourceEnemy)
+	{
+		DDPresentationActor->SetActorHiddenInGame(true);
+		return true;
+	}
+
+	DestroyDDPresentationActor();
 
 	ABattleSimulationManager* Manager = SimulationManager.Get();
 	UWorld* World = IsValid(Manager) ? Manager->GetWorld() : nullptr;
-	TSubclassOf<ABattleSimulationCharacter> CharacterClass = IsValid(Manager) ? Manager->GetSimulationCharacterClass() : nullptr;
-
-	if (!World || !CharacterClass)
+	TSubclassOf<ABattleDDPresentationActor> PresentationActorClass = IsValid(Manager) ? Manager->GetDDPresentationActorClass() : nullptr;
+	if (!World || !PresentationActorClass)
 		return false;
 
-	for (ABattleCharacterBase* SourceCharacter : SourceCharacters)
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = Manager;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnParameters.ObjectFlags |= RF_Transient;
+
+	DDPresentationActor = World->SpawnActor<ABattleDDPresentationActor>(PresentationActorClass, SourceEnemy->GetActorTransform(), SpawnParameters);
+	if (!IsValid(DDPresentationActor.Get()))
 	{
-		if (!IsValid(SourceCharacter))
-		{
-			DestroyDeceivedGhosts();
-			return false;
-		}
-
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.Owner = Manager;
-		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnParameters.ObjectFlags |= RF_Transient;
-
-		ABattleSimulationCharacter* GhostCharacter = World->SpawnActor<ABattleSimulationCharacter>(CharacterClass, SourceCharacter->GetActorTransform(), SpawnParameters);
-		if (!GhostCharacter)
-		{
-			DestroyDeceivedGhosts();
-			return false;
-		}
-
-		UMaterialInterface* GhostMaterial = Manager->GetDeceivedGhostMaterial(SourceCharacter->IsA<ABattleCharacter_Player>());
-		GhostCharacter->InitializeFromCharacter(SourceCharacter, GhostMaterial);
-		GhostCharacter->SetActorEnableCollision(false);
-		GhostCharacter->SetCanBeDamaged(false);
-		GhostCharacter->SetActorHiddenInGame(true);
-		DeceivedGhostCharacterMap.Add(SourceCharacter, GhostCharacter);
+		DDPresentationActor = nullptr;
+		return false;
 	}
 
+	DDPresentationSourceEnemy = SourceEnemy;
+	DDPresentationActor->SetActorHiddenInGame(true);
 	return true;
 }
 
-void UBattleSimulationPresentationController::DestroyDeceivedGhosts()
+void UBattleSimulationPresentationController::DestroyDDPresentationActor()
 {
-	for (const TPair<TObjectPtr<ABattleCharacterBase>, TObjectPtr<ABattleSimulationCharacter>>& Pair : DeceivedGhostCharacterMap)
-	{
-		if (IsValid(Pair.Value.Get()))
-			Pair.Value->Destroy();
-	}
+	if (IsValid(DDPresentationActor.Get()))
+		DDPresentationActor->Destroy();
 
-	DeceivedGhostCharacterMap.Empty();
+	DDPresentationActor = nullptr;
+	DDPresentationSourceEnemy = nullptr;
 }
 
-void UBattleSimulationPresentationController::SynchronizeDeceivedGhost(ABattleCharacterBase* SourceCharacter, ABattleSimulationCharacter* GhostCharacter)
+void UBattleSimulationPresentationController::RefreshDDPresentationAtExchangeEnd()
 {
-	if (!IsValid(SourceCharacter) || !IsValid(GhostCharacter) || !bSimulationPresentationActive)
-	{
-		if (IsValid(GhostCharacter))
-			GhostCharacter->SetActorHiddenInGame(true);
+	ABattleDDPresentationActor* PresentationActor = DDPresentationActor.Get();
+	ABattleCharacter_Enemy* SourceEnemy = DDPresentationSourceEnemy.Get();
 
+	if (!IsValid(SourceEnemy) || !IsValid(PresentationActor))
+	{
+		if (IsValid(PresentationActor))
+			PresentationActor->SetActorHiddenInGame(true);
 		return;
 	}
 
 	ABattleSimulationManager* Manager = SimulationManager.Get();
 	if (!IsValid(Manager))
 	{
-		GhostCharacter->SetActorHiddenInGame(true);
+		PresentationActor->SetActorHiddenInGame(true);
 		return;
 	}
 
 	UBattleSimulationWorldRuntime* ADWorldRuntime = Manager->GetSimulationWorldRuntime(EBattleSimulationWorldType::PlayerActualEnemyDeceived);
 	UBattleSimulationWorldRuntime* DDWorldRuntime = Manager->GetSimulationWorldRuntime(EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived);
-	ABattleSimulationCharacter* ADCharacter = IsValid(ADWorldRuntime) ? ADWorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
-	ABattleSimulationCharacter* DDCharacter = IsValid(DDWorldRuntime) ? DDWorldRuntime->GetSimulationCharacter(SourceCharacter) : nullptr;
+	ABattleSimulationCharacter* ADCharacter = IsValid(ADWorldRuntime) ? ADWorldRuntime->GetSimulationCharacter(SourceEnemy) : nullptr;
+	ABattleSimulationCharacter* DDCharacter = IsValid(DDWorldRuntime) ? DDWorldRuntime->GetSimulationCharacter(SourceEnemy) : nullptr;
 
 	if (!IsValid(ADCharacter) || !IsValid(DDCharacter))
 	{
-		GhostCharacter->SetActorHiddenInGame(true);
+		PresentationActor->SetActorHiddenInGame(true);
 		return;
 	}
 
-	const bool bLocationDiffers = !ADCharacter->GetActorLocation().Equals(DDCharacter->GetActorLocation(), 1.0f);
-	const bool bRotationDiffers = !ADCharacter->GetActorRotation().Equals(DDCharacter->GetActorRotation(), 1.0f);
+	// DD presentation represents the positional information mismatch at ExchangeEnd.
+	// Rotation/animation/presentation-only divergence must never create the marker.
+	constexpr float PositionToleranceCm = 1.0f;
+	const float PositionDistanceSq = FVector::DistSquared(ADCharacter->GetActorLocation(), DDCharacter->GetActorLocation());
+	const bool bLocationDiffers = PositionDistanceSq > FMath::Square(PositionToleranceCm);
 
-	GhostCharacter->SetActorTransform(DDCharacter->GetActorTransform());
-	GhostCharacter->SetActorHiddenInGame(!bLocationDiffers && !bRotationDiffers);
+	// The actor may visually face the DD character's direction, but rotation is not part of the visibility decision.
+	PresentationActor->SetActorTransform(DDCharacter->GetActorTransform());
+	PresentationActor->SetActorHiddenInGame(!bLocationDiffers);
+}
+
+
+void UBattleSimulationPresentationController::HideDDPresentation()
+{
+	if (IsValid(DDPresentationActor.Get()))
+		DDPresentationActor->SetActorHiddenInGame(true);
 }
 
 void UBattleSimulationPresentationController::DisplayExecutionPreview(UBattleSimulationWorldRuntime* WorldRuntime, const FBattleSimulationPreviewData& PreviewData)
@@ -279,7 +278,26 @@ void UBattleSimulationPresentationController::AddExecutionStepPreview(UBattleSim
 }
 
 
-bool UBattleSimulationPresentationController::CreateSimulationPostProcess()
+
+FVector UBattleSimulationPresentationController::ResolveSimulationPostProcessTransitionOrigin() const
+{
+	ABattleSimulationManager* Manager = SimulationManager.Get();
+	if (!IsValid(Manager))
+	{
+		return FVector::ZeroVector;
+	}
+
+	if (ABattleGridManager* GridManager = Manager->GetBattleGridManager(); IsValid(GridManager))
+	{
+		return GridManager->GetGridCenterWorldLocation();
+	}
+
+	// Defensive fallback for unusual initialization paths where the grid manager
+	// is temporarily unavailable.
+	return Manager->GetActorLocation();
+}
+
+bool UBattleSimulationPresentationController::CreateSimulationPostProcess(const FVector& TransitionOrigin)
 {
 	if (!IsValid(SimulationManager.Get()) || !SimulationManager->IsSimulationPostProcessEnabled())
 	{
@@ -288,21 +306,40 @@ bool UBattleSimulationPresentationController::CreateSimulationPostProcess()
 	}
 	if (IsValid(SimulationPostProcessVolume.Get()))
 	{
-		SimulationPostProcessVolume->ActivateSimulationPostProcess();
+		SimulationPostProcessVolume->InitializeSimulationPostProcess(
+			SimulationManager->GetSimulationPostProcessMaterial(),
+			SimulationManager->GetSimulationPostProcessBlendWeight(),
+			SimulationManager->ShouldLockSimulationAutoExposure(),
+			SimulationManager->GetSimulationFixedExposure(),
+			SimulationManager->GetSimulationPostProcessTransitionDuration(),
+			SimulationManager->GetSimulationPostProcessTransitionMaxRadius(),
+			SimulationManager->GetSimulationPostProcessTransitionCurve());
+		SimulationPostProcessVolume->ActivateSimulationPostProcess(TransitionOrigin);
 		return true;
 	}
 	UWorld* World = IsValid(SimulationManager.Get()) ? SimulationManager->GetWorld() : nullptr;
-	TSubclassOf<ABattleSimulationPostProcessVolume> PostProcessVolumeClass = SimulationManager->GetSimulationPostProcessVolumeClass();
-	if (!World || !PostProcessVolumeClass)
+	if (!World)
 		return false;
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = SimulationManager;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnParameters.ObjectFlags |= RF_Transient;
-	SimulationPostProcessVolume = World->SpawnActor<ABattleSimulationPostProcessVolume>(PostProcessVolumeClass, SimulationManager->GetActorTransform(), SpawnParameters);
+	SimulationPostProcessVolume = World->SpawnActor<ABattleSimulationPostProcessVolume>(
+		ABattleSimulationPostProcessVolume::StaticClass(),
+		SimulationManager->GetActorTransform(),
+		SpawnParameters);
 	if (!SimulationPostProcessVolume)
 		return false;
-	SimulationPostProcessVolume->ActivateSimulationPostProcess();
+
+	SimulationPostProcessVolume->InitializeSimulationPostProcess(
+		SimulationManager->GetSimulationPostProcessMaterial(),
+		SimulationManager->GetSimulationPostProcessBlendWeight(),
+		SimulationManager->ShouldLockSimulationAutoExposure(),
+		SimulationManager->GetSimulationFixedExposure(),
+		SimulationManager->GetSimulationPostProcessTransitionDuration(),
+		SimulationManager->GetSimulationPostProcessTransitionMaxRadius(),
+		SimulationManager->GetSimulationPostProcessTransitionCurve());
+	SimulationPostProcessVolume->ActivateSimulationPostProcess(TransitionOrigin);
 	return true;
 }
 
@@ -313,7 +350,7 @@ void UBattleSimulationPresentationController::DestroySimulationPostProcess()
 		SimulationPostProcessVolume = nullptr;
 		return;
 	}
+	// The volume keeps itself alive while the reverse sphere transition plays,
+	// then disables and destroys itself at radius 0.
 	SimulationPostProcessVolume->DeactivateSimulationPostProcess();
-	SimulationPostProcessVolume->Destroy();
-	SimulationPostProcessVolume = nullptr;
 }

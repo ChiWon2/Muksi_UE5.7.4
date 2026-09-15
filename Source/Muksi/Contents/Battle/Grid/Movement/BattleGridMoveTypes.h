@@ -38,6 +38,11 @@ struct FBattleGridMoveRequest
 
 	UPROPERTY(BlueprintReadWrite)
 	bool bSnapActorToGrid = true;
+
+	// Snap the character to the destination cell location without replacing its facing.
+	// Useful for forced movement such as knockback where movement must not reorient the target.
+	UPROPERTY(BlueprintReadWrite)
+	bool bPreserveActorRotation = false;
 };
 
 USTRUCT(BlueprintType)

@@ -15,6 +15,7 @@ class MUKSI_API UPlayBattleCameraExecution : public UBattleExecution
 	GENERATED_BODY()
 	
 public:
+	UPlayBattleCameraExecution();
 	virtual void Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished) override;
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 };

@@ -24,6 +24,16 @@ namespace BattleSimulationWorld
 	{
 		return WorldType != EBattleSimulationWorldType::PlayerActualEnemyActual;
 	}
+
+	inline bool UsesFullCharacterPresentation(EBattleSimulationWorldType WorldType)
+	{
+		return WorldType == EBattleSimulationWorldType::PlayerActualEnemyDeceived || WorldType == EBattleSimulationWorldType::PlayerActualEnemyActual;
+	}
+
+	inline bool IsNonPresentedSimulationWorld(EBattleSimulationWorldType WorldType)
+	{
+		return WorldType == EBattleSimulationWorldType::PlayerDeceivedEnemyDeceived || WorldType == EBattleSimulationWorldType::PlayerDeceivedEnemyActual;
+	}
 }
 
 UENUM(BlueprintType)

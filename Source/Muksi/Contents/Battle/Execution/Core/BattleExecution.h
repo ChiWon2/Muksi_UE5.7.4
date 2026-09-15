@@ -16,8 +16,14 @@ class MUKSI_API UBattleExecution : public UObject
 public:
 	virtual void Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished);
 	virtual const UScriptStruct* GetExecutionDataStruct() const;
+	bool IsPresentationOnly() const { return bPresentationOnly; }
 
 protected:
+	// Class-level semantic flag. Keep this C++-only so execution authors decide
+	// whether an execution exists solely for visible presentation.
+	// DD/DA simulation worlds skip these entries, while AD/AA execute them normally.
+	bool bPresentationOnly = false;
+
 	void FinishExecution(FBattleExecutionFinished& OnFinished);
 	bool IsExecutionFinished() const { return bExecutionFinished; }
 

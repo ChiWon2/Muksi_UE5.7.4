@@ -7,11 +7,13 @@
 #include "BattleActionExecutor.generated.h"
 
 class ABattleGridManager;
+class ABattleSequenceManager;
+class UBattleSimulationWorldRuntime;
 class UBattleExecutionRunner;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 
-DECLARE_DELEGATE_OneParam(FBattleActionStartedDelegate, const FBattleAction&);
+DECLARE_DELEGATE_TwoParams(FBattleActionStartedDelegate, const FBattleAction&, TArray<FBattleExecutionEntry>&);
 DECLARE_DELEGATE(FBattleActionCompletedDelegate);
 DECLARE_DELEGATE_FourParams(FBattleActionExecutionEntryStartedDelegate, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
 
@@ -27,11 +29,15 @@ public:
 	void StopAfterCurrentExecution();
 	bool IsRunning() const { return bRunning; }
 
+private:
+	friend class ABattleSequenceManager;
+	friend class UBattleSimulationWorldRuntime;
+class UBattleSimulationWorldRuntime;
+
 	FBattleActionStartedDelegate OnBattleActionStarted;
 	FBattleActionCompletedDelegate OnBattleActionCompleted;
 	FBattleActionExecutionEntryStartedDelegate OnExecutionEntryStarted;
 
-private:
 	bool ValidateAction(const FBattleAction& Action) const;
 	bool ResolveActionTargetingResult(const FBattleAction& Action, FTargetingResult& OutTargetingResult) const;
 	UMuksiBattleCardDataAsset* ResolveExecutionCard(const FBattleAction& Action) const;

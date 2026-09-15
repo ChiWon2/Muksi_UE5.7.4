@@ -114,6 +114,31 @@ FVector ABattleGridManager::GetWorldLocationByCoord(const FHexOffsetCoord& Coord
 	return GetActorTransform().TransformPosition(LocalLocation);
 }
 
+FVector ABattleGridManager::GetGridCenterWorldLocation() const
+{
+	const FBattleGridLayoutSettings& Layout = GetLayoutSettings();
+	if (Layout.GridWidth <= 0 || Layout.GridHeight <= 0)
+	{
+		return GetActorLocation();
+	}
+
+	FVector AccumulatedLocation = FVector::ZeroVector;
+	int32 CellCount = 0;
+
+	for (int32 Y = 0; Y < Layout.GridHeight; ++Y)
+	{
+		for (int32 X = 0; X < Layout.GridWidth; ++X)
+		{
+			AccumulatedLocation += GetWorldLocationByCoord(FHexOffsetCoord(X, Y));
+			++CellCount;
+		}
+	}
+
+	return CellCount > 0
+		? AccumulatedLocation / static_cast<float>(CellCount)
+		: GetActorLocation();
+}
+
 bool ABattleGridManager::GetPresentationWorldLocationByCoord(const FHexOffsetCoord& Coord, FVector& OutWorldLocation) const
 {
 	OutWorldLocation = FVector::ZeroVector;
@@ -415,7 +440,15 @@ FBattleGridMoveResult ABattleGridManager::ExecuteGridMove(const FBattleGridMoveR
 
 	if (Request.bSnapActorToGrid)
 	{
-		Character->SetActorTransform(GetTransformToPosition(Request.ToCoord));
+		const FTransform DestinationTransform = GetTransformToPosition(Request.ToCoord);
+		if (Request.bPreserveActorRotation)
+		{
+			Character->SetActorLocation(DestinationTransform.GetLocation());
+		}
+		else
+		{
+			Character->SetActorTransform(DestinationTransform);
+		}
 	}
 
 	Result.bSucceeded = true;

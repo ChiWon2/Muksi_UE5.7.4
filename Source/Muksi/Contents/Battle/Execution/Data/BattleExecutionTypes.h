@@ -21,6 +21,14 @@ enum class EBattleExecutionScope : uint8
 	ActualBattleOnly
 };
 
+UENUM(BlueprintType)
+enum class EBattleExecutionTargetPolicy : uint8
+{
+	TargetingResult,
+	ExecutionTarget,
+	Attacker
+};
+
 USTRUCT(BlueprintType)
 struct FBattleExecutionData
 {
