@@ -24,6 +24,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
+#include "Muksi/Widgets/Battle/CardPreview/CardPreviewPanel.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Widgets/Battle/Hand/ExchangeControl/ExchangeControlWidget.h"
 #include "Muksi/Widgets/Battle/Hand/ExchangeSlot/ExchangeSlotPanelWidget.h"
@@ -69,6 +70,11 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	
 
 	BattleManager->StartBattleFlow();
+	
+	/*if (CardPreviewPanel)
+	{
+		CardPreviewPanel->HidePreview();
+	}*/
 }
 
 void UWidget_BattleMainScreen::NativeDestruct()
@@ -123,6 +129,11 @@ void UWidget_BattleMainScreen::BindHandWidgetEvents()
 	HandWidget->OnPlayerCardReturned.RemoveAll(this);
 	HandWidget->OnPlayerCardReturned.AddUObject(this, &UWidget_BattleMainScreen::NotifyPlayerCardUnequipped);//카드 슬롯에서 제거했을 때 델리게이트
 	
+	HandWidget->OnBattleCardHovered.RemoveAll(CardPreviewPanel);
+	HandWidget->OnBattleCardHovered.AddUObject(CardPreviewPanel, &UCardPreviewPanel::HandleCardHovered);
+	HandWidget->OnBattleCardHoverEnded.RemoveAll(CardPreviewPanel);
+	HandWidget->OnBattleCardHoverEnded.AddUObject(CardPreviewPanel, &UCardPreviewPanel::HandleCardHoverEnded);
+	
 	if (UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget())
 	{
 		ExchangePanel->OnEnemyCardRevealFinished.RemoveAll(this);
@@ -141,6 +152,10 @@ void UWidget_BattleMainScreen::UnbindHandWidgetEvents()
 		return;
 	}
 	HandWidget->OnPlayerCardReturned.RemoveAll(this);
+	
+	HandWidget->OnBattleCardHovered.RemoveAll(CardPreviewPanel);
+	HandWidget->OnBattleCardHoverEnded.RemoveAll(CardPreviewPanel);
+	
 	if (UExchangeSlotPanelWidget* ExchangePanel = HandWidget->GetExchangeSlotPanelWidget())
 	{
 		ExchangePanel->OnEnemyCardRevealFinished.RemoveAll(this);

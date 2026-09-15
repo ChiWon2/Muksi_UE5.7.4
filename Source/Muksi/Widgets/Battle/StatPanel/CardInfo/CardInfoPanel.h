@@ -14,6 +14,7 @@ class UMuksiBattleCardDataAsset;
 class UWidget_DeckCardEntry;
 class UEffectRichTextBlock;
 class URichTextBlockWidget;
+class UCardInfoEffectEntry;
 
 /**
  * 
@@ -40,11 +41,10 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_CardName;
 
-	UPROPERTY(
-		EditDefaultsOnly,
-		BlueprintReadOnly,
-		Category = "Effect"
-	)
+	UPROPERTY(EditDefaultsOnly, Category = "Card Info")
+	TSubclassOf<UCardInfoEffectEntry> CardInfoEffectEntryClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect")
 	TSubclassOf<URichTextBlockWidget> RichTextBlockWidgetClass;
 	
 public:
