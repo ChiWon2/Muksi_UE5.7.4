@@ -24,6 +24,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
+#include "Muksi/Widgets/Battle/BattleControl/Widget_BattleControlPanel.h"
 #include "Muksi/Widgets/Battle/CardPreview/CardPreviewPanel.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Widgets/Battle/Hand/ExchangeControl/ExchangeControlWidget.h"
@@ -62,12 +63,14 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	}
 
 	BattleTargetingManager->OnEnemyCardSelectionReady.AddUObject(this, &UWidget_BattleMainScreen::HandleEnemyCardSelectionReady);
+	BattleTargetingManager->OnPlayerTargetingCancelled.AddUObject(this, &UWidget_BattleMainScreen::HandlePlayerTargetingCancelled);
 
 	BindBattleManagerEvents();
 	BindBattleSequenceManagerEvents();
 	BindBattlePipelineWidgetEvents();
+	//HandWidget은 없어질 예정
 	BindHandWidgetEvents();
-	
+	BindBattleControlPanelEvents();
 
 	BattleManager->StartBattleFlow();
 	
@@ -82,11 +85,14 @@ void UWidget_BattleMainScreen::NativeDestruct()
 	UnbindBattleManagerEvents();
 	UnbindBattleSequenceManagerEvents();
 	UnbindBattlePipelineWidgetEvents();
+	//HandWidget은 없어질 예정
 	UnbindHandWidgetEvents();
+	UnbindBattleControlPanelEvents();
 
 	if (BattleTargetingManager)
 	{
 		BattleTargetingManager->OnEnemyCardSelectionReady.RemoveAll(this);
+		BattleTargetingManager->OnPlayerTargetingCancelled.RemoveAll(this);
 	}
 
 	Super::NativeDestruct();
@@ -112,8 +118,12 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 
 	ActivePassiveWidget->SetData(Player, Enemy);//각 캐릭터 Passive 관련 위젯 설정
 	StatusHUDWidget->SetData(Player, Enemy);//각 캐릭터 Stat 관련 위젯 설정
+	
+	//HandWidget 관련 기능은 없어질 예정
 	HandWidget->SetBattleCharacter(Player);//BattleCharacterBase의 BattleCardId로 손패 관련 설정
 	HandWidget->BindingBattleCardManager(BattleManager->GetBattleCardManager());//HandWidget과 BattleCardComponent 바인딩
+	
+	BattleControlPanel->SetBattleCharacter(Player);
 }
 
 
@@ -212,6 +222,86 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 		return;
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
+}
+
+void UWidget_BattleMainScreen::BindBattleControlPanelEvents()
+{
+	if (!BattleControlPanel)
+	{
+		return;
+	}
+
+	BattleControlPanel->OnBattleSkillSelected.RemoveAll(this);
+
+	BattleControlPanel->OnBattleSkillSelected.AddUObject(this,&UWidget_BattleMainScreen::HandleBattleSkillSelected);
+
+}
+
+void UWidget_BattleMainScreen::UnbindBattleControlPanelEvents()
+{
+	if (!BattleControlPanel)
+	{
+		return;
+	}
+
+	BattleControlPanel->OnBattleSkillSelected.RemoveAll(this);
+}
+
+void UWidget_BattleMainScreen::HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)
+{
+	if (!InstanceId.IsValid() || !CardData)
+	{
+		return;
+	}
+
+	BattleTargetingManager->RequestPlayerCardSelection(CardData);
+}
+
+void UWidget_BattleMainScreen::HandlePlayerTargetingCancelled()
+{
+	if (!BattleManager || !BattleControlPanel)
+	{
+		return;
+	}
+
+	UBattleRuntimeContext* RuntimeContext =
+		BattleManager->GetBattleRuntimeContext();
+
+	if (!RuntimeContext)
+	{
+		return;
+	}
+
+	ABattleCharacterBase* Player =
+		RuntimeContext->GetPlayerCharacter();
+
+	if (!Player)
+	{
+		return;
+	}
+
+	UBattleCardComponent* CardComponent =
+		Player->GetBattleCardComponent();
+
+	if (!CardComponent)
+	{
+		return;
+	}
+
+	const int32 ExchangeIndex =
+		BattleManager->GetCurrentExchange();
+
+	const FBattleCardInstance* CommittedCard =
+		CardComponent->GetCommittedCardByExchange(ExchangeIndex);
+
+	if (!CommittedCard)
+	{
+		return;
+	}
+
+	const FGuid InstanceId = CommittedCard->InstanceId;
+
+	BattleControlPanel->ReturnCommittedSkill(InstanceId);
 }
 
 void UWidget_BattleMainScreen::BattlePipelineWidgetSetting(EBattlePhase BattlePhase)
@@ -687,6 +777,12 @@ void UWidget_BattleMainScreen::SetBattleCardToHand()
 	//TODO 이 기능이 적용되어있으면 HandlePipelineUIFinish()로 연결
 	
 	HandWidget->HitActiveHandCards(true);
+	
+	// 추가
+	if (BattleControlPanel)
+	{
+		BattleControlPanel->RefreshSkillSlots();
+	}
 }
 
 void UWidget_BattleMainScreen::ClearBattleCard()const

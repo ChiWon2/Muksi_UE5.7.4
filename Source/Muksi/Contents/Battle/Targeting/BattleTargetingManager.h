@@ -20,6 +20,7 @@ struct FHitResult;
 struct FTargetingIntent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnemyCardSelectionReady, UMuksiBattleCardDataAsset*, int32);
+DECLARE_MULTICAST_DELEGATE(FOnPlayerTargetingCancelled);
 
 /**
  * Exchange 카드 선택, Targeting Session과 카드 공개 Preview를 담당한다.
@@ -52,6 +53,8 @@ public:
     UTargetingPresentationController* GetPresentationController() const { return TargetingPresentationController.Get(); }
 
     FOnEnemyCardSelectionReady OnEnemyCardSelectionReady;
+    FOnPlayerTargetingCancelled OnPlayerTargetingCancelled;
+
 
 protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

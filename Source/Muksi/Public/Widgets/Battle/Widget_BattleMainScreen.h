@@ -21,6 +21,7 @@ class UBattlePhaseTaskContext;
 class UBattlePipelineWidget;
 class UExchangeControlWidget;
 class UWidget_BattleCardBase;
+class UWidget_BattleControlPanel;
 
 
 class ABattleCharacterBase;
@@ -78,6 +79,9 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	UExchangeControlWidget* ExchangeControlWidget;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_BattleControlPanel> BattleControlPanel;
 
 	//***** Bound Widgets ****
 private:
@@ -111,6 +115,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void UnbindBattlePipelineWidgetEvents();
+	
+	
 
 
 	bool CanRequestEndExchange();
@@ -131,6 +137,11 @@ protected:
 	void UnbindBattleManagerEvents();
 	void BindBattleSequenceManagerEvents();
 	void UnbindBattleSequenceManagerEvents();
+	
+	void BindBattleControlPanelEvents();
+	void UnbindBattleControlPanelEvents();
+	void HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData);
+	void HandlePlayerTargetingCancelled();
 	
 	void BattlePipelineWidgetSetting(EBattlePhase BattlePhase);
 
