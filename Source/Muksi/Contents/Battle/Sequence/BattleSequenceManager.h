@@ -16,7 +16,7 @@ class UBattlePhaseTaskContext;
 class UBattleActionExecutor;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDeceiveCardRevealRequestedDelegate, const FBattleAction&);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FBattleSequenceActionStartedDelegate, const FBattleAction&, TArray<FBattleExecutionEntry>&);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FBattleSequenceActionStartedDelegate, FBattleAction&, FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FBattleSequenceActionCompletedDelegate, const FBattleAction&);
 
 UCLASS()
@@ -35,7 +35,7 @@ public:
 	// 실제 BattleActionQueue에서 변초 Action 실행 직전에 Reveal UI를 요청한다.
 	FDeceiveCardRevealRequestedDelegate DeceiveCardRevealRequestedDelegate;
 
-	// 실제 AA BattleAction 실행 직전 이벤트. 확정된 MainExecutionEntries를 실행 전에 편집할 수 있다.
+	// 실제 BattleAction 실행 직전 이벤트. 현재 Action과 같은 합의 상대 Action을 함께 편집할 수 있다.
 	FBattleSequenceActionStartedDelegate BattleActionStartedDelegate;
 
 	// 단일 BattleAction 완료 이벤트.
@@ -93,7 +93,6 @@ private:
 	void PresentBattleActionTargetingResult(const FBattleAction& Action, const FTargetingResult& TargetingResult);
 	void ClearBattleActionPresentation();
 
-	void HandleBattleActionStarted(const FBattleAction& Action, TArray<FBattleExecutionEntry>& ExecutionEntries);
 	void HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
 	void HandleBattleActionCompleted();
 
@@ -101,6 +100,7 @@ private:
 	void StartCurrentBattleAction();
 	bool ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const;
 	void ExecuteCurrentBattleAction();
+	FBattleAction* FindOpponentBattleAction(const FBattleAction& CurrentAction);
 	void FinishCurrentBattleAction();
 	void StartNextBattleActionDeferred();
 	void FinishBattleActionSequence();

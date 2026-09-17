@@ -12,6 +12,8 @@
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Setup/BattleSetupManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectRegistry.h"
+#include "Muksi/Contents/Battle/StatusEffect/StatusEffectRegistryDataAsset.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
@@ -39,7 +41,14 @@ void ABattleManager::BeginPlay()
     
     BattleCardManager = NewObject<UBattleCardManager>(this);
 
-    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this)) 
+    StatusEffectRegistry = NewObject<UMuksiStatusEffectRegistry>(this);
+    if (!StatusEffectRegistry || !StatusEffectRegistry->Initialize(StatusEffectRegistryDataAsset))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize StatusEffectRegistry."));
+        StatusEffectRegistry = nullptr;
+    }
+
+    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
         ManagerSubsystem->RegisterManager<ABattleManager>(this);
 }
 
@@ -53,6 +62,8 @@ void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
     PhasePipeline = nullptr;
     BattleRuntimeContext = nullptr;
+    BattleCardManager = nullptr;
+    StatusEffectRegistry = nullptr;
     bBattleFlowInitialized = false;
     bBattleFlowStarted = false;
     DeadBattleCharacter.Reset();
@@ -71,6 +82,12 @@ bool ABattleManager::InitializeBattleFlow()
 
     if (!IsValid(BattleRuntimeContext) || !IsValid(PhasePipeline))
         return false;
+
+    if (!IsValid(StatusEffectRegistry))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] StatusEffectRegistry is unavailable."));
+        return false;
+    }
 
     if (!IsValid(BattleSetupManager) || !IsValid(BattleGridManager) || !IsValid(BattleTargetingManager) || !IsValid(BattleSimulationManager) || !IsValid(BattleSequenceManager))
     {
@@ -101,9 +118,7 @@ bool ABattleManager::InitializeBattleFlow()
 bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuksiBattleCardDataAsset* Card, const FTargetingIntent& TargetingIntent, bool bPlayerAction)
 {
     if (!IsValid(BattleRuntimeContext) || !IsValid(Attacker) || !IsValid(Card))
-    {
         return false;
-    }
 
     if (CurrentExchange < 0 || CurrentExchange >= MaxExchangeCount)
     {
@@ -113,20 +128,23 @@ bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuks
 
     FBattleAction BattleAction;
     BattleAction.ExchangeIndex = CurrentExchange;
-    BattleAction.Card = Card;
-    BattleAction.Speed = Attacker->GetCharacterSpeed() + Card->CardSpeed;
     BattleAction.Attacker = Attacker;
+    BattleAction.Card = Card;
+    BattleAction.CardSpeed = Card->CardSpeed;
+    BattleAction.CharacterSpeed = Attacker->GetCharacterSpeed();
     BattleAction.bPlayerAction = bPlayerAction;
     BattleAction.TargetingIntent = TargetingIntent;
 
+    UMuksiBattleCardDataAsset* ExecutionCard = Card->GetActualCard();
+    if (!IsValid(ExecutionCard))
+        ExecutionCard = Card;
+
+    BattleAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
+
     if (bPlayerAction)
-    {
         BattleRuntimeContext->SetPlayerExchangeAction(CurrentExchange, BattleAction);
-    }
     else
-    {
         BattleRuntimeContext->SetEnemyExchangeAction(CurrentExchange, BattleAction);
-    }
 
     return true;
 }

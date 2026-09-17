@@ -25,7 +25,7 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 		return false;
 
 	UMuksiBattleCardDataAsset* ExecutionCard = ResolveExecutionCard(Action);
-	if (!IsValid(ExecutionCard) || ExecutionCard->MainExecutionEntries.IsEmpty())
+	if (!IsValid(ExecutionCard) || Action.ExecutionEntries.IsEmpty())
 		return false;
 
 	FTargetingResult TargetingResult;
@@ -157,9 +157,7 @@ void UBattleActionExecutor::UnbindAttackerNotify()
 
 bool UBattleActionExecutor::RunMainExecutionEntries()
 {
-	TArray<FBattleExecutionEntry> MainExecutionEntries = CurrentExecutionCard->MainExecutionEntries;
-	OnBattleActionStarted.ExecuteIfBound(CurrentAction, MainExecutionEntries);
-
+	const TArray<FBattleExecutionEntry> MainExecutionEntries = CurrentAction.ExecutionEntries;
 	return RunExecutionEntries(MainExecutionEntries);
 }
 

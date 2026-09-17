@@ -13,7 +13,6 @@ class UBattleExecutionRunner;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 
-DECLARE_DELEGATE_TwoParams(FBattleActionStartedDelegate, const FBattleAction&, TArray<FBattleExecutionEntry>&);
 DECLARE_DELEGATE(FBattleActionCompletedDelegate);
 DECLARE_DELEGATE_FourParams(FBattleActionExecutionEntryStartedDelegate, const FBattleAction&, const FBattleExecutionEntry&, int32, const FTargetingResult&);
 
@@ -34,7 +33,6 @@ private:
 	friend class UBattleSimulationWorldRuntime;
 class UBattleSimulationWorldRuntime;
 
-	FBattleActionStartedDelegate OnBattleActionStarted;
 	FBattleActionCompletedDelegate OnBattleActionCompleted;
 	FBattleActionExecutionEntryStartedDelegate OnExecutionEntryStarted;
 

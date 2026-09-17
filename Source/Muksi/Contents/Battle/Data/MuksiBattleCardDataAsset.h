@@ -50,6 +50,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	float CardSpeed = 1.0f;
 
+	// 카드 행동 순서 결정에 사용하는 속도.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	int Cooldown = 0;
+
+	// 카드 행동 순서 결정에 사용하는 속도.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	int Cost = 0;
+
 	// 카드 시작 시 순서대로 실행할 Main BattleExecutionEntry 목록.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Execution")
 	TArray<FBattleExecutionEntry> MainExecutionEntries;

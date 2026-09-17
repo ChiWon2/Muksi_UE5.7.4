@@ -2,7 +2,7 @@
 
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "MuksiStatusEffect.h"
-#include "MuksiStatusEffectSubsystem.h"
+#include "MuksiStatusEffectRegistry.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
@@ -31,9 +31,11 @@ void UMuksiStatusEffectComponent::CopyRuntimeStateFrom(const UMuksiStatusEffectC
     ActiveEffects.Reset();
     for (UMuksiStatusEffect* SourceEffect : SourceComponent.ActiveEffects)
     {
-        if (!IsValid(SourceEffect)) continue;
+        if (!IsValid(SourceEffect))
+            continue;
         UMuksiStatusEffect* NewEffect = NewObject<UMuksiStatusEffect>(this, SourceEffect->GetClass());
-        if (!IsValid(NewEffect)) continue;
+        if (!IsValid(NewEffect))
+            continue;
         NewEffect->CopyRuntimeStateFrom(*SourceEffect, GetOwner());
         ActiveEffects.Add(NewEffect);
     }
@@ -44,7 +46,8 @@ void UMuksiStatusEffectComponent::ResetRuntimeState()
 	FinishExecution();
 	const bool bHadActiveEffects = !ActiveEffects.IsEmpty();
 	ActiveEffects.Reset();
-	if (bHadActiveEffects) OnStatusEffectsChanged.Broadcast();
+	if (bHadActiveEffects)
+		OnStatusEffectsChanged.Broadcast();
 }
 
 void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -59,49 +62,54 @@ void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 	Super::EndPlay(EndPlayReason);
 }
 
-UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,int32 StackCount,int32 Duration)
+UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID, int32 StackCount, int32 Duration)
 {
     if (EffectID.IsNone())
-    {
         return nullptr;
-    }
 
     StackCount = FMath::Max(1, StackCount);
     Duration = FMath::Max(1, Duration);
 
-    UMuksiStatusEffectSubsystem* StatusEffectSubsystem = UMuksiStatusEffectSubsystem::Get(this);
-
-    TSubclassOf<UMuksiStatusEffect> EffectClass = StatusEffectSubsystem->FindEffectClass(EffectID);
-
-    if (!EffectClass)
-    {
-        UE_LOG(LogTemp, Error,TEXT("[StatusEffectComponent] Cannot find EffectClass. EffectID: %s"),*EffectID.ToString());
-        return nullptr;
-    }
-
     if (UMuksiStatusEffect* ExistingEffect = FindEffectByID(EffectID))
     {
         ExistingEffect->OnReapplied(StackCount, Duration);
-
         OnStatusEffectsChanged.Broadcast();
-
         return ExistingEffect;
     }
 
-    UMuksiStatusEffect* NewEffect = NewObject<UMuksiStatusEffect>(this,EffectClass);
+    if (!IsValid(BattleManager))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[StatusEffectComponent] BattleManager is unavailable."));
+        return nullptr;
+    }
 
-    NewEffect->Initialize(GetOwner(),EffectID,StackCount,Duration);
+    UMuksiStatusEffectRegistry* StatusEffectRegistry = BattleManager->GetStatusEffectRegistry();
+    if (!StatusEffectRegistry)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[StatusEffectComponent] StatusEffectRegistry is unavailable."));
+        return nullptr;
+    }
 
+    TSubclassOf<UMuksiStatusEffect> EffectClass = StatusEffectRegistry->FindEffectClass(EffectID);
+    if (!EffectClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[StatusEffectComponent] Cannot find EffectClass. EffectID: %s"), *EffectID.ToString());
+        return nullptr;
+    }
+
+    UMuksiStatusEffect* NewEffect = NewObject<UMuksiStatusEffect>(this, EffectClass);
+    if (!NewEffect)
+        return nullptr;
+
+    NewEffect->Initialize(GetOwner(), EffectID, StackCount, Duration);
     ActiveEffects.Add(NewEffect);
-
     NewEffect->OnApplied();
-
     OnStatusEffectsChanged.Broadcast();
 
     return NewEffect;
 }
 
-UMuksiStatusEffect* UMuksiStatusEffectComponent::SubtractStatusEffect(FName EffectID,int32 StackCount,int32 Duration)
+UMuksiStatusEffect* UMuksiStatusEffectComponent::SubtractStatusEffect(FName EffectID, int32 StackCount, int32 Duration)
 {
     if (EffectID.IsNone())
     {
@@ -196,17 +204,39 @@ const TArray<TObjectPtr<UMuksiStatusEffect>>& UMuksiStatusEffectComponent::GetAc
     return ActiveEffects;
 }
 
-void UMuksiStatusEffectComponent::HandleBattleActionStarted(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries)
+UStatusEffectDefinitionDataAsset* UMuksiStatusEffectComponent::FindStatusEffectDefinition(FName EffectID) const
 {
-	if (BattleAction.Attacker.Get() != GetOwner())
+    if (!IsValid(BattleManager))
+        return nullptr;
+
+    UMuksiStatusEffectRegistry* StatusEffectRegistry = BattleManager->GetStatusEffectRegistry();
+    if (!StatusEffectRegistry)
+        return nullptr;
+
+    return StatusEffectRegistry->FindDefinition(EffectID);
+}
+
+void UMuksiStatusEffectComponent::HandleBattleActionStarted(FBattleAction& CurrentAction, FBattleAction& OpponentAction)
+{
+	if (CurrentAction.Attacker.Get() != GetOwner())
 		return;
 
-	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
-	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
+	TArray<UMuksiStatusEffect*> EditingEffects;
+	EditingEffects.Reserve(ActiveEffects.Num());
+
+	for (UMuksiStatusEffect* Effect : ActiveEffects)
 	{
 		if (IsValid(Effect))
-			Effect->EditBattleActionExecutionEntries(BattleAction, ExecutionEntries);
+			EditingEffects.Add(Effect);
 	}
+
+	EditingEffects.StableSort([](const UMuksiStatusEffect& A, const UMuksiStatusEffect& B)
+	{
+		return A.GetBattleActionEditPriority() < B.GetBattleActionEditPriority();
+	});
+
+	for (UMuksiStatusEffect* Effect : EditingEffects)
+		Effect->EditBattleActions(CurrentAction, OpponentAction);
 }
 
 void UMuksiStatusEffectComponent::AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
@@ -214,7 +244,8 @@ void UMuksiStatusEffectComponent::AppendHitDealtExecutionEntries(const FBattleEx
 	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
 	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
 	{
-		if (IsValid(Effect)) Effect->BuildHitDealtExecutionEntries(Context, Damage, OutExecutionEntries);
+		if (IsValid(Effect))
+			Effect->BuildHitDealtExecutionEntries(Context, Damage, OutExecutionEntries);
 	}
 }
 
@@ -223,7 +254,8 @@ void UMuksiStatusEffectComponent::AppendHitReceivedExecutionEntries(const FBattl
 	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
 	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
 	{
-		if (IsValid(Effect)) Effect->BuildHitReceivedExecutionEntries(Context, Damage, OutExecutionEntries);
+		if (IsValid(Effect))
+			Effect->BuildHitReceivedExecutionEntries(Context, Damage, OutExecutionEntries);
 	}
 }
 

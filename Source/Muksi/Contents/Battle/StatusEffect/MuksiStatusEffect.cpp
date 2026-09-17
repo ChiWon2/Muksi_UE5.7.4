@@ -28,10 +28,10 @@ void UMuksiStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBatt
 	static_cast<void>(OutExecutionEntries);
 }
 
-void UMuksiStatusEffect::EditBattleActionExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries)
+void UMuksiStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction)
 {
-	static_cast<void>(BattleAction);
-	static_cast<void>(ExecutionEntries);
+	static_cast<void>(CurrentAction);
+	static_cast<void>(OpponentAction);
 }
 
 void UMuksiStatusEffect::BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries)

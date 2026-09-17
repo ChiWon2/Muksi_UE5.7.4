@@ -8,6 +8,7 @@
 class ABattleManager;
 class UMuksiStatusEffect;
 class UBattleExecutionRunner;
+class UStatusEffectDefinitionDataAsset;
 struct FBattleAction;
 struct FBattleExecutionContext;
 struct FBattleExecutionEntry;
@@ -43,6 +44,7 @@ public:
     UMuksiStatusEffect* FindEffectByID(FName EffectID) const;
     int32 GetEffectStackCount(FName EffectID) const;
     const TArray<TObjectPtr<UMuksiStatusEffect>>& GetActiveEffects() const;
+    UStatusEffectDefinitionDataAsset* FindStatusEffectDefinition(FName EffectID) const;
 	void AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const;
 	void AppendHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const;
 
@@ -60,7 +62,7 @@ private:
 
     void RemoveExpiredEffects();
     void RemoveStatusEffect(UMuksiStatusEffect* Effect);
-	void HandleBattleActionStarted(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries);
+	void HandleBattleActionStarted(FBattleAction& CurrentAction, FBattleAction& OpponentAction);
     void ExecuteNextStatusEffect();
     void RunPhaseExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries);
     void HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
