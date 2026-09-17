@@ -364,23 +364,34 @@ void UHandWidget::HitActiveHandCards(bool bHitActive)
 
 void UHandWidget::SetHoveredCard(UWidget_BattleCardBase* InHoveredCard)
 {
+	if (!InHoveredCard)
+	{
+		return;
+	}
+	
 	HoveredCard = InHoveredCard;
 
 	RequestOrganizeCards(DefaultCardSpacing);
 
-	ShowDeceivedCardPreview(InHoveredCard);
+	//ShowDeceivedCardPreview(InHoveredCard);
+	
+	OnBattleCardHovered.Broadcast(InHoveredCard);
 }
 
 void UHandWidget::ClearHoveredCard(UWidget_BattleCardBase* InCard)
 {
-	if (HoveredCard == InCard)
+	if (HoveredCard != InCard)
 	{
-		HoveredCard = nullptr;
-
-		HideDeceivedCardPreview(InCard);
-
-		RequestOrganizeCards(DefaultCardSpacing);
+		return;
 	}
+
+	HoveredCard = nullptr;
+
+	HideDeceivedCardPreview(InCard);
+
+	RequestOrganizeCards(DefaultCardSpacing);
+	
+	OnBattleCardHoverEnded.Broadcast(InCard);
 }
 
 void UHandWidget::HandleCardDragStarted(UWidget_BattleCardBase* InCard)
@@ -401,10 +412,10 @@ void UHandWidget::HandleCardDragEnded(UWidget_BattleCardBase* InCard)
 	}
 	
 	
-	if (InCard->IsHovered() && BattleCards.Contains(InCard))
+	/*if (InCard->IsHovered() && BattleCards.Contains(InCard))
 	{
 		ShowDeceivedCardPreview(InCard);
-	}
+	}*/
 }
 
 const FGeometry& UHandWidget::GetHandCanvasGeometry() const
@@ -615,6 +626,7 @@ void UHandWidget::HandleCardReturnRequested(UWidget_BattleCardBase* CardWidget)
 
 void UHandWidget::ShowDeceivedCardPreview(UWidget_BattleCardBase* SourceCard)
 {
+	//return;
 	if (!SourceCard || !HandCanvas || !BattleCardClass)
     {
         return;

@@ -39,15 +39,25 @@ public:
 	TMap<FName, FEffectKeywordStyle> KeywordStyles;
 	
 public:
-	void ShowEffectDescription(
-		const FText& EffectName,
-		const FEffectKeywordStyle& EffectStyle
-	);
+	void ShowEffectDescription(const FText& EffectName, const FEffectKeywordStyle& EffectStyle);
 	void HideEffectDescription();
+	
+	bool IsHoverPopupEnabled()const {return bEnableEffectHover;}
+	
+	void SetHoverPopupEnabled(bool bEnable) {bEnableEffectHover = bEnable;}
+	float GetEffectIconScale() const
+	{
+		return EffectIconScale;
+	}
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect Popup")
 	TSubclassOf<UEffectDescriptionPopup> EffectDescriptionPopupClass;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Rich Text")
+	bool bEnableEffectHover = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect Style")
+	float EffectIconScale = 1.0f;
 
 private:
 	UPROPERTY()

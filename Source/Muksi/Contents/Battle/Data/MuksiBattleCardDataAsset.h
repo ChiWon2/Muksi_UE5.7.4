@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "StructUtils/InstancedStruct.h"
+#include "MuksiBattleCardDisplayData.h"
 
 #include "MuksiBattleCardType.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
@@ -78,8 +78,9 @@ public:
 
 	//카드 발동 효과 묘사
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Effect")
-	TArray<FText> CardEffectsDescription;
+	//카드 발동 효과 정보 <- 여기에 다 적힐 예정
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|DisplayData")
+	TArray<FCardEffectDisplayData> EffectDisplayData;
 	
 public:
 	// 패닉 상황에서 이 카드를 자동으로 사용할 때의 좌표 선택 방식.
