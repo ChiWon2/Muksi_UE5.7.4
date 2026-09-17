@@ -135,6 +135,12 @@ bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuks
     BattleAction.bPlayerAction = bPlayerAction;
     BattleAction.TargetingIntent = TargetingIntent;
 
+    UMuksiBattleCardDataAsset* ExecutionCard = Card->GetActualCard();
+    if (!IsValid(ExecutionCard))
+        ExecutionCard = Card;
+
+    BattleAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
+
     if (bPlayerAction)
         BattleRuntimeContext->SetPlayerExchangeAction(CurrentExchange, BattleAction);
     else

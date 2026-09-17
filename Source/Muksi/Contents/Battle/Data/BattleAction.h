@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 #include "BattleAction.generated.h"
 
@@ -39,6 +40,10 @@ struct FBattleAction
 	// 카드 선택 과정에서 확정된 Targeting 의도
 	UPROPERTY(BlueprintReadOnly)
 	FTargetingIntent TargetingIntent;
+
+	// 이번 BattleAction에서 실제로 실행할 Main Execution 목록.
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FBattleExecutionEntry> ExecutionEntries;
 
 	bool IsHigherPriorityThan(const FBattleAction& Other) const
 	{

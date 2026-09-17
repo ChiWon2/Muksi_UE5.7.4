@@ -215,6 +215,16 @@ bool UBattleSimulationWorldRuntime::BuildSimulationAction(const FBattleAction& A
 		return false;
 	OutAction = Action;
 	OutAction.Attacker = SimulationAttacker;
+
+	UMuksiBattleCardDataAsset* ExecutionCard = Action.Card.Get();
+	if (BattleSimulationWorld::UsesActualCard(WorldType, Action.bPlayerAction))
+	{
+		UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetActualCard();
+		if (IsValid(ActualCard))
+			ExecutionCard = ActualCard;
+	}
+
+	OutAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
 	return true;
 }
 

@@ -12,10 +12,14 @@
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-void USaeMaekStatusEffect::EditBattleActionExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries)
+void USaeMaekStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction)
 {
-	if (!BattleAction.Card || BattleAction.Card->CardTypeInfo.CardType != EMuksiBattleCardType::Attack || GetCurrentStack() <= 0)
+	static_cast<void>(OpponentAction);
+
+	if (!CurrentAction.Card || CurrentAction.Card->CardTypeInfo.CardType != EMuksiBattleCardType::Attack || GetCurrentStack() <= 0)
 		return;
+
+	TArray<FBattleExecutionEntry>& ExecutionEntries = CurrentAction.ExecutionEntries;
 
 	FBattleExecutionEntry DamageEntry;
 	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();

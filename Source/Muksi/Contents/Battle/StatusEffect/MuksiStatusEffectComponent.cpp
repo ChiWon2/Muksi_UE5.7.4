@@ -216,17 +216,27 @@ UStatusEffectDefinitionDataAsset* UMuksiStatusEffectComponent::FindStatusEffectD
     return StatusEffectRegistry->FindDefinition(EffectID);
 }
 
-void UMuksiStatusEffectComponent::HandleBattleActionStarted(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries)
+void UMuksiStatusEffectComponent::HandleBattleActionStarted(FBattleAction& CurrentAction, FBattleAction& OpponentAction)
 {
-	if (BattleAction.Attacker.Get() != GetOwner())
+	if (CurrentAction.Attacker.Get() != GetOwner())
 		return;
 
-	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
-	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
+	TArray<UMuksiStatusEffect*> EditingEffects;
+	EditingEffects.Reserve(ActiveEffects.Num());
+
+	for (UMuksiStatusEffect* Effect : ActiveEffects)
 	{
 		if (IsValid(Effect))
-			Effect->EditBattleActionExecutionEntries(BattleAction, ExecutionEntries);
+			EditingEffects.Add(Effect);
 	}
+
+	EditingEffects.StableSort([](const UMuksiStatusEffect& A, const UMuksiStatusEffect& B)
+	{
+		return A.GetBattleActionEditPriority() < B.GetBattleActionEditPriority();
+	});
+
+	for (UMuksiStatusEffect* Effect : EditingEffects)
+		Effect->EditBattleActions(CurrentAction, OpponentAction);
 }
 
 void UMuksiStatusEffectComponent::AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const

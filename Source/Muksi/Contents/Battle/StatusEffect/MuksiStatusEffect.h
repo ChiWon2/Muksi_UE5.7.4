@@ -27,6 +27,9 @@ protected:
     UPROPERTY()
     int32 RemainingDuration = 1;
 
+    UPROPERTY(EditDefaultsOnly, Category = "Battle Action")
+    int32 BattleActionEditPriority = 0;
+
 public:
     void Initialize(AActor* InOwnerActor,FName InEffectID,int32 InStackCount,int32 InDuration);
     void CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor);
@@ -39,7 +42,7 @@ public:
 
 public:
 	virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries);
-	virtual void EditBattleActionExecutionEntries(const FBattleAction& BattleAction, TArray<FBattleExecutionEntry>& ExecutionEntries);
+	virtual void EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction);
 	virtual void BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 	virtual void BuildHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 
@@ -72,5 +75,11 @@ public:
         int32 GetRemainingDuration() const
     {
         return RemainingDuration;
+    }
+
+    FORCEINLINE
+        int32 GetBattleActionEditPriority() const
+    {
+        return BattleActionEditPriority;
     }
 };

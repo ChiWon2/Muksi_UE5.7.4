@@ -26,7 +26,6 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type Reason)
 	ResetBattleActionSequence();
 	if (ActionExecutor)
 	{
-		ActionExecutor->OnBattleActionStarted.Unbind();
 		ActionExecutor->OnBattleActionCompleted.Unbind();
 		ActionExecutor->OnExecutionEntryStarted.Unbind();
 		ActionExecutor->Stop();
@@ -51,7 +50,6 @@ bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InManager, UBa
 		return false;
 	if (!ActionExecutor->Initialize(BattleGridManager, EBattleSimulationWorldType::PlayerActualEnemyActual))
 		return false;
-	ActionExecutor->OnBattleActionStarted.BindUObject(this, &ABattleSequenceManager::HandleBattleActionStarted);
 	ActionExecutor->OnBattleActionCompleted.BindUObject(this, &ABattleSequenceManager::HandleBattleActionCompleted);
 	ActionExecutor->OnExecutionEntryStarted.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryStarted);
 	return true;
@@ -179,7 +177,12 @@ void ABattleSequenceManager::ExecuteCurrentBattleAction()
 {
 	if (!bBattleActionSequenceRunning || !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
 		return;
-	const FBattleAction& Action = BattleActionQueue[CurrentBattleActionIndex];
+
+	FBattleAction& Action = BattleActionQueue[CurrentBattleActionIndex];
+	FBattleAction* OpponentAction = FindOpponentBattleAction(Action);
+	if (OpponentAction)
+		BattleActionStartedDelegate.Broadcast(Action, *OpponentAction);
+
 	if (!ActionExecutor)
 	{
 		FinishCurrentBattleAction();
@@ -190,9 +193,18 @@ void ABattleSequenceManager::ExecuteCurrentBattleAction()
 		FinishCurrentBattleAction();
 }
 
-void ABattleSequenceManager::HandleBattleActionStarted(const FBattleAction& Action, TArray<FBattleExecutionEntry>& ExecutionEntries)
+FBattleAction* ABattleSequenceManager::FindOpponentBattleAction(const FBattleAction& CurrentAction)
 {
-	BattleActionStartedDelegate.Broadcast(Action, ExecutionEntries);
+	for (FBattleAction& Action : BattleActionQueue)
+	{
+		if (&Action == &CurrentAction)
+			continue;
+
+		if (Action.ExchangeIndex == CurrentAction.ExchangeIndex && Action.bPlayerAction != CurrentAction.bPlayerAction)
+			return &Action;
+	}
+
+	return nullptr;
 }
 
 void ABattleSequenceManager::HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult)
