@@ -45,6 +45,9 @@ public:
 	// 카드 이미지.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
 	TObjectPtr<UTexture2D> CardTexture = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	TObjectPtr<UTexture2D> CardIcon = nullptr;
 
 	// 카드 행동 순서 결정에 사용하는 속도.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")

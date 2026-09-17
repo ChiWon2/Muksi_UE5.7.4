@@ -31,6 +31,7 @@ ABattleTargetingManager::ABattleTargetingManager()
     PrimaryActorTick.bCanEverTick = false;
 }
 
+
 void ABattleTargetingManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
@@ -440,6 +441,9 @@ void ABattleTargetingManager::CancelPlayerTargeting()
     PlayerTargetingCard = nullptr;
 
     BattleManager->GetBattleRuntimeContext()->ClearPlayerExchangeAction(BattleManager->GetCurrentExchange());
+    
+    //commit에 카드 제거
+    OnPlayerTargetingCancelled.Broadcast();
 
     if (BattleManager->GetCurrentPhase() == EBattlePhase::Targeting)
     {
