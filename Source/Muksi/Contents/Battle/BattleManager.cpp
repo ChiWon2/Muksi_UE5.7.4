@@ -101,9 +101,7 @@ bool ABattleManager::InitializeBattleFlow()
 bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuksiBattleCardDataAsset* Card, const FTargetingIntent& TargetingIntent, bool bPlayerAction)
 {
     if (!IsValid(BattleRuntimeContext) || !IsValid(Attacker) || !IsValid(Card))
-    {
         return false;
-    }
 
     if (CurrentExchange < 0 || CurrentExchange >= MaxExchangeCount)
     {
@@ -113,20 +111,17 @@ bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuks
 
     FBattleAction BattleAction;
     BattleAction.ExchangeIndex = CurrentExchange;
-    BattleAction.Card = Card;
-    BattleAction.Speed = Attacker->GetCharacterSpeed() + Card->CardSpeed;
     BattleAction.Attacker = Attacker;
+    BattleAction.Card = Card;
+    BattleAction.CardSpeed = Card->CardSpeed;
+    BattleAction.CharacterSpeed = Attacker->GetCharacterSpeed();
     BattleAction.bPlayerAction = bPlayerAction;
     BattleAction.TargetingIntent = TargetingIntent;
 
     if (bPlayerAction)
-    {
         BattleRuntimeContext->SetPlayerExchangeAction(CurrentExchange, BattleAction);
-    }
     else
-    {
         BattleRuntimeContext->SetEnemyExchangeAction(CurrentExchange, BattleAction);
-    }
 
     return true;
 }

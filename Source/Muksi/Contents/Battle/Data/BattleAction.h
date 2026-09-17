@@ -24,9 +24,13 @@ struct FBattleAction
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UMuksiBattleCardDataAsset> Card = nullptr;
 
-	// 행동 생성 시점의 속도
+	// 행동 생성 시점의 카드 속도
 	UPROPERTY(BlueprintReadOnly)
-	int32 Speed = 0;
+	float CardSpeed = 0.0f;
+
+	// 행동 생성 시점의 캐릭터 속도
+	UPROPERTY(BlueprintReadOnly)
+	float CharacterSpeed = 0.0f;
 
 	// 플레이어 행동인지
 	UPROPERTY(BlueprintReadOnly)
@@ -35,4 +39,18 @@ struct FBattleAction
 	// 카드 선택 과정에서 확정된 Targeting 의도
 	UPROPERTY(BlueprintReadOnly)
 	FTargetingIntent TargetingIntent;
+
+	bool IsHigherPriorityThan(const FBattleAction& Other) const
+	{
+		if (CardSpeed != Other.CardSpeed)
+			return CardSpeed > Other.CardSpeed;
+
+		if (CharacterSpeed != Other.CharacterSpeed)
+			return CharacterSpeed > Other.CharacterSpeed;
+
+		if (bPlayerAction != Other.bPlayerAction)
+			return bPlayerAction;
+
+		return false;
+	}
 };

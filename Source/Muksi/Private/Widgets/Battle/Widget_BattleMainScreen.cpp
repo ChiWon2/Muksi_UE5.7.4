@@ -954,7 +954,7 @@ bool UWidget_BattleMainScreen::PlayCurrentExchangeTurnOrderAnimation(int32 Excha
 		return false;
 	}
 
-	const bool bPlayerFirst = PlayerAction->Speed >= EnemyAction->Speed;
+	const bool bPlayerFirst = PlayerAction->IsHigherPriorityThan(*EnemyAction);
 
 	return ExchangePanel->PlayTurnOrderAnimations(ExchangeIndex, bPlayerFirst);
 }

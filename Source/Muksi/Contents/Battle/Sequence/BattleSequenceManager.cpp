@@ -118,11 +118,8 @@ void ABattleSequenceManager::SortBattleActionQueue()
 	{
 		if (A.ExchangeIndex != B.ExchangeIndex)
 			return A.ExchangeIndex < B.ExchangeIndex;
-		if (A.Speed != B.Speed)
-			return A.Speed > B.Speed;
-		if (A.bPlayerAction != B.bPlayerAction)
-			return A.bPlayerAction;
-		return false;
+
+		return A.IsHigherPriorityThan(B);
 	});
 }
 

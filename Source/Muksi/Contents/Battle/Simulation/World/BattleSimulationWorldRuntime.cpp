@@ -116,7 +116,7 @@ bool UBattleSimulationWorldRuntime::ExecuteCurrentExchange()
 	if (SimulationState != EBattleSimulationState::Prepared)
 		return false;
 
-	const bool bPlayerFirst = PreparedPlayerAction.Speed >= PreparedEnemyAction.Speed;
+	const bool bPlayerFirst = PreparedPlayerAction.IsHigherPriorityThan(PreparedEnemyAction);
 	const FBattleAction& FirstAction = bPlayerFirst ? PreparedPlayerAction : PreparedEnemyAction;
 	SimulationState = EBattleSimulationState::ExecutingFirstAction;
 
@@ -230,7 +230,7 @@ void UBattleSimulationWorldRuntime::HandleSimulationActionFinished()
 {
 	if (SimulationState == EBattleSimulationState::ExecutingFirstAction)
 	{
-		const bool bPlayerFirst = PreparedPlayerAction.Speed >= PreparedEnemyAction.Speed;
+		const bool bPlayerFirst = PreparedPlayerAction.IsHigherPriorityThan(PreparedEnemyAction);
 		const FBattleAction& SecondAction = bPlayerFirst ? PreparedEnemyAction : PreparedPlayerAction;
 		SimulationState = EBattleSimulationState::ExecutingSecondAction;
 
