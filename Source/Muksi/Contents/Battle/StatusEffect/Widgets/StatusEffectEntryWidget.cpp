@@ -4,11 +4,12 @@
 #include "Components/TextBlock.h"
 
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffect.h"
-#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectTypes.h"
+#include "Muksi/Contents/Battle/StatusEffect/StatusEffectDefinitionDataAsset.h"
 
-void UStatusEffectEntryWidget::InitWidget(UMuksiStatusEffect* InStatusEffect, const FStatusEffectRegistryData* InRegistryData)
+void UStatusEffectEntryWidget::InitWidget(UMuksiStatusEffect* InStatusEffect, UStatusEffectDefinitionDataAsset* InDefinition)
 {
     CachedStatusEffect = InStatusEffect;
+    CachedDefinition = InDefinition;
 
     if (!CachedStatusEffect)
     {
@@ -20,16 +21,17 @@ void UStatusEffectEntryWidget::InitWidget(UMuksiStatusEffect* InStatusEffect, co
 
     if (IMG_Icon)
     {
-        if (InRegistryData && InRegistryData->Icon)
+        UTexture2D* Icon = CachedDefinition ? CachedDefinition->Icon.LoadSynchronous() : nullptr;
+        if (Icon)
         {
-            IMG_Icon->SetBrushFromTexture(InRegistryData->Icon);
+            IMG_Icon->SetBrushFromTexture(Icon);
             IMG_Icon->SetVisibility(ESlateVisibility::Visible);
         }
         else
         {
             IMG_Icon->SetVisibility(ESlateVisibility::Collapsed);
 
-            UE_LOG(LogTemp, Warning,TEXT("[StatusEffectEntryWidget] Icon is null. EffectID: %s"),*CachedStatusEffect->GetEffectID().ToString());
+            UE_LOG(LogTemp, Warning, TEXT("[StatusEffectEntryWidget] Icon is null. EffectID: %s"), *CachedStatusEffect->GetEffectID().ToString());
         }
     }
 
@@ -39,7 +41,7 @@ void UStatusEffectEntryWidget::InitWidget(UMuksiStatusEffect* InStatusEffect, co
 
         TXT_Stack->SetText(FText::AsNumber(Stack));
 
-        TXT_Stack->SetVisibility(Stack > 1? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+        TXT_Stack->SetVisibility(Stack > 1 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
     }
 
     if (TXT_Duration)

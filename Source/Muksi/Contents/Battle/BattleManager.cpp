@@ -12,6 +12,8 @@
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 #include "Muksi/Contents/Battle/Setup/BattleSetupManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectRegistry.h"
+#include "Muksi/Contents/Battle/StatusEffect/StatusEffectRegistryDataAsset.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
@@ -39,7 +41,14 @@ void ABattleManager::BeginPlay()
     
     BattleCardManager = NewObject<UBattleCardManager>(this);
 
-    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this)) 
+    StatusEffectRegistry = NewObject<UMuksiStatusEffectRegistry>(this);
+    if (!StatusEffectRegistry || !StatusEffectRegistry->Initialize(StatusEffectRegistryDataAsset))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] Failed to initialize StatusEffectRegistry."));
+        StatusEffectRegistry = nullptr;
+    }
+
+    if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
         ManagerSubsystem->RegisterManager<ABattleManager>(this);
 }
 
@@ -53,6 +62,8 @@ void ABattleManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
     PhasePipeline = nullptr;
     BattleRuntimeContext = nullptr;
+    BattleCardManager = nullptr;
+    StatusEffectRegistry = nullptr;
     bBattleFlowInitialized = false;
     bBattleFlowStarted = false;
     DeadBattleCharacter.Reset();
@@ -71,6 +82,12 @@ bool ABattleManager::InitializeBattleFlow()
 
     if (!IsValid(BattleRuntimeContext) || !IsValid(PhasePipeline))
         return false;
+
+    if (!IsValid(StatusEffectRegistry))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleManager] StatusEffectRegistry is unavailable."));
+        return false;
+    }
 
     if (!IsValid(BattleSetupManager) || !IsValid(BattleGridManager) || !IsValid(BattleTargetingManager) || !IsValid(BattleSimulationManager) || !IsValid(BattleSequenceManager))
     {

@@ -18,6 +18,8 @@ class ABattleTargetingManager;
 class UBattleCardManager;
 class ABattleCharacterBase;
 class UMuksiBattleCardDataAsset;
+class UMuksiStatusEffectRegistry;
+class UStatusEffectRegistryDataAsset;
 struct FTargetingIntent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnBattlePhaseStageRequested, EBattlePhase, OldPhase, EBattlePhase, NewPhase, UBattlePhaseTaskContext*, TaskContext);
@@ -77,7 +79,9 @@ public:
     ABattleSequenceManager* GetBattleSequenceManager() const { return BattleSequenceManager; }
     
     UFUNCTION(BlueprintPure, Category = "Battle|Managers")
-    UBattleCardManager* GetBattleCardManager() const{ return BattleCardManager; }
+    UBattleCardManager* GetBattleCardManager() const { return BattleCardManager; }
+
+    UMuksiStatusEffectRegistry* GetStatusEffectRegistry() const { return StatusEffectRegistry; }
 
     EBattlePhase GetCurrentPhase() const { return CurrentPhase; }
 
@@ -161,6 +165,12 @@ protected:
     
     UPROPERTY(Transient, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<UBattleCardManager> BattleCardManager = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Status Effect", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UStatusEffectRegistryDataAsset> StatusEffectRegistryDataAsset = nullptr;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UMuksiStatusEffectRegistry> StatusEffectRegistry = nullptr;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle")
     EBattlePhase CurrentPhase = EBattlePhase::None;

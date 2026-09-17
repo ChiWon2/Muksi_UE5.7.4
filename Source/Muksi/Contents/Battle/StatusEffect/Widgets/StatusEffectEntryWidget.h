@@ -7,7 +7,7 @@
 class UImage;
 class UTextBlock;
 class UMuksiStatusEffect;
-struct FStatusEffectRegistryData;
+class UStatusEffectDefinitionDataAsset;
 
 UCLASS()
 class MUKSI_API UStatusEffectEntryWidget : public UUserWidget
@@ -15,7 +15,7 @@ class MUKSI_API UStatusEffectEntryWidget : public UUserWidget
     GENERATED_BODY()
 
 public:
-    void InitWidget(UMuksiStatusEffect* InStatusEffect, const FStatusEffectRegistryData* InRegistryData);
+    void InitWidget(UMuksiStatusEffect* InStatusEffect, UStatusEffectDefinitionDataAsset* InDefinition);
 
 protected:
     UPROPERTY(meta = (BindWidget))
@@ -30,4 +30,7 @@ protected:
 protected:
     UPROPERTY()
     TObjectPtr<UMuksiStatusEffect> CachedStatusEffect;
+
+    UPROPERTY()
+    TObjectPtr<UStatusEffectDefinitionDataAsset> CachedDefinition;
 };
