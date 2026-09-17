@@ -32,6 +32,10 @@ void UMuksiBattleMovementComponent::TickComponent(float DeltaTime, ELevelTick Ti
 		UpdatePathMovement(DeltaTime);
 		break;
 
+	case EMuksiBattleMovementMode::Linear:
+		UpdateLinearMovement(DeltaTime);
+		break;
+
 	case EMuksiBattleMovementMode::None:
 	default:
 		break;
@@ -151,6 +155,56 @@ void UMuksiBattleMovementComponent::StartPathMove(const TArray<FVector>& WorldPa
 
 	SetComponentTickEnabled(true);
 }
+
+void UMuksiBattleMovementComponent::StartLinearMove(const FVector& TargetWorldLocation, float Duration, FMuksiBattleMovementFinished OnFinished)
+{
+	if (IsMoving())
+		StopMovement(true);
+
+	AActor* Owner = GetOwner();
+
+	if (!Owner)
+	{
+		OnFinished.ExecuteIfBound(true);
+		return;
+	}
+
+	if (Duration <= KINDA_SMALL_NUMBER)
+	{
+		Owner->SetActorLocation(TargetWorldLocation);
+		OnFinished.ExecuteIfBound(false);
+		return;
+	}
+
+	MovementMode = EMuksiBattleMovementMode::Linear;
+	CachedOnFinished = OnFinished;
+	LinearStartLocation = Owner->GetActorLocation();
+	LinearTargetLocation = TargetWorldLocation;
+	LinearDuration = Duration;
+	LinearElapsedTime = 0.0f;
+
+	SetComponentTickEnabled(true);
+}
+
+void UMuksiBattleMovementComponent::SavePresentationTransform()
+{
+	if (bHasSavedPresentationTransform)
+		return;
+
+	AActor* Owner = GetOwner();
+	if (!Owner)
+		return;
+
+	SavedPresentationTransform = Owner->GetActorTransform();
+	bHasSavedPresentationTransform = true;
+}
+
+void UMuksiBattleMovementComponent::ClearSavedPresentationTransform()
+{
+	SavedPresentationTransform = FTransform::Identity;
+	bHasSavedPresentationTransform = false;
+}
+
 void UMuksiBattleMovementComponent::StopMovement(bool bNotifyInterruption)
 {
 	if (!IsMoving())
@@ -301,6 +355,29 @@ void UMuksiBattleMovementComponent::UpdatePathMovement(float DeltaTime)
 	}
 }
 
+
+void UMuksiBattleMovementComponent::UpdateLinearMovement(float DeltaTime)
+{
+	AActor* Owner = GetOwner();
+
+	if (!Owner)
+	{
+		FinishMovement(true);
+		return;
+	}
+
+	LinearElapsedTime += DeltaTime;
+
+	const float Alpha = FMath::Clamp(LinearElapsedTime / LinearDuration, 0.0f, 1.0f);
+	Owner->SetActorLocation(FMath::Lerp(LinearStartLocation, LinearTargetLocation, Alpha));
+
+	if (Alpha < 1.0f)
+		return;
+
+	Owner->SetActorLocation(LinearTargetLocation);
+	FinishMovement(false);
+}
+
 void UMuksiBattleMovementComponent::FinishMovement(bool bInterrupted)
 {
 	FMuksiBattleMovementFinished FinishedDelegate = CachedOnFinished;
@@ -330,6 +407,11 @@ void UMuksiBattleMovementComponent::ResetMovementState()
 	CurrentWorldPath.Empty();
 	CurrentPathIndex = INDEX_NONE;
 	CurrentMoveSpeed = 0.0f;
+
+	LinearStartLocation = FVector::ZeroVector;
+	LinearTargetLocation = FVector::ZeroVector;
+	LinearDuration = 0.0f;
+	LinearElapsedTime = 0.0f;
 }
 
 void UMuksiBattleMovementComponent::RotateOwnerToward(const FVector& Direction, float DeltaTime) const

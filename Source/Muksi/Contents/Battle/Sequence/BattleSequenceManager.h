@@ -18,6 +18,7 @@ class UBattleActionExecutor;
 DECLARE_MULTICAST_DELEGATE_OneParam(FDeceiveCardRevealRequestedDelegate, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FBattleSequenceActionStartedDelegate, FBattleAction&, FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FBattleSequenceActionCompletedDelegate, const FBattleAction&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FBattleSequenceExchangeCompletedDelegate, int32);
 
 UCLASS()
 class MUKSI_API ABattleSequenceManager : public AActor
@@ -41,6 +42,9 @@ public:
 	// 단일 BattleAction 완료 이벤트.
 	FBattleSequenceActionCompletedDelegate BattleActionCompletedDelegate;
 
+	// 같은 ExchangeIndex의 BattleAction들이 모두 끝난 직후 이벤트.
+	FBattleSequenceExchangeCompletedDelegate BattleExchangeCompletedDelegate;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Sequence")
 	TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
 	UFUNCTION(BlueprintPure, Category = "Battle|Sequence")
@@ -58,6 +62,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle|Sequence")
 	void NotifyDeceiveCardRevealFinished();
 	void StopAfterCurrentExecution();
+	bool GetCurrentBattleActionPair(FBattleAction*& OutCurrentAction, FBattleAction*& OutOpponentAction);
+	bool RefreshBattleActionTargetingResult(FBattleAction& Action) const;
 
 	void InitializeBattleRuntimeContext(UBattleRuntimeContext* InBattleRuntimeContext);
 

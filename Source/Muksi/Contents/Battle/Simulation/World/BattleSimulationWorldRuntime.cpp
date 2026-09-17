@@ -225,6 +225,8 @@ bool UBattleSimulationWorldRuntime::BuildSimulationAction(const FBattleAction& A
 	}
 
 	OutAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
+	OutAction.ExecutionNotifies = ExecutionCard->ExecutionNotifies;
+	OutAction.bStatusEffectEditLocked = false;
 	return true;
 }
 

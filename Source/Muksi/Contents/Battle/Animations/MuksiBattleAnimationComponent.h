@@ -9,6 +9,7 @@
 
 class UAnimMontage;
 class USkeletalMeshComponent;
+class ABattleCharacterBase;
 class UMuksiBattleAnimationDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
@@ -17,7 +18,21 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	NotifyKey
 );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMuksiBattleAnimationFinished, bool, bInterrupted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnMuksiBattleExecutionNotifyWithSource,
+	ABattleCharacterBase*,
+	NotifySource,
+	FName,
+	NotifyKey
+);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnMuksiBattleAnimationFinished,
+	UAnimMontage*,
+	Montage,
+	bool,
+	bInterrupted
+);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UMuksiBattleAnimationComponent : public UActorComponent
@@ -79,6 +94,9 @@ private:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Battle Animation")
 	FOnMuksiBattleExecutionNotify OnBattleExecutionNotify;
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle Animation")
+	FOnMuksiBattleExecutionNotifyWithSource OnBattleExecutionNotifyWithSource;
 
 	void HandleBattleExecutionNotify(FName NotifyKey);
 };

@@ -34,6 +34,11 @@ void UMuksiStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBattle
 	static_cast<void>(OpponentAction);
 }
 
+void UMuksiStatusEffect::OnBattleExchangeCompleted(int32 ExchangeIndex)
+{
+	static_cast<void>(ExchangeIndex);
+}
+
 void UMuksiStatusEffect::BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(Context);

@@ -169,8 +169,33 @@ void ABattleSequenceManager::NotifyDeceiveCardRevealFinished()
 {
 	if (!bBattleActionSequenceRunning || !bWaitingForDeceiveCardReveal)
 		return;
+
 	bWaitingForDeceiveCardReveal = false;
 	ExecuteCurrentBattleAction();
+}
+
+bool ABattleSequenceManager::GetCurrentBattleActionPair(FBattleAction*& OutCurrentAction, FBattleAction*& OutOpponentAction)
+{
+	OutCurrentAction = nullptr;
+	OutOpponentAction = nullptr;
+
+	if (!bBattleActionSequenceRunning || !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+		return false;
+
+	OutCurrentAction = &BattleActionQueue[CurrentBattleActionIndex];
+	OutOpponentAction = FindOpponentBattleAction(*OutCurrentAction);
+
+	return OutOpponentAction != nullptr;
+}
+
+bool ABattleSequenceManager::RefreshBattleActionTargetingResult(FBattleAction& Action) const
+{
+	Action.TargetingResult.Reset();
+
+	if (!ActionExecutor)
+		return false;
+
+	return ActionExecutor->ResolveActionTargetingResult(Action, Action.TargetingResult);
 }
 
 void ABattleSequenceManager::ExecuteCurrentBattleAction()
@@ -180,8 +205,13 @@ void ABattleSequenceManager::ExecuteCurrentBattleAction()
 
 	FBattleAction& Action = BattleActionQueue[CurrentBattleActionIndex];
 	FBattleAction* OpponentAction = FindOpponentBattleAction(Action);
+	RefreshBattleActionTargetingResult(Action);
+
 	if (OpponentAction)
+	{
+		RefreshBattleActionTargetingResult(*OpponentAction);
 		BattleActionStartedDelegate.Broadcast(Action, *OpponentAction);
+	}
 
 	if (!ActionExecutor)
 	{
@@ -226,14 +256,29 @@ void ABattleSequenceManager::FinishCurrentBattleAction()
 {
 	if (!bBattleActionSequenceRunning || bBattleActionCompletionPending)
 		return;
+
 	bBattleActionCompletionPending = true;
 	ClearBattleActionPresentation();
+
+	const int32 CompletedExchangeIndex = BattleActionQueue.IsValidIndex(CurrentBattleActionIndex)
+		? BattleActionQueue[CurrentBattleActionIndex].ExchangeIndex
+		: INDEX_NONE;
+
 	++CurrentBattleActionIndex;
-	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+
+	const bool bSequenceFinished = !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex);
+	const bool bExchangeFinished = bSequenceFinished
+		|| BattleActionQueue[CurrentBattleActionIndex].ExchangeIndex != CompletedExchangeIndex;
+
+	if (CompletedExchangeIndex != INDEX_NONE && bExchangeFinished)
+		BattleExchangeCompletedDelegate.Broadcast(CompletedExchangeIndex);
+
+	if (bSequenceFinished)
 	{
 		FinishBattleActionSequence();
 		return;
 	}
+
 	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
 	NextBattleActionTimerHandle = GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ABattleSequenceManager::StartNextBattleActionDeferred));
 }

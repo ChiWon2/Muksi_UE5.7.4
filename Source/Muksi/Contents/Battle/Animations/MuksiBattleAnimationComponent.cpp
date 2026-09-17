@@ -169,33 +169,21 @@ bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
 
 void UMuksiBattleAnimationComponent::HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (Montage != CurrentMontage)
-	{
-		return;
-	}
+	const bool bWasCurrentMontage = Montage == CurrentMontage;
 
-	CurrentMontage = nullptr;
+	if (bWasCurrentMontage)
+		CurrentMontage = nullptr;
 
-	if (CachedMeshComponent)
+	if (bWasCurrentMontage)
 	{
-		if (UAnimInstance* AnimInstance = CachedMeshComponent->GetAnimInstance())
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 		{
-			AnimInstance->OnMontageEnded.RemoveDynamic(this, &UMuksiBattleAnimationComponent::HandleMontageEnded);
-		}
-	}
-	
-	//카메라 원래대로 돌리기
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem =
-	UMuksiWorldManagerSubsystem::Get(this))
-	{
-		if (ABattleCameraManager* CameraManager =
-			ManagerSubsystem->GetManager<ABattleCameraManager>())
-		{
-			CameraManager->ReturnToOverview();
+			if (ABattleCameraManager* CameraManager = ManagerSubsystem->GetManager<ABattleCameraManager>())
+				CameraManager->ReturnToOverview();
 		}
 	}
 
-	OnBattleAnimationFinished.Broadcast(bInterrupted);
+	OnBattleAnimationFinished.Broadcast(Montage, bInterrupted);
 }
 
 void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey)
@@ -207,6 +195,7 @@ void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey
 	}
 
 	OnBattleExecutionNotify.Broadcast(NotifyKey);
+	OnBattleExecutionNotifyWithSource.Broadcast(Cast<ABattleCharacterBase>(GetOwner()), NotifyKey);
 }
 
 bool UMuksiBattleAnimationComponent::JumpCurrentMontageToSection(
