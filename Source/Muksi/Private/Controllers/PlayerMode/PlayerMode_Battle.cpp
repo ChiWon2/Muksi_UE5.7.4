@@ -150,7 +150,7 @@ void UPlayerMode_Battle::HandleRightClick(const FInputActionValue& Value)
 	{
 		return;
 	}
-
+	
 	BattleTargetingManager->RequestUndoOrCancelPlayerTargeting();
 }
 
