@@ -17,12 +17,16 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
+	ABattleCharacterBase* FindOpponentCharacter(const FBattleExecutionContext& Context) const;
 	void HandleRotationFinished(bool bInterrupted);
 	void FinishRotateExecution();
 
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleCharacterBase> RotatingCharacter = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleCharacterBase> OpponentCharacter = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleMovementComponent> MovementComponent = nullptr;

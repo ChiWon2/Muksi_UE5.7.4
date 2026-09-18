@@ -240,21 +240,21 @@ void UMuksiBattleMovementComponent::UpdateRotationMovement(float DeltaTime)
 		return;
 	}
 
-	const float TargetYaw = Direction.Rotation().Yaw + MovementYawOffset;
-	const FRotator TargetRotation(0.0f, TargetYaw, 0.0f);
+	const float TargetYaw = FRotator::NormalizeAxis(Direction.Rotation().Yaw + MovementYawOffset);
 	const FRotator CurrentRotation = Owner->GetActorRotation();
-	const float RemainingYaw = FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetYaw));
+	const float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetYaw);
 
-	if (RemainingYaw <= RotationTolerance)
+	if (FMath::Abs(DeltaYaw) <= RotationTolerance)
 	{
-		Owner->SetActorRotation(TargetRotation);
+		Owner->SetActorRotation(FRotator(0.0f, TargetYaw, 0.0f));
 		FinishMovement(false);
 		return;
 	}
 
-	const FRotator NewRotation = FMath::RInterpConstantTo(CurrentRotation, TargetRotation, DeltaTime, CurrentRotationSpeed);
-	Owner->SetActorRotation(NewRotation);
-	
+	const float MaxYawStep = CurrentRotationSpeed * DeltaTime;
+	const float AppliedYawStep = FMath::Clamp(DeltaYaw, -MaxYawStep, MaxYawStep);
+	const float NewYaw = FRotator::NormalizeAxis(CurrentRotation.Yaw + AppliedYawStep);
+	const FRotator NewRotation(0.0f, NewYaw, 0.0f);
 	const bool bRotationApplied = Owner->SetActorRotation(NewRotation);
 
 	UE_LOG(
@@ -417,32 +417,26 @@ void UMuksiBattleMovementComponent::ResetMovementState()
 void UMuksiBattleMovementComponent::RotateOwnerToward(const FVector& Direction, float DeltaTime) const
 {
 	if (!bRotateTowardMovementDirection)
-	{
 		return;
-	}
 
 	AActor* Owner = GetOwner();
 
 	if (!Owner)
-	{
 		return;
-	}
 
 	FVector HorizontalDirection = Direction;
 	HorizontalDirection.Z = 0.0f;
 
 	if (HorizontalDirection.IsNearlyZero())
-	{
 		return;
-	}
 
-	const float TargetYaw = HorizontalDirection.Rotation().Yaw + MovementYawOffset;
-	const FRotator TargetRotation(0.0f, TargetYaw, 0.0f);
+	const float TargetYaw = FRotator::NormalizeAxis(HorizontalDirection.Rotation().Yaw + MovementYawOffset);
 	const FRotator CurrentRotation = Owner->GetActorRotation();
-	const FRotator NewRotation = FMath::RInterpConstantTo(CurrentRotation, TargetRotation, DeltaTime, PathRotationSpeed);
-
-	Owner->SetActorRotation(NewRotation);
-
+	const float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetYaw);
+	const float MaxYawStep = PathRotationSpeed * DeltaTime;
+	const float AppliedYawStep = FMath::Clamp(DeltaYaw, -MaxYawStep, MaxYawStep);
+	const float NewYaw = FRotator::NormalizeAxis(CurrentRotation.Yaw + AppliedYawStep);
+	const FRotator NewRotation(0.0f, NewYaw, 0.0f);
 	const bool bRotationApplied = Owner->SetActorRotation(NewRotation);
 
 	UE_LOG(

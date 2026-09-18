@@ -13,6 +13,8 @@
 #include "Muksi/Contents/Battle/Execution/Executions/FaceOff/FaceOffExecutionData.h"
 #include "Muksi/Contents/Battle/Execution/Executions/RestorePresentation/RestorePresentationExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/RestorePresentation/RestorePresentationExecutionData.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Rotate/RotateExecution.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Rotate/RotateExecutionData.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
@@ -84,6 +86,30 @@ void UInsightStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 
 	OpponentAction.ExecutionEntries.Empty();
 	OpponentAction.ExecutionNotifies.Empty();
+
+	FBattleExecutionEntry OwnerRotateEntry;
+	OwnerRotateEntry.ExecutionClass = URotateExecution::StaticClass();
+	OwnerRotateEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
+	OwnerRotateEntry.ExecutionSourceOverride = OwnerCharacter;
+	OwnerRotateEntry.ExecutionTargetOverride = OpponentCharacter;
+
+	FRotateExecutionData OwnerRotateData;
+	OwnerRotateData.TargetMode = ERotateExecutionTargetMode::Opponent;
+
+	OwnerRotateEntry.ExecutionData.InitializeAs<FRotateExecutionData>(OwnerRotateData);
+	OpponentAction.ExecutionEntries.Add(MoveTemp(OwnerRotateEntry));
+
+	FBattleExecutionEntry OpponentRotateEntry;
+	OpponentRotateEntry.ExecutionClass = URotateExecution::StaticClass();
+	OpponentRotateEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
+	OpponentRotateEntry.ExecutionSourceOverride = OpponentCharacter;
+	OpponentRotateEntry.ExecutionTargetOverride = OwnerCharacter;
+
+	FRotateExecutionData OpponentRotateData;
+	OpponentRotateData.TargetMode = ERotateExecutionTargetMode::Opponent;
+
+	OpponentRotateEntry.ExecutionData.InitializeAs<FRotateExecutionData>(OpponentRotateData);
+	OpponentAction.ExecutionEntries.Add(MoveTemp(OpponentRotateEntry));
 
 	FBattleExecutionEntry OpponentAttackEntry;
 	OpponentAttackEntry.ExecutionClass = UPlayMontageExecution::StaticClass();
