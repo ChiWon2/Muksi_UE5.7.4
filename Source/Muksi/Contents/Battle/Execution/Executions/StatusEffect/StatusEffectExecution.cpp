@@ -75,6 +75,10 @@ void UStatusEffectExecution::ApplyStatusEffectToTarget(const FStatusEffectExecut
 	case EStatusEffectExecutionOperation::Remove:
 		StatusEffectComponent->RemoveStatusEffectByID(StatusEffectData.EffectID);
 		break;
+	case EStatusEffectExecutionOperation::RemoveAndAdd:
+		StatusEffectComponent->RemoveStatusEffectByID(StatusEffectData.EffectID);
+		StatusEffectComponent->AddStatusEffect(StatusEffectData.EffectID, StatusEffectData.StackCount, StatusEffectData.Duration);
+		break;
 	default:
 		break;
 	}

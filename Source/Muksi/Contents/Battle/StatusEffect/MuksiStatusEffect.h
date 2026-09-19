@@ -43,6 +43,7 @@ public:
 public:
 	virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 	virtual void EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction);
+	virtual void OnBattleActionCompleted(const FBattleAction& CompletedAction);
 	virtual void OnBattleExchangeCompleted(int32 ExchangeIndex);
 	virtual void BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 	virtual void BuildHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);

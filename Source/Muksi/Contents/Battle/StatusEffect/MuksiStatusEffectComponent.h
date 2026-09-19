@@ -63,6 +63,7 @@ private:
     void RemoveExpiredEffects();
     void RemoveStatusEffect(UMuksiStatusEffect* Effect);
 	void HandleBattleActionStarted(FBattleAction& CurrentAction, FBattleAction& OpponentAction);
+	void HandleBattleActionCompleted(const FBattleAction& CompletedAction);
 	void HandleBattleExchangeCompleted(int32 ExchangeIndex);
 	void ApplyStatusEffectToCurrentBattleAction(UMuksiStatusEffect* Effect);
     void ExecuteNextStatusEffect();

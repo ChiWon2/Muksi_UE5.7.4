@@ -19,6 +19,7 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 	if (IsValid(BattleManager) && IsValid(BattleManager->GetBattleSequenceManager()))
 	{
 		BattleManager->GetBattleSequenceManager()->BattleActionStartedDelegate.RemoveAll(this);
+		BattleManager->GetBattleSequenceManager()->BattleActionCompletedDelegate.RemoveAll(this);
 		BattleManager->GetBattleSequenceManager()->BattleExchangeCompletedDelegate.RemoveAll(this);
 	}
 
@@ -27,6 +28,7 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 	if (IsValid(BattleManager) && IsValid(BattleManager->GetBattleSequenceManager()))
 	{
 		BattleManager->GetBattleSequenceManager()->BattleActionStartedDelegate.AddUObject(this, &UMuksiStatusEffectComponent::HandleBattleActionStarted);
+		BattleManager->GetBattleSequenceManager()->BattleActionCompletedDelegate.AddUObject(this, &UMuksiStatusEffectComponent::HandleBattleActionCompleted);
 		BattleManager->GetBattleSequenceManager()->BattleExchangeCompletedDelegate.AddUObject(this, &UMuksiStatusEffectComponent::HandleBattleExchangeCompleted);
 	}
 }
@@ -63,6 +65,7 @@ void UMuksiStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 	if (IsValid(BattleManager) && IsValid(BattleManager->GetBattleSequenceManager()))
 	{
 		BattleManager->GetBattleSequenceManager()->BattleActionStartedDelegate.RemoveAll(this);
+		BattleManager->GetBattleSequenceManager()->BattleActionCompletedDelegate.RemoveAll(this);
 		BattleManager->GetBattleSequenceManager()->BattleExchangeCompletedDelegate.RemoveAll(this);
 	}
 
@@ -252,6 +255,22 @@ void UMuksiStatusEffectComponent::HandleBattleActionStarted(FBattleAction& Curre
 
 		Effect->EditBattleActions(CurrentAction, OpponentAction);
 	}
+}
+
+void UMuksiStatusEffectComponent::HandleBattleActionCompleted(const FBattleAction& CompletedAction)
+{
+	if (CompletedAction.Attacker.Get() != GetOwner())
+		return;
+
+	const TArray<TObjectPtr<UMuksiStatusEffect>> EffectsSnapshot = ActiveEffects;
+
+	for (UMuksiStatusEffect* Effect : EffectsSnapshot)
+	{
+		if (IsValid(Effect))
+			Effect->OnBattleActionCompleted(CompletedAction);
+	}
+
+	RemoveExpiredEffects();
 }
 
 void UMuksiStatusEffectComponent::HandleBattleExchangeCompleted(int32 ExchangeIndex)
