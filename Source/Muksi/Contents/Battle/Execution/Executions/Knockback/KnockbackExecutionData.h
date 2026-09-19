@@ -10,6 +10,9 @@ struct FKnockbackExecutionData : public FBattleExecutionData
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knockback")
+	EBattleExecutionTargetPolicy TargetPolicy = EBattleExecutionTargetPolicy::TargetingResult;
+
 	// 피격자를 밀어낼 최대 Grid 거리.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knockback", meta = (ClampMin = "0"))
 	int32 Range = 1;

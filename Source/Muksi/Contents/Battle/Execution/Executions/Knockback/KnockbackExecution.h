@@ -19,6 +19,7 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
+	ABattleCharacterBase* ResolveKnockbackTarget(const FBattleExecutionContext& Context, EBattleExecutionTargetPolicy TargetPolicy) const;
 	bool FindActorGridCoord(ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord);
 	bool FindKnockbackDirection(const ABattleGridManager* GridManager, const FHexOffsetCoord& AttackerCoord, const FHexOffsetCoord& TargetCoord, FHexCubeCoord& OutDirection) const;
 	FHexOffsetCoord GetNextCoord(const ABattleGridManager* GridManager, const FHexOffsetCoord& CurrentCoord, const FHexCubeCoord& Direction) const;
