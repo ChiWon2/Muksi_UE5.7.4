@@ -178,14 +178,10 @@ void UMoveExecution::HandleMovementFinished(bool bInterrupted)
 bool UMoveExecution::CommitGridMovement()
 {
 	if (!MovingCharacter || !GridManager || !NavigationComponent)
-	{
 		return false;
-	}
 
 	if (!NavigationComponent->IsCellAvailable(GridWorldType, DestinationCoord, MovingCharacter.Get()))
-	{
 		return false;
-	}
 
 	// Grid 점유와 CharacterData.CurrentPosition을 원자적으로 갱신한다.
 	FBattleGridMoveRequest Request;
@@ -194,6 +190,8 @@ bool UMoveExecution::CommitGridMovement()
 	Request.FromCoord = StartCoord;
 	Request.ToCoord = DestinationCoord;
 	Request.bSnapActorToGrid = true;
+	Request.bPreserveActorRotation = true;
+
 	return GridManager->ExecuteGridMove(Request).bSucceeded;
 }
 

@@ -77,6 +77,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
 	bool JumpCurrentMontageToSection(const FName& SectionName);
 
+	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
+	bool JumpMontageToSection(UAnimMontage* Montage, const FName& SectionName);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
+	bool SetCurrentMontagePlayRate(float PlayRate);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
+	bool SetMontagePlayRate(UAnimMontage* Montage, float PlayRate);
+
+	UFUNCTION(BlueprintPure, Category = "Battle Animation")
+	UAnimMontage* GetCurrentMontage() const;
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> CachedMeshComponent;
