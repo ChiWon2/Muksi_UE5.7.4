@@ -43,7 +43,7 @@ private:
 	void UnbindExecutionNotifySources();
 	ABattleCharacterBase* ResolveNotifySource(const FBattleExecutionNotify& ExecutionNotify) const;
 	bool RunMainExecutionEntries();
-	void RunExecutionEntriesForNotify(ABattleCharacterBase* NotifySource, FName NotifyKey);
+	void RunExecutionEntriesForNotify(ABattleCharacterBase* NotifySource, FName NotifyKey, FName SourceAnimKey);
 	bool RunExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries, ABattleCharacterBase* ExecutionSource = nullptr);
 	void HandleExecutionEntryStarted(const FBattleExecutionEntry& Entry, int32 EntryIndex, FBattleExecutionContext& InOutExecutionContext);
 	void HandleExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
@@ -52,7 +52,7 @@ private:
 	void ResetRuntime();
 
 	UFUNCTION()
-	void HandleBattleExecutionNotify(ABattleCharacterBase* NotifySource, FName NotifyKey);
+	void HandleBattleExecutionNotify(ABattleCharacterBase* NotifySource, FName NotifyKey, FName SourceAnimKey);
 
 private:
 	UPROPERTY(Transient)

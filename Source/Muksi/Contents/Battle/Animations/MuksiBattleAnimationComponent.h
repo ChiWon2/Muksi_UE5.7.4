@@ -26,6 +26,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	NotifyKey
 );
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
+	FOnMuksiBattleExecutionNotifyWithSourceAndAnimKey,
+	ABattleCharacterBase*,
+	NotifySource,
+	FName,
+	NotifyKey,
+	FName,
+	SourceAnimKey
+);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnMuksiBattleAnimationFinished,
 	UAnimMontage*,
@@ -69,7 +79,7 @@ public:
 	void StopCurrentMontage(float BlendOutTime);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Animation")
-	bool PlayBattleAnimation(const FName& AnimKey);
+	bool PlayBattleAnimation(const FName& AnimKey, float PlayRate = 1.0f);
 
 	UFUNCTION(BlueprintPure, Category = "Battle Animation")
 	UAnimMontage* FindMontage(const FName& AnimKey) const;
@@ -89,12 +99,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle Animation")
 	UAnimMontage* GetCurrentMontage() const;
 
+	UFUNCTION(BlueprintPure, Category = "Battle Animation")
+	FName GetCurrentAnimKey() const;
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> CachedMeshComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> CurrentMontage;
+
+	UPROPERTY(Transient)
+	FName CurrentAnimKey = NAME_None;
 
 private:
 	void CacheMeshComponent();
@@ -109,6 +125,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Battle Animation")
 	FOnMuksiBattleExecutionNotifyWithSource OnBattleExecutionNotifyWithSource;
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle Animation")
+	FOnMuksiBattleExecutionNotifyWithSourceAndAnimKey OnBattleExecutionNotifyWithSourceAndAnimKey;
 
 	void HandleBattleExecutionNotify(FName NotifyKey);
 };

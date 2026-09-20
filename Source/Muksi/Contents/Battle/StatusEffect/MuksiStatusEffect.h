@@ -32,7 +32,6 @@ protected:
 
 public:
     void Initialize(AActor* InOwnerActor,FName InEffectID,int32 InStackCount,int32 InDuration);
-    void CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor);
 
 public:
     virtual void OnApplied();

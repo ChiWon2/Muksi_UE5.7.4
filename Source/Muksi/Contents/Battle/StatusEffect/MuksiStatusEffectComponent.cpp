@@ -33,22 +33,6 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 	}
 }
 
-void UMuksiStatusEffectComponent::CopyRuntimeStateFrom(const UMuksiStatusEffectComponent& SourceComponent)
-{
-    FinishExecution();
-    ActiveEffects.Reset();
-    for (UMuksiStatusEffect* SourceEffect : SourceComponent.ActiveEffects)
-    {
-        if (!IsValid(SourceEffect))
-            continue;
-        UMuksiStatusEffect* NewEffect = NewObject<UMuksiStatusEffect>(this, SourceEffect->GetClass());
-        if (!IsValid(NewEffect))
-            continue;
-        NewEffect->CopyRuntimeStateFrom(*SourceEffect, GetOwner());
-        ActiveEffects.Add(NewEffect);
-    }
-}
-
 void UMuksiStatusEffectComponent::ResetRuntimeState()
 {
 	FinishExecution();

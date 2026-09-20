@@ -41,7 +41,7 @@ void UPlayMontageExecution::Execute(const FBattleExecutionContext& Context, FBat
 
 	AnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
 
-	if (!AnimationComponent->PlayBattleAnimation(MontageData->AnimKey))
+	if (!AnimationComponent->PlayBattleAnimation(MontageData->AnimKey, MontageData->PlayRate))
 	{
 		AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
 		PlayingMontage = nullptr;

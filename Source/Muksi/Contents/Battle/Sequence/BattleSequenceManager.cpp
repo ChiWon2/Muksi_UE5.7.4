@@ -4,6 +4,7 @@
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Contents/Battle/RuntimeModifier/BattleActionRuntimeModifier.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
@@ -198,6 +199,29 @@ bool ABattleSequenceManager::RefreshBattleActionTargetingResult(FBattleAction& A
 	return ActionExecutor->ResolveActionTargetingResult(Action, Action.TargetingResult);
 }
 
+void ABattleSequenceManager::ApplyBattleActionRuntimeModifier(FBattleAction& Action) const
+{
+	if (Action.bRuntimeModifierApplied || !IsValid(Action.Card.Get()))
+		return;
+
+	UMuksiBattleCardDataAsset* ExecutionCard = Action.Card.Get();
+
+	if (UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetActualCard())
+		ExecutionCard = ActualCard;
+
+	Action.bRuntimeModifierApplied = true;
+
+	if (!ExecutionCard->RuntimeModifierClass)
+		return;
+
+	const UBattleActionRuntimeModifier* RuntimeModifier = ExecutionCard->RuntimeModifierClass->GetDefaultObject<UBattleActionRuntimeModifier>();
+
+	if (!IsValid(RuntimeModifier))
+		return;
+
+	RuntimeModifier->ModifyBattleAction(Action);
+}
+
 void ABattleSequenceManager::ExecuteCurrentBattleAction()
 {
 	if (!bBattleActionSequenceRunning || !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
@@ -206,6 +230,7 @@ void ABattleSequenceManager::ExecuteCurrentBattleAction()
 	FBattleAction& Action = BattleActionQueue[CurrentBattleActionIndex];
 	FBattleAction* OpponentAction = FindOpponentBattleAction(Action);
 	RefreshBattleActionTargetingResult(Action);
+	ApplyBattleActionRuntimeModifier(Action);
 
 	if (OpponentAction)
 	{

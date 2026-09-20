@@ -156,7 +156,7 @@ bool UBattleActionExecutor::BindExecutionNotifySources()
 		if (NotifyAnimationComponents.Contains(AnimationComponent))
 			continue;
 
-		AnimationComponent->OnBattleExecutionNotifyWithSource.AddUniqueDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
+		AnimationComponent->OnBattleExecutionNotifyWithSourceAndAnimKey.AddUniqueDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
 		NotifyAnimationComponents.Add(AnimationComponent);
 	}
 
@@ -168,7 +168,7 @@ void UBattleActionExecutor::UnbindExecutionNotifySources()
 	for (UMuksiBattleAnimationComponent* AnimationComponent : NotifyAnimationComponents)
 	{
 		if (IsValid(AnimationComponent))
-			AnimationComponent->OnBattleExecutionNotifyWithSource.RemoveDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
+			AnimationComponent->OnBattleExecutionNotifyWithSourceAndAnimKey.RemoveDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
 	}
 
 	NotifyAnimationComponents.Reset();
@@ -187,13 +187,13 @@ bool UBattleActionExecutor::RunMainExecutionEntries()
 	return RunExecutionEntries(MainExecutionEntries);
 }
 
-void UBattleActionExecutor::HandleBattleExecutionNotify(ABattleCharacterBase* NotifySource, FName NotifyKey)
+void UBattleActionExecutor::HandleBattleExecutionNotify(ABattleCharacterBase* NotifySource, FName NotifyKey, FName SourceAnimKey)
 {
 	if (bRunning && !bStopAfterCurrentExecution && IsValid(NotifySource) && !NotifyKey.IsNone())
-		RunExecutionEntriesForNotify(NotifySource, NotifyKey);
+		RunExecutionEntriesForNotify(NotifySource, NotifyKey, SourceAnimKey);
 }
 
-void UBattleActionExecutor::RunExecutionEntriesForNotify(ABattleCharacterBase* NotifySource, FName NotifyKey)
+void UBattleActionExecutor::RunExecutionEntriesForNotify(ABattleCharacterBase* NotifySource, FName NotifyKey, FName SourceAnimKey)
 {
 	for (const FBattleExecutionNotify& ExecutionNotify : CurrentAction.ExecutionNotifies)
 	{
@@ -201,6 +201,9 @@ void UBattleActionExecutor::RunExecutionEntriesForNotify(ABattleCharacterBase* N
 			continue;
 
 		if (ResolveNotifySource(ExecutionNotify) != NotifySource)
+			continue;
+
+		if (!ExecutionNotify.SourceAnimKey.IsNone() && ExecutionNotify.SourceAnimKey != SourceAnimKey)
 			continue;
 
 		RunExecutionEntries(ExecutionNotify.ExecutionEntries, NotifySource);

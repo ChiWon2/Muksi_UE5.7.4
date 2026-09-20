@@ -13,14 +13,6 @@ void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,FName InEffectID,int32 
     RemainingDuration = FMath::Max(1, InDuration);
 }
 
-void UMuksiStatusEffect::CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor)
-{
-    OwnerActor = InOwnerActor;
-    EffectID = SourceEffect.EffectID;
-    CurrentStack = SourceEffect.CurrentStack;
-    RemainingDuration = SourceEffect.RemainingDuration;
-}
-
 void UMuksiStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(OldPhase);

@@ -116,7 +116,7 @@ UAnimMontage* UMuksiBattleAnimationComponent::FindMontage(const FName& AnimKey) 
 	return AnimationData->FindMontage(AnimKey, CurrentWeaponType);
 }
 
-bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
+bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey, float PlayRate)
 {
 	CacheMeshComponent();
 
@@ -152,13 +152,14 @@ bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
 	AnimInstance->OnMontageEnded.AddDynamic(this, &UMuksiBattleAnimationComponent::HandleMontageEnded);
 
 	CurrentMontage = Montage;
+	CurrentAnimKey = AnimKey;
 
-
-	const float PlayLength = AnimInstance->Montage_Play(Montage);
+	const float PlayLength = AnimInstance->Montage_Play(Montage, PlayRate);
 
 	if (PlayLength <= 0.f)
 	{
 		CurrentMontage = nullptr;
+		CurrentAnimKey = NAME_None;
 		UE_LOG(LogTemp, Error, TEXT("[BattleAnimationComponent] Montage_Play failed. Montage=%s"),
 			*GetNameSafe(Montage));
 		return false;
@@ -172,7 +173,10 @@ void UMuksiBattleAnimationComponent::HandleMontageEnded(UAnimMontage* Montage, b
 	const bool bWasCurrentMontage = Montage == CurrentMontage;
 
 	if (bWasCurrentMontage)
+	{
 		CurrentMontage = nullptr;
+		CurrentAnimKey = NAME_None;
+	}
 
 	if (bWasCurrentMontage)
 	{
@@ -212,6 +216,11 @@ UAnimMontage* UMuksiBattleAnimationComponent::GetCurrentMontage() const
 	return CurrentMontage;
 }
 
+FName UMuksiBattleAnimationComponent::GetCurrentAnimKey() const
+{
+	return CurrentAnimKey;
+}
+
 void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey)
 {
 	if (NotifyKey.IsNone())
@@ -220,8 +229,11 @@ void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey
 		return;
 	}
 
+	ABattleCharacterBase* NotifySource = Cast<ABattleCharacterBase>(GetOwner());
+
 	OnBattleExecutionNotify.Broadcast(NotifyKey);
-	OnBattleExecutionNotifyWithSource.Broadcast(Cast<ABattleCharacterBase>(GetOwner()), NotifyKey);
+	OnBattleExecutionNotifyWithSource.Broadcast(NotifySource, NotifyKey);
+	OnBattleExecutionNotifyWithSourceAndAnimKey.Broadcast(NotifySource, NotifyKey, CurrentAnimKey);
 }
 
 bool UMuksiBattleAnimationComponent::JumpCurrentMontageToSection(const FName& SectionName)

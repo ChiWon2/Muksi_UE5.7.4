@@ -70,6 +70,10 @@ struct FBattleExecutionNotify
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Notify")
 	FName NotifyKey = NAME_None;
 
+	// None이면 기존과 동일하게 AnimKey에 관계없이 NotifyKey만 비교한다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Notify")
+	FName SourceAnimKey = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Notify")
 	TArray<FBattleExecutionEntry> ExecutionEntries;
 

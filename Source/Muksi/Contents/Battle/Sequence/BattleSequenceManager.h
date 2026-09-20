@@ -64,6 +64,7 @@ public:
 	void StopAfterCurrentExecution();
 	bool GetCurrentBattleActionPair(FBattleAction*& OutCurrentAction, FBattleAction*& OutOpponentAction);
 	bool RefreshBattleActionTargetingResult(FBattleAction& Action) const;
+	void ApplyBattleActionRuntimeModifier(FBattleAction& Action) const;
 
 	void InitializeBattleRuntimeContext(UBattleRuntimeContext* InBattleRuntimeContext);
 

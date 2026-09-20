@@ -28,7 +28,6 @@ public:
 
 public:
     void Initialize(ABattleManager* InBattleManager);
-    void CopyRuntimeStateFrom(const UMuksiStatusEffectComponent& SourceComponent);
 	void ResetRuntimeState();
 
     UFUNCTION(BlueprintCallable)

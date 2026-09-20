@@ -54,6 +54,10 @@ struct FBattleAction
 	UPROPERTY(BlueprintReadOnly)
 	FTargetingResult TargetingResult;
 
+	// 카드의 RuntimeModifier가 이 Action에 이미 반영되었는지 여부.
+	UPROPERTY(BlueprintReadOnly)
+	bool bRuntimeModifierApplied = false;
+
 	// StatusEffect가 이 Action의 Execution 구성을 최종 확정했는지 여부.
 	UPROPERTY(BlueprintReadOnly)
 	bool bStatusEffectEditLocked = false;
