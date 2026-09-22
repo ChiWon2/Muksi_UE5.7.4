@@ -38,6 +38,7 @@ public:
     // Widget command API. UI는 선택 요청과 UI 완료만 전달한다.
     bool RequestPlayerCardSelection(UMuksiBattleCardDataAsset* CardData);
     bool RequestPlayerPanicTargeting(UMuksiBattleCardDataAsset* PanicCard);
+    bool RequestPlayerSkillSelection(const FGuid& SkillInstanceId, UMuksiBattleCardDataAsset* SkillData);
     bool RequestEnemyCardSelection();
     bool RequestEnemyPanicTargeting(UMuksiBattleCardDataAsset* PanicCard);
     void CancelPendingEnemyCardSelection();
@@ -75,7 +76,7 @@ private:
     void ClearAllTargeting();
     bool StartPlayerTargeting();
     bool CompletePlayerTargeting();
-    bool CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedCard, FTargetingIntent& OutIntent);
+    bool CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedSkill, FGuid& OutSkillInstanceId, FTargetingIntent& OutIntent);
     bool CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, ABattleCharacterBase* TargetCharacter);
     void CompleteEnemyCardSelectionRequest();
     void TryCompleteTargetingPhase();
@@ -125,4 +126,5 @@ private:
     FTimerHandle EnemyCardSelectionTimerHandle;
     FTimerHandle CardRevealPreviewTimerHandle;
 
+    FGuid PlayerTargetingSkillInstanceId;
 };

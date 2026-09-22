@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Muksi/Contents/Battle/Character/BattleSkillTypes.h"
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "UObject/Object.h"
@@ -12,19 +13,31 @@ struct FCharacterData;
 class UMuksiBattleCardDataAsset;
 class ABattleGridManager;
 
+UENUM()
+enum class EEnemySkillSelectState : uint8
+{
+	Failed,
+	Selected,
+	NoUsableSkill
+};
+
+
 USTRUCT(BlueprintType)
-struct FEnemyCardSelectResult
+struct FEnemySkillSelectResult
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UMuksiBattleCardDataAsset> SelectedCard = nullptr;
+	EEnemySkillSelectState State = EEnemySkillSelectState::Failed;
+	
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UMuksiBattleCardDataAsset> SelectedSkill = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FHexOffsetCoord> TargetingStepCoords;
 	
 	UPROPERTY(BlueprintReadOnly)
-	FGuid SelectedCardInstanceId;
+	FGuid SelectedSkillInstanceId;
 };
 
 
@@ -38,18 +51,19 @@ class MUKSI_API UEnemyCardSelectStrategyBase : public UObject
 
 
 public:
+	
 	UFUNCTION(BlueprintNativeEvent)
-	FEnemyCardSelectResult SelectCardForExchange(
-	const FCharacterData& EnemyData,
-		const TArray<FBattleCardInstance>& CurrentHand,
+	FEnemySkillSelectResult SelectSkillForExchange(
+		const FCharacterData& EnemyData,
+		const TArray<FBattleSkillInstance>& SkillInstances,
 		ABattleGridManager* GridManager,
 		const FHexOffsetCoord& EnemyCoord,
 		const FHexOffsetCoord& PlayerCoord
 	);
 
-	virtual FEnemyCardSelectResult SelectCardForExchange_Implementation(
-	const FCharacterData& EnemyData,
-		const TArray<FBattleCardInstance>& CurrentHand,
+	virtual FEnemySkillSelectResult SelectSkillForExchange_Implementation(
+		const FCharacterData& EnemyData,
+		const TArray<FBattleSkillInstance>& SkillInstances,
 		ABattleGridManager* GridManager,
 		const FHexOffsetCoord& EnemyCoord,
 		const FHexOffsetCoord& PlayerCoord

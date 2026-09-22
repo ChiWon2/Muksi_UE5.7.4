@@ -6,6 +6,8 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
+#include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
+#include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 #include "Muksi/Contents/Battle/Character/Panic/PanicStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
@@ -255,6 +257,8 @@ bool ABattleTargetingManager::RequestPlayerPanicTargeting(UMuksiBattleCardDataAs
         return false;
     }
 
+    PlayerTargetingSkillInstanceId.Invalidate();
+    
     UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
 
     if (!RuntimeContext)
@@ -320,6 +324,25 @@ bool ABattleTargetingManager::RequestPlayerPanicTargeting(UMuksiBattleCardDataAs
     }
 
     return CompletePlayerPanicTargeting();
+}
+
+bool ABattleTargetingManager::RequestPlayerSkillSelection(const FGuid& SkillInstanceId, UMuksiBattleCardDataAsset* SkillData)
+{
+    if (!SkillInstanceId.IsValid() ||
+       !IsValid(SkillData))
+    {
+        return false;
+    }
+
+    PlayerTargetingSkillInstanceId = SkillInstanceId;
+
+    if (!RequestPlayerCardSelection(SkillData))
+    {
+        PlayerTargetingSkillInstanceId.Invalidate();
+        return false;
+    }
+
+    return true;
 }
 
 bool ABattleTargetingManager::StartPlayerTargeting()
@@ -444,6 +467,7 @@ void ABattleTargetingManager::CancelPlayerTargeting()
     
     //commit에 카드 제거
     OnPlayerTargetingCancelled.Broadcast();
+    PlayerTargetingSkillInstanceId.Invalidate();
 
     if (BattleManager->GetCurrentPhase() == EBattlePhase::Targeting)
     {
@@ -479,6 +503,18 @@ bool ABattleTargetingManager::CompletePlayerTargeting()
     {
         return false;
     }
+    
+    if (PlayerTargetingSkillInstanceId.IsValid())
+    {
+        UBattleSkillComponent* SkillComponent = PlayerCharacter->GetBattleSkillComponent();
+
+        if (SkillComponent)
+        {
+            SkillComponent->ConsumeSkillCost(PlayerTargetingSkillInstanceId);
+            SkillComponent->StartCooldown(PlayerTargetingSkillInstanceId);
+        }
+    }
+    PlayerTargetingSkillInstanceId.Invalidate();
 
     TryCompleteTargetingPhase();
     return true;
@@ -744,24 +780,33 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
         return;
     }
 
-    UMuksiBattleCardDataAsset* SelectedCard = nullptr;
+    UMuksiBattleCardDataAsset* SelectedSkill = nullptr;
+    FGuid SelectedSkillInstanceId;
     FTargetingIntent TargetingIntent;
-    if (!CompleteEnemyTargeting(SelectedCard, TargetingIntent))
+
+    if (!CompleteEnemyTargeting(SelectedSkill,SelectedSkillInstanceId,TargetingIntent))
     {
         return;
     }
 
-    if (!BattleManager->SubmitTargetingAction(EnemyCharacter, SelectedCard, TargetingIntent, false))
+    if (!BattleManager->SubmitTargetingAction(EnemyCharacter, SelectedSkill, TargetingIntent, false))
     {
         return;
     }
 
-    OnEnemyCardSelectionReady.Broadcast(SelectedCard, BattleManager->GetCurrentExchange());
+    if (UBattleSkillComponent* SkillComponent = EnemyCharacter->GetBattleSkillComponent())
+    {
+        SkillComponent->ConsumeSkillCost(SelectedSkillInstanceId);
+        SkillComponent->StartCooldown(SelectedSkillInstanceId);
+    }
+    
+    OnEnemyCardSelectionReady.Broadcast(SelectedSkill, BattleManager->GetCurrentExchange());
 }
 
-bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedCard, FTargetingIntent& OutIntent)
+bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedSkill, FGuid& OutSkillInstanceId, FTargetingIntent& OutIntent)
 {
-    OutSelectedCard = nullptr;
+    OutSelectedSkill = nullptr;
+    OutSkillInstanceId.Invalidate();
     OutIntent.Reset();
 
     UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
@@ -782,11 +827,39 @@ bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*&
         return false;
     }
 
-    UMuksiBattleCardDataAsset* SelectedCard = EnemyCharacter->SelectCardForExchange(
-        RuntimeGridManager,
-        EnemyTargetingActor->GetCharacterCoord(),
-        PlayerTargetingActor->GetCharacterCoord());
-    if (!IsValid(SelectedCard))
+    const FEnemySkillSelectResult SkillResult =
+    EnemyCharacter->SelectSkillForExchange(RuntimeGridManager,EnemyTargetingActor->GetCharacterCoord(),PlayerTargetingActor->GetCharacterCoord());
+    
+    if (SkillResult.State == EEnemySkillSelectState::NoUsableSkill)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT(
+                "[BattleTargetingManager] "
+                "Enemy has no usable skill. Waiting for timeout."
+            )
+        );
+
+        return false;
+    }
+
+    if (SkillResult.State != EEnemySkillSelectState::Selected)
+    {
+        UE_LOG(
+            LogTemp,
+            Error,
+            TEXT(
+                "[BattleTargetingManager] "
+                "Enemy skill selection failed."
+            )
+        );
+
+        return false;
+    }
+
+    UMuksiBattleCardDataAsset* SelectedSkill = SkillResult.SelectedSkill;
+    if (!IsValid(SelectedSkill) || !SkillResult.SelectedSkillInstanceId.IsValid())
     {
         UE_LOG(LogTemp, Error, TEXT("[BattleTargetingManager] Enemy card selection failed."));
         return false;
@@ -795,19 +868,20 @@ bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*&
 
     TargetingPresentationController->ClearStepPreviews();
     EnemyTargetingSession = NewObject<UBattleTargetingSession>(this);
-    if (!EnemyTargetingSession || !EnemyTargetingSession->StartSession(EnemyTargetingActor,RuntimeGridManager, EnemyTargetingWorldType,SelectedCard->TargetingData))
+    if (!EnemyTargetingSession || !EnemyTargetingSession->StartSession(EnemyTargetingActor,RuntimeGridManager, EnemyTargetingWorldType,SelectedSkill->TargetingData))
     {
         EnemyTargetingSession = nullptr;
         return false;
     }
 
-    if (!CompleteEnemyTargetingSession(SelectedCard, PlayerTargetingActor))
+    if (!CompleteEnemyTargetingSession(SelectedSkill, PlayerTargetingActor))
     {
         EnemyTargetingSession = nullptr;
         return false;
     }
 
-    OutSelectedCard = SelectedCard;
+    OutSelectedSkill = SelectedSkill;
+    OutSkillInstanceId = SkillResult.SelectedSkillInstanceId;
     OutIntent = EnemyTargetingSession->GetIntent();
     return true;
 }

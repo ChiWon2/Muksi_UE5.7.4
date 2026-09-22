@@ -12,17 +12,14 @@
 class UCardPreviewPanel;
 class UBattleStatusHUDWidget;
 class UWidget_CharacterData;
-class UHandWidget;
 class UInkLineWidget;
 class UPassiveActivePopupWidget;
 class UMuksiBattleCardDataAsset;
 class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
 class UBattlePipelineWidget;
-class UExchangeControlWidget;
-class UWidget_BattleCardBase;
 class UWidget_BattleControlPanel;
-
+class UWidget_BattleSkillRevealPanel;
 
 class ABattleCharacterBase;
 class UButton;
@@ -62,8 +59,6 @@ protected:
 	//~End UCommonActivatableWidget Interface
 
 	//***** Bound Widgets ****
-	UPROPERTY(meta = (BindWidget))
-	UHandWidget* HandWidget;
 	
 	UPROPERTY(meta = (BindWidget))
 	UCardPreviewPanel* CardPreviewPanel;
@@ -78,10 +73,10 @@ protected:
 	UBattlePipelineWidget* BattlePipelineWidget;
 	
 	UPROPERTY(meta = (BindWidget))
-	UExchangeControlWidget* ExchangeControlWidget;
+	TObjectPtr<UWidget_BattleControlPanel> BattleControlPanel;
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget_BattleControlPanel> BattleControlPanel;
+	TObjectPtr<UWidget_BattleSkillRevealPanel> BattleSkillRevealPanel;
 
 	//***** Bound Widgets ****
 private:
@@ -103,12 +98,6 @@ private:
 public:
 	UFUNCTION()
 	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
-
-	UFUNCTION(BlueprintCallable)
-	void BindHandWidgetEvents();
-
-	UFUNCTION(BlueprintCallable)
-	void UnbindHandWidgetEvents();
 	
 	UFUNCTION(BlueprintCallable)
 	void BindBattlePipelineWidgetEvents();
@@ -124,8 +113,6 @@ public:
 	// 카드 슬롯에서 장착 해제될 때 진행 중인 타겟팅/대기 카드 상태를 함께 정리한다.
 	void NotifyPlayerCardUnequipped();
 	
-private:
-	void HandleDeceiveRevealFinished(UWidget_BattleCardBase* CardWidget);
 
 	//---------------------------중앙 텍스트 블록 관련 함수---------------------------------------------------------------
 public:
@@ -138,9 +125,18 @@ protected:
 	void BindBattleSequenceManagerEvents();
 	void UnbindBattleSequenceManagerEvents();
 	
+	void BindBattleSkillReveal();
+	void UnbindBattleSkillReveal();
+	
+	void BindBattleSkillEvent();
+	void UnbindBattleSkillEvent();
+	
 	void BindBattleControlPanelEvents();
 	void UnbindBattleControlPanelEvents();
 	void HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData);
+	void HandleBattleSkillHovered(UMuksiBattleCardDataAsset* SkillData);
+	void HandleBattleSkillUnhovered();
+	
 	void HandlePlayerTargetingCancelled();
 	
 	void BattlePipelineWidgetSetting(EBattlePhase BattlePhase);
@@ -185,7 +181,6 @@ public:
 	//국 종료
 	void RoundEnd();
 	
-	void ClearExchangeSlots()const;
 	
 	void DisplayRoundEndUIFinish();
 
@@ -210,35 +205,32 @@ public:
 	void HandleExchangeEndFinish();
 
 protected:
-	void HandleExchangeSlot(int32 Index, bool bActive);
-	void HandleEnemyCardRevealFinished(int32 ExchangeIndex);
+	void HandleSkillSlot(bool bActive);
 	void SetBattleCardToHand();
-	void ClearBattleCard()const;
+	void SetBattleSkillSetting();
 	
+	void HandleSkillRevealFinished(int32 ExchangeIndex);
 	void TimeOutCardSelect();
+	
+	bool UpdateCurrentExchangeSkillReveal();
 public:
 	
 	void HandleEnemyCardSelectionReady(UMuksiBattleCardDataAsset* EnemyCard, int32 ExchangeIndex);
 
 public:
 	//합 도중 카드 선택 확정 버튼
-	UFUNCTION(BlueprintCallable)
-	void HandleCardSelect();
-
-	void SelectCardDataSend()const;
-
-
-	bool RevealEnemySelectedCard(int32 ExchangeIndex);
+	
 	//------------------------------------------------------------------------------------------------------------------
 	
 	//==========================Card Reveal=============================================================================
 public:
 	
 protected:
-	void HandleTurnOrderAnimationsFinished(int32 ExchangeIndex);
-	
 	void CardRevealed();
-	bool PlayCurrentExchangeTurnOrderAnimation(int32 ExchangeIndex) const;
+	
+	void RefreshBattleSkillUI();
+	
+	void HandleBattleSkillStateChanged();
 	//------------------------------------------------------------------------------------------------------------------
 
 	//==========================Battle Action Sequence==================================================================

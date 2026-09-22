@@ -28,6 +28,8 @@ void UHandWidget::NativeConstruct()
 		ExchangeSlotPanelWidget->OnCardReturnRequested.RemoveAll(this);
 		ExchangeSlotPanelWidget->OnCardReturnRequested.AddUObject(this, &UHandWidget::HandleCardReturnRequested);
 	}
+	SetRenderOpacity(0.0f);
+	//HandCanvas->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UHandWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -461,7 +463,8 @@ void UHandWidget::EnableExchangeSlot(int32 Index, bool bActive)
 
 bool UHandWidget::ApplyPlayerPanicTimeoutResult(int32 ExchangeIndex, const FCharacterPanicTimeoutResult& Result)
 {
-	if (!ExchangeSlotPanelWidget || !Result.PanicCard.IsValid())
+	return false;
+	/*if (!ExchangeSlotPanelWidget || !Result.PanicCard.IsValid())
     {
         return false;
     }
@@ -588,7 +591,7 @@ bool UHandWidget::ApplyPlayerPanicTimeoutResult(int32 ExchangeIndex, const FChar
 
     OrganizeCards(GetDefaultCardSpacing());
 
-    return true;
+    return true;*/
 }
 
 void UHandWidget::NotifyPlayerCardEquipped()
@@ -960,7 +963,7 @@ void UHandWidget::DrawCards()
 		return;
 	}
 	
-	UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();
+	/*UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();
 	if (!CardComponent)
 	{
 		return;
@@ -983,6 +986,7 @@ void UHandWidget::DrawCards()
 			continue;
 		}
 	}
+	*/
 	
 	//화면에 보이게 부채꼴 핸드 위치 설정
 	HandCardPoint = CardUpPoint;
@@ -1039,14 +1043,15 @@ bool UHandWidget::CommitHandCard(UWidget_BattleCardBase* CardWidget)
 		return false;
 	}
 
-	UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();
+	/*/*UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();#1#
 
 	if (!CardComponent)
 	{
 		return false;
 	}
 
-	return CardComponent->CommitCard(CardWidget->GetCardInstanceId());
+	return CardComponent->CommitCard(CardWidget->GetCardInstanceId());*/
+	return false;
 }
 
 bool UHandWidget::ReturnCommittedHandCard(UWidget_BattleCardBase* CardWidget)
@@ -1056,7 +1061,7 @@ bool UHandWidget::ReturnCommittedHandCard(UWidget_BattleCardBase* CardWidget)
 		return false;
 	}
 
-	UBattleCardComponent* CardComponent =
+	/*UBattleCardComponent* CardComponent =
 		BoundCharacter->GetBattleCardComponent();
 
 	if (!CardComponent)
@@ -1065,7 +1070,8 @@ bool UHandWidget::ReturnCommittedHandCard(UWidget_BattleCardBase* CardWidget)
 	}
 
 	return CardComponent->ReturnCommittedCard(
-		CardWidget->GetCardInstanceId());
+		CardWidget->GetCardInstanceId());*/
+	return false;
 }
 
 

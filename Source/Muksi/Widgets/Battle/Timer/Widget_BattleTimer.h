@@ -11,6 +11,7 @@ class UTextBlock;
 class UCanvasPanel;
 class UImage;
 class UWidgetAnimation;
+class UMaterialInstanceDynamic;
 
 /**
  * 
@@ -45,25 +46,38 @@ public:
 protected:
 	//*** BindWidget
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UProgressBar> TimerProgressBar = nullptr;
-
-	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> RemainingTimeText = nullptr;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UImage> RopeBackgroundImage = nullptr;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UImage> RopeBurnImage = nullptr;
 	//*** BindWidget
-
-	UPROPERTY(Transient, meta = (BindWidgetAnimOptional))
-	TObjectPtr<UWidgetAnimation> WarningAnimation = nullptr;
-
-	UPROPERTY(Transient, meta = (BindWidgetAnimOptional))
-	TObjectPtr<UWidgetAnimation> ExpiredAnimation = nullptr;
 
 private:
 	float CurrentTotalDuration = 0.0f;
 	float CurrentWarningTime = 0.0f;
+	
+	//UI Material 전용 타이머
+	
+protected:
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> BottleTimerImage = nullptr;
+	
+	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
+	FLinearColor StartColor =  FLinearColor(0.05f, 0.5f, 5.0f, 1.0f);// 형광 파랑
+
+	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
+	FLinearColor MiddleColor = FLinearColor(5.0f, 5.0f, 0.1f, 1.0f);
+
+	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
+	FLinearColor EndColor = FLinearColor(5.0f, 0.1f, 0.05f, 1.0f);
+private:
+	void UpdateTimerMaterial(float RemainingRatio);
+	
+	FLinearColor GetTimerColor(float ElapsedRatio) const;
+
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> TimerMaterial = nullptr;
+
+	// Material의 Min 최대값
+	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
+	float MaxMinValue = 0.85f;
+	
 };

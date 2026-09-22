@@ -14,7 +14,7 @@ class UEnemyCardSelectStrategyBase;
 class UCharacterDataBase;
 class UMuksiBattleCardDataAsset;
 class ABattleGridManager;
-
+struct FBattleSkillInstance;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MUKSI_API UEnemyBattleAIComponent : public UActorComponent
@@ -26,18 +26,18 @@ public:
 
 	void InitializeAI(UMuksiCharacterDataAsset* CharacterDataAsset);
 
-	UMuksiBattleCardDataAsset* SelectCardForExchange(
-		FCharacterData EnemyData,
-		ABattleGridManager* GridManager,
-		const FHexOffsetCoord& EnemyCoord,
-		const FHexOffsetCoord& PlayerCoord
-	);
 
-	TArray<FHexOffsetCoord> GetSelectedTargetingStepCoords() const;
+	
+	FEnemySkillSelectResult SelectSkillForExchange(
+	const FCharacterData& EnemyData,
+	const TArray<FBattleSkillInstance>& SkillInstances,
+	ABattleGridManager* GridManager,
+	const FHexOffsetCoord& EnemyCoord,
+	const FHexOffsetCoord& PlayerCoord);
+
 
 protected:
-	FEnemyCardSelectResult Result;
-
+    FEnemySkillSelectResult SkillResult;
 protected:
 	virtual void BeginPlay() override;
 
