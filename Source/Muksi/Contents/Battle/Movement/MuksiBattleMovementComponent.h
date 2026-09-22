@@ -11,7 +11,8 @@ enum class EMuksiBattleMovementMode : uint8
 	None,
 	Rotation,
 	Arc,
-	Path
+	Path,
+	Linear
 };
 
 UCLASS(ClassGroup = (Battle), meta = (BlueprintSpawnableComponent))
@@ -31,6 +32,12 @@ public:
 	void StartTeleportMove(const FVector& TargetWorldLocation, FMuksiBattleMovementFinished OnFinished);
 	void StartArcMove(const FVector& TargetWorldLocation, float Duration, float ArcHeight, FMuksiBattleMovementFinished OnFinished);
 	void StartPathMove(const TArray<FVector>& WorldPath, float MoveSpeed, FMuksiBattleMovementFinished OnFinished, bool bRotateTowardPath = true);
+	void StartLinearMove(const FVector& TargetWorldLocation, float Duration, FMuksiBattleMovementFinished OnFinished);
+
+	void SavePresentationTransform();
+	bool HasSavedPresentationTransform() const { return bHasSavedPresentationTransform; }
+	const FTransform& GetSavedPresentationTransform() const { return SavedPresentationTransform; }
+	void ClearSavedPresentationTransform();
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Movement")
 	void StopMovement(bool bNotifyInterruption = true);
@@ -42,6 +49,7 @@ private:
 	void UpdateRotationMovement(float DeltaTime);
 	void UpdateArcMovement(float DeltaTime);
 	void UpdatePathMovement(float DeltaTime);
+	void UpdateLinearMovement(float DeltaTime);
 	void FinishMovement(bool bInterrupted);
 	void ResetMovementState();
 	void RotateOwnerToward(const FVector& Direction, float DeltaTime) const;
@@ -64,6 +72,14 @@ private:
 	TArray<FVector> CurrentWorldPath;
 	int32 CurrentPathIndex = INDEX_NONE;
 	float CurrentMoveSpeed = 0.0f;
+
+	FVector LinearStartLocation = FVector::ZeroVector;
+	FVector LinearTargetLocation = FVector::ZeroVector;
+	float LinearDuration = 0.0f;
+	float LinearElapsedTime = 0.0f;
+
+	FTransform SavedPresentationTransform = FTransform::Identity;
+	bool bHasSavedPresentationTransform = false;
 
 	UPROPERTY(EditAnywhere, Category = "Battle|Movement|Rotation")
 	bool bRotateTowardMovementDirection = true;

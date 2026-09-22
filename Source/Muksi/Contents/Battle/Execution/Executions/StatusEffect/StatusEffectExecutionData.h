@@ -9,7 +9,8 @@ enum class EStatusEffectExecutionOperation : uint8
 {
 	Add,
 	Subtract,
-	Remove
+	Remove,
+	RemoveAndAdd
 };
 
 USTRUCT(BlueprintType)

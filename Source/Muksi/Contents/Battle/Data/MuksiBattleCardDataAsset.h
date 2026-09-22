@@ -14,6 +14,7 @@
 
 class UTexture2D;
 class UPanicStrategyBase;
+class UBattleActionRuntimeModifier;
 
 UCLASS()
 class MUKSI_API UMuksiBattleCardDataAsset : public UPrimaryDataAsset
@@ -68,6 +69,10 @@ public:
 	// Montage NotifyKey와 해당 시점에 실행할 ExecutionEntries를 연결한다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Execution")
 	TArray<FBattleExecutionNotify> ExecutionNotifies;
+
+	// BattleAction 실행 직전에 카드 고유의 런타임 Execution 구성을 편집한다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Execution")
+	TSubclassOf<UBattleActionRuntimeModifier> RuntimeModifierClass;
 
 	// Selection / Resolve / Presentation으로 구성되는 카드 Targeting 설정.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Targeting", meta = (DisplayName = "Targeting"))

@@ -60,16 +60,20 @@ void UTargetingStepPreviewInstance::UpdatePreview(const FTargetingPreviewContext
 		ActivePathPreviewVisualizer->ClearPreview();
 	}
 
+	AffectedHighlightCoords.Reset();
+
 	if (ActiveAffectedAreaPreviewVisualizer && PreviewContext.IsStepValid())
 	{
 		ActiveAffectedAreaPreviewVisualizer->UpdatePreview(PreviewContext);
+		ActiveAffectedAreaPreviewVisualizer->CollectHighlightCoords(
+			PreviewContext,
+			AffectedHighlightCoords);
 	}
 	else if (ActiveAffectedAreaPreviewVisualizer)
 	{
 		ActiveAffectedAreaPreviewVisualizer->ClearPreview();
 	}
 
-	AffectedHighlightCoords.Reset();
 	if (bShowAffectedHighlight)
 	{
 		if (const TArray<FHexOffsetCoord>* AffectedCoords = PreviewContext.GetAffectedCoords())

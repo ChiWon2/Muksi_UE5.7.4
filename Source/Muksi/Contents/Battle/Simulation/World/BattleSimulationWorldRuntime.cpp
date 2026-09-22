@@ -117,7 +117,8 @@ bool UBattleSimulationWorldRuntime::ExecuteCurrentExchange()
 		return false;
 
 	const bool bPlayerFirst = PreparedPlayerAction.IsHigherPriorityThan(PreparedEnemyAction);
-	const FBattleAction& FirstAction = bPlayerFirst ? PreparedPlayerAction : PreparedEnemyAction;
+	FBattleAction& FirstAction = bPlayerFirst ? PreparedPlayerAction : PreparedEnemyAction;
+
 	SimulationState = EBattleSimulationState::ExecutingFirstAction;
 
 	if (ActionExecutor && ActionExecutor->ExecuteBattleAction(FirstAction))
@@ -225,6 +226,9 @@ bool UBattleSimulationWorldRuntime::BuildSimulationAction(const FBattleAction& A
 	}
 
 	OutAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
+	OutAction.ExecutionNotifies = ExecutionCard->ExecutionNotifies;
+	OutAction.bStatusEffectEditLocked = false;
+
 	return true;
 }
 
@@ -241,7 +245,8 @@ void UBattleSimulationWorldRuntime::HandleSimulationActionFinished()
 	if (SimulationState == EBattleSimulationState::ExecutingFirstAction)
 	{
 		const bool bPlayerFirst = PreparedPlayerAction.IsHigherPriorityThan(PreparedEnemyAction);
-		const FBattleAction& SecondAction = bPlayerFirst ? PreparedEnemyAction : PreparedPlayerAction;
+		FBattleAction& SecondAction = bPlayerFirst ? PreparedEnemyAction : PreparedPlayerAction;
+
 		SimulationState = EBattleSimulationState::ExecutingSecondAction;
 
 		if (!ActionExecutor || !ActionExecutor->ExecuteBattleAction(SecondAction))

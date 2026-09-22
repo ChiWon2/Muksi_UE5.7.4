@@ -18,8 +18,8 @@ public:
 
 private:
 	void CollectTargets(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, TArray<ABattleCharacterBase*>& OutTargets) const;
-	void ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter) const;
-	void BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, TArray<FBattleExecutionEntry>& OutExecutionEntries) const;
+	int32 ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, FName& OutHitReactionAnimKey) const;
+	void BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey, TArray<FBattleExecutionEntry>& OutExecutionEntries) const;
 	void CompleteDamageExecution();
 
 	FBattleExecutionFinished CachedOnFinished;

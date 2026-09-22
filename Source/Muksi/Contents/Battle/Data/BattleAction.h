@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingResult.h"
 #include "BattleAction.generated.h"
 
 class ABattleCharacterBase;
@@ -44,6 +45,22 @@ struct FBattleAction
 	// 이번 BattleAction에서 실제로 실행할 Main Execution 목록.
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FBattleExecutionEntry> ExecutionEntries;
+
+	// 이번 BattleAction에서 실제로 사용할 Notify Execution 목록.
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FBattleExecutionNotify> ExecutionNotifies;
+
+	// 현재 Actual Battle 상태에서 해석한 Targeting 결과. StatusEffect의 Action 편집 조건 판단에 사용한다.
+	UPROPERTY(BlueprintReadOnly)
+	FTargetingResult TargetingResult;
+
+	// 카드의 RuntimeModifier가 이 Action에 이미 반영되었는지 여부.
+	UPROPERTY(BlueprintReadOnly)
+	bool bRuntimeModifierApplied = false;
+
+	// StatusEffect가 이 Action의 Execution 구성을 최종 확정했는지 여부.
+	UPROPERTY(BlueprintReadOnly)
+	bool bStatusEffectEditLocked = false;
 
 	bool IsHigherPriorityThan(const FBattleAction& Other) const
 	{

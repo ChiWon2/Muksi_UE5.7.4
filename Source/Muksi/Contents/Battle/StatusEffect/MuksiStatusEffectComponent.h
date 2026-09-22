@@ -28,7 +28,6 @@ public:
 
 public:
     void Initialize(ABattleManager* InBattleManager);
-    void CopyRuntimeStateFrom(const UMuksiStatusEffectComponent& SourceComponent);
 	void ResetRuntimeState();
 
     UFUNCTION(BlueprintCallable)
@@ -47,6 +46,7 @@ public:
     UStatusEffectDefinitionDataAsset* FindStatusEffectDefinition(FName EffectID) const;
 	void AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const;
 	void AppendHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const;
+	int32 ApplyIncomingDamageModifiers(int32 Damage, FName& OutHitReactionAnimKey);
 
     void ExecuteSequentially(EBattlePhase OldPhase, EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate);
 
@@ -60,9 +60,12 @@ private:
     UPROPERTY(Transient)
     TObjectPtr<ABattleManager> BattleManager = nullptr;
 
-    void RemoveExpiredEffects();
+    bool RemoveExpiredEffects(bool bNotify = true);
     void RemoveStatusEffect(UMuksiStatusEffect* Effect);
 	void HandleBattleActionStarted(FBattleAction& CurrentAction, FBattleAction& OpponentAction);
+	void HandleBattleActionCompleted(const FBattleAction& CompletedAction);
+	void HandleBattleExchangeCompleted(int32 ExchangeIndex);
+	void ApplyStatusEffectToCurrentBattleAction(UMuksiStatusEffect* Effect);
     void ExecuteNextStatusEffect();
     void RunPhaseExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries);
     void HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);

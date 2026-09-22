@@ -72,6 +72,13 @@ void UBattleExecutionRunner::ExecuteNextExecution()
 	}
 
 	FBattleExecutionContext ExecutionContext = CachedContext;
+
+	if (Entry.ExecutionSourceOverride)
+		ExecutionContext.Attacker = Entry.ExecutionSourceOverride;
+
+	if (Entry.ExecutionTargetOverride)
+		ExecutionContext.ExecutionTarget = Entry.ExecutionTargetOverride;
+
 	ExecutionContext.ExecutionData = Entry.ExecutionData;
 
 	FBattleExecutionFinished OnExecutionFinished;

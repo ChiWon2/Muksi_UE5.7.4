@@ -13,14 +13,6 @@ void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,FName InEffectID,int32 
     RemainingDuration = FMath::Max(1, InDuration);
 }
 
-void UMuksiStatusEffect::CopyRuntimeStateFrom(const UMuksiStatusEffect& SourceEffect, AActor* InOwnerActor)
-{
-    OwnerActor = InOwnerActor;
-    EffectID = SourceEffect.EffectID;
-    CurrentStack = SourceEffect.CurrentStack;
-    RemainingDuration = SourceEffect.RemainingDuration;
-}
-
 void UMuksiStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)
 {
 	static_cast<void>(OldPhase);
@@ -32,6 +24,16 @@ void UMuksiStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBattle
 {
 	static_cast<void>(CurrentAction);
 	static_cast<void>(OpponentAction);
+}
+
+void UMuksiStatusEffect::OnBattleActionCompleted(const FBattleAction& CompletedAction)
+{
+	static_cast<void>(CompletedAction);
+}
+
+void UMuksiStatusEffect::OnBattleExchangeCompleted(int32 ExchangeIndex)
+{
+	static_cast<void>(ExchangeIndex);
 }
 
 void UMuksiStatusEffect::BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries)

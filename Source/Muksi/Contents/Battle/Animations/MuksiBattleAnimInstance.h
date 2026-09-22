@@ -9,6 +9,7 @@ UENUM(BlueprintType)
 enum class EMuksiBattleCharacterState : uint8
 {
 	Idle,
+	Counter,
 	Die
 };
 

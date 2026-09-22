@@ -12,18 +12,26 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 	CachedOnFinished = MoveTemp(OnFinished);
 	CachedGridManager = Context.BattleGridManager;
 	GridWorldType = Context.GridWorldType;
-	KnockbackTarget = Context.ExecutionTarget;
 	StartCoord = FHexOffsetCoord();
 	DestinationCoord = FHexOffsetCoord();
-	StartRotation = KnockbackTarget ? KnockbackTarget->GetActorQuat() : FQuat::Identity;
 
 	const FKnockbackExecutionData* KnockbackData = Context.GetExecutionData<FKnockbackExecutionData>();
 
-	if (!KnockbackData || !Context.Attacker || !KnockbackTarget || !CachedGridManager || KnockbackData->Range <= 0 || KnockbackData->MoveSpeed <= KINDA_SMALL_NUMBER)
+	if (!KnockbackData || !Context.Attacker || !CachedGridManager || KnockbackData->Range <= 0 || KnockbackData->MoveSpeed <= KINDA_SMALL_NUMBER)
 	{
 		CompleteExecution();
 		return;
 	}
+
+	KnockbackTarget = ResolveKnockbackTarget(Context, KnockbackData->TargetPolicy);
+
+	if (!KnockbackTarget)
+	{
+		CompleteExecution();
+		return;
+	}
+
+	StartRotation = KnockbackTarget->GetActorQuat();
 
 	UBattleGridNavigationComponent* NavigationComponent = CachedGridManager->GetNavigationComponent();
 	UMuksiBattleMovementComponent* MovementComponent = KnockbackTarget->FindComponentByClass<UMuksiBattleMovementComponent>();
@@ -99,6 +107,35 @@ void UKnockbackExecution::Execute(const FBattleExecutionContext& Context, FBattl
 const UScriptStruct* UKnockbackExecution::GetExecutionDataStruct() const
 {
 	return FKnockbackExecutionData::StaticStruct();
+}
+
+ABattleCharacterBase* UKnockbackExecution::ResolveKnockbackTarget(const FBattleExecutionContext& Context, EBattleExecutionTargetPolicy TargetPolicy) const
+{
+	switch (TargetPolicy)
+	{
+	case EBattleExecutionTargetPolicy::ExecutionTarget:
+		return Context.ExecutionTarget;
+
+	case EBattleExecutionTargetPolicy::Attacker:
+		return Context.Attacker;
+
+	case EBattleExecutionTargetPolicy::TargetingResult:
+	default:
+		break;
+	}
+
+	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
+
+	if (!StepResult)
+		return nullptr;
+
+	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
+	{
+		if (IsValid(TargetCharacter) && TargetCharacter != Context.Attacker)
+			return TargetCharacter;
+	}
+
+	return nullptr;
 }
 
 bool UKnockbackExecution::FindActorGridCoord(ABattleGridManager* GridManager, const AActor* Actor, FHexOffsetCoord& OutCoord)

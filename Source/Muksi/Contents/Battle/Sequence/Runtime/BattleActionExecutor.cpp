@@ -39,7 +39,7 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 	bStopAfterCurrentExecution = false;
 	ActiveExecutionRunners.Reset();
 
-	if (!BindAttackerNotify())
+	if (!BindExecutionNotifySources())
 	{
 		ResetRuntime();
 		return false;
@@ -59,7 +59,7 @@ void UBattleActionExecutor::StopAfterCurrentExecution()
 		return;
 
 	bStopAfterCurrentExecution = true;
-	UnbindAttackerNotify();
+	UnbindExecutionNotifySources();
 
 	for (UBattleExecutionRunner* Runner : ActiveExecutionRunners)
 	{
@@ -136,23 +136,49 @@ UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBa
 	return IsValid(ActualCard) ? ActualCard : Action.Card.Get();
 }
 
-bool UBattleActionExecutor::BindAttackerNotify()
+bool UBattleActionExecutor::BindExecutionNotifySources()
 {
-	if (!CurrentExecutionCard || CurrentExecutionCard->ExecutionNotifies.IsEmpty())
-		return true;
-	if (!CurrentAction.Attacker)
-		return false;
-	AttackerAnimationComponent = CurrentAction.Attacker->FindComponentByClass<UMuksiBattleAnimationComponent>();
-	if (!AttackerAnimationComponent)
-		return false;
-	AttackerAnimationComponent->OnBattleExecutionNotify.AddUniqueDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
+	NotifyAnimationComponents.Reset();
+
+	for (const FBattleExecutionNotify& ExecutionNotify : CurrentAction.ExecutionNotifies)
+	{
+		if (!ExecutionNotify.IsValid())
+			continue;
+
+		ABattleCharacterBase* NotifySource = ResolveNotifySource(ExecutionNotify);
+		if (!IsValid(NotifySource))
+			return false;
+
+		UMuksiBattleAnimationComponent* AnimationComponent = NotifySource->FindComponentByClass<UMuksiBattleAnimationComponent>();
+		if (!IsValid(AnimationComponent))
+			return false;
+
+		if (NotifyAnimationComponents.Contains(AnimationComponent))
+			continue;
+
+		AnimationComponent->OnBattleExecutionNotifyWithSourceAndAnimKey.AddUniqueDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
+		NotifyAnimationComponents.Add(AnimationComponent);
+	}
+
 	return true;
 }
 
-void UBattleActionExecutor::UnbindAttackerNotify()
+void UBattleActionExecutor::UnbindExecutionNotifySources()
 {
-	if (AttackerAnimationComponent)
-		AttackerAnimationComponent->OnBattleExecutionNotify.RemoveDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
+	for (UMuksiBattleAnimationComponent* AnimationComponent : NotifyAnimationComponents)
+	{
+		if (IsValid(AnimationComponent))
+			AnimationComponent->OnBattleExecutionNotifyWithSourceAndAnimKey.RemoveDynamic(this, &UBattleActionExecutor::HandleBattleExecutionNotify);
+	}
+
+	NotifyAnimationComponents.Reset();
+}
+
+ABattleCharacterBase* UBattleActionExecutor::ResolveNotifySource(const FBattleExecutionNotify& ExecutionNotify) const
+{
+	return ExecutionNotify.NotifySourceOverride
+		? ExecutionNotify.NotifySourceOverride.Get()
+		: CurrentAction.Attacker.Get();
 }
 
 bool UBattleActionExecutor::RunMainExecutionEntries()
@@ -161,24 +187,30 @@ bool UBattleActionExecutor::RunMainExecutionEntries()
 	return RunExecutionEntries(MainExecutionEntries);
 }
 
-void UBattleActionExecutor::HandleBattleExecutionNotify(FName NotifyKey)
+void UBattleActionExecutor::HandleBattleExecutionNotify(ABattleCharacterBase* NotifySource, FName NotifyKey, FName SourceAnimKey)
 {
-	if (bRunning && !bStopAfterCurrentExecution && !NotifyKey.IsNone())
-		RunExecutionEntriesForNotify(NotifyKey);
+	if (bRunning && !bStopAfterCurrentExecution && IsValid(NotifySource) && !NotifyKey.IsNone())
+		RunExecutionEntriesForNotify(NotifySource, NotifyKey, SourceAnimKey);
 }
 
-void UBattleActionExecutor::RunExecutionEntriesForNotify(FName NotifyKey)
+void UBattleActionExecutor::RunExecutionEntriesForNotify(ABattleCharacterBase* NotifySource, FName NotifyKey, FName SourceAnimKey)
 {
-	if (!CurrentExecutionCard)
-		return;
-	for (const FBattleExecutionNotify& ExecutionNotify : CurrentExecutionCard->ExecutionNotifies)
+	for (const FBattleExecutionNotify& ExecutionNotify : CurrentAction.ExecutionNotifies)
 	{
-		if (ExecutionNotify.IsValid() && ExecutionNotify.NotifyKey == NotifyKey) 
-			RunExecutionEntries(ExecutionNotify.ExecutionEntries);
+		if (!ExecutionNotify.IsValid() || ExecutionNotify.NotifyKey != NotifyKey)
+			continue;
+
+		if (ResolveNotifySource(ExecutionNotify) != NotifySource)
+			continue;
+
+		if (!ExecutionNotify.SourceAnimKey.IsNone() && ExecutionNotify.SourceAnimKey != SourceAnimKey)
+			continue;
+
+		RunExecutionEntries(ExecutionNotify.ExecutionEntries, NotifySource);
 	}
 }
 
-bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries)
+bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries, ABattleCharacterBase* ExecutionSource)
 {
 	if (!bRunning || bStopAfterCurrentExecution || ExecutionEntries.IsEmpty())
 		return false;
@@ -188,7 +220,7 @@ bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEnt
 		return false;
 
 	FBattleExecutionContext Context;
-	Context.Attacker = CurrentAction.Attacker;
+	Context.Attacker = IsValid(ExecutionSource) ? ExecutionSource : CurrentAction.Attacker.Get();
 	Context.Card = CurrentExecutionCard;
 	Context.ExecutionMode = BattleSimulationWorld::UsesSimulationRuntime(GridWorldType)? EBattleExecutionMode::Simulation : EBattleExecutionMode::ActualBattle;
 	Context.TargetingResult = ActionTargetingResult;
@@ -240,12 +272,12 @@ void UBattleActionExecutor::CompleteAction()
 
 void UBattleActionExecutor::ResetRuntime()
 {
-	UnbindAttackerNotify();
+	UnbindExecutionNotifySources();
 	bRunning = false;
 	bStopAfterCurrentExecution = false;
 	CurrentAction = FBattleAction();
 	CurrentExecutionCard = nullptr;
 	ActionTargetingResult.Reset();
-	AttackerAnimationComponent = nullptr;
+	NotifyAnimationComponents.Reset();
 	ActiveExecutionRunners.Reset();
 }

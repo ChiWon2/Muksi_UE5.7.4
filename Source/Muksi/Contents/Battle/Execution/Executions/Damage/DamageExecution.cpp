@@ -5,6 +5,7 @@
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecution.h"
+#include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecutionData.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 
 namespace
@@ -35,23 +36,24 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 
 	for (ABattleCharacterBase* TargetCharacter : TargetCharacters)
 	{
-		ApplyDamageToTarget(Context, *DamageData, TargetCharacter);
-
 		FPendingHitResponse HitResponse;
 		HitResponse.Context = Context;
 		HitResponse.Context.ExecutionTarget = TargetCharacter;
 		HitResponse.Context.ExecutionData.Reset();
-		BuildHitResponseExecutionEntries(HitResponse.Context, *DamageData, TargetCharacter, HitResponse.ExecutionEntries);
 
-		if (!HitResponse.ExecutionEntries.IsEmpty()) PendingHitResponses.Add(MoveTemp(HitResponse));
+		FName HitReactionAnimKey = NAME_None;
+
+		const int32 AppliedDamage = ApplyDamageToTarget(Context, *DamageData, TargetCharacter, HitReactionAnimKey);
+		BuildHitResponseExecutionEntries(HitResponse.Context, *DamageData, TargetCharacter, AppliedDamage, HitReactionAnimKey, HitResponse.ExecutionEntries);
+
+		if (!HitResponse.ExecutionEntries.IsEmpty())
+			PendingHitResponses.Add(MoveTemp(HitResponse));
 	}
 
 	for (const FPendingHitResponse& HitResponse : PendingHitResponses)
 	{
 		if (!Context.CanRequestRuntimeExecutionEntries())
-		{
 			continue;
-		}
 
 		Context.RequestRuntimeExecutionEntries.Execute(
 			HitResponse.ExecutionEntries,
@@ -69,10 +71,12 @@ void UDamageExecution::CollectTargets(const FBattleExecutionContext& Context, co
 	switch (DamageData.TargetPolicy)
 	{
 	case EBattleExecutionTargetPolicy::ExecutionTarget:
-		if (Context.ExecutionTarget) OutTargets.Add(Context.ExecutionTarget);
+		if (Context.ExecutionTarget)
+			OutTargets.Add(Context.ExecutionTarget);
 		return;
 	case EBattleExecutionTargetPolicy::Attacker:
-		if (Context.Attacker) OutTargets.Add(Context.Attacker);
+		if (Context.Attacker)
+			OutTargets.Add(Context.Attacker);
 		return;
 	case EBattleExecutionTargetPolicy::TargetingResult:
 	default:
@@ -80,73 +84,88 @@ void UDamageExecution::CollectTargets(const FBattleExecutionContext& Context, co
 	}
 
 	if (!Context.BattleGridManager)
-	{
 		return;
-	}
 
 	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
-	if (!StepResult) return;
+	if (!StepResult)
+		return;
 
 	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
 	{
-		if (TargetCharacter && TargetCharacter != Context.Attacker) OutTargets.AddUnique(TargetCharacter);
+		if (TargetCharacter && TargetCharacter != Context.Attacker)
+			OutTargets.AddUnique(TargetCharacter);
 	}
-
 }
 
-void UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter) const
+int32 UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, FName& OutHitReactionAnimKey) const
 {
-	const int32 NewHP = FMath::Max(0, TargetCharacter->GetCurrentHP() - DamageData.DamageValue);
+	if (!TargetCharacter || DamageData.DamageValue <= 0)
+		return 0;
+
+	int32 FinalDamage = DamageData.DamageValue;
+
+	if (Context.ExecutionMode == EBattleExecutionMode::ActualBattle && DamageData.DefensePolicy == EDamageDefensePolicy::ApplyDefense)
+	{
+		if (UMuksiStatusEffectComponent* StatusEffectComponent = TargetCharacter->GetStatusEffectComponent())
+			FinalDamage = StatusEffectComponent->ApplyIncomingDamageModifiers(FinalDamage, OutHitReactionAnimKey);
+	}
+
+	if (FinalDamage <= 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[DamageExecution] Damage=%d FinalDamage=0 Target=%s"), DamageData.DamageValue, *GetNameSafe(TargetCharacter));
+		return 0;
+	}
+
+	const int32 PreviousHP = FMath::RoundToInt(TargetCharacter->GetCurrentHP());
+	const int32 NewHP = FMath::Max(0, PreviousHP - FinalDamage);
 	TargetCharacter->SetCurrentHP(NewHP);
 
-	UE_LOG(LogTemp, Log, TEXT("[DamageExecution] Damage=%d Target=%s NewHP=%d"), DamageData.DamageValue, *GetNameSafe(TargetCharacter), NewHP);
+	const int32 AppliedDamage = PreviousHP - NewHP;
+	UE_LOG(LogTemp, Log, TEXT("[DamageExecution] Damage=%d FinalDamage=%d AppliedDamage=%d Target=%s NewHP=%d"), DamageData.DamageValue, FinalDamage, AppliedDamage, *GetNameSafe(TargetCharacter), NewHP);
 
+	return AppliedDamage;
 }
 
-void UDamageExecution::BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
+void UDamageExecution::BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
 {
 	if (!TargetCharacter)
-	{
 		return;
-	}
 
-	if (DamageData.bTriggerHitReaction)
+	if (DamageData.bTriggerHitReaction && (AppliedDamage > 0 || !HitReactionAnimKey.IsNone()))
 	{
 		FBattleExecutionEntry HitReactionEntry;
 		HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
+
+		if (!HitReactionAnimKey.IsNone())
+		{
+			FHitReactionExecutionData HitReactionData;
+			HitReactionData.AnimKey = HitReactionAnimKey;
+			HitReactionEntry.ExecutionData.InitializeAs<FHitReactionExecutionData>(HitReactionData);
+		}
+
 		OutExecutionEntries.Add(MoveTemp(HitReactionEntry));
 	}
 
-	if (Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
-	{
+	if (AppliedDamage <= 0)
 		return;
-	}
 
-	if (!DamageData.bTriggerStatusEffectReactions)
-	{
+	if (Context.ExecutionMode != EBattleExecutionMode::ActualBattle || !DamageData.bTriggerStatusEffectReactions)
 		return;
-	}
 
 	if (Context.Attacker)
 	{
 		if (UMuksiStatusEffectComponent* AttackerStatusEffects = Context.Attacker->GetStatusEffectComponent())
-		{
-			AttackerStatusEffects->AppendHitDealtExecutionEntries(Context, DamageData.DamageValue, OutExecutionEntries);
-		}
+			AttackerStatusEffects->AppendHitDealtExecutionEntries(Context, AppliedDamage, OutExecutionEntries);
 	}
 
 	if (UMuksiStatusEffectComponent* TargetStatusEffects = TargetCharacter->GetStatusEffectComponent())
-	{
-		TargetStatusEffects->AppendHitReceivedExecutionEntries(Context, DamageData.DamageValue, OutExecutionEntries);
-	}
+		TargetStatusEffects->AppendHitReceivedExecutionEntries(Context, AppliedDamage, OutExecutionEntries);
 }
 
 void UDamageExecution::CompleteDamageExecution()
 {
 	if (IsExecutionFinished())
-	{
 		return;
-	}
 
 	FinishExecution(CachedOnFinished);
 }

@@ -25,6 +25,7 @@ void UBleedStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBatt
 	FDamageExecutionData DamageData;
 	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	DamageData.DamageValue = GetCurrentStack();
+	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
 	DamageData.bTriggerHitReaction = true;
 	DamageData.bTriggerStatusEffectReactions = false;
 	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);

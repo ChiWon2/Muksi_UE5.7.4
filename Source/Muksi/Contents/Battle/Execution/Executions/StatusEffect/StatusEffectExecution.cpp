@@ -8,7 +8,13 @@ void UStatusEffectExecution::Execute(const FBattleExecutionContext& Context, FBa
 {
 	const FStatusEffectExecutionData* StatusEffectData = Context.GetExecutionData<FStatusEffectExecutionData>();
 
-	if (!StatusEffectData || StatusEffectData->EffectID.IsNone() || Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
+	if (!StatusEffectData || StatusEffectData->EffectID.IsNone())
+	{
+		FinishExecution(OnFinished);
+		return;
+	}
+
+	if (Context.ExecutionMode == EBattleExecutionMode::Simulation)
 	{
 		FinishExecution(OnFinished);
 		return;
@@ -74,6 +80,10 @@ void UStatusEffectExecution::ApplyStatusEffectToTarget(const FStatusEffectExecut
 		break;
 	case EStatusEffectExecutionOperation::Remove:
 		StatusEffectComponent->RemoveStatusEffectByID(StatusEffectData.EffectID);
+		break;
+	case EStatusEffectExecutionOperation::RemoveAndAdd:
+		StatusEffectComponent->RemoveStatusEffectByID(StatusEffectData.EffectID);
+		StatusEffectComponent->AddStatusEffect(StatusEffectData.EffectID, StatusEffectData.StackCount, StatusEffectData.Duration);
 		break;
 	default:
 		break;

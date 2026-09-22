@@ -32,17 +32,30 @@ void UPlayMontageExecution::Execute(const FBattleExecutionContext& Context, FBat
 		return;
 	}
 
+	PlayingMontage = AnimationComponent->FindMontage(MontageData->AnimKey);
+	if (!PlayingMontage)
+	{
+		FinishPlayMontage();
+		return;
+	}
+
 	AnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
 
-	if (!AnimationComponent->PlayBattleAnimation(MontageData->AnimKey))
+	if (!AnimationComponent->PlayBattleAnimation(MontageData->AnimKey, MontageData->PlayRate))
 	{
 		AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
+		PlayingMontage = nullptr;
 		FinishPlayMontage();
 	}
 }
 
-void UPlayMontageExecution::HandleMontageFinished(bool bInterrupted)
+void UPlayMontageExecution::HandleMontageFinished(UAnimMontage* Montage, bool bInterrupted)
 {
+	static_cast<void>(bInterrupted);
+
+	if (Montage != PlayingMontage)
+		return;
+
 	FinishPlayMontage();
 }
 
@@ -59,6 +72,7 @@ void UPlayMontageExecution::FinishPlayMontage()
 	}
 
 	AnimationComponent = nullptr;
+	PlayingMontage = nullptr;
 	FinishExecution(CachedOnFinished);
 }
 

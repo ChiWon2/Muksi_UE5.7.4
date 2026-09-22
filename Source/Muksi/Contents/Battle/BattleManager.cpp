@@ -140,6 +140,7 @@ bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuks
         ExecutionCard = Card;
 
     BattleAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
+    BattleAction.ExecutionNotifies = ExecutionCard->ExecutionNotifies;
 
     if (bPlayerAction)
         BattleRuntimeContext->SetPlayerExchangeAction(CurrentExchange, BattleAction);

@@ -156,7 +156,9 @@ void ABattleCharacterBase::CopySimulationStateFrom(const ABattleCharacterBase& S
 	CharacterData.AttackValue = SourceCharacter.CharacterData.AttackValue;
 	CharacterData.DefenseValue = SourceCharacter.CharacterData.DefenseValue;
 	CharacterData.CharacterSpeed = SourceCharacter.CharacterData.CharacterSpeed;
-	if (BattleStatComponent && SourceCharacter.BattleStatComponent) BattleStatComponent->CopyRuntimeStateFrom(*SourceCharacter.BattleStatComponent);
+
+	if (BattleStatComponent && SourceCharacter.BattleStatComponent)
+		BattleStatComponent->CopyRuntimeStateFrom(*SourceCharacter.BattleStatComponent);
 }
 
 void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)

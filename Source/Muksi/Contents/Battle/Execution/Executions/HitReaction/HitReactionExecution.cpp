@@ -1,8 +1,8 @@
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecution.h"
 
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
-#include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationKeys.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecutionData.h"
 
 
 UHitReactionExecution::UHitReactionExecution()
@@ -35,19 +35,33 @@ void UHitReactionExecution::Execute(const FBattleExecutionContext& Context, FBat
 		return;
 	}
 
+	const FHitReactionExecutionData* HitReactionData = Context.GetExecutionData<FHitReactionExecutionData>();
+	const FName AnimKey = HitReactionData && !HitReactionData->AnimKey.IsNone() ? HitReactionData->AnimKey : TEXT("HitReaction");
+
+	PlayingMontage = TargetAnimationComponent->FindMontage(AnimKey);
+	if (!PlayingMontage)
+	{
+		FinishHitReaction();
+		return;
+	}
+
 	TargetAnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UHitReactionExecution::HandleHitReactionFinished);
 
-	const bool bPlayed = TargetAnimationComponent->PlayBattleAnimation(MuksiBattleAnimationKeys::HitReaction);
-
-	if (!bPlayed)
+	if (!TargetAnimationComponent->PlayBattleAnimation(AnimKey))
 	{
 		TargetAnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UHitReactionExecution::HandleHitReactionFinished);
+		PlayingMontage = nullptr;
 		FinishHitReaction();
 	}
 }
 
-void UHitReactionExecution::HandleHitReactionFinished(bool bInterrupted)
+void UHitReactionExecution::HandleHitReactionFinished(UAnimMontage* Montage, bool bInterrupted)
 {
+	static_cast<void>(bInterrupted);
+
+	if (Montage != PlayingMontage)
+		return;
+
 	FinishHitReaction();
 }
 
@@ -64,5 +78,11 @@ void UHitReactionExecution::FinishHitReaction()
 	}
 
 	TargetAnimationComponent = nullptr;
+	PlayingMontage = nullptr;
 	FinishExecution(CachedOnFinished);
+}
+
+const UScriptStruct* UHitReactionExecution::GetExecutionDataStruct() const
+{
+	return FHitReactionExecutionData::StaticStruct();
 }

@@ -116,7 +116,7 @@ UAnimMontage* UMuksiBattleAnimationComponent::FindMontage(const FName& AnimKey) 
 	return AnimationData->FindMontage(AnimKey, CurrentWeaponType);
 }
 
-bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
+bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey, float PlayRate)
 {
 	CacheMeshComponent();
 
@@ -152,13 +152,14 @@ bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
 	AnimInstance->OnMontageEnded.AddDynamic(this, &UMuksiBattleAnimationComponent::HandleMontageEnded);
 
 	CurrentMontage = Montage;
+	CurrentAnimKey = AnimKey;
 
-
-	const float PlayLength = AnimInstance->Montage_Play(Montage);
+	const float PlayLength = AnimInstance->Montage_Play(Montage, PlayRate);
 
 	if (PlayLength <= 0.f)
 	{
 		CurrentMontage = nullptr;
+		CurrentAnimKey = NAME_None;
 		UE_LOG(LogTemp, Error, TEXT("[BattleAnimationComponent] Montage_Play failed. Montage=%s"),
 			*GetNameSafe(Montage));
 		return false;
@@ -169,33 +170,55 @@ bool UMuksiBattleAnimationComponent::PlayBattleAnimation(const FName& AnimKey)
 
 void UMuksiBattleAnimationComponent::HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (Montage != CurrentMontage)
+	const bool bWasCurrentMontage = Montage == CurrentMontage;
+
+	if (bWasCurrentMontage)
 	{
-		return;
+		CurrentMontage = nullptr;
+		CurrentAnimKey = NAME_None;
 	}
 
-	CurrentMontage = nullptr;
-
-	if (CachedMeshComponent)
+	if (bWasCurrentMontage)
 	{
-		if (UAnimInstance* AnimInstance = CachedMeshComponent->GetAnimInstance())
+		if (UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(this))
 		{
-			AnimInstance->OnMontageEnded.RemoveDynamic(this, &UMuksiBattleAnimationComponent::HandleMontageEnded);
-		}
-	}
-	
-	//카메라 원래대로 돌리기
-	if (UMuksiWorldManagerSubsystem* ManagerSubsystem =
-	UMuksiWorldManagerSubsystem::Get(this))
-	{
-		if (ABattleCameraManager* CameraManager =
-			ManagerSubsystem->GetManager<ABattleCameraManager>())
-		{
-			CameraManager->ReturnToOverview();
+			if (ABattleCameraManager* CameraManager = ManagerSubsystem->GetManager<ABattleCameraManager>())
+				CameraManager->ReturnToOverview();
 		}
 	}
 
-	OnBattleAnimationFinished.Broadcast(bInterrupted);
+	OnBattleAnimationFinished.Broadcast(Montage, bInterrupted);
+}
+
+bool UMuksiBattleAnimationComponent::SetCurrentMontagePlayRate(float PlayRate)
+{
+	return SetMontagePlayRate(CurrentMontage, PlayRate);
+}
+
+bool UMuksiBattleAnimationComponent::SetMontagePlayRate(UAnimMontage* Montage, float PlayRate)
+{
+	CacheMeshComponent();
+
+	if (!CachedMeshComponent || !Montage)
+		return false;
+
+	UAnimInstance* AnimInstance = CachedMeshComponent->GetAnimInstance();
+
+	if (!AnimInstance)
+		return false;
+
+	AnimInstance->Montage_SetPlayRate(Montage, FMath::Max(0.0f, PlayRate));
+	return true;
+}
+
+UAnimMontage* UMuksiBattleAnimationComponent::GetCurrentMontage() const
+{
+	return CurrentMontage;
+}
+
+FName UMuksiBattleAnimationComponent::GetCurrentAnimKey() const
+{
+	return CurrentAnimKey;
 }
 
 void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey)
@@ -206,59 +229,62 @@ void UMuksiBattleAnimationComponent::HandleBattleExecutionNotify(FName NotifyKey
 		return;
 	}
 
+	ABattleCharacterBase* NotifySource = Cast<ABattleCharacterBase>(GetOwner());
+
 	OnBattleExecutionNotify.Broadcast(NotifyKey);
+	OnBattleExecutionNotifyWithSource.Broadcast(NotifySource, NotifyKey);
+	OnBattleExecutionNotifyWithSourceAndAnimKey.Broadcast(NotifySource, NotifyKey, CurrentAnimKey);
 }
 
-bool UMuksiBattleAnimationComponent::JumpCurrentMontageToSection(
-	const FName& SectionName
-)
+bool UMuksiBattleAnimationComponent::JumpCurrentMontageToSection(const FName& SectionName)
+{
+	return JumpMontageToSection(CurrentMontage, SectionName);
+}
+
+bool UMuksiBattleAnimationComponent::JumpMontageToSection(UAnimMontage* Montage, const FName& SectionName)
 {
 	if (SectionName.IsNone())
 	{
-		UE_LOG(LogTemp,Warning,TEXT("[BattleAnimationComponent] SectionName is None."));
+		UE_LOG(LogTemp, Warning, TEXT("[BattleAnimationComponent] SectionName is None."));
 		return false;
 	}
 
 	CacheMeshComponent();
 
 	if (!CachedMeshComponent)
-	{
 		return false;
-	}
 
 	UAnimInstance* AnimInstance = CachedMeshComponent->GetAnimInstance();
 
 	if (!AnimInstance)
 	{
-		UE_LOG(LogTemp,Error,TEXT("[BattleAnimationComponent] AnimInstance is null. Owner=%s"),*GetNameSafe(GetOwner()));
-
+		UE_LOG(LogTemp, Error, TEXT("[BattleAnimationComponent] AnimInstance is null. Owner=%s"), *GetNameSafe(GetOwner()));
 		return false;
 	}
 
-	if (!CurrentMontage)
+	if (!Montage)
 	{
-		UE_LOG(LogTemp,Warning,TEXT("[BattleAnimationComponent] CurrentMontage is null. Owner=%s"),*GetNameSafe(GetOwner()));
+		UE_LOG(LogTemp, Warning, TEXT("[BattleAnimationComponent] Montage is null. Owner=%s"), *GetNameSafe(GetOwner()));
 		return false;
 	}
 
-	if (!AnimInstance->Montage_IsPlaying(CurrentMontage))
+	if (!AnimInstance->Montage_IsActive(Montage))
 	{
-		UE_LOG(LogTemp,Error,TEXT("[BattleAnimationComponent] CurrentMontage is not playing. Montage=%s"),*GetNameSafe(CurrentMontage));
-
+		UE_LOG(LogTemp, Error, TEXT("[BattleAnimationComponent] Montage is not active. Montage=%s"), *GetNameSafe(Montage));
 		return false;
 	}
 
-	const int32 SectionIndex = CurrentMontage->GetSectionIndex(SectionName);
+	const int32 SectionIndex = Montage->GetSectionIndex(SectionName);
 
 	if (SectionIndex == INDEX_NONE)
 	{
-		UE_LOG(LogTemp,Error,TEXT("[BattleAnimationComponent] Section not found. Montage=%s Section=%s"),*GetNameSafe(CurrentMontage),*SectionName.ToString());
+		UE_LOG(LogTemp, Error, TEXT("[BattleAnimationComponent] Section not found. Montage=%s Section=%s"), *GetNameSafe(Montage), *SectionName.ToString());
 		return false;
 	}
 
-	AnimInstance->Montage_JumpToSection(SectionName,CurrentMontage);
+	AnimInstance->Montage_JumpToSection(SectionName, Montage);
 
-	UE_LOG(LogTemp,Log,TEXT("[BattleAnimationComponent] Jumped to Montage Section. Montage=%s Section=%s"),*GetNameSafe(CurrentMontage),*SectionName.ToString());
+	UE_LOG(LogTemp, Log, TEXT("[BattleAnimationComponent] Jumped to Montage Section. Montage=%s Section=%s"), *GetNameSafe(Montage), *SectionName.ToString());
 
 	return true;
 }
