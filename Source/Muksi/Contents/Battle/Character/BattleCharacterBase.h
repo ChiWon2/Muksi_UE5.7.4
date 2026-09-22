@@ -10,6 +10,7 @@
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
 
+class UBattleSkillComponent;
 class UCharacterCameraComponent;
 class ABattleManager;
 class AExchangeCharacterBase;
@@ -20,7 +21,6 @@ class UMuksiBattleMovementComponent;
 class UMuksiStatusEffectComponent;
 class UCharacterPassiveComponent;
 class UBattleStatComponent;
-class UBattleCardComponent;
 
 //여기 적혀있는거 고쳐야 함
 USTRUCT(BlueprintType)
@@ -136,8 +136,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
 	UCharacterCameraComponent* GetAttackCameraComponent()const{ return AttackCameraFocusComponent;}
 	
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter|BattleCard")
-	UBattleCardComponent* GetBattleCardComponent(){ return BattleCardComponent; }
+	
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|BattleSkill")
+	UBattleSkillComponent* GetBattleSkillComponent()const {return BattleSkillComponent;}
 
 
 	virtual void OnSelected() override;
@@ -182,5 +183,5 @@ public:
 	TObjectPtr<UCharacterPassiveComponent> PassiveComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UBattleCardComponent> BattleCardComponent;
+	TObjectPtr<UBattleSkillComponent> BattleSkillComponent;
 };

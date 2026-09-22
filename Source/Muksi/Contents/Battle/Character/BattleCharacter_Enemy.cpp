@@ -3,6 +3,7 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 
+#include "BattleSkillComponent.h"
 #include "Enemy/AI/EnemyBattleAIComponent.h"
 
 ABattleCharacter_Enemy::ABattleCharacter_Enemy()
@@ -19,18 +20,54 @@ void ABattleCharacter_Enemy::SetCharacterData(UMuksiCharacterDataAsset* InCharac
 	InitData();
 }
 
-UMuksiBattleCardDataAsset* ABattleCharacter_Enemy::SelectCardForExchange(
-	ABattleGridManager* GridManager,
-	const FHexOffsetCoord& EnemyCoord,
-	const FHexOffsetCoord& PlayerCoord) const
+
+
+FEnemySkillSelectResult ABattleCharacter_Enemy::SelectSkillForExchange(ABattleGridManager* GridManager,
+	const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord) const
 {
-	return BattleAIComponent->SelectCardForExchange(CharacterData, GridManager, EnemyCoord, PlayerCoord);
+	if (!BattleAIComponent)
+	{
+		return FEnemySkillSelectResult();
+	}
+
+	UBattleSkillComponent* SkillComponent =
+		GetBattleSkillComponent();
+
+	if (!SkillComponent)
+	{
+		return FEnemySkillSelectResult();
+	}
+
+	TArray<FBattleSkillInstance> UsableSkills;
+
+	for (const FBattleSkillInstance& SkillInstance : SkillComponent->GetSkillInstances())
+	{
+		if (!SkillComponent->CanUseSkill(SkillInstance.InstanceId))
+		{
+			continue;
+		}
+
+		UsableSkills.Add(SkillInstance);
+	}
+	
+	if (UsableSkills.IsEmpty())
+	{
+		FEnemySkillSelectResult Result;
+		Result.State = EEnemySkillSelectState::NoUsableSkill;
+
+		return Result;
+	}
+
+	return BattleAIComponent->SelectSkillForExchange(
+		CharacterData,
+		UsableSkills,
+		GridManager,
+		EnemyCoord,
+		PlayerCoord
+	);
 }
 
-TArray<FHexOffsetCoord> ABattleCharacter_Enemy::GetSelectedTargetingStepCoords() const
-{
-	return BattleAIComponent->GetSelectedTargetingStepCoords();
-}
+
 
 
 void ABattleCharacter_Enemy::InitData()

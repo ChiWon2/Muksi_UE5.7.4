@@ -16,15 +16,16 @@ class UMuksiBattleCardDataAsset;
 
 struct FCharacterPanicTimeoutResult
 {
-	FBattleCardInstance PanicCard;
-	FBattleCardInstance DiscardedCard;
+	TObjectPtr<UMuksiBattleCardDataAsset> PanicCard = nullptr;
 
-	bool bDiscardedCard = false;
-	
-	FBattleCardInstance ReturnedCard;
-	bool bReturnedCard = false;
+	bool IsValid() const
+	{
+		return PanicCard != nullptr;
+	}
 
 };
+
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattleHandCardChanged, FGuid, InstanceId, UMuksiBattleCardDataAsset*, NewCardData);
 
@@ -52,7 +53,6 @@ private:
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
 	
 	void HandleRoundStart();
-	void HandleRoundEnd();
 	
 	//카드 변경 시스템----------------------------------------------------------
 public:
@@ -69,7 +69,7 @@ public:
 	//카드 선택 시간초과 시스템-------------------------------------------------------
 public:
 	bool ResolvePlayerPanicOnTimeout(int32 ExchangeIndex, FCharacterPanicTimeoutResult& OutResult);
-	bool ResolveEnemyPanicOnTimeout(int32 ExchangeIndex, FCharacterPanicTimeoutResult& OutResult);
+	bool ResolveEnemyPanicOnTimeout(int32 ExchangeIndex,FCharacterPanicTimeoutResult& OutResult);
 private:
 	bool ResolveCharacterPanicOnTimeout(ABattleCharacterBase* Character, int32 ExchangeIndex, FCharacterPanicTimeoutResult& OutResult);
 	//----------------------------------------------------------------------------

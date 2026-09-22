@@ -28,7 +28,8 @@ public:
 	void HandleCardHoverEnded(UWidget_BattleCardBase* CardWidget);
 	
 	
-	
+	void HandleSkillHovered(UMuksiBattleCardDataAsset* SkillData, int32 RemainingCooldown);
+	void HandleSkillHoverEnded();
 
 protected:
 	void SetCardData(UMuksiBattleCardDataAsset* InCardData);

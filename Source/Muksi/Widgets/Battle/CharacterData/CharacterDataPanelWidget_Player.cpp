@@ -14,7 +14,7 @@
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
-#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
+#include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 
 void UCharacterDataPanelWidget_Player::InitializeFromPlayerMode()
@@ -48,13 +48,24 @@ void UCharacterDataPanelWidget_Player::ApplyCharacterData(ABattleCharacter_Playe
 {
 	if (!PlayerData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CharacterDataPanelWidget_Player - InCharacterData is null"));
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("CharacterDataPanelWidget_Player - PlayerData is null")
+		);
 		return;
 	}
+
 	PlayerProfilePanelWidget->SetBattleCharacter(PlayerData);
 	PlayerProfilePanelWidget->SetData(PlayerData->GetCharacterData());
-	UBattleCardComponent* CardComponent = PlayerData->GetBattleCardComponent();
-	CharacterDeckPanelWidget->SetDeckData(CardComponent->GetFullDeck());
+
+	UBattleSkillComponent* SkillComponent = PlayerData->GetBattleSkillComponent();
+
+	if (SkillComponent)
+	{
+		CharacterDeckPanelWidget->SetDeckData(SkillComponent->GetSkillDataList());
+	}
+
 	CharacterPassivePanelWidget->SetPassiveData(PlayerData->GetCharacterPassives());
 }
 

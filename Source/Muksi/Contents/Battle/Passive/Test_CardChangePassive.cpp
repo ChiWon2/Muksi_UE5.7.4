@@ -25,7 +25,7 @@ void UTest_CardChangePassive::HandleBattlePhaseChanged(EBattlePhase OldPhase, EB
 
 void UTest_CardChangePassive::Passive1()
 {
-	ABattleCharacterBase* Owner = GetOwnerCharacter();
+	/*ABattleCharacterBase* Owner = GetOwnerCharacter();
 	if (!IsValid(Owner))
 	{
 		return;
@@ -71,7 +71,7 @@ void UTest_CardChangePassive::Passive1()
 		BCardDataAsset);
 	
 	//패시브 작동 UI 띄우기
-	OnPassiveActive.Broadcast(PassiveImage, PassiveName);
+	OnPassiveActive.Broadcast(PassiveImage, PassiveName);*/
 }
 
 void UTest_CardChangePassive::Passive1Setting()

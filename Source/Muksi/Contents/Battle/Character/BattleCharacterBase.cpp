@@ -4,6 +4,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 #include "BattleCardComponent.h"
+#include "BattleSkillComponent.h"
 #include "BattleStatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -77,8 +78,8 @@ ABattleCharacterBase::ABattleCharacterBase()
 	BattleMovementComponent =CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
 	
 	BattleStatComponent = CreateDefaultSubobject<UBattleStatComponent>(TEXT("BattleStatComponent"));
-
-	BattleCardComponent = CreateDefaultSubobject<UBattleCardComponent>(TEXT("BattleCardComponent"));
+	
+	BattleSkillComponent = CreateDefaultSubobject<UBattleSkillComponent>(TEXT("BattleSkillComponent"));
 }
 
 
@@ -124,12 +125,14 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 	
 	InitializeBattleStats();
 	
-	if (!BattleCardComponent)
+	
+	if (!BattleSkillComponent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("BattleCardComponent is null (BattleCharacterBase.cpp)"));
+		UE_LOG(LogTemp, Error, TEXT("BattleSkillComponent is null (BattleCharacterBase.cpp)"));
 		return;
 	}
-	BattleCardComponent->Initialize(InCharacterData->CharacterDeck);
+
+	BattleSkillComponent->Initialize(InCharacterData->CharacterDeck);
 }
 
 void ABattleCharacterBase::InitializeBattleStats()
@@ -166,18 +169,6 @@ void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, 
 		*ButtonPressed.ToString());
 }
 
-
-
-int32 ABattleCharacterBase::GetCurrentBattleCardCount() const
-{
-	//return CharacterData.BattleDeck.Num();기존 코드
-	if (!BattleCardComponent)
-	{
-		return 0;
-	}
-
-	return BattleCardComponent->GetCurrentHandCount();
-}
 
 TArray<TObjectPtr<UCharacterPassive>> ABattleCharacterBase::GetCharacterPassives()
 {
