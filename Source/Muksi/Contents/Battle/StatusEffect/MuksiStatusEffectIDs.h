@@ -15,6 +15,10 @@ namespace MuksiStatusEffectIDs
     static const FName WaterEnergy(TEXT("WaterEnergy"));
     static const FName ChargeWaterEnergy(TEXT("ChargeWaterEnergy"));
 
+    static const FName Shield(TEXT("Shield"));
+    static const FName ReduceDamage(TEXT("ReduceDamage"));
+    static const FName MultiplyDamage(TEXT("MultiplyDamage"));
+
     //특수Effect
     
     //특수 출혈

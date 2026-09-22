@@ -2,7 +2,9 @@
 
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "MuksiStatusEffect.h"
+#include "MuksiIncomingDamageModifierStatusEffect.h"
 #include "MuksiStatusEffectRegistry.h"
+#include "MuksiStatusEffectIDs.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
@@ -65,6 +67,32 @@ UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,
 
     StackCount = FMath::Max(1, StackCount);
     Duration = FMath::Max(1, Duration);
+
+	FName OpposingEffectID = NAME_None;
+
+	if (EffectID == MuksiStatusEffectIDs::ReduceDamage)
+		OpposingEffectID = MuksiStatusEffectIDs::MultiplyDamage;
+	else if (EffectID == MuksiStatusEffectIDs::MultiplyDamage)
+		OpposingEffectID = MuksiStatusEffectIDs::ReduceDamage;
+
+	if (!OpposingEffectID.IsNone())
+	{
+		if (UMuksiStatusEffect* OpposingEffect = FindEffectByID(OpposingEffectID))
+		{
+			if (OpposingEffect->GetCurrentStack() > StackCount)
+			{
+				OpposingEffect->ConsumeStack(StackCount);
+				OnStatusEffectsChanged.Broadcast();
+				return OpposingEffect;
+			}
+
+			StackCount -= OpposingEffect->GetCurrentStack();
+			RemoveStatusEffect(OpposingEffect);
+
+			if (StackCount <= 0)
+				return nullptr;
+		}
+	}
 
     if (UMuksiStatusEffect* ExistingEffect = FindEffectByID(EffectID))
     {
@@ -309,27 +337,78 @@ void UMuksiStatusEffectComponent::AppendHitReceivedExecutionEntries(const FBattl
 	}
 }
 
-void UMuksiStatusEffectComponent::RemoveExpiredEffects()
+int32 UMuksiStatusEffectComponent::ApplyIncomingDamageModifiers(int32 Damage, FName& OutHitReactionAnimKey)
 {
-    bool bRemovedAny = false;
+	FIncomingDamageModifierContext IncomingDamageContext;
+	IncomingDamageContext.OriginalDamage = FMath::Max(0, Damage);
+	IncomingDamageContext.RemainingDamage = IncomingDamageContext.OriginalDamage;
 
-    for (int32 Index = ActiveEffects.Num() - 1; Index >= 0; --Index)
-    {
-        UMuksiStatusEffect* Effect = ActiveEffects[Index];
+	OutHitReactionAnimKey = NAME_None;
 
-        if (Effect && Effect->IsExpired())
-        {
-            Effect->OnRemoved();
-            ActiveEffects.RemoveAt(Index);
+	TArray<UMuksiIncomingDamageModifierStatusEffect*> DamageModifiers;
 
-            bRemovedAny = true;
-        }
-    }
+	for (UMuksiStatusEffect* Effect : ActiveEffects)
+	{
+		UMuksiIncomingDamageModifierStatusEffect* DamageModifier = Cast<UMuksiIncomingDamageModifierStatusEffect>(Effect);
 
-    if (bRemovedAny)
-    {
-        OnStatusEffectsChanged.Broadcast();
-    }
+		if (IsValid(DamageModifier))
+			DamageModifiers.Add(DamageModifier);
+	}
+
+	DamageModifiers.StableSort([](const UMuksiIncomingDamageModifierStatusEffect& A, const UMuksiIncomingDamageModifierStatusEffect& B)
+	{
+		return A.GetIncomingDamageModifierPriority() < B.GetIncomingDamageModifierPriority();
+	});
+
+	bool bModifierStateChanged = false;
+
+	for (UMuksiIncomingDamageModifierStatusEffect* DamageModifier : DamageModifiers)
+	{
+		if (IncomingDamageContext.RemainingDamage <= 0)
+			break;
+
+		const int32 StackBeforeModifier = DamageModifier->GetCurrentStack();
+		const int32 DamageBeforeModifier = IncomingDamageContext.RemainingDamage;
+
+		DamageModifier->ModifyIncomingDamage(IncomingDamageContext);
+		IncomingDamageContext.RemainingDamage = FMath::Max(0, IncomingDamageContext.RemainingDamage);
+
+		if (StackBeforeModifier != DamageModifier->GetCurrentStack())
+			bModifierStateChanged = true;
+
+		if (OutHitReactionAnimKey.IsNone() && IncomingDamageContext.RemainingDamage < DamageBeforeModifier)
+			OutHitReactionAnimKey = DamageModifier->GetHitReactionAnimKey();
+	}
+
+	const bool bRemovedExpiredEffect = RemoveExpiredEffects(false);
+
+	if (bModifierStateChanged || bRemovedExpiredEffect)
+		OnStatusEffectsChanged.Broadcast();
+
+	return IncomingDamageContext.RemainingDamage;
+}
+
+bool UMuksiStatusEffectComponent::RemoveExpiredEffects(bool bNotify)
+{
+	bool bRemovedAny = false;
+
+	for (int32 Index = ActiveEffects.Num() - 1; Index >= 0; --Index)
+	{
+		UMuksiStatusEffect* Effect = ActiveEffects[Index];
+
+		if (Effect && Effect->IsExpired())
+		{
+			Effect->OnRemoved();
+			ActiveEffects.RemoveAt(Index);
+
+			bRemovedAny = true;
+		}
+	}
+
+	if (bRemovedAny && bNotify)
+		OnStatusEffectsChanged.Broadcast();
+
+	return bRemovedAny;
 }
 
 void UMuksiStatusEffectComponent::ExecuteSequentially(EBattlePhase OldPhase, EBattlePhase NewPhase,FSimpleDelegate CompletionDelegate)

@@ -28,6 +28,7 @@ void USaeMaekStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	FDamageExecutionData DamageData;
 	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 	DamageData.DamageValue = GetCurrentStack();
+	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
 	DamageData.bTriggerHitReaction = false;
 	DamageData.bTriggerStatusEffectReactions = true;
 	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);

@@ -166,6 +166,7 @@ void UInsightStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	FDamageExecutionData DamageData;
 	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	DamageData.DamageValue = GetCurrentStack();
+	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
 	DamageData.bTriggerHitReaction = false;
 
 	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);

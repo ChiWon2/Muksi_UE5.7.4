@@ -47,6 +47,7 @@ public:
 	virtual void BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 	virtual void BuildHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 
+
 public:
 
     virtual bool IsExpired() const;
