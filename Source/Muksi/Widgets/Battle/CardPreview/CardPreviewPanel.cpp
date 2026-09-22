@@ -41,6 +41,27 @@ void UCardPreviewPanel::HandleCardHoverEnded(UWidget_BattleCardBase* CardWidget)
 	SetVisibility(ESlateVisibility::Collapsed);
 }
 
+void UCardPreviewPanel::HandleSkillHovered(UMuksiBattleCardDataAsset* SkillData, int32 RemainingCooldown)
+{
+	if (!SkillData)
+	{
+		return;
+	}
+
+	SetCardData(SkillData);
+
+	// 이후 쿨다운 UI에 사용
+	// SkillData->Cooldown    = 최대 쿨다운
+	// RemainingCooldown     = 현재 쿨다운
+
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UCardPreviewPanel::HandleSkillHoverEnded()
+{
+	SetVisibility(ESlateVisibility::Collapsed);
+}
+
 void UCardPreviewPanel::SetCardData(UMuksiBattleCardDataAsset* InCardData)
 {
 	if (!InCardData)

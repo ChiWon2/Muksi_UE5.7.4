@@ -3,42 +3,50 @@
 
 #include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
 
-#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 
-FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Implementation(const FCharacterData& EnemyData,const TArray<FBattleCardInstance>& CurrentHand,
-                                                                                          ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord)
+
+FEnemySkillSelectResult UEnemyCardSelectStrategyBase::SelectSkillForExchange_Implementation(
+	const FCharacterData& EnemyData, const TArray<FBattleSkillInstance>& SkillInstances,
+	ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord)
 {
-	FEnemyCardSelectResult BestResult;
+	FEnemySkillSelectResult BestResult;
 
-	if (!EnemyData.IsValid())
-	{
-		return BestResult;
-	}
-	if (!GridManager)
-	{
-		return BestResult;
-	}
-	if (CurrentHand.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy CurrentHand is empty"));
-		return BestResult;
-	}
-	const FBattleCardInstance& SelectedInstance = CurrentHand[0];
-
-	if (!SelectedInstance.IsValid())
+	if (!EnemyData.IsValid() ||
+		!GridManager ||
+		SkillInstances.IsEmpty())
 	{
 		return BestResult;
 	}
 
-	//일단 첫번째 카드 사용
-	UMuksiBattleCardDataAsset* Card = SelectedInstance.CardData;
+	const FBattleSkillInstance* SelectedInstance = nullptr;
 
-	TArray<FHexOffsetCoord> CandidateCoords = GetCandidateCoords(
+	for (const FBattleSkillInstance& SkillInstance : SkillInstances)
+	{
+		if (!SkillInstance.IsReady())
+		{
+			continue;
+		}
+
+		SelectedInstance = &SkillInstance;
+		break;
+	}
+
+	if (!SelectedInstance ||
+		!SelectedInstance->SkillData)
+	{
+		return BestResult;
+	}
+
+	UMuksiBattleCardDataAsset* SkillData =
+		SelectedInstance->SkillData;
+
+	TArray<FHexOffsetCoord> CandidateCoords =
+		GetCandidateCoords(
 			EnemyData,
-			Card,
+			SkillData,
 			GridManager,
 			EnemyCoord,
 			PlayerCoord
@@ -48,18 +56,24 @@ FEnemyCardSelectResult UEnemyCardSelectStrategyBase::SelectCardForExchange_Imple
 	{
 		return BestResult;
 	}
-	BestResult.SelectedCardInstanceId = SelectedInstance.InstanceId;
+
+	BestResult.SelectedSkillInstanceId =
+		SelectedInstance->InstanceId;
+
+	BestResult.SelectedSkill =
+		SkillData;
+
+	BestResult.TargetingStepCoords.Add(
+		CandidateCoords[0]
+	);
 	
-	//일단 첫번째 가능 위치 사용
-	FHexOffsetCoord SelectedCoord = CandidateCoords[0];
-	BestResult.SelectedCard = Card;
-	BestResult.TargetingStepCoords.Add(SelectedCoord);
+	BestResult.State = EEnemySkillSelectState::Selected;
 
 	return BestResult;
 }
 
 TArray<FHexOffsetCoord> UEnemyCardSelectStrategyBase::GetCandidateCoords(FCharacterData EnemyData,
-	UMuksiBattleCardDataAsset* Card, ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord)
+                                                                         UMuksiBattleCardDataAsset* Card, ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord)
 {
 	TArray<FHexOffsetCoord> Result;
 

@@ -12,6 +12,9 @@ class ABattleCharacterBase;
 class UMuksiBattleCardDataAsset;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSkillSelected, const FGuid&, UMuksiBattleCardDataAsset*);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSkillHovered, UMuksiBattleCardDataAsset*, int32);
+DECLARE_MULTICAST_DELEGATE(FOnBattleSkillUnhovered);
 /**
  * 
  */
@@ -23,12 +26,14 @@ class MUKSI_API UWidget_BattleSkillBar : public UUserWidget
 public:
 	void SetBattleCharacter(ABattleCharacterBase* InCharacter);
 	
+	void SetSkillSlotActive(bool bActive);
+	
 	void RefreshSkillSlots();
 	
 	FOnBattleSkillSelected OnBattleSkillSelected;
-	
-	bool ReturnCommittedSkill(const FGuid& InstanceId);
-	
+
+	FOnBattleSkillHovered OnBattleSkillHovered;
+	FOnBattleSkillUnhovered OnBattleSkillUnhovered;
 protected:
 	virtual void NativeConstruct() override;
 
@@ -38,10 +43,12 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleSkillSlot>> SkillSlots;
 
-	bool CommitSkillCard(const FGuid& InstanceId);
 private:
 	void InitializeSkillSlots();
 	void HandleSkillSlotClicked(const FGuid& InstanceId,UMuksiBattleCardDataAsset* CardData);
+	
+	void HandleSkillSlotHovered(UMuksiBattleCardDataAsset* SkillData,  int32 RemainingCooldown);
+	void HandleSkillSlotUnhovered();
 	
 private:
 	UPROPERTY()

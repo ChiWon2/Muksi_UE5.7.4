@@ -5,8 +5,9 @@
 
 #include "Widget_BattleSkillSlot.h"
 #include "Components/HorizontalBox.h"
-#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
+#include "Muksi/Contents/Battle/Character/BattleSkillTypes.h"
 
 
 void UWidget_BattleSkillBar::SetBattleCharacter(ABattleCharacterBase* InCharacter)
@@ -16,6 +17,15 @@ void UWidget_BattleSkillBar::SetBattleCharacter(ABattleCharacterBase* InCharacte
 	RefreshSkillSlots();
 }
 
+void UWidget_BattleSkillBar::SetSkillSlotActive(bool bActive)
+{
+	SetVisibility(
+		bActive
+			? ESlateVisibility::Visible
+			: ESlateVisibility::HitTestInvisible
+	);
+}
+
 void UWidget_BattleSkillBar::RefreshSkillSlots()
 {
 	if (!BoundCharacter)
@@ -23,61 +33,39 @@ void UWidget_BattleSkillBar::RefreshSkillSlots()
 		return;
 	}
 
-	UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();
+	UBattleSkillComponent* SkillComponent = BoundCharacter->GetBattleSkillComponent();
 
-	if (!CardComponent)
+	if (!SkillComponent)
 	{
 		return;
 	}
 
-	const TArray<FBattleCardInstance>& CurrentHand = CardComponent->GetCurrentHand();
+	const TArray<FBattleSkillInstance>& SkillInstances = SkillComponent->GetSkillInstances();
 
-	const int32 CardCount = FMath::Min(CurrentHand.Num(), SkillSlots.Num());
+	const int32 SkillCount = FMath::Min(SkillInstances.Num(), SkillSlots.Num());
 
-	for (int32 Index = 0; Index < CardCount; ++Index)
+	for (int32 Index = 0; Index < SkillCount; ++Index)
 	{
-		const FBattleCardInstance& CardInstance = CurrentHand[Index];
+		const FBattleSkillInstance& SkillInstance = SkillInstances[Index];
 
 		if (!SkillSlots[Index])
 		{
 			continue;
 		}
-		
+
 		UE_LOG(
-	LogTemp,
-	Warning,
-	TEXT("[BattleSkillBar] Slot=%d Card=%s"),
-	Index,
-	*GetNameSafe(CardInstance.CardData)
-);
+			LogTemp,
+			Warning,
+			TEXT("[BattleSkillBar] Slot=%d Skill=%s Cooldown=%d"),
+			Index,
+			*GetNameSafe(SkillInstance.SkillData),
+			SkillInstance.RemainingCooldown
+		);
 
-		SkillSlots[Index]->SetCardInstance(CardInstance.InstanceId,CardInstance.CardData);
+		SkillSlots[Index]->SetCardInstance(SkillInstance.InstanceId,SkillInstance.SkillData, SkillInstance.RemainingCooldown);
 	}
 }
 
-bool UWidget_BattleSkillBar::ReturnCommittedSkill(const FGuid& InstanceId)
-{
-	if (!BoundCharacter || !InstanceId.IsValid())
-	{
-		return false;
-	}
-
-	UBattleCardComponent* CardComponent = BoundCharacter->GetBattleCardComponent();
-
-	if (!CardComponent)
-	{
-		return false;
-	}
-
-	if (!CardComponent->ReturnCommittedCard(InstanceId))
-	{
-		return false;
-	}
-
-	RefreshSkillSlots();
-
-	return true;
-}
 
 void UWidget_BattleSkillBar::NativeConstruct()
 {
@@ -85,23 +73,7 @@ void UWidget_BattleSkillBar::NativeConstruct()
 	InitializeSkillSlots();
 }
 
-bool UWidget_BattleSkillBar::CommitSkillCard(const FGuid& InstanceId)
-{
-	if (!BoundCharacter)
-	{
-		return false;
-	}
 
-	UBattleCardComponent* CardComponent =
-		BoundCharacter->GetBattleCardComponent();
-
-	if (!CardComponent)
-	{
-		return false;
-	}
-
-	return CardComponent->CommitCard(InstanceId);
-}
 
 void UWidget_BattleSkillBar::InitializeSkillSlots()
 {
@@ -125,7 +97,13 @@ void UWidget_BattleSkillBar::InitializeSkillSlots()
 
 		SkillSlot->SetSlotIndex(Index);
 		
+		SkillSlot->OnSkillSlotClicked.RemoveAll(this);
 		SkillSlot->OnSkillSlotClicked.AddUObject(this, &UWidget_BattleSkillBar::HandleSkillSlotClicked);
+		
+		SkillSlot->OnSkillSlotHovered.RemoveAll(this);
+		SkillSlot->OnSkillSlotHovered.AddUObject(this, &UWidget_BattleSkillBar::HandleSkillSlotHovered);
+		SkillSlot->OnSkillSlotUnhovered.RemoveAll(this);
+		SkillSlot->OnSkillSlotUnhovered.AddUObject(this, &UWidget_BattleSkillBar::HandleSkillSlotUnhovered);
 		
 		SkillSlots.Add(SkillSlot);
 	}
@@ -133,13 +111,27 @@ void UWidget_BattleSkillBar::InitializeSkillSlots()
 
 void UWidget_BattleSkillBar::HandleSkillSlotClicked(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)
 {
-	if (!CardData || !InstanceId.IsValid())
+	if (!BoundCharacter || !CardData || !InstanceId.IsValid())
 	{
 		return;
 	}
-	
-	if (!CommitSkillCard(InstanceId))
+
+	UBattleSkillComponent* SkillComponent = BoundCharacter->GetBattleSkillComponent();
+
+	if (!SkillComponent)
 	{
+		return;
+	}
+
+	if (!SkillComponent->CanUseSkill(InstanceId))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("[BattleSkillBar] Skill is not ready. Card=%s"),
+			*GetNameSafe(CardData)
+		);
+
 		return;
 	}
 
@@ -149,6 +141,21 @@ void UWidget_BattleSkillBar::HandleSkillSlotClicked(const FGuid& InstanceId, UMu
 		TEXT("[BattleSkillBar] Skill Clicked Card=%s"),
 		*GetNameSafe(CardData)
 	);
-	
+
 	OnBattleSkillSelected.Broadcast(InstanceId, CardData);
+}
+
+void UWidget_BattleSkillBar::HandleSkillSlotHovered(UMuksiBattleCardDataAsset* SkillData,  int32 RemainingCooldown)
+{
+	if (!SkillData)
+	{
+		return;
+	}
+
+	OnBattleSkillHovered.Broadcast(SkillData, RemainingCooldown);
+}
+
+void UWidget_BattleSkillBar::HandleSkillSlotUnhovered()
+{
+	OnBattleSkillUnhovered.Broadcast();
 }

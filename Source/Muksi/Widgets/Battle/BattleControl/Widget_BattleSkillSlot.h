@@ -12,6 +12,9 @@ class UImage;
 class UButton;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSkillSlotClicked, const FGuid&, UMuksiBattleCardDataAsset*);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSkillSlotHovered, UMuksiBattleCardDataAsset*, int32);
+DECLARE_MULTICAST_DELEGATE(FOnSkillSlotUnhovered);
 /**
  * 
  */
@@ -21,10 +24,11 @@ class MUKSI_API UWidget_BattleSkillSlot : public UUserWidget
 	GENERATED_BODY()
 	
 public:
+	
 	void SetSlotIndex(int32 InSlotIndex);
 	int32 GetSlotIndex() const { return SlotIndex; }
 	
-	void SetCardInstance(const FGuid& InInstanceId,UMuksiBattleCardDataAsset* InCardData);
+	void SetCardInstance(const FGuid& InInstanceId,UMuksiBattleCardDataAsset* InCardData, int32 InRemainingCooldown);
 	
 	FOnBattleSkillSlotClicked OnSkillSlotClicked;
 
@@ -34,6 +38,9 @@ public:
 	
 	void ClearCardInstance();
 	
+	FOnSkillSlotHovered OnSkillSlotHovered;
+	FOnSkillSlotUnhovered OnSkillSlotUnhovered;
+	
 protected:
 	virtual void NativeConstruct() override;
 
@@ -42,11 +49,25 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_SkillIcon;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_CooldownOverlay;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> CooldownMaterialInstance;
+	
+	void UpdateCooldownOverlay();
 
 
 private:
 	UFUNCTION()
 	void HandleSkillButtonClicked();
+	
+	UFUNCTION()
+	void HandleSkillButtonHovered();
+
+	UFUNCTION()
+	void HandleSkillButtonUnhovered();
 	
 	UPROPERTY()
 	int32 SlotIndex = INDEX_NONE;
@@ -56,4 +77,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleCardDataAsset> CardData = nullptr;
+
+	int32 RemainingCooldown = 0;
 };
