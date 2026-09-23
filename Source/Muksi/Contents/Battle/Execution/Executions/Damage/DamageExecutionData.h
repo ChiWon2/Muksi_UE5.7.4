@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Damage/Modifier/DamageModifierData.h"
 #include "DamageExecutionData.generated.h"
 
 UENUM(BlueprintType)
@@ -21,6 +22,9 @@ struct FDamageExecutionData : public FBattleExecutionData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage", meta = (ClampMin = "0"))
 	int32 DamageValue = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
+	TArray<FDamageModifierEntry> DamageModifiers;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
 	EDamageDefensePolicy DefensePolicy = EDamageDefensePolicy::ApplyDefense;
