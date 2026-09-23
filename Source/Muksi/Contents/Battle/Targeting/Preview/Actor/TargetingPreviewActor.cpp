@@ -26,8 +26,16 @@ ATargetingPreviewActor::ATargetingPreviewActor()
 	SelectionPreviewMesh->SetCanEverAffectNavigation(false);
 	SelectionPreviewMesh->SetVisibility(false);
 
-
-
+	AreaPreviewMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AreaPreviewMesh"));
+	AreaPreviewMesh->SetMobility(EComponentMobility::Movable);
+	AreaPreviewMesh->SetupAttachment(SceneRoot);
+	AreaPreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AreaPreviewMesh->SetCastShadow(false);
+	AreaPreviewMesh->SetAffectDynamicIndirectLighting(false);
+	AreaPreviewMesh->SetAffectDistanceFieldLighting(false);
+	AreaPreviewMesh->SetVisibleInRayTracing(false);
+	AreaPreviewMesh->SetCanEverAffectNavigation(false);
+	AreaPreviewMesh->SetVisibility(false);
 }
 
 void ATargetingPreviewActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -48,6 +56,7 @@ void ATargetingPreviewActor::ApplyPreviewStyle()
 	const FLinearColor Tint(0.05f, 0.45f, 1.0f, 1.0f);
 	TArray<UMeshComponent*> Meshes;
 	Meshes.Add(SelectionPreviewMesh);
+	Meshes.Add(AreaPreviewMesh);
 	for (UMeshComponent* Mesh : Meshes)
 	{
 		if (!Mesh || Mesh->GetNumMaterials() <= 0)
@@ -95,9 +104,15 @@ void ATargetingPreviewActor::ClearPathPreview()
 	ClearArrowMeshComponents();
 }
 
+void ATargetingPreviewActor::ClearAreaPreview()
+{
+	AreaPreviewMesh->SetVisibility(false);
+}
+
 void ATargetingPreviewActor::ClearAllPreview()
 {
 	SelectionPreviewMesh->SetVisibility(false);
+	AreaPreviewMesh->SetVisibility(false);
 	ClearPathMeshComponents();
 	ClearArrowMeshComponents();
 }

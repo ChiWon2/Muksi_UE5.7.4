@@ -7,12 +7,12 @@
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Path/Data/PathPreviewData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Selection/Data/SelectionPreviewData.h"
-#include "Muksi/Contents/Battle/Targeting/Types/TargetGroupTargetPolicy.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingOriginSource.h"
 
 #include "TargetingStepCardData.generated.h"
 
 class UAreaPattern;
+class UAreaPreviewVisualizer;
 class UPathPreviewVisualizer;
 class USelectionPreviewVisualizer;
 class UTargetSelection;
@@ -28,12 +28,15 @@ struct FTargetingPhasePresentationSettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation", meta = (DisplayName = "Path"))
     bool bShowPath = true;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation", meta = (DisplayName = "Area"))
+    bool bShowArea = true;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation", meta = (DisplayName = "Affected Highlight"))
     bool bShowAffectedHighlight = true;
 
     bool HasAnyPresentation() const
     {
-        return bShowSelection || bShowPath || bShowAffectedHighlight;
+        return bShowSelection || bShowPath || bShowArea || bShowAffectedHighlight;
     }
 };
 
@@ -123,6 +126,16 @@ struct FTargetingPathVisualizerSettings
     FInstancedStruct Data;
 };
 
+
+USTRUCT(BlueprintType)
+struct FTargetingAreaVisualizerSettings
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visualizer", meta = (DisplayName = "Visualizer"))
+    TSubclassOf<UAreaPreviewVisualizer> Visualizer = nullptr;
+};
+
 USTRUCT(BlueprintType)
 struct FTargetingVisualizerSettings
 {
@@ -134,6 +147,8 @@ struct FTargetingVisualizerSettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visualizers", meta = (DisplayName = "Path"))
     FTargetingPathVisualizerSettings Path;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visualizers", meta = (DisplayName = "Area"))
+    FTargetingAreaVisualizerSettings Area;
 };
 
 USTRUCT(BlueprintType)
@@ -191,9 +206,6 @@ struct FTargetingStepCardData
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step", meta = (DisplayName = "Pattern"))
     FTargetingPatternSettings Pattern;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step", meta = (DisplayName = "Group Target Policy"))
-    ETargetGroupTargetPolicy GroupTargetPolicy = ETargetGroupTargetPolicy::All;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step", meta = (DisplayName = "Presentation"))
     FTargetingStepPresentationSettings Presentation;

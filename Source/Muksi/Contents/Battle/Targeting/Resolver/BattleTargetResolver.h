@@ -91,6 +91,5 @@ private:
 	static void ResolveGroupTargets(
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
-		const FTargetingStepCardData& StepData,
 		FTargetingGroup& Group);
 };

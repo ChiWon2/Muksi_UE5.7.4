@@ -25,9 +25,11 @@ protected:
 public:
 	void Initialize(ABattleGridManager* InGridManager);
 	void ClearPathPreview();
+	void ClearAreaPreview();
 	void ClearAllPreview();
 
 	UStaticMeshComponent* GetSelectionPreviewMesh() const { return SelectionPreviewMesh; }
+	UStaticMeshComponent* GetAreaPreviewMesh() const { return AreaPreviewMesh; }
 	ABattleGridManager* GetGridManager() const { return GridManager; }
 
 	USplineMeshComponent* CreatePathMeshComponent();
@@ -44,6 +46,9 @@ private:
 
 
 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStaticMeshComponent> AreaPreviewMesh = nullptr;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<USplineMeshComponent>> PathMeshComponents;

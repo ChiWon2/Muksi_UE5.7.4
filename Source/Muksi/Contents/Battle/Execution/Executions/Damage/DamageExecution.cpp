@@ -102,17 +102,12 @@ int32 UDamageExecution::ApplyDamageModifiers(const FBattleExecutionContext& Cont
 {
 	int32 ModifiedDamage = DamageData.DamageValue;
 
-	for (const FDamageModifierEntry& ModifierEntry : DamageData.DamageModifiers)
+	for (const UMuksiDamageModifier* DamageModifier : DamageData.DamageModifiers)
 	{
-		if (!ModifierEntry.ModifierClass)
-			continue;
-
-		const UMuksiDamageModifier* DamageModifier = ModifierEntry.ModifierClass.GetDefaultObject();
-
 		if (!DamageModifier)
 			continue;
 
-		ModifiedDamage = DamageModifier->ModifyDamage(Context, TargetCharacter, ModifiedDamage, ModifierEntry.ModifierData);
+		ModifiedDamage = DamageModifier->ModifyDamage(Context, TargetCharacter, ModifiedDamage);
 	}
 
 	return FMath::Max(0, ModifiedDamage);

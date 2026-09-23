@@ -2,4 +2,3 @@
 
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingConfirmResult.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingOriginSource.h"
-#include "Muksi/Contents/Battle/Targeting/Types/TargetGroupTargetPolicy.h"

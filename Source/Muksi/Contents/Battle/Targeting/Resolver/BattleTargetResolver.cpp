@@ -255,21 +255,14 @@ bool FBattleTargetResolver::BuildStepResult(ABattleGridManager* GridManager, EBa
 		if (Group.Direction == INDEX_NONE)
 			Group.Direction = Step.Direction;
 
-		ResolveGroupTargets(GridManager, WorldType, StepData, Group);
+		ResolveGroupTargets(GridManager, WorldType, Group);
 	}
 
 	return !OutStepResult.Groups.IsEmpty();
 }
 
-void FBattleTargetResolver::ResolveGroupTargets(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FTargetingStepCardData& StepData, FTargetingGroup& Group)
+void FBattleTargetResolver::ResolveGroupTargets(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, FTargetingGroup& Group)
 {
 	Group.Targets.Empty();
-
-	switch (StepData.GroupTargetPolicy)
-	{
-	case ETargetGroupTargetPolicy::All:
-	default:
-		GridManager->GetCharactersAtCoords(WorldType, Group.AffectedCoords, Group.Targets);
-		break;
-	}
+	GridManager->GetCharactersAtCoords(WorldType, Group.AffectedCoords, Group.Targets);
 }

@@ -8,6 +8,7 @@
 class ABattleCharacterBase;
 class ABattleGridManager;
 class ATargetingPreviewActor;
+class UAreaPreviewVisualizer;
 class UPathPreviewVisualizer;
 class USelectionPreviewVisualizer;
 struct FTargetingPhasePresentationSettings;
@@ -52,6 +53,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UPathPreviewVisualizer> ActivePathPreviewVisualizer = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAreaPreviewVisualizer> ActiveAreaPreviewVisualizer = nullptr;
 
 	bool bShowAffectedHighlight = false;
 	TArray<FHexOffsetCoord> AffectedHighlightCoords;

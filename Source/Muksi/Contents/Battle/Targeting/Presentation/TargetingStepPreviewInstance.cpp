@@ -5,6 +5,7 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
+#include "Muksi/Contents/Battle/Targeting/Preview/Base/AreaPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/PathPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/SelectionPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
@@ -59,7 +60,19 @@ void UTargetingStepPreviewInstance::UpdatePreview(const FTargetingPreviewContext
 		ActivePathPreviewVisualizer->ClearPreview();
 	}
 
+	if (ActiveAreaPreviewVisualizer && PreviewContext.IsStepValid())
+	{
+		ActiveAreaPreviewVisualizer->UpdatePreview(PreviewContext);
+	}
+	else if (ActiveAreaPreviewVisualizer)
+	{
+		ActiveAreaPreviewVisualizer->ClearPreview();
+	}
+
 	AffectedHighlightCoords.Reset();
+
+	if (ActiveAreaPreviewVisualizer && PreviewContext.IsStepValid())
+		ActiveAreaPreviewVisualizer->CollectHighlightCoords(PreviewContext, AffectedHighlightCoords);
 
 	if (bShowAffectedHighlight)
 	{
@@ -149,6 +162,14 @@ void UTargetingStepPreviewInstance::CreateVisualizers(
 		ActivePathPreviewVisualizer = NewObject<UPathPreviewVisualizer>(this, StepData.Presentation.Visualizers.Path.Visualizer);
 		ActivePathPreviewVisualizer->Initialize(PreviewActor.Get());
 	}
+
+	if (PresentationSettings.bShowArea
+		&& StepData.Presentation.Visualizers.Area.Visualizer
+		&& !StepData.Presentation.Visualizers.Area.Visualizer->HasAnyClassFlags(CLASS_Abstract))
+	{
+		ActiveAreaPreviewVisualizer = NewObject<UAreaPreviewVisualizer>(this, StepData.Presentation.Visualizers.Area.Visualizer);
+		ActiveAreaPreviewVisualizer->Initialize(PreviewActor.Get());
+	}
 }
 
 void UTargetingStepPreviewInstance::ClearVisualizers()
@@ -163,6 +184,12 @@ void UTargetingStepPreviewInstance::ClearVisualizers()
 		ActivePathPreviewVisualizer->ClearPreview();
 	}
 
+	if (ActiveAreaPreviewVisualizer)
+	{
+		ActiveAreaPreviewVisualizer->ClearPreview();
+	}
+
 	ActiveSelectionPreviewVisualizer = nullptr;
 	ActivePathPreviewVisualizer = nullptr;
+	ActiveAreaPreviewVisualizer = nullptr;
 }

@@ -3,23 +3,7 @@
 int32 UMuksiDamageModifier::ModifyDamage(
 	const FBattleExecutionContext&,
 	ABattleCharacterBase*,
-	int32 Damage,
-	const FInstancedStruct&) const
+	int32 Damage) const
 {
 	return Damage;
-}
-
-const UScriptStruct* UMuksiDamageModifier::GetModifierDataStruct() const
-{
-	return nullptr;
-}
-
-bool UMuksiDamageModifier::IsModifierDataValid(const FInstancedStruct& ModifierData) const
-{
-	const UScriptStruct* ExpectedStruct = GetModifierDataStruct();
-
-	if (!ExpectedStruct)
-		return !ModifierData.IsValid();
-
-	return ModifierData.GetScriptStruct() == ExpectedStruct;
 }
