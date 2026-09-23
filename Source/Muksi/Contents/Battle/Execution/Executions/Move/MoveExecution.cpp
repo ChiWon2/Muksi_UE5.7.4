@@ -213,18 +213,30 @@ void UMoveExecution::RestoreStartWorldLocation()
 void UMoveExecution::RequestMovementEndAnimation()
 {
 	if (!AnimationComponent || !bHasMoveData)
+		return;
+
+	FName EndSection = NAME_None;
+
+	switch (CachedMoveData.MoveType)
 	{
+	case EMuksiBattleMoveType::GroundPath:
+		EndSection = CachedMoveData.GroundPathEndSection;
+		break;
+
+	case EMuksiBattleMoveType::Teleport:
+		EndSection = CachedMoveData.TeleportEndSection;
+		break;
+
+	default:
 		return;
 	}
 
-	if (CachedMoveData.MoveType != EMuksiBattleMoveType::GroundPath)
-	{
+	if (EndSection.IsNone())
 		return;
-	}
 
-	const bool bJumpedToSection = AnimationComponent->JumpCurrentMontageToSection(CachedMoveData.GroundPathEndSection);
+	const bool bJumpedToSection = AnimationComponent->JumpCurrentMontageToSection(EndSection);
 
-	UE_LOG(LogTemp, Log, TEXT("[MoveExecution] Request End Section. Section=%s Result=%s"), *CachedMoveData.GroundPathEndSection.ToString(), bJumpedToSection ? TEXT("Success") : TEXT("Failed"));
+	UE_LOG(LogTemp, Log, TEXT("[MoveExecution] Request End Section. MoveType=%d Section=%s Result=%s"), static_cast<int32>(CachedMoveData.MoveType), *EndSection.ToString(), bJumpedToSection ? TEXT("Success") : TEXT("Failed"));
 }
 
 void UMoveExecution::FinishMoveExecution(bool bRequestEndAnimation)
