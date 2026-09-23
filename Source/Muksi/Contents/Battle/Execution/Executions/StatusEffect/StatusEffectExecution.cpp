@@ -53,7 +53,7 @@ void UStatusEffectExecution::CollectTargets(const FBattleExecutionContext& Conte
 	if (!StepResult)
 		return;
 
-	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
+	for (ABattleCharacterBase* TargetCharacter : StepResult->GetAllTargets())
 	{
 		if (TargetCharacter)
 			OutTargets.AddUnique(TargetCharacter);

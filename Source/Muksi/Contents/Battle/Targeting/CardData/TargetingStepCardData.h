@@ -5,15 +5,14 @@
 
 #include "Muksi/Contents/Battle/Targeting/Condition/Tree/TargetingCondNode.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
-#include "Muksi/Contents/Battle/Targeting/Preview/Area/Data/AreaPreviewData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Path/Data/PathPreviewData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Selection/Data/SelectionPreviewData.h"
+#include "Muksi/Contents/Battle/Targeting/Types/TargetGroupTargetPolicy.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingOriginSource.h"
 
 #include "TargetingStepCardData.generated.h"
 
 class UAreaPattern;
-class UAreaPreviewVisualizer;
 class UPathPreviewVisualizer;
 class USelectionPreviewVisualizer;
 class UTargetSelection;
@@ -29,15 +28,12 @@ struct FTargetingPhasePresentationSettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation", meta = (DisplayName = "Path"))
     bool bShowPath = true;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation", meta = (DisplayName = "Affected Area"))
-    bool bShowAffectedArea = true;
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation", meta = (DisplayName = "Affected Highlight"))
     bool bShowAffectedHighlight = true;
 
     bool HasAnyPresentation() const
     {
-        return bShowSelection || bShowPath || bShowAffectedArea || bShowAffectedHighlight;
+        return bShowSelection || bShowPath || bShowAffectedHighlight;
     }
 };
 
@@ -128,18 +124,6 @@ struct FTargetingPathVisualizerSettings
 };
 
 USTRUCT(BlueprintType)
-struct FTargetingAffectedAreaVisualizerSettings
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visualizer", meta = (DisplayName = "Visualizer"))
-    TSubclassOf<UAreaPreviewVisualizer> Visualizer = nullptr;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visualizer", meta = (DisplayName = "Data", BaseStruct = "/Script/Muksi.AreaPreviewData", EditCondition = "Visualizer != nullptr", EditConditionHides))
-    FInstancedStruct Data;
-};
-
-USTRUCT(BlueprintType)
 struct FTargetingVisualizerSettings
 {
     GENERATED_BODY()
@@ -150,8 +134,6 @@ struct FTargetingVisualizerSettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visualizers", meta = (DisplayName = "Path"))
     FTargetingPathVisualizerSettings Path;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visualizers", meta = (DisplayName = "Affected Area"))
-    FTargetingAffectedAreaVisualizerSettings AffectedArea;
 };
 
 USTRUCT(BlueprintType)
@@ -210,6 +192,9 @@ struct FTargetingStepCardData
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step", meta = (DisplayName = "Pattern"))
     FTargetingPatternSettings Pattern;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step", meta = (DisplayName = "Group Target Policy"))
+    ETargetGroupTargetPolicy GroupTargetPolicy = ETargetGroupTargetPolicy::All;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting Step", meta = (DisplayName = "Presentation"))
     FTargetingStepPresentationSettings Presentation;
 
@@ -218,7 +203,6 @@ struct FTargetingStepCardData
     void SyncSelectionRuleDataType();
     void SyncSelectionVisualizerDataType();
     void SyncPathVisualizerDataType();
-    void SyncAffectedAreaVisualizerDataType();
     void SyncPatternDataType();
 #endif
 };

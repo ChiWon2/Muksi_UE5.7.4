@@ -7,8 +7,7 @@ void UAreaPattern::ApplyPattern(
 	const FHexOffsetCoord&,
 	const FHexOffsetCoord&,
 	int32,
-	TArray<FHexOffsetCoord>&,
-	TArray<FHexOffsetCoord>&) const
+	TArray<FTargetingGroup>&) const
 {
 }
 

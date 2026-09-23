@@ -90,7 +90,7 @@ void UDamageExecution::CollectTargets(const FBattleExecutionContext& Context, co
 	if (!StepResult)
 		return;
 
-	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
+	for (ABattleCharacterBase* TargetCharacter : StepResult->GetAllTargets())
 	{
 		if (TargetCharacter && TargetCharacter != Context.Attacker)
 			OutTargets.AddUnique(TargetCharacter);

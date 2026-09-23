@@ -4,6 +4,7 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
+#include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingOriginSource.h"
 
@@ -68,7 +69,8 @@ bool UBattleTargetingSession::UpdateSelection(const FHexOffsetCoord& CandidateCo
     }
 
     FTargetingStepResult TargetingStepResult;
-    if (!BuildTargetingStepResult(Step, TargetingStepResult))
+
+    if (!StepData || !FBattleTargetResolver::BuildStepResult(GridManager.Get(), GridWorldType, *StepData, Step, TargetingStepResult))
     {
         ResetCurrentStep();
         return false;
@@ -267,44 +269,6 @@ bool UBattleTargetingSession::FindNearestValidSelectionStep(const FHexOffsetCoor
     }
 
     return OutStep.HasTargetCoord();
-}
-
-bool UBattleTargetingSession::BuildTargetingStepResult(const FTargetingStep& Step, FTargetingStepResult& OutStepResult) const
-{
-    OutStepResult.Reset();
-
-    if (!Step.HasOriginCoord() || !Step.HasTargetCoord())
-        return false;
-
-    const FTargetingStepCardData* StepData = GetCurrentStepData();
-    if (!StepData || !IsValid(GridManager.Get()))
-        return false;
-
-    OutStepResult.Step = Step;
-
-    if (!StepData->Pattern.PatternClass)
-    {
-        OutStepResult.AffectedCoords.Add(Step.TargetCoord);
-    }
-    else
-    {
-        const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
-        if (!Pattern)
-            return false;
-
-        Pattern->ApplyPattern(
-            GridManager.Get(),
-            GridWorldType,
-            StepData->Pattern.PatternData,
-            Step.OriginCoord,
-            Step.TargetCoord,
-            Step.Direction,
-            OutStepResult.AffectedCoords,
-            OutStepResult.PathCoords);
-    }
-
-    GridManager->GetCharactersAtCoords(GridWorldType, OutStepResult.AffectedCoords, OutStepResult.Targets);
-    return true;
 }
 
 bool UBattleTargetingSession::BuildIntent()

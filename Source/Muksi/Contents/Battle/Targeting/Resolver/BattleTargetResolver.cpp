@@ -8,6 +8,7 @@
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
+#include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 #include "Muksi/Contents/Battle/Targeting/Types/TargetingOriginSource.h"
 
 namespace
@@ -216,3 +217,59 @@ bool FBattleTargetResolver::FindNearestValidStep(const FHexOffsetCoord& OriginCo
 	return OutResolvedStep.HasTargetCoord();
 }
 
+
+
+bool FBattleTargetResolver::BuildStepResult(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FTargetingStepCardData& StepData, const FTargetingStep& Step, FTargetingStepResult& OutStepResult)
+{
+	OutStepResult.Reset();
+
+	if (!IsValid(GridManager) || !Step.HasOriginCoord() || !Step.HasTargetCoord())
+		return false;
+
+	OutStepResult.Step = Step;
+
+	if (!StepData.Pattern.PatternClass)
+	{
+		FTargetingGroup& Group = OutStepResult.Groups.AddDefaulted_GetRef();
+		Group.AffectedCoords.Add(Step.TargetCoord);
+	}
+	else
+	{
+		const UAreaPattern* Pattern = StepData.Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
+
+		if (!Pattern)
+			return false;
+
+		Pattern->ApplyPattern(
+			GridManager,
+			WorldType,
+			StepData.Pattern.PatternData,
+			Step.OriginCoord,
+			Step.TargetCoord,
+			Step.Direction,
+			OutStepResult.Groups);
+	}
+
+	for (FTargetingGroup& Group : OutStepResult.Groups)
+	{
+		if (Group.Direction == INDEX_NONE)
+			Group.Direction = Step.Direction;
+
+		ResolveGroupTargets(GridManager, WorldType, StepData, Group);
+	}
+
+	return !OutStepResult.Groups.IsEmpty();
+}
+
+void FBattleTargetResolver::ResolveGroupTargets(ABattleGridManager* GridManager, EBattleSimulationWorldType WorldType, const FTargetingStepCardData& StepData, FTargetingGroup& Group)
+{
+	Group.Targets.Empty();
+
+	switch (StepData.GroupTargetPolicy)
+	{
+	case ETargetGroupTargetPolicy::All:
+	default:
+		GridManager->GetCharactersAtCoords(WorldType, Group.AffectedCoords, Group.Targets);
+		break;
+	}
+}

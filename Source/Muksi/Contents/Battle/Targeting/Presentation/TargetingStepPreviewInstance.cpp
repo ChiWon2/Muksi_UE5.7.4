@@ -5,7 +5,6 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
-#include "Muksi/Contents/Battle/Targeting/Preview/Base/AreaPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/PathPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/SelectionPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
@@ -62,26 +61,20 @@ void UTargetingStepPreviewInstance::UpdatePreview(const FTargetingPreviewContext
 
 	AffectedHighlightCoords.Reset();
 
-	if (ActiveAffectedAreaPreviewVisualizer && PreviewContext.IsStepValid())
-	{
-		ActiveAffectedAreaPreviewVisualizer->UpdatePreview(PreviewContext);
-		ActiveAffectedAreaPreviewVisualizer->CollectHighlightCoords(
-			PreviewContext,
-			AffectedHighlightCoords);
-	}
-	else if (ActiveAffectedAreaPreviewVisualizer)
-	{
-		ActiveAffectedAreaPreviewVisualizer->ClearPreview();
-	}
-
 	if (bShowAffectedHighlight)
 	{
-		if (const TArray<FHexOffsetCoord>* AffectedCoords = PreviewContext.GetAffectedCoords())
+		if (PreviewContext.TargetingStep)
+		{
+			for (const FTargetingGroup& Group : PreviewContext.TargetingStep->Groups)
+			{
+				for (const FHexOffsetCoord& Coord : Group.AffectedCoords)
+					AffectedHighlightCoords.AddUnique(Coord);
+			}
+		}
+		else if (const TArray<FHexOffsetCoord>* AffectedCoords = PreviewContext.GetAffectedCoords())
 		{
 			for (const FHexOffsetCoord& Coord : *AffectedCoords)
-			{
 				AffectedHighlightCoords.AddUnique(Coord);
-			}
 		}
 	}
 }
@@ -156,14 +149,6 @@ void UTargetingStepPreviewInstance::CreateVisualizers(
 		ActivePathPreviewVisualizer = NewObject<UPathPreviewVisualizer>(this, StepData.Presentation.Visualizers.Path.Visualizer);
 		ActivePathPreviewVisualizer->Initialize(PreviewActor.Get());
 	}
-
-	if (PresentationSettings.bShowAffectedArea
-		&& StepData.Presentation.Visualizers.AffectedArea.Visualizer
-		&& !StepData.Presentation.Visualizers.AffectedArea.Visualizer->HasAnyClassFlags(CLASS_Abstract))
-	{
-		ActiveAffectedAreaPreviewVisualizer = NewObject<UAreaPreviewVisualizer>(this, StepData.Presentation.Visualizers.AffectedArea.Visualizer);
-		ActiveAffectedAreaPreviewVisualizer->Initialize(PreviewActor.Get());
-	}
 }
 
 void UTargetingStepPreviewInstance::ClearVisualizers()
@@ -178,12 +163,6 @@ void UTargetingStepPreviewInstance::ClearVisualizers()
 		ActivePathPreviewVisualizer->ClearPreview();
 	}
 
-	if (ActiveAffectedAreaPreviewVisualizer)
-	{
-		ActiveAffectedAreaPreviewVisualizer->ClearPreview();
-	}
-
 	ActiveSelectionPreviewVisualizer = nullptr;
 	ActivePathPreviewVisualizer = nullptr;
-	ActiveAffectedAreaPreviewVisualizer = nullptr;
 }

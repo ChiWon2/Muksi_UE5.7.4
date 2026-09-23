@@ -4,13 +4,17 @@
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingIntent.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingStepResult.h"
 
 class ABattleCharacterBase;
 class ABattleGridManager;
 struct FTargetingCardData;
 struct FTargetingStepCardData;
 
-/** StepIntent를 현재 Simulation World 기준 Coord / Direction으로 해석한다. Pattern 계산은 담당하지 않는다. */
+/**
+ * Targeting Intent를 현재 World의 Step으로 해석하고,
+ * 확정된 Step에 Pattern / Group Target Policy를 적용해 StepResult를 생성한다.
+ */
 class MUKSI_API FBattleTargetResolver
 {
 public:
@@ -21,6 +25,13 @@ public:
 		const FTargetingCardData& TargetingData,
 		const FTargetingIntent& TargetingIntent,
 		TArray<FTargetingStep>& OutResolvedSteps);
+
+	static bool BuildStepResult(
+		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
+		const FTargetingStepCardData& StepData,
+		const FTargetingStep& Step,
+		FTargetingStepResult& OutStepResult);
 
 private:
 	static bool ResolveStepOrigin(
@@ -76,4 +87,10 @@ private:
 		ABattleGridManager* GridManager,
 		EBattleSimulationWorldType WorldType,
 		FTargetingStep& OutResolvedStep);
+
+	static void ResolveGroupTargets(
+		ABattleGridManager* GridManager,
+		EBattleSimulationWorldType WorldType,
+		const FTargetingStepCardData& StepData,
+		FTargetingGroup& Group);
 };

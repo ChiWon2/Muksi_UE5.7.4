@@ -1,7 +1,6 @@
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 
 #include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
-#include "Muksi/Contents/Battle/Targeting/Preview/Base/AreaPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/PathPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/SelectionPreviewVisualizer.h"
 #include "Muksi/Contents/Battle/Targeting/Selection/TargetSelection.h"
@@ -13,7 +12,6 @@ void FTargetingStepCardData::SyncDataTypes()
     SyncSelectionRuleDataType();
     SyncSelectionVisualizerDataType();
     SyncPathVisualizerDataType();
-    SyncAffectedAreaVisualizerDataType();
     SyncPatternDataType();
 }
 
@@ -71,28 +69,6 @@ void FTargetingStepCardData::SyncPathVisualizerDataType()
 
     const UPathPreviewVisualizer* VisualizerCDO = Settings.Visualizer.GetDefaultObject();
     const UScriptStruct* ExpectedDataStruct = VisualizerCDO ? VisualizerCDO->GetPathPreviewDataStruct() : nullptr;
-
-    if (!ExpectedDataStruct)
-    {
-        Settings.Data.Reset();
-        return;
-    }
-
-    if (Settings.Data.GetScriptStruct() != ExpectedDataStruct)
-        Settings.Data.InitializeAs(ExpectedDataStruct);
-}
-
-void FTargetingStepCardData::SyncAffectedAreaVisualizerDataType()
-{
-    FTargetingAffectedAreaVisualizerSettings& Settings = Presentation.Visualizers.AffectedArea;
-    if (!Settings.Visualizer)
-    {
-        Settings.Data.Reset();
-        return;
-    }
-
-    const UAreaPreviewVisualizer* VisualizerCDO = Settings.Visualizer.GetDefaultObject();
-    const UScriptStruct* ExpectedDataStruct = VisualizerCDO ? VisualizerCDO->GetAreaPreviewDataStruct() : nullptr;
 
     if (!ExpectedDataStruct)
     {

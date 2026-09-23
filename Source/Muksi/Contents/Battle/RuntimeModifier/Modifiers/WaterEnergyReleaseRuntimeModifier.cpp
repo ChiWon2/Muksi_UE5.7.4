@@ -28,7 +28,7 @@ namespace WaterEnergyReleaseRuntimeModifier
 	{
 		for (const FTargetingStepResult& StepResult : Action.TargetingResult.Steps)
 		{
-			for (ABattleCharacterBase* TargetCharacter : StepResult.Targets)
+			for (ABattleCharacterBase* TargetCharacter : StepResult.GetAllTargets())
 			{
 				if (IsValid(TargetCharacter) && TargetCharacter != Action.Attacker.Get())
 					return TargetCharacter;

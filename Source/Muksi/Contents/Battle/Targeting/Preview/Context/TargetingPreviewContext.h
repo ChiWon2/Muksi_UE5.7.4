@@ -30,15 +30,30 @@ struct FTargetingPreviewContext
     bool HasDirection() const { return TargetingStep && TargetingStep->Step.HasDirection(); }
     int32 GetDirection() const { return TargetingStep ? TargetingStep->Step.Direction : INDEX_NONE; }
 
+    const TArray<FTargetingGroup>* GetGroups() const
+    {
+        return TargetingStep ? &TargetingStep->Groups : nullptr;
+    }
+
     const TArray<FHexOffsetCoord>* GetAffectedCoords() const
     {
-        if (TargetingStep) return &TargetingStep->AffectedCoords;
+        if (TargetingStep)
+        {
+            const FTargetingGroup* Group = TargetingStep->GetPrimaryGroup();
+            return Group ? &Group->AffectedCoords : nullptr;
+        }
+
         return PreviewAffectedCoords;
     }
 
     const TArray<FHexOffsetCoord>* GetPathCoords() const
     {
-        if (TargetingStep) return &TargetingStep->PathCoords;
+        if (TargetingStep)
+        {
+            const FTargetingGroup* Group = TargetingStep->GetPrimaryGroup();
+            return Group ? &Group->PathCoords : nullptr;
+        }
+
         return PreviewPathCoords;
     }
 };

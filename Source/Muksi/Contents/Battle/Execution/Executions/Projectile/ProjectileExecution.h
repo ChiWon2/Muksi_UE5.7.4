@@ -8,6 +8,7 @@
 
 class ABattleCharacterBase;
 class ABattleProjectileActor;
+struct FTargetingGroup;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
 class MUKSI_API UProjectileExecution : public UBattleExecution
@@ -19,19 +20,17 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
-	void HandleProjectileFinished(bool bInterrupted);
-	ABattleCharacterBase* FindHitTarget(const FBattleExecutionContext& Context, const FHexOffsetCoord& DestinationCoord) const;
-	bool RequestOnHitExecutionEntries();
+	bool LaunchProjectileForGroup(const FBattleExecutionContext& Context, const FTargetingGroup& Group);
+	ABattleCharacterBase* FindHitTarget(const FBattleExecutionContext& Context, const FTargetingGroup& Group, const FHexOffsetCoord& DestinationCoord) const;
+	void HandleProjectileFinished(bool bInterrupted, ABattleCharacterBase* HitTarget);
+	bool RequestOnHitExecutionEntries(ABattleCharacterBase* HitTarget);
+	void HandleProjectileGroupCompleted();
 	void CompleteExecution();
 
 private:
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleProjectileActor> ActiveProjectile = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<ABattleCharacterBase> PendingHitTarget = nullptr;
-
 	FBattleExecutionContext CachedContext;
 
 	FBattleExecutionFinished CachedOnFinished;
+
+	int32 PendingProjectileCount = 0;
 };

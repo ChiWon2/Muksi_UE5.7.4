@@ -7,47 +7,74 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Projectile/BattleProjectileActor.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Projectile/ProjectileExecutionData.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingGroup.h"
 
 void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
 	CachedContext = Context;
 	CachedOnFinished = MoveTemp(OnFinished);
-	ActiveProjectile = nullptr;
-	PendingHitTarget = nullptr;
+	PendingProjectileCount = 0;
 
 	const FProjectileExecutionData* ProjectileData = Context.GetExecutionData<FProjectileExecutionData>();
 	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
 
-	if (!ProjectileData || !StepResult || !Context.Attacker || !Context.BattleGridManager || !ProjectileData->ProjectileActorClass || StepResult->PathCoords.IsEmpty())
+	if (!ProjectileData || !StepResult || !Context.Attacker || !Context.BattleGridManager || !ProjectileData->ProjectileActorClass)
 	{
 		CompleteExecution();
 		return;
 	}
 
-	const FHexOffsetCoord DestinationCoord = StepResult->PathCoords.Last();
+	for (const FTargetingGroup& Group : StepResult->Groups)
+	{
+		if (Group.PathCoords.IsEmpty())
+			continue;
+
+		const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Group.PathCoords.Last());
+
+		if (DestinationCell)
+			++PendingProjectileCount;
+	}
+
+	if (PendingProjectileCount <= 0)
+	{
+		CompleteExecution();
+		return;
+	}
+
+	for (const FTargetingGroup& Group : StepResult->Groups)
+	{
+		if (Group.PathCoords.IsEmpty())
+			continue;
+
+		const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Group.PathCoords.Last());
+
+		if (!DestinationCell)
+			continue;
+
+		if (!LaunchProjectileForGroup(Context, Group))
+			HandleProjectileGroupCompleted();
+	}
+}
+
+bool UProjectileExecution::LaunchProjectileForGroup(const FBattleExecutionContext& Context, const FTargetingGroup& Group)
+{
+	const FProjectileExecutionData* ProjectileData = Context.GetExecutionData<FProjectileExecutionData>();
+
+	if (!ProjectileData || !Context.Attacker || !Context.BattleGridManager || Group.PathCoords.IsEmpty())
+		return false;
+
+	const FHexOffsetCoord DestinationCoord = Group.PathCoords.Last();
 	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, DestinationCoord);
 
 	if (!DestinationCell)
-	{
-		CompleteExecution();
-		return;
-	}
+		return false;
 
-	FVector TargetLocation = DestinationCell->WorldLocation;
-	PendingHitTarget = FindHitTarget(Context, DestinationCoord);
-
-	if (PendingHitTarget)
-	{
-		TargetLocation = PendingHitTarget->GetActorLocation();
-	}
-
+	ABattleCharacterBase* HitTarget = FindHitTarget(Context, Group, DestinationCoord);
+	FVector TargetLocation = HitTarget ? HitTarget->GetActorLocation() : DestinationCell->WorldLocation;
 	UWorld* World = Context.Attacker->GetWorld();
 
 	if (!World)
-	{
-		CompleteExecution();
-		return;
-	}
+		return false;
 
 	FTransform SpawnTransform = Context.Attacker->GetActorTransform();
 
@@ -56,9 +83,7 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 		if (USkeletalMeshComponent* SkeletalMeshComponent = Context.Attacker->FindComponentByClass<USkeletalMeshComponent>())
 		{
 			if (SkeletalMeshComponent->DoesSocketExist(ProjectileData->SpawnSocketName))
-			{
 				SpawnTransform = SkeletalMeshComponent->GetSocketTransform(ProjectileData->SpawnSocketName, RTS_World);
-			}
 		}
 	}
 
@@ -66,23 +91,18 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 	SpawnParameters.Owner = Context.Attacker;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	ActiveProjectile = World->SpawnActor<ABattleProjectileActor>(ProjectileData->ProjectileActorClass, SpawnTransform, SpawnParameters);
-	if (ActiveProjectile)
-	{
-		ActiveProjectile->CustomTimeDilation = Context.Attacker->CustomTimeDilation;
-		ActiveProjectile->SetActorHiddenInGame(Context.Attacker->IsHidden());
-	}
+	ABattleProjectileActor* Projectile = World->SpawnActor<ABattleProjectileActor>(ProjectileData->ProjectileActorClass, SpawnTransform, SpawnParameters);
 
-	if (!ActiveProjectile)
-	{
-		CompleteExecution();
-		return;
-	}
+	if (!Projectile)
+		return false;
+
+	Projectile->CustomTimeDilation = Context.Attacker->CustomTimeDilation;
+	Projectile->SetActorHiddenInGame(Context.Attacker->IsHidden());
 
 	FBattleProjectileFinished ProjectileFinished;
-	ProjectileFinished.BindUObject(this, &UProjectileExecution::HandleProjectileFinished);
-
-	ActiveProjectile->LaunchProjectile(TargetLocation, ProjectileData->MoveSpeed, MoveTemp(ProjectileFinished));
+	ProjectileFinished.BindUObject(this, &UProjectileExecution::HandleProjectileFinished, HitTarget);
+	Projectile->LaunchProjectile(TargetLocation, ProjectileData->MoveSpeed, MoveTemp(ProjectileFinished));
+	return true;
 }
 
 const UScriptStruct* UProjectileExecution::GetExecutionDataStruct() const
@@ -90,81 +110,67 @@ const UScriptStruct* UProjectileExecution::GetExecutionDataStruct() const
 	return FProjectileExecutionData::StaticStruct();
 }
 
-ABattleCharacterBase* UProjectileExecution::FindHitTarget(const FBattleExecutionContext& Context, const FHexOffsetCoord& DestinationCoord) const
+ABattleCharacterBase* UProjectileExecution::FindHitTarget(const FBattleExecutionContext& Context, const FTargetingGroup& Group, const FHexOffsetCoord& DestinationCoord) const
 {
 	if (Context.ExecutionTarget && Context.ExecutionTarget != Context.Attacker)
-	{
 		return Context.ExecutionTarget.Get();
+
+	for (ABattleCharacterBase* TargetCharacter : Group.Targets)
+	{
+		if (TargetCharacter && TargetCharacter != Context.Attacker)
+			return TargetCharacter;
 	}
 
 	if (!Context.BattleGridManager)
-	{
 		return nullptr;
-	}
-
-	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
-	if (!StepResult) return nullptr;
-
-	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
-	{
-		if (TargetCharacter && TargetCharacter != Context.Attacker) return TargetCharacter;
-	}
-
-	if (StepResult->Step.HasTargetCoord())
-	{
-		const FBattleGridCell* Cell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, StepResult->Step.TargetCoord);
-		ABattleCharacterBase* TargetCharacter = Cell ? Cast<ABattleCharacterBase>(Cell->OccupyingActor.Get()) : nullptr;
-
-		if (TargetCharacter && TargetCharacter != Context.Attacker)
-		{
-			return TargetCharacter;
-		}
-	}
 
 	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, DestinationCoord);
 	ABattleCharacterBase* DestinationCharacter = DestinationCell ? Cast<ABattleCharacterBase>(DestinationCell->OccupyingActor.Get()) : nullptr;
 	return DestinationCharacter != Context.Attacker ? DestinationCharacter : nullptr;
 }
 
-void UProjectileExecution::HandleProjectileFinished(bool bInterrupted)
+void UProjectileExecution::HandleProjectileFinished(bool bInterrupted, ABattleCharacterBase* HitTarget)
 {
-	ActiveProjectile = nullptr;
-
-	if (!bInterrupted && PendingHitTarget && RequestOnHitExecutionEntries())
-	{
+	if (!bInterrupted && HitTarget && RequestOnHitExecutionEntries(HitTarget))
 		return;
-	}
 
-	CompleteExecution();
+	HandleProjectileGroupCompleted();
 }
 
-bool UProjectileExecution::RequestOnHitExecutionEntries()
+bool UProjectileExecution::RequestOnHitExecutionEntries(ABattleCharacterBase* HitTarget)
 {
 	const FProjectileExecutionData* ProjectileData = CachedContext.GetExecutionData<FProjectileExecutionData>();
 
 	if (!ProjectileData || ProjectileData->OnHitExecutionEntries.IsEmpty() || !CachedContext.CanRequestRuntimeExecutionEntries())
-	{
 		return false;
-	}
 
 	FBattleExecutionContext RuntimeContext = CachedContext;
-	RuntimeContext.ExecutionTarget = PendingHitTarget;
+	RuntimeContext.ExecutionTarget = HitTarget;
 
 	return CachedContext.RequestRuntimeExecutionEntries.Execute(
 		ProjectileData->OnHitExecutionEntries,
 		RuntimeContext,
-		FSimpleDelegate::CreateUObject(this, &UProjectileExecution::CompleteExecution));
+		FSimpleDelegate::CreateUObject(this, &UProjectileExecution::HandleProjectileGroupCompleted));
+}
+
+void UProjectileExecution::HandleProjectileGroupCompleted()
+{
+	if (IsExecutionFinished())
+		return;
+
+	PendingProjectileCount = FMath::Max(0, PendingProjectileCount - 1);
+
+	if (PendingProjectileCount <= 0)
+		CompleteExecution();
 }
 
 void UProjectileExecution::CompleteExecution()
 {
 	if (IsExecutionFinished())
-	{
 		return;
-	}
 
-	ActiveProjectile = nullptr;
-	PendingHitTarget = nullptr;
+	PendingProjectileCount = 0;
+	CachedContext = FBattleExecutionContext();
 
 	FinishExecution(CachedOnFinished);
 }

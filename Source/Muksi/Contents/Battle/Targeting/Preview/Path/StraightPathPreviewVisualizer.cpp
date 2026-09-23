@@ -1,13 +1,14 @@
 #include "Muksi/Contents/Battle/Targeting/Preview/Path/StraightPathPreviewVisualizer.h"
 
-#include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
+#include "Muksi/Contents/Battle/Targeting/Preview/Path/PathPreviewDirectionUtils.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Path/Data/StraightPathPreviewData.h"
+
 
 void UStraightPathPreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewActor)
 {
@@ -16,9 +17,7 @@ void UStraightPathPreviewVisualizer::Initialize(ATargetingPreviewActor* InPrevie
 	const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
 
 	if (!Settings)
-	{
 		return;
-	}
 
 	StraightPreviewMesh = Settings->StraightPreviewMesh.LoadSynchronous();
 	StraightPreviewMaterial = Settings->StraightPreviewMaterial.LoadSynchronous();
@@ -31,92 +30,74 @@ void UStraightPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContex
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid())
-	{
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.IsStepValid())
 		return;
-	}
 
 	if (!IsPathPreviewDataValid(Context.StepData->Presentation.Visualizers.Path.Data))
-	{
 		return;
-	}
 
 	const FStraightPathPreviewData* Data = Context.StepData->Presentation.Visualizers.Path.Data.GetPtr<FStraightPathPreviewData>();
 
-	if (!Data || !StraightPreviewMesh)
-	{
+	if (!Data || !StraightPreviewMesh || !Context.HasOriginCoord())
 		return;
-	}
 
-	if (!Context.HasOriginCoord() || !Context.HasTargetCoord())
-	{
+	const TArray<FTargetingGroup>* Groups = Context.GetGroups();
+
+	if (!Groups)
 		return;
-	}
 
 	FVector StartLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), StartLocation)) return;
-	FVector SelectedPresentationLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), SelectedPresentationLocation)) return;
-	FVector AimLocation = SelectedPresentationLocation;
-	AimLocation.Z = SelectedPresentationLocation.Z;
-	FVector AimDirection = AimLocation - StartLocation;
 
-	AimDirection.Z = 0.0f;
-
-	if (!AimDirection.Normalize())
-	{
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), StartLocation))
 		return;
-	}
 
 	StartLocation.Z += PreviewHeightOffset;
-	AimLocation.Z += PreviewHeightOffset;
-
-	const float SafeLength = FMath::Max(0.0f, Data->Length);
-	const FVector EndLocation = Data->bUseFixedLength ? StartLocation + AimDirection * SafeLength : AimLocation;
-
-	if (FVector::DistSquared(StartLocation, EndLocation) <= KINDA_SMALL_NUMBER)
-	{
-		return;
-	}
 
 	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
-	USplineComponent* PathSpline = PreviewActorInstance->GetPathSpline();
-
-	if (!PathSpline)
-	{
-		return;
-	}
-
-	TArray<FVector> SplinePoints;
-	SplinePoints.Add(StartLocation);
-	SplinePoints.Add(EndLocation);
-	PathSpline->SetSplinePoints(SplinePoints, ESplineCoordinateSpace::World, true);
-
-	USplineMeshComponent* PathMeshComponent = PreviewActorInstance->CreatePathMeshComponent();
-
-	if (!PathMeshComponent)
-	{
-		return;
-	}
-
 	const FTransform ActorTransform = PreviewActorInstance->GetActorTransform();
-	const FVector LocalStartLocation = ActorTransform.InverseTransformPosition(StartLocation);
-	const FVector LocalEndLocation = ActorTransform.InverseTransformPosition(EndLocation);
-	const FVector LocalTangent = LocalEndLocation - LocalStartLocation;
 	const float ThicknessScale = FMath::Max(KINDA_SMALL_NUMBER, PreviewLineThickness / PreviewMeshBaseSize);
 
-	PathMeshComponent->SetStaticMesh(StraightPreviewMesh);
-	PathMeshComponent->SetForwardAxis(ESplineMeshAxis::X, false);
-	PathMeshComponent->SetStartAndEnd(LocalStartLocation, LocalTangent, LocalEndLocation, LocalTangent, false);
-	PathMeshComponent->SetStartScale(FVector2D(ThicknessScale, 1.0f), false);
-	PathMeshComponent->SetEndScale(FVector2D(ThicknessScale, 1.0f), false);
-
-	if (StraightPreviewMaterial)
+	for (const FTargetingGroup& Group : *Groups)
 	{
-		PathMeshComponent->SetMaterial(0, StraightPreviewMaterial);
-	}
+		FVector RawEndLocation = FVector::ZeroVector;
 
-	PathMeshComponent->UpdateMesh();
+		if (!MuksiPathPreview::GetGroupEndLocation(Context, Group, RawEndLocation))
+			continue;
+
+		RawEndLocation.Z += PreviewHeightOffset;
+
+		FVector AimDirection = FVector::ZeroVector;
+
+		if (!MuksiPathPreview::GetPathDirection(Context, Group, *Data, StartLocation, RawEndLocation, AimDirection))
+			continue;
+
+		const float RawLength = FVector::Dist2D(StartLocation, RawEndLocation);
+		const float Length = Data->bUseFixedLength ? FMath::Max(0.0f, Data->Length) : RawLength;
+		const FVector EndLocation = StartLocation + AimDirection * Length;
+
+		if (FVector::DistSquared(StartLocation, EndLocation) <= KINDA_SMALL_NUMBER)
+			continue;
+
+		USplineMeshComponent* PathMeshComponent = PreviewActorInstance->CreatePathMeshComponent();
+
+		if (!PathMeshComponent)
+			continue;
+
+		const FVector LocalStartLocation = ActorTransform.InverseTransformPosition(StartLocation);
+		const FVector LocalEndLocation = ActorTransform.InverseTransformPosition(EndLocation);
+		const FVector LocalTangent = LocalEndLocation - LocalStartLocation;
+
+		PathMeshComponent->SetStaticMesh(StraightPreviewMesh);
+		PathMeshComponent->SetForwardAxis(ESplineMeshAxis::X, false);
+		PathMeshComponent->SetStartAndEnd(LocalStartLocation, LocalTangent, LocalEndLocation, LocalTangent, false);
+		PathMeshComponent->SetStartScale(FVector2D(ThicknessScale, 1.0f), false);
+		PathMeshComponent->SetEndScale(FVector2D(ThicknessScale, 1.0f), false);
+
+		if (StraightPreviewMaterial)
+			PathMeshComponent->SetMaterial(0, StraightPreviewMaterial);
+
+		PathMeshComponent->UpdateMesh();
+	}
 }
 
 const UScriptStruct* UStraightPathPreviewVisualizer::GetPathPreviewDataStruct() const

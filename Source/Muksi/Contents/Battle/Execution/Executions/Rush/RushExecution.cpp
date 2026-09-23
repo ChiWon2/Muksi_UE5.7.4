@@ -88,7 +88,12 @@ bool URushExecution::BuildRushPath(const FTargetingStepResult& StepResult, TArra
 	if (!IsValid(NavigationComponent) || !IsValid(MovingCharacter))
 		return false;
 
-	for (const FHexOffsetCoord& PathCoord : StepResult.PathCoords)
+	const FTargetingGroup* Group = StepResult.GetPrimaryGroup();
+
+	if (!Group)
+		return false;
+
+	for (const FHexOffsetCoord& PathCoord : Group->PathCoords)
 	{
 		if (!GridManager->IsValidCoord(PathCoord))
 			break;

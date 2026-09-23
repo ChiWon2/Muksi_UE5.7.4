@@ -66,7 +66,7 @@ void UInsightStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 
 	for (const FTargetingStepResult& StepResult : OpponentAction.TargetingResult.Steps)
 	{
-		if (StepResult.Targets.Contains(OwnerCharacter))
+		if (StepResult.ContainsTarget(OwnerCharacter))
 		{
 			bTargetsOwner = true;
 			break;
