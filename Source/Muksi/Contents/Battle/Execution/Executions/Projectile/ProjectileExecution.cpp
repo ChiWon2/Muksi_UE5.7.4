@@ -77,15 +77,12 @@ bool UProjectileExecution::LaunchProjectileForGroup(const FBattleExecutionContex
 		return false;
 
 	FTransform SpawnTransform = Context.Attacker->GetActorTransform();
+	USkeletalMeshComponent* BattleSkeletalMesh = Context.Attacker->GetBattleSkeletalMesh();
 
-	if (!ProjectileData->SpawnSocketName.IsNone())
-	{
-		if (USkeletalMeshComponent* SkeletalMeshComponent = Context.Attacker->FindComponentByClass<USkeletalMeshComponent>())
-		{
-			if (SkeletalMeshComponent->DoesSocketExist(ProjectileData->SpawnSocketName))
-				SpawnTransform = SkeletalMeshComponent->GetSocketTransform(ProjectileData->SpawnSocketName, RTS_World);
-		}
-	}
+	if (BattleSkeletalMesh && !ProjectileData->SpawnSocketName.IsNone() && BattleSkeletalMesh->DoesSocketExist(ProjectileData->SpawnSocketName))
+		SpawnTransform = BattleSkeletalMesh->GetSocketTransform(ProjectileData->SpawnSocketName, RTS_World);
+
+	TargetLocation.Z = SpawnTransform.GetLocation().Z;
 
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = Context.Attacker;

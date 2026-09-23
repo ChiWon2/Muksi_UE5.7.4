@@ -15,6 +15,7 @@ class UCharacterCameraComponent;
 class ABattleManager;
 class AExchangeCharacterBase;
 class UBoxComponent;
+class USkeletalMeshComponent;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 class UMuksiBattleMovementComponent;
@@ -119,6 +120,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Mesh")
 	USkeletalMeshComponent* GetMeshComponent() const { return MeshComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Mesh")
+	USkeletalMeshComponent* GetBattleSkeletalMesh() const { return MeshComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Movement")
 	UMuksiBattleMovementComponent* GetBattleMovementComponent() const { return BattleMovementComponent; }
