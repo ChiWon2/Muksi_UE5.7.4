@@ -18,6 +18,7 @@ namespace MuksiStatusEffectIDs
     static const FName Shield(TEXT("Shield"));
     static const FName ReduceDamage(TEXT("ReduceDamage"));
     static const FName MultiplyDamage(TEXT("MultiplyDamage"));
+    static const FName Haste(TEXT("Haste"));
 
     //특수Effect
     

@@ -137,8 +137,15 @@ void UBattleStatComponent::RestoreFullHP()
 
 void UBattleStatComponent::SetCurrentSpeed(float NewSpeed)
 {
-	if (NewSpeed <= 0.0f)NewSpeed = 0.0f;
+	if (NewSpeed <= 0.0f)
+		NewSpeed = 0.0f;
+
 	CurrentStats.Speed = NewSpeed;
+}
+
+void UBattleStatComponent::ModifyCurrentSpeed(float Delta)
+{
+	SetCurrentSpeed(CurrentStats.Speed + Delta);
 }
 
 void UBattleStatComponent::HandleDeath()

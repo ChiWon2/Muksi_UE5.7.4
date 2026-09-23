@@ -103,6 +103,9 @@ FVector2D ABattleCharacterBase::GetCurrentSelectCardTime() const
 
 float ABattleCharacterBase::GetCharacterSpeed() const
 {
+	if (BattleStatComponent)
+		return BattleStatComponent->GetSpeed();
+
 	return CharacterData.CharacterSpeed;
 }
 

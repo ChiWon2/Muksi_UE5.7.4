@@ -38,8 +38,17 @@ void UMuksiStatusEffectComponent::Initialize(ABattleManager* InBattleManager)
 void UMuksiStatusEffectComponent::ResetRuntimeState()
 {
 	FinishExecution();
+
 	const bool bHadActiveEffects = !ActiveEffects.IsEmpty();
+
+	for (UMuksiStatusEffect* Effect : ActiveEffects)
+	{
+		if (IsValid(Effect))
+			Effect->OnRemoved();
+	}
+
 	ActiveEffects.Reset();
+
 	if (bHadActiveEffects)
 		OnStatusEffectsChanged.Broadcast();
 }

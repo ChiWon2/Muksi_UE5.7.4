@@ -39,6 +39,9 @@ public:
 
     virtual void OnReapplied(int32 AddedStack,int32 AddedDuration);
 
+protected:
+	virtual void OnStackChanged(int32 PreviousStack, int32 NewStack);
+
 public:
 	virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 	virtual void EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction);
