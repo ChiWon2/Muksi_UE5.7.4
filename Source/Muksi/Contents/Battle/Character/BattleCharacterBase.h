@@ -19,6 +19,7 @@ class USkeletalMeshComponent;
 class UMuksiBattleAnimationComponent;
 class UMuksiBattleCardDataAsset;
 class UMuksiBattleMovementComponent;
+class UMuksiBattleFXComponent;
 class UMuksiStatusEffectComponent;
 class UCharacterPassiveComponent;
 class UBattleStatComponent;
@@ -127,6 +128,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Movement")
 	UMuksiBattleMovementComponent* GetBattleMovementComponent() const { return BattleMovementComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|FX")
+	UMuksiBattleFXComponent* GetBattleFXComponent() const { return BattleFXComponent; }
+
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|StatusEffect")
 	UMuksiStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
 
@@ -173,6 +177,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMuksiBattleMovementComponent> BattleMovementComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMuksiBattleFXComponent> BattleFXComponent = nullptr;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;
