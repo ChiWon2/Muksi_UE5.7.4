@@ -6,12 +6,12 @@
 class UNiagaraSystem;
 
 USTRUCT(BlueprintType)
-struct MUKSI_API FBattleFXKeyOverride
+struct MUKSI_API FBattleFXKeyMapping
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX")
-	FName FXNotifyKey = NAME_None;
+	FName FXKey = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX")
 	FName FXDataAssetKey = NAME_None;

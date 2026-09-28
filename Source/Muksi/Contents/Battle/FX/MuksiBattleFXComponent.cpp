@@ -18,16 +18,9 @@ void UMuksiBattleFXComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void UMuksiBattleFXComponent::PlayImpactFX(FName FXNotifyKey)
+void UMuksiBattleFXComponent::PlayImpactFX(FName FXKey)
 {
-	if (!FXData)
-		return;
-
-	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(ResolveFXDataAssetKey(FXNotifyKey));
-	if (!FXDefinition || !FXDefinition->NiagaraSystem)
-		return;
-
-	SpawnFX(*FXDefinition, true);
+	PlayImpactFXByDataAssetKey(ResolveFXDataAssetKey(FXKey, RuntimeFXMappings));
 }
 
 void UMuksiBattleFXComponent::StartTrailFX(FName FXNotifyKey)
@@ -35,7 +28,7 @@ void UMuksiBattleFXComponent::StartTrailFX(FName FXNotifyKey)
 	if (!FXData)
 		return;
 
-	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(ResolveFXDataAssetKey(FXNotifyKey));
+	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(ResolveFXDataAssetKey(FXNotifyKey, RuntimeFXMappings));
 	if (!FXDefinition || !FXDefinition->NiagaraSystem)
 		return;
 
@@ -68,25 +61,37 @@ void UMuksiBattleFXComponent::StopAllTrailFX()
 	ActiveTrailFXs.Reset();
 }
 
-void UMuksiBattleFXComponent::SetRuntimeFXOverrides(const TArray<FBattleFXKeyOverride>& FXOverrides)
+void UMuksiBattleFXComponent::SetRuntimeFXMappings(const TArray<FBattleFXKeyMapping>& FXMappings)
 {
-	RuntimeFXOverrides = FXOverrides;
+	RuntimeFXMappings = FXMappings;
 }
 
-void UMuksiBattleFXComponent::ClearRuntimeFXOverrides()
+void UMuksiBattleFXComponent::ClearRuntimeFXMappings()
 {
-	RuntimeFXOverrides.Reset();
+	RuntimeFXMappings.Reset();
 }
 
-FName UMuksiBattleFXComponent::ResolveFXDataAssetKey(FName FXNotifyKey) const
+FName UMuksiBattleFXComponent::ResolveFXDataAssetKey(FName FXKey, const TArray<FBattleFXKeyMapping>& FXMappings) const
 {
-	for (const FBattleFXKeyOverride& FXOverride : RuntimeFXOverrides)
+	for (const FBattleFXKeyMapping& FXMapping : FXMappings)
 	{
-		if (FXOverride.FXNotifyKey == FXNotifyKey && !FXOverride.FXDataAssetKey.IsNone())
-			return FXOverride.FXDataAssetKey;
+		if (FXMapping.FXKey == FXKey && !FXMapping.FXDataAssetKey.IsNone())
+			return FXMapping.FXDataAssetKey;
 	}
 
-	return FXNotifyKey;
+	return FXKey;
+}
+
+void UMuksiBattleFXComponent::PlayImpactFXByDataAssetKey(FName FXDataAssetKey)
+{
+	if (!FXData || FXDataAssetKey.IsNone())
+		return;
+
+	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(FXDataAssetKey);
+	if (!FXDefinition || !FXDefinition->NiagaraSystem)
+		return;
+
+	SpawnFX(*FXDefinition, true);
 }
 
 USkeletalMeshComponent* UMuksiBattleFXComponent::GetBattleSkeletalMesh() const

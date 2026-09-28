@@ -32,6 +32,9 @@ struct FDamageExecutionData : public FBattleExecutionData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
 	bool bTriggerHitReaction = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
+	FName HitFXDataAssetKey = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
 	bool bTriggerStatusEffectReactions = true;
 };

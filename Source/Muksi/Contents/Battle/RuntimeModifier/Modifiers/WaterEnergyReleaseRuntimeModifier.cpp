@@ -23,6 +23,7 @@ namespace WaterEnergyReleaseRuntimeModifier
 	};
 
 	const FName MainEffectNotifyKey = TEXT("ComboEffect");
+	const FName HitFXDataAssetKey = TEXT("HitReaction_Ice");
 
 	ABattleCharacterBase* FindTargetCharacter(const FBattleAction& Action)
 	{
@@ -68,6 +69,7 @@ namespace WaterEnergyReleaseRuntimeModifier
 			? EBattleExecutionTargetPolicy::ExecutionTarget
 			: EBattleExecutionTargetPolicy::TargetingResult;
 		DamageData.DamageValue = DamageValue;
+		DamageData.HitFXDataAssetKey = HitFXDataAssetKey;
 
 		DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
 		return DamageEntry;

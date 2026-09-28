@@ -5,6 +5,7 @@
 #include "MuksiIncomingDamageModifierStatusEffect.h"
 #include "MuksiStatusEffectRegistry.h"
 #include "MuksiStatusEffectIDs.h"
+#include "StatusEffectDefinitionDataAsset.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
@@ -123,7 +124,14 @@ UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,
         return nullptr;
     }
 
-    TSubclassOf<UMuksiStatusEffect> EffectClass = StatusEffectRegistry->FindEffectClass(EffectID);
+    UStatusEffectDefinitionDataAsset* EffectDefinition = StatusEffectRegistry->FindDefinition(EffectID);
+    if (!EffectDefinition)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[StatusEffectComponent] Cannot find EffectDefinition. EffectID: %s"), *EffectID.ToString());
+        return nullptr;
+    }
+
+    TSubclassOf<UMuksiStatusEffect> EffectClass = EffectDefinition->EffectClass.LoadSynchronous();
     if (!EffectClass)
     {
         UE_LOG(LogTemp, Error, TEXT("[StatusEffectComponent] Cannot find EffectClass. EffectID: %s"), *EffectID.ToString());

@@ -3,14 +3,12 @@
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 
-void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,FName InEffectID,int32 InStackCount,int32 InDuration)
+void UMuksiStatusEffect::Initialize(AActor* InOwnerActor, FName InEffectID, int32 InStackCount, int32 InDuration)
 {
-    OwnerActor = InOwnerActor;
-
-    EffectID = InEffectID;
-
-    CurrentStack = FMath::Max(1, InStackCount);
-    RemainingDuration = FMath::Max(1, InDuration);
+	OwnerActor = InOwnerActor;
+	EffectID = InEffectID;
+	CurrentStack = FMath::Max(1, InStackCount);
+	RemainingDuration = FMath::Max(1, InDuration);
 }
 
 void UMuksiStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)

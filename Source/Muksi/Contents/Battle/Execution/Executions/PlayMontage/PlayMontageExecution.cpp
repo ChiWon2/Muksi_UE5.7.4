@@ -42,7 +42,7 @@ void UPlayMontageExecution::Execute(const FBattleExecutionContext& Context, FBat
 
 	BattleFXComponent = Context.Attacker->GetBattleFXComponent();
 	if (BattleFXComponent)
-		BattleFXComponent->SetRuntimeFXOverrides(MontageData->FXOverrides);
+		BattleFXComponent->SetRuntimeFXMappings(MontageData->FXMappings);
 
 	AnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
 
@@ -73,7 +73,7 @@ void UPlayMontageExecution::FinishPlayMontage()
 		AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
 
 	if (BattleFXComponent)
-		BattleFXComponent->ClearRuntimeFXOverrides();
+		BattleFXComponent->ClearRuntimeFXMappings();
 
 	AnimationComponent = nullptr;
 	PlayingMontage = nullptr;

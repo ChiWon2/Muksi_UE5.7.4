@@ -20,6 +20,7 @@ private:
 	void CollectTargets(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, TArray<ABattleCharacterBase*>& OutTargets) const;
 	int32 ApplyDamageModifiers(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter) const;
 	int32 ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, FName& OutHitReactionAnimKey) const;
+	void PlayHitFX(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey) const;
 	void BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey, TArray<FBattleExecutionEntry>& OutExecutionEntries) const;
 	void CompleteDamageExecution();
 

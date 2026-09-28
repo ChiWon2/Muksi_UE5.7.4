@@ -29,6 +29,9 @@ public:
 	void PlayImpactFX(FName FXNotifyKey);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
+	void PlayImpactFXByDataAssetKey(FName FXDataAssetKey);
+
+	UFUNCTION(BlueprintCallable, Category = "Battle FX")
 	void StartTrailFX(FName FXNotifyKey);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
@@ -37,18 +40,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
 	void StopAllTrailFX();
 
-	void SetRuntimeFXOverrides(const TArray<FBattleFXKeyOverride>& FXOverrides);
-	void ClearRuntimeFXOverrides();
+
+	void SetRuntimeFXMappings(const TArray<FBattleFXKeyMapping>& FXMappings);
+	void ClearRuntimeFXMappings();
 
 private:
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<UNiagaraComponent>> ActiveTrailFXs;
 
 	UPROPERTY(Transient)
-	TArray<FBattleFXKeyOverride> RuntimeFXOverrides;
+	TArray<FBattleFXKeyMapping> RuntimeFXMappings;
+
 
 private:
-	FName ResolveFXDataAssetKey(FName FXNotifyKey) const;
+	FName ResolveFXDataAssetKey(FName FXKey, const TArray<FBattleFXKeyMapping>& FXMappings) const;
 	USkeletalMeshComponent* GetBattleSkeletalMesh() const;
 	UNiagaraComponent* SpawnFX(const FMuksiBattleFXData& FXDefinition, bool bAutoDestroy) const;
 };

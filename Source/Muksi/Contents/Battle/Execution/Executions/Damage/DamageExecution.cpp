@@ -8,6 +8,7 @@
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecutionData.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
+#include "Muksi/Contents/Battle/FX/MuksiBattleFXComponent.h"
 
 namespace
 {
@@ -45,6 +46,7 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		FName HitReactionAnimKey = NAME_None;
 
 		const int32 AppliedDamage = ApplyDamageToTarget(Context, *DamageData, TargetCharacter, HitReactionAnimKey);
+		PlayHitFX(Context, *DamageData, TargetCharacter, AppliedDamage, HitReactionAnimKey);
 		BuildHitResponseExecutionEntries(HitResponse.Context, *DamageData, TargetCharacter, AppliedDamage, HitReactionAnimKey, HitResponse.ExecutionEntries);
 
 		if (!HitResponse.ExecutionEntries.IsEmpty())
@@ -140,6 +142,24 @@ int32 UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Conte
 	UE_LOG(LogTemp, Log, TEXT("[DamageExecution] BaseDamage=%d FinalDamage=%d AppliedDamage=%d Target=%s NewHP=%d"), DamageData.DamageValue, FinalDamage, AppliedDamage, *GetNameSafe(TargetCharacter), NewHP);
 
 	return AppliedDamage;
+}
+
+void UDamageExecution::PlayHitFX(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey) const
+{
+	if (Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
+		return;
+
+	if (!DamageData.bTriggerHitReaction || DamageData.HitFXDataAssetKey.IsNone())
+		return;
+
+	if (AppliedDamage <= 0 && HitReactionAnimKey.IsNone())
+		return;
+
+	if (!TargetCharacter)
+		return;
+
+	if (UMuksiBattleFXComponent* BattleFXComponent = TargetCharacter->GetBattleFXComponent())
+		BattleFXComponent->PlayImpactFXByDataAssetKey(DamageData.HitFXDataAssetKey);
 }
 
 void UDamageExecution::BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey, TArray<FBattleExecutionEntry>& OutExecutionEntries) const

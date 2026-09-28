@@ -17,5 +17,5 @@ struct FPlayMontageExecutionData : public FBattleExecutionData
 	float PlayRate = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
-	TArray<FBattleFXKeyOverride> FXOverrides;
+	TArray<FBattleFXKeyMapping> FXMappings;
 };
