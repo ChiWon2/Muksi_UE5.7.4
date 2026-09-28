@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Muksi/Contents/Battle/FX/MuksiBattleFXTypes.h"
 #include "MuksiBattleFXComponent.generated.h"
 
 class UNiagaraComponent;
 class USkeletalMeshComponent;
 class UMuksiBattleFXDataAsset;
-struct FMuksiBattleFXData;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UMuksiBattleFXComponent : public UActorComponent
@@ -26,22 +26,29 @@ public:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
-	void PlayImpactFX(FName FXKey);
+	void PlayImpactFX(FName FXNotifyKey);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
-	void StartTrailFX(FName FXKey);
+	void StartTrailFX(FName FXNotifyKey);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
-	void StopTrailFX(FName FXKey);
+	void StopTrailFX(FName FXNotifyKey);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
 	void StopAllTrailFX();
+
+	void SetRuntimeFXOverrides(const TArray<FBattleFXKeyOverride>& FXOverrides);
+	void ClearRuntimeFXOverrides();
 
 private:
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<UNiagaraComponent>> ActiveTrailFXs;
 
+	UPROPERTY(Transient)
+	TArray<FBattleFXKeyOverride> RuntimeFXOverrides;
+
 private:
+	FName ResolveFXDataAssetKey(FName FXNotifyKey) const;
 	USkeletalMeshComponent* GetBattleSkeletalMesh() const;
 	UNiagaraComponent* SpawnFX(const FMuksiBattleFXData& FXDefinition, bool bAutoDestroy) const;
 };

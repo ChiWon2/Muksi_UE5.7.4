@@ -18,54 +18,43 @@ void UMuksiBattleFXComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void UMuksiBattleFXComponent::PlayImpactFX(FName FXKey)
+void UMuksiBattleFXComponent::PlayImpactFX(FName FXNotifyKey)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[BattleFX] PlayImpactFX Owner=%s FXKey=%s FXData=%s"), *GetNameSafe(GetOwner()), *FXKey.ToString(), *GetNameSafe(FXData));
-
 	if (!FXData)
 		return;
 
-	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(FXKey);
-	UE_LOG(LogTemp, Warning, TEXT("[BattleFX] FindFXData FXKey=%s Found=%s Niagara=%s"), *FXKey.ToString(), FXDefinition ? TEXT("true") : TEXT("false"), FXDefinition ? *GetNameSafe(FXDefinition->NiagaraSystem) : TEXT("None"));
-
+	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(ResolveFXDataAssetKey(FXNotifyKey));
 	if (!FXDefinition || !FXDefinition->NiagaraSystem)
 		return;
 
-	UNiagaraComponent* NiagaraComponent = SpawnFX(*FXDefinition, true);
-	UE_LOG(LogTemp, Warning, TEXT("[BattleFX] Impact Spawn Result=%s"), *GetNameSafe(NiagaraComponent));
+	SpawnFX(*FXDefinition, true);
 }
 
-void UMuksiBattleFXComponent::StartTrailFX(FName FXKey)
+void UMuksiBattleFXComponent::StartTrailFX(FName FXNotifyKey)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[BattleFX] StartTrailFX Owner=%s FXKey=%s FXData=%s"), *GetNameSafe(GetOwner()), *FXKey.ToString(), *GetNameSafe(FXData));
-
 	if (!FXData)
 		return;
 
-	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(FXKey);
-	UE_LOG(LogTemp, Warning, TEXT("[BattleFX] Trail FindFXData FXKey=%s Found=%s Niagara=%s"), *FXKey.ToString(), FXDefinition ? TEXT("true") : TEXT("false"), FXDefinition ? *GetNameSafe(FXDefinition->NiagaraSystem) : TEXT("None"));
-
+	const FMuksiBattleFXData* FXDefinition = FXData->FindFXData(ResolveFXDataAssetKey(FXNotifyKey));
 	if (!FXDefinition || !FXDefinition->NiagaraSystem)
 		return;
 
-	StopTrailFX(FXKey);
+	StopTrailFX(FXNotifyKey);
 
 	UNiagaraComponent* NiagaraComponent = SpawnFX(*FXDefinition, true);
-	UE_LOG(LogTemp, Warning, TEXT("[BattleFX] Trail Spawn Result=%s"), *GetNameSafe(NiagaraComponent));
-
 	if (!NiagaraComponent)
 		return;
 
-	ActiveTrailFXs.Add(FXKey, NiagaraComponent);
+	ActiveTrailFXs.Add(FXNotifyKey, NiagaraComponent);
 }
 
-void UMuksiBattleFXComponent::StopTrailFX(FName FXKey)
+void UMuksiBattleFXComponent::StopTrailFX(FName FXNotifyKey)
 {
-	UNiagaraComponent* NiagaraComponent = ActiveTrailFXs.FindRef(FXKey);
+	UNiagaraComponent* NiagaraComponent = ActiveTrailFXs.FindRef(FXNotifyKey);
 	if (NiagaraComponent)
 		NiagaraComponent->Deactivate();
 
-	ActiveTrailFXs.Remove(FXKey);
+	ActiveTrailFXs.Remove(FXNotifyKey);
 }
 
 void UMuksiBattleFXComponent::StopAllTrailFX()
@@ -77,6 +66,27 @@ void UMuksiBattleFXComponent::StopAllTrailFX()
 	}
 
 	ActiveTrailFXs.Reset();
+}
+
+void UMuksiBattleFXComponent::SetRuntimeFXOverrides(const TArray<FBattleFXKeyOverride>& FXOverrides)
+{
+	RuntimeFXOverrides = FXOverrides;
+}
+
+void UMuksiBattleFXComponent::ClearRuntimeFXOverrides()
+{
+	RuntimeFXOverrides.Reset();
+}
+
+FName UMuksiBattleFXComponent::ResolveFXDataAssetKey(FName FXNotifyKey) const
+{
+	for (const FBattleFXKeyOverride& FXOverride : RuntimeFXOverrides)
+	{
+		if (FXOverride.FXNotifyKey == FXNotifyKey && !FXOverride.FXDataAssetKey.IsNone())
+			return FXOverride.FXDataAssetKey;
+	}
+
+	return FXNotifyKey;
 }
 
 USkeletalMeshComponent* UMuksiBattleFXComponent::GetBattleSkeletalMesh() const
@@ -91,8 +101,6 @@ USkeletalMeshComponent* UMuksiBattleFXComponent::GetBattleSkeletalMesh() const
 UNiagaraComponent* UMuksiBattleFXComponent::SpawnFX(const FMuksiBattleFXData& FXDefinition, bool bAutoDestroy) const
 {
 	USkeletalMeshComponent* BattleSkeletalMesh = GetBattleSkeletalMesh();
-	UE_LOG(LogTemp, Warning, TEXT("[BattleFX] SpawnFX Mesh=%s Niagara=%s Socket=%s Attach=%s"), *GetNameSafe(BattleSkeletalMesh), *GetNameSafe(FXDefinition.NiagaraSystem), *FXDefinition.SocketName.ToString(), FXDefinition.bAttachToSocket ? TEXT("true") : TEXT("false"));
-
 	if (!BattleSkeletalMesh || !FXDefinition.NiagaraSystem)
 		return nullptr;
 

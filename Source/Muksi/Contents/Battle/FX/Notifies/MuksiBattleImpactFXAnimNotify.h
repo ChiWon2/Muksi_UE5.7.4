@@ -11,7 +11,7 @@ class MUKSI_API UMuksiBattleImpactFXAnimNotify : public UAnimNotify
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX")
-	FName FXKey = NAME_None;
+	FName FXNotifyKey = NAME_None;
 
 public:
 	virtual void Notify(

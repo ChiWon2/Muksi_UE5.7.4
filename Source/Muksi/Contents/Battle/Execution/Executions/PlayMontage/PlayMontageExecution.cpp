@@ -3,6 +3,7 @@
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Execution/Executions/PlayMontage/PlayMontageExecutionData.h"
+#include "Muksi/Contents/Battle/FX/MuksiBattleFXComponent.h"
 
 void UPlayMontageExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
@@ -39,6 +40,10 @@ void UPlayMontageExecution::Execute(const FBattleExecutionContext& Context, FBat
 		return;
 	}
 
+	BattleFXComponent = Context.Attacker->GetBattleFXComponent();
+	if (BattleFXComponent)
+		BattleFXComponent->SetRuntimeFXOverrides(MontageData->FXOverrides);
+
 	AnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
 
 	if (!AnimationComponent->PlayBattleAnimation(MontageData->AnimKey, MontageData->PlayRate))
@@ -62,17 +67,17 @@ void UPlayMontageExecution::HandleMontageFinished(UAnimMontage* Montage, bool bI
 void UPlayMontageExecution::FinishPlayMontage()
 {
 	if (IsExecutionFinished())
-	{
 		return;
-	}
 
 	if (AnimationComponent)
-	{
 		AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
-	}
+
+	if (BattleFXComponent)
+		BattleFXComponent->ClearRuntimeFXOverrides();
 
 	AnimationComponent = nullptr;
 	PlayingMontage = nullptr;
+	BattleFXComponent = nullptr;
 	FinishExecution(CachedOnFinished);
 }
 
