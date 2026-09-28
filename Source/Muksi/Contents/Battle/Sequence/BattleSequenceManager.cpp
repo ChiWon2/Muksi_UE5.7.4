@@ -5,6 +5,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/RuntimeModifier/BattleActionRuntimeModifier.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
@@ -270,11 +271,60 @@ void ABattleSequenceManager::HandleExecutionEntryStarted(const FBattleAction& Ac
 
 void ABattleSequenceManager::HandleBattleActionCompleted()
 {
-	if (BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
-		BattleActionCompletedDelegate.Broadcast(BattleActionQueue[CurrentBattleActionIndex]);
+	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+	{
+		if (bBattleActionSequenceRunning)
+			FinishCurrentBattleAction();
 
-	if (bBattleActionSequenceRunning)
-		FinishCurrentBattleAction();
+		return;
+	}
+
+	const FBattleAction& CompletedAction = BattleActionQueue[CurrentBattleActionIndex];
+	TArray<UMuksiStatusEffectComponent*> StatusEffectComponents;
+
+	if (IsValid(CompletedAction.Attacker.Get()) && CompletedAction.Attacker->GetStatusEffectComponent())
+		StatusEffectComponents.AddUnique(CompletedAction.Attacker->GetStatusEffectComponent());
+
+	if (FBattleAction* OpponentAction = FindOpponentBattleAction(CompletedAction))
+	{
+		if (IsValid(OpponentAction->Attacker.Get()) && OpponentAction->Attacker->GetStatusEffectComponent())
+			StatusEffectComponents.AddUnique(OpponentAction->Attacker->GetStatusEffectComponent());
+	}
+
+	PendingBattleActionAppliedFXWaitCount = StatusEffectComponents.Num();
+
+	for (UMuksiStatusEffectComponent* StatusEffectComponent : StatusEffectComponents)
+	{
+		FSimpleDelegate CompletionDelegate;
+		CompletionDelegate.BindUObject(this, &ABattleSequenceManager::HandleBattleActionAppliedFXWaitFinished);
+		StatusEffectComponent->BeginAppliedFXWait(MoveTemp(CompletionDelegate));
+	}
+
+	BattleActionCompletedDelegate.Broadcast(CompletedAction);
+
+	if (StatusEffectComponents.IsEmpty())
+	{
+		if (bBattleActionSequenceRunning)
+			FinishCurrentBattleAction();
+
+		return;
+	}
+
+	for (UMuksiStatusEffectComponent* StatusEffectComponent : StatusEffectComponents)
+		StatusEffectComponent->EndAppliedFXWait();
+}
+
+void ABattleSequenceManager::HandleBattleActionAppliedFXWaitFinished()
+{
+	if (PendingBattleActionAppliedFXWaitCount <= 0)
+		return;
+
+	--PendingBattleActionAppliedFXWaitCount;
+
+	if (PendingBattleActionAppliedFXWaitCount > 0 || !bBattleActionSequenceRunning)
+		return;
+
+	FinishCurrentBattleAction();
 }
 
 void ABattleSequenceManager::FinishCurrentBattleAction()
@@ -328,6 +378,7 @@ void ABattleSequenceManager::ResetBattleActionSequence()
 	BattleActionQueue.Empty();
 	CurrentBattleActionIndex = INDEX_NONE;
 	bBattleActionSequenceRunning = false;
+	PendingBattleActionAppliedFXWaitCount = 0;
 	bBattleActionCompletionPending = false;
 	bWaitingForDeceiveCardReveal = false;
 	bStopAfterCurrentExecution = false;

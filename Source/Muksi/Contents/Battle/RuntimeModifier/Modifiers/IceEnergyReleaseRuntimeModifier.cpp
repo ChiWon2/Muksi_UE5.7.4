@@ -24,6 +24,7 @@ namespace IceEnergyReleaseRuntimeModifier
 
 	const FName MainEffectNotifyKey = TEXT("ComboEffect");
 	const FName HitFXDataAssetKey = TEXT("HitReaction_Ice");
+	const FName FinalHitFXDataAssetKey = TEXT("Impact_Ice");
 
 	ABattleCharacterBase* FindTargetCharacter(const FBattleAction& Action)
 	{
@@ -56,7 +57,11 @@ namespace IceEnergyReleaseRuntimeModifier
 		return ConsumeEntry;
 	}
 
-	FBattleExecutionEntry MakeDamageEntry(int32 DamageValue, ABattleCharacterBase* Attacker, ABattleCharacterBase* TargetCharacter)
+	FBattleExecutionEntry MakeDamageEntry(
+		int32 DamageValue,
+		ABattleCharacterBase* Attacker,
+		ABattleCharacterBase* TargetCharacter,
+		bool bIsFinalAttack)
 	{
 		FBattleExecutionEntry DamageEntry;
 		DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
@@ -69,7 +74,9 @@ namespace IceEnergyReleaseRuntimeModifier
 			? EBattleExecutionTargetPolicy::ExecutionTarget
 			: EBattleExecutionTargetPolicy::TargetingResult;
 		DamageData.DamageValue = DamageValue;
-		DamageData.HitFXDataAssetKey = HitFXDataAssetKey;
+		DamageData.HitFXDataAssetKey = bIsFinalAttack
+			? FinalHitFXDataAssetKey
+			: HitFXDataAssetKey;
 
 		DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
 		return DamageEntry;
@@ -129,7 +136,8 @@ void UIceEnergyReleaseRuntimeModifier::ModifyBattleAction(FBattleAction& Action)
 			IceEnergyReleaseRuntimeModifier::MakeDamageEntry(
 				ComboDamageValues[AttackIndex],
 				Attacker,
-				TargetCharacter));
+				TargetCharacter,
+				AttackIndex == AdditionalAttackCount - 1));
 
 		Action.ExecutionNotifies.Add(MoveTemp(MainEffectNotify));
 	}

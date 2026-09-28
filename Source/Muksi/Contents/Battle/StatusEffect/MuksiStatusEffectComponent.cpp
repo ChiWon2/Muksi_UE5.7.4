@@ -350,13 +350,18 @@ void UMuksiStatusEffectComponent::PlayAppliedStatusEffectFX(const UStatusEffectD
 	if (!BattleFXComponent)
 		return;
 
-	if (!EffectDefinition->bWaitForAppliedFX || !bExecuting)
+	if (!EffectDefinition->bWaitForAppliedFX || !bAppliedFXWaitActive)
 	{
 		BattleFXComponent->PlayImpactFXByDataAssetKey(EffectDefinition->AppliedFXDataAssetKey);
 		return;
 	}
 
 	++PendingAppliedFXCount;
+
+	UE_LOG(LogTemp, Warning, TEXT("Applied FX Wait Started: %s, Pending: %d, Time: %.3f"),
+		*EffectDefinition->AppliedFXDataAssetKey.ToString(),
+		PendingAppliedFXCount,
+		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f);
 
 	FSimpleDelegate CompletionDelegate;
 	CompletionDelegate.BindUObject(this, &UMuksiStatusEffectComponent::HandleAppliedStatusEffectFXFinished);
@@ -365,13 +370,58 @@ void UMuksiStatusEffectComponent::PlayAppliedStatusEffectFX(const UStatusEffectD
 
 void UMuksiStatusEffectComponent::HandleAppliedStatusEffectFXFinished()
 {
-	PendingAppliedFXCount = FMath::Max(0, PendingAppliedFXCount - 1);
+	UE_LOG(LogTemp, Warning, TEXT("Applied FX Wait Finished, Pending Before: %d, Time: %.3f"),
+		PendingAppliedFXCount,
+		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f);
 
-	if (!bExecuting || !bWaitingForAppliedFX || PendingAppliedFXCount > 0)
+	PendingAppliedFXCount = FMath::Max(0, PendingAppliedFXCount - 1);
+	TryFinishAppliedFXWait();
+}
+
+void UMuksiStatusEffectComponent::BeginAppliedFXWait(FSimpleDelegate CompletionDelegate)
+{
+	if (bAppliedFXWaitActive)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MuksiStatusEffectComponent] Applied FX wait is already active."));
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
+	bAppliedFXWaitActive = true;
+	bAppliedFXWaitSealed = false;
+	PendingAppliedFXCount = 0;
+	AppliedFXWaitCompletionDelegate = MoveTemp(CompletionDelegate);
+}
+
+void UMuksiStatusEffectComponent::EndAppliedFXWait()
+{
+	if (!bAppliedFXWaitActive)
 		return;
 
-	bWaitingForAppliedFX = false;
-	ExecuteNextStatusEffect();
+	bAppliedFXWaitSealed = true;
+	TryFinishAppliedFXWait();
+}
+
+void UMuksiStatusEffectComponent::TryFinishAppliedFXWait()
+{
+	if (!bAppliedFXWaitActive || !bAppliedFXWaitSealed || PendingAppliedFXCount > 0)
+		return;
+
+	bAppliedFXWaitActive = false;
+	bAppliedFXWaitSealed = false;
+	PendingAppliedFXCount = 0;
+
+	FSimpleDelegate CompletionDelegate = MoveTemp(AppliedFXWaitCompletionDelegate);
+	AppliedFXWaitCompletionDelegate.Unbind();
+	CompletionDelegate.ExecuteIfBound();
+}
+
+void UMuksiStatusEffectComponent::CancelAppliedFXWait()
+{
+	bAppliedFXWaitActive = false;
+	bAppliedFXWaitSealed = false;
+	PendingAppliedFXCount = 0;
+	AppliedFXWaitCompletionDelegate.Unbind();
 }
 
 void UMuksiStatusEffectComponent::AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
@@ -482,8 +532,6 @@ void UMuksiStatusEffectComponent::ExecuteSequentially(EBattlePhase OldPhase, EBa
     ExecutingNewPhase = NewPhase;
     ExecutionQueue = ActiveEffects;
     ExecutionIndex = 0;
-    PendingAppliedFXCount = 0;
-    bWaitingForAppliedFX = false;
     ExecutionCompletionDelegate = MoveTemp(CompletionDelegate);
     ExecuteNextStatusEffect();
 }
@@ -534,6 +582,10 @@ void UMuksiStatusEffectComponent::RunPhaseExecutionEntries(const TArray<FBattleE
 		return;
 	}
 
+	FSimpleDelegate CompletionDelegate;
+	CompletionDelegate.BindUObject(this, &UMuksiStatusEffectComponent::ExecuteNextStatusEffect);
+	BeginAppliedFXWait(MoveTemp(CompletionDelegate));
+
 	FBattleExecutionContext Context;
 	Context.ExecutionMode = EBattleExecutionMode::ActualBattle;
 	Context.Attacker = OwnerCharacter;
@@ -551,14 +603,7 @@ void UMuksiStatusEffectComponent::HandlePhaseExecutionRunnerFinished(UBattleExec
 		return;
 
 	PhaseExecutionRunner = nullptr;
-
-	if (PendingAppliedFXCount > 0)
-	{
-		bWaitingForAppliedFX = true;
-		return;
-	}
-
-	ExecuteNextStatusEffect();
+	EndAppliedFXWait();
 }
 
 void UMuksiStatusEffectComponent::FinishExecution()
@@ -573,8 +618,7 @@ void UMuksiStatusEffectComponent::FinishExecution()
     ExecutingNewPhase = EBattlePhase::None;
 	PhaseExecutionRunner = nullptr;
     ExecutionIndex = INDEX_NONE;
-    PendingAppliedFXCount = 0;
-    bWaitingForAppliedFX = false;
+	CancelAppliedFXWait();
     ExecutionQueue.Reset();
     FSimpleDelegate CompletionDelegate = MoveTemp(ExecutionCompletionDelegate);
     ExecutionCompletionDelegate.Unbind();
