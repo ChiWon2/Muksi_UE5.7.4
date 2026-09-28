@@ -23,11 +23,14 @@ void URestorePresentationExecution::Execute(const FBattleExecutionContext& Conte
 		return;
 	}
 
+	bRestoreLocation = RestoreData->bRestoreLocation;
+	bRestoreRotation = RestoreData->bRestoreRotation;
+
 	SourceMovementComponent = SourceCharacter ? SourceCharacter->GetBattleMovementComponent() : nullptr;
 	TargetMovementComponent = TargetCharacter ? TargetCharacter->GetBattleMovementComponent() : nullptr;
 
-	bSourceMovementFinished = !SourceMovementComponent || !SourceMovementComponent->HasSavedPresentationTransform();
-	bTargetMovementFinished = !TargetMovementComponent || !TargetMovementComponent->HasSavedPresentationTransform();
+	bSourceMovementFinished = !bRestoreLocation || !SourceMovementComponent || !SourceMovementComponent->HasSavedPresentationTransform();
+	bTargetMovementFinished = !bRestoreLocation || !TargetMovementComponent || !TargetMovementComponent->HasSavedPresentationTransform();
 
 	if (!bSourceMovementFinished)
 	{
@@ -60,14 +63,12 @@ void URestorePresentationExecution::StartCharacterRestore(ABattleCharacterBase* 
 void URestorePresentationExecution::HandleSourceMovementFinished(bool bInterrupted)
 {
 	bSourceMovementFinished = true;
-	RestoreSavedTransform(SourceCharacter, SourceMovementComponent, bInterrupted);
 	TryFinishRestore();
 }
 
 void URestorePresentationExecution::HandleTargetMovementFinished(bool bInterrupted)
 {
 	bTargetMovementFinished = true;
-	RestoreSavedTransform(TargetCharacter, TargetMovementComponent, bInterrupted);
 	TryFinishRestore();
 }
 
@@ -76,12 +77,12 @@ void URestorePresentationExecution::TryFinishRestore()
 	if (!bSourceMovementFinished || !bTargetMovementFinished)
 		return;
 
-	RestoreSavedTransform(SourceCharacter, SourceMovementComponent, false);
-	RestoreSavedTransform(TargetCharacter, TargetMovementComponent, false);
+	RestoreSavedTransform(SourceCharacter, SourceMovementComponent);
+	RestoreSavedTransform(TargetCharacter, TargetMovementComponent);
 	FinishRestorePresentationExecution();
 }
 
-void URestorePresentationExecution::RestoreSavedTransform(ABattleCharacterBase* Character, UMuksiBattleMovementComponent* MovementComponent, bool bRestoreLocation)
+void URestorePresentationExecution::RestoreSavedTransform(ABattleCharacterBase* Character, UMuksiBattleMovementComponent* MovementComponent)
 {
 	if (!Character || !MovementComponent || !MovementComponent->HasSavedPresentationTransform())
 		return;
@@ -91,7 +92,9 @@ void URestorePresentationExecution::RestoreSavedTransform(ABattleCharacterBase* 
 	if (bRestoreLocation)
 		Character->SetActorLocation(SavedTransform.GetLocation());
 
-	Character->SetActorRotation(SavedTransform.GetRotation());
+	if (bRestoreRotation)
+		Character->SetActorRotation(SavedTransform.GetRotation());
+
 	MovementComponent->ClearSavedPresentationTransform();
 }
 
@@ -104,6 +107,8 @@ void URestorePresentationExecution::FinishRestorePresentationExecution()
 	TargetCharacter = nullptr;
 	SourceMovementComponent = nullptr;
 	TargetMovementComponent = nullptr;
+	bRestoreLocation = true;
+	bRestoreRotation = true;
 	bSourceMovementFinished = true;
 	bTargetMovementFinished = true;
 

@@ -1,10 +1,10 @@
-#include "ChargeWaterEnergyStatusEffect.h"
+#include "ChargeIceEnergyStatusEffect.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectIDs.h"
 
-void UChargeWaterEnergyStatusEffect::OnBattleActionCompleted(const FBattleAction& CompletedAction)
+void UChargeIceEnergyStatusEffect::OnBattleActionCompleted(const FBattleAction& CompletedAction)
 {
 	static_cast<void>(CompletedAction);
 
@@ -18,6 +18,6 @@ void UChargeWaterEnergyStatusEffect::OnBattleActionCompleted(const FBattleAction
 	if (!IsValid(StatusEffectComponent))
 		return;
 
-	StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::WaterEnergy, 1, 1);
-	StatusEffectComponent->SubtractStatusEffect(MuksiStatusEffectIDs::ChargeWaterEnergy, 1, 0);
+	StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::IceEnergy, 1, 1);
+	StatusEffectComponent->SubtractStatusEffect(MuksiStatusEffectIDs::ChargeIceEnergy, 1, 0);
 }

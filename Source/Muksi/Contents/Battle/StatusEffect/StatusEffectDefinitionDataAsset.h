@@ -27,4 +27,7 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|FX")
     FName AppliedFXDataAssetKey = NAME_None;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|FX")
+    bool bWaitForAppliedFX = false;
 };

@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "../MuksiStatusEffect.h"
-#include "ChargeWaterEnergyStatusEffect.generated.h"
+#include "ChargeIceEnergyStatusEffect.generated.h"
 
 UCLASS()
-class MUKSI_API UChargeWaterEnergyStatusEffect : public UMuksiStatusEffect
+class MUKSI_API UChargeIceEnergyStatusEffect : public UMuksiStatusEffect
 {
 	GENERATED_BODY()
 

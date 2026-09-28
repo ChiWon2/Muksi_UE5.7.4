@@ -66,7 +66,8 @@ private:
 	void HandleBattleActionCompleted(const FBattleAction& CompletedAction);
 	void HandleBattleExchangeCompleted(int32 ExchangeIndex);
 	void ApplyStatusEffectToCurrentBattleAction(UMuksiStatusEffect* Effect);
-	void PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition) const;
+	void PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition);
+	void HandleAppliedStatusEffectFXFinished();
     void ExecuteNextStatusEffect();
     void RunPhaseExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries);
     void HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
@@ -82,5 +83,7 @@ private:
     EBattlePhase ExecutingOldPhase = EBattlePhase::None;
     EBattlePhase ExecutingNewPhase = EBattlePhase::None;
     int32 ExecutionIndex = INDEX_NONE;
+    int32 PendingAppliedFXCount = 0;
     bool bExecuting = false;
+    bool bWaitingForAppliedFX = false;
 };

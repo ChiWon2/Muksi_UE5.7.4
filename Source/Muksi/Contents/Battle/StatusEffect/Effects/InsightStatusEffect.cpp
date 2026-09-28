@@ -134,6 +134,8 @@ void UInsightStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	FaceOffEntry.ExecutionTargetOverride = OpponentCharacter;
 
 	FFaceOffExecutionData FaceOffData;
+	FaceOffData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
+	FaceOffData.MoveMode = EFaceOffMoveMode::Both;
 	FaceOffData.MoveDuration = 0.08f;
 
 	FaceOffEntry.ExecutionData.InitializeAs<FFaceOffExecutionData>(FaceOffData);
@@ -157,21 +159,6 @@ void UInsightStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	CounterMainEffectNotify.NotifyKey = TEXT("MainEffect");
 	CounterMainEffectNotify.NotifySourceOverride = OwnerCharacter;
 
-	FBattleExecutionEntry DamageEntry;
-	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
-	DamageEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
-	DamageEntry.ExecutionSourceOverride = OwnerCharacter;
-	DamageEntry.ExecutionTargetOverride = OpponentCharacter;
-
-	FDamageExecutionData DamageData;
-	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
-	DamageData.DamageValue = GetCurrentStack();
-	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
-	DamageData.bTriggerHitReaction = false;
-
-	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
-	CounterMainEffectNotify.ExecutionEntries.Add(MoveTemp(DamageEntry));
-
 	FBattleExecutionEntry HitReactionEntry;
 	HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
 	HitReactionEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
@@ -184,6 +171,28 @@ void UInsightStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	CounterMainEffectNotify.ExecutionEntries.Add(MoveTemp(HitReactionEntry));
 
 	OpponentAction.ExecutionNotifies.Add(MoveTemp(CounterMainEffectNotify));
+
+	FBattleExecutionNotify CounterDamageEffectNotify;
+	CounterDamageEffectNotify.NotifyKey = TEXT("DamageEffect");
+	CounterDamageEffectNotify.NotifySourceOverride = OwnerCharacter;
+
+	FBattleExecutionEntry DamageEntry;
+	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
+	DamageEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
+	DamageEntry.ExecutionSourceOverride = OwnerCharacter;
+	DamageEntry.ExecutionTargetOverride = OpponentCharacter;
+
+	FDamageExecutionData DamageData;
+	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
+	DamageData.DamageValue = GetCurrentStack();
+	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
+	DamageData.HitFXDataAssetKey = TEXT("HitReaction_Basic");
+	DamageData.bTriggerHitReaction = false;
+
+	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
+	CounterDamageEffectNotify.ExecutionEntries.Add(MoveTemp(DamageEntry));
+
+	OpponentAction.ExecutionNotifies.Add(MoveTemp(CounterDamageEffectNotify));
 
 	FBattleExecutionNotify CounterSubEffectNotify;
 	CounterSubEffectNotify.NotifyKey = TEXT("SubEffect");

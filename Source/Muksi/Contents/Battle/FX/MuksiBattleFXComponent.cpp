@@ -15,6 +15,11 @@ void UMuksiBattleFXComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopAllTrailFX();
 
+	for (TPair<TObjectPtr<UNiagaraComponent>, FSimpleDelegate>& CompletionEntry : OneShotFXCompletionDelegates)
+		CompletionEntry.Value.ExecuteIfBound();
+
+	OneShotFXCompletionDelegates.Reset();
+
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -81,11 +86,41 @@ FName UMuksiBattleFXComponent::ResolveFXDataAssetKey(FName FXKey, const TArray<F
 
 void UMuksiBattleFXComponent::PlayImpactFXByDataAssetKey(FName FXDataAssetKey)
 {
+	PlayOneShotFXByDataAssetKey(FXDataAssetKey, FSimpleDelegate());
+}
+
+void UMuksiBattleFXComponent::PlayOneShotFXByDataAssetKey(FName FXDataAssetKey, FSimpleDelegate CompletionDelegate)
+{
 	const FMuksiBattleFXData* FXDefinition = FindFXData(FXDataAssetKey);
 	if (!FXDefinition || !FXDefinition->NiagaraSystem)
+	{
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
+	UNiagaraComponent* NiagaraComponent = SpawnFX(*FXDefinition, true);
+	if (!NiagaraComponent)
+	{
+		CompletionDelegate.ExecuteIfBound();
+		return;
+	}
+
+	if (!CompletionDelegate.IsBound())
 		return;
 
-	SpawnFX(*FXDefinition, true);
+	OneShotFXCompletionDelegates.Add(NiagaraComponent, MoveTemp(CompletionDelegate));
+	NiagaraComponent->OnSystemFinished.AddUniqueDynamic(this, &UMuksiBattleFXComponent::HandleOneShotFXFinished);
+}
+
+void UMuksiBattleFXComponent::HandleOneShotFXFinished(UNiagaraComponent* FinishedComponent)
+{
+	FSimpleDelegate CompletionDelegate;
+
+	if (FSimpleDelegate* FoundDelegate = OneShotFXCompletionDelegates.Find(FinishedComponent))
+		CompletionDelegate = MoveTemp(*FoundDelegate);
+
+	OneShotFXCompletionDelegates.Remove(FinishedComponent);
+	CompletionDelegate.ExecuteIfBound();
 }
 
 const FMuksiBattleFXData* UMuksiBattleFXComponent::FindFXData(FName FXDataAssetKey) const

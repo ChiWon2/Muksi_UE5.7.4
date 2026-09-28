@@ -337,17 +337,41 @@ void UMuksiStatusEffectComponent::ApplyStatusEffectToCurrentBattleAction(UMuksiS
 	Effect->EditBattleActions(*CurrentAction, *OpponentAction);
 }
 
-void UMuksiStatusEffectComponent::PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition) const
+void UMuksiStatusEffectComponent::PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition)
 {
 	if (!EffectDefinition || EffectDefinition->AppliedFXDataAssetKey.IsNone())
 		return;
 
-	const ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(GetOwner());
+	ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(GetOwner());
 	if (!BattleCharacter)
 		return;
 
-	if (UMuksiBattleFXComponent* BattleFXComponent = BattleCharacter->GetBattleFXComponent())
+	UMuksiBattleFXComponent* BattleFXComponent = BattleCharacter->GetBattleFXComponent();
+	if (!BattleFXComponent)
+		return;
+
+	if (!EffectDefinition->bWaitForAppliedFX || !bExecuting)
+	{
 		BattleFXComponent->PlayImpactFXByDataAssetKey(EffectDefinition->AppliedFXDataAssetKey);
+		return;
+	}
+
+	++PendingAppliedFXCount;
+
+	FSimpleDelegate CompletionDelegate;
+	CompletionDelegate.BindUObject(this, &UMuksiStatusEffectComponent::HandleAppliedStatusEffectFXFinished);
+	BattleFXComponent->PlayOneShotFXByDataAssetKey(EffectDefinition->AppliedFXDataAssetKey, MoveTemp(CompletionDelegate));
+}
+
+void UMuksiStatusEffectComponent::HandleAppliedStatusEffectFXFinished()
+{
+	PendingAppliedFXCount = FMath::Max(0, PendingAppliedFXCount - 1);
+
+	if (!bExecuting || !bWaitingForAppliedFX || PendingAppliedFXCount > 0)
+		return;
+
+	bWaitingForAppliedFX = false;
+	ExecuteNextStatusEffect();
 }
 
 void UMuksiStatusEffectComponent::AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const
@@ -458,6 +482,8 @@ void UMuksiStatusEffectComponent::ExecuteSequentially(EBattlePhase OldPhase, EBa
     ExecutingNewPhase = NewPhase;
     ExecutionQueue = ActiveEffects;
     ExecutionIndex = 0;
+    PendingAppliedFXCount = 0;
+    bWaitingForAppliedFX = false;
     ExecutionCompletionDelegate = MoveTemp(CompletionDelegate);
     ExecuteNextStatusEffect();
 }
@@ -522,11 +548,16 @@ void UMuksiStatusEffectComponent::RunPhaseExecutionEntries(const TArray<FBattleE
 void UMuksiStatusEffectComponent::HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner)
 {
 	if (!bExecuting || FinishedRunner != PhaseExecutionRunner)
+		return;
+
+	PhaseExecutionRunner = nullptr;
+
+	if (PendingAppliedFXCount > 0)
 	{
+		bWaitingForAppliedFX = true;
 		return;
 	}
 
-	PhaseExecutionRunner = nullptr;
 	ExecuteNextStatusEffect();
 }
 
@@ -542,6 +573,8 @@ void UMuksiStatusEffectComponent::FinishExecution()
     ExecutingNewPhase = EBattlePhase::None;
 	PhaseExecutionRunner = nullptr;
     ExecutionIndex = INDEX_NONE;
+    PendingAppliedFXCount = 0;
+    bWaitingForAppliedFX = false;
     ExecutionQueue.Reset();
     FSimpleDelegate CompletionDelegate = MoveTemp(ExecutionCompletionDelegate);
     ExecutionCompletionDelegate.Unbind();

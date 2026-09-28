@@ -149,7 +149,7 @@ void UDamageExecution::PlayHitFX(const FBattleExecutionContext& Context, const F
 	if (Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
 		return;
 
-	if (!DamageData.bTriggerHitReaction || DamageData.HitFXDataAssetKey.IsNone())
+	if (DamageData.HitFXDataAssetKey.IsNone())
 		return;
 
 	if (AppliedDamage <= 0 && HitReactionAnimKey.IsNone())
