@@ -22,7 +22,7 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX")
-	TObjectPtr<UMuksiBattleFXDataAsset> FXData = nullptr;
+	TArray<TObjectPtr<UMuksiBattleFXDataAsset>> FXDataAssets;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
@@ -54,6 +54,7 @@ private:
 
 private:
 	FName ResolveFXDataAssetKey(FName FXKey, const TArray<FBattleFXKeyMapping>& FXMappings) const;
+	const FMuksiBattleFXData* FindFXData(FName FXDataAssetKey) const;
 	USkeletalMeshComponent* GetBattleSkeletalMesh() const;
 	UNiagaraComponent* SpawnFX(const FMuksiBattleFXData& FXDefinition, bool bAutoDestroy) const;
 };

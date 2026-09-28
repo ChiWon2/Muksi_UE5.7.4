@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
+#include "Muksi/Contents/Battle/FX/MuksiBattleFXComponent.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 
@@ -107,6 +108,7 @@ UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,
     if (UMuksiStatusEffect* ExistingEffect = FindEffectByID(EffectID))
     {
         ExistingEffect->OnReapplied(StackCount, Duration);
+		PlayAppliedStatusEffectFX(FindStatusEffectDefinition(EffectID));
         OnStatusEffectsChanged.Broadcast();
         return ExistingEffect;
     }
@@ -145,6 +147,7 @@ UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,
     NewEffect->Initialize(GetOwner(), EffectID, StackCount, Duration);
     ActiveEffects.Add(NewEffect);
     NewEffect->OnApplied();
+	PlayAppliedStatusEffectFX(EffectDefinition);
     ApplyStatusEffectToCurrentBattleAction(NewEffect);
     OnStatusEffectsChanged.Broadcast();
 
@@ -332,6 +335,19 @@ void UMuksiStatusEffectComponent::ApplyStatusEffectToCurrentBattleAction(UMuksiS
 	BattleManager->GetBattleSequenceManager()->RefreshBattleActionTargetingResult(*CurrentAction);
 	BattleManager->GetBattleSequenceManager()->RefreshBattleActionTargetingResult(*OpponentAction);
 	Effect->EditBattleActions(*CurrentAction, *OpponentAction);
+}
+
+void UMuksiStatusEffectComponent::PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition) const
+{
+	if (!EffectDefinition || EffectDefinition->AppliedFXDataAssetKey.IsNone())
+		return;
+
+	const ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(GetOwner());
+	if (!BattleCharacter)
+		return;
+
+	if (UMuksiBattleFXComponent* BattleFXComponent = BattleCharacter->GetBattleFXComponent())
+		BattleFXComponent->PlayImpactFXByDataAssetKey(EffectDefinition->AppliedFXDataAssetKey);
 }
 
 void UMuksiStatusEffectComponent::AppendHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries) const

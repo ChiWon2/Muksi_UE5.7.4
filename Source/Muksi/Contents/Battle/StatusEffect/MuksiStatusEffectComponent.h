@@ -66,6 +66,7 @@ private:
 	void HandleBattleActionCompleted(const FBattleAction& CompletedAction);
 	void HandleBattleExchangeCompleted(int32 ExchangeIndex);
 	void ApplyStatusEffectToCurrentBattleAction(UMuksiStatusEffect* Effect);
+	void PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition) const;
     void ExecuteNextStatusEffect();
     void RunPhaseExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries);
     void HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);

@@ -24,4 +24,7 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|Display")
     TSoftObjectPtr<UTexture2D> Icon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|FX")
+    FName AppliedFXDataAssetKey = NAME_None;
 };
