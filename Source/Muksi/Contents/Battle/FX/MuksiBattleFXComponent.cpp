@@ -15,6 +15,14 @@ void UMuksiBattleFXComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopAllTrailFX();
 
+	for (TPair<FName, FPersistentFXInstance>& PersistentFX : ActivePersistentFXs)
+	{
+		if (PersistentFX.Value.NiagaraComponent)
+			PersistentFX.Value.NiagaraComponent->DeactivateImmediate();
+	}
+
+	ActivePersistentFXs.Reset();
+
 	for (TPair<TObjectPtr<UNiagaraComponent>, FSimpleDelegate>& CompletionEntry : OneShotFXCompletionDelegates)
 		CompletionEntry.Value.ExecuteIfBound();
 
@@ -110,6 +118,51 @@ void UMuksiBattleFXComponent::PlayOneShotFXByDataAssetKey(FName FXDataAssetKey, 
 
 	OneShotFXCompletionDelegates.Add(NiagaraComponent, MoveTemp(CompletionDelegate));
 	NiagaraComponent->OnSystemFinished.AddUniqueDynamic(this, &UMuksiBattleFXComponent::HandleOneShotFXFinished);
+}
+
+void UMuksiBattleFXComponent::StartPersistentFX(FName FXDataAssetKey)
+{
+	if (FXDataAssetKey.IsNone())
+		return;
+
+	if (FPersistentFXInstance* ExistingInstance = ActivePersistentFXs.Find(FXDataAssetKey))
+	{
+		++ExistingInstance->RefCount;
+		return;
+	}
+
+	const FMuksiBattleFXData* FXDefinition = FindFXData(FXDataAssetKey);
+	if (!FXDefinition || !FXDefinition->NiagaraSystem)
+		return;
+
+	UNiagaraComponent* NiagaraComponent = SpawnFX(*FXDefinition, false);
+	if (!NiagaraComponent)
+		return;
+
+	FPersistentFXInstance PersistentFXInstance;
+	PersistentFXInstance.NiagaraComponent = NiagaraComponent;
+	PersistentFXInstance.RefCount = 1;
+	ActivePersistentFXs.Add(FXDataAssetKey, MoveTemp(PersistentFXInstance));
+}
+
+void UMuksiBattleFXComponent::StopPersistentFX(FName FXDataAssetKey)
+{
+	FPersistentFXInstance* PersistentFXInstance = ActivePersistentFXs.Find(FXDataAssetKey);
+	if (!PersistentFXInstance)
+		return;
+
+	--PersistentFXInstance->RefCount;
+
+	if (PersistentFXInstance->RefCount > 0)
+		return;
+
+	if (PersistentFXInstance->NiagaraComponent)
+	{
+		PersistentFXInstance->NiagaraComponent->DeactivateImmediate();
+		PersistentFXInstance->NiagaraComponent->DestroyComponent();
+	}
+
+	ActivePersistentFXs.Remove(FXDataAssetKey);
 }
 
 void UMuksiBattleFXComponent::HandleOneShotFXFinished(UNiagaraComponent* FinishedComponent)

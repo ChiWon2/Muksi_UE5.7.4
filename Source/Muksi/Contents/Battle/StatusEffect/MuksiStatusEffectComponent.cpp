@@ -45,8 +45,11 @@ void UMuksiStatusEffectComponent::ResetRuntimeState()
 
 	for (UMuksiStatusEffect* Effect : ActiveEffects)
 	{
-		if (IsValid(Effect))
-			Effect->OnRemoved();
+		if (!IsValid(Effect))
+			continue;
+
+		StopStatusEffectAuraFX(Effect->GetEffectID());
+		Effect->OnRemoved();
 	}
 
 	ActiveEffects.Reset();
@@ -147,6 +150,7 @@ UMuksiStatusEffect* UMuksiStatusEffectComponent::AddStatusEffect(FName EffectID,
     NewEffect->Initialize(GetOwner(), EffectID, StackCount, Duration);
     ActiveEffects.Add(NewEffect);
     NewEffect->OnApplied();
+	StartStatusEffectAuraFX(EffectDefinition);
 	PlayAppliedStatusEffectFX(EffectDefinition);
     ApplyStatusEffectToCurrentBattleAction(NewEffect);
     OnStatusEffectsChanged.Broadcast();
@@ -203,6 +207,7 @@ void UMuksiStatusEffectComponent::RemoveStatusEffect(UMuksiStatusEffect* Effect)
         return;
     }
 
+    StopStatusEffectAuraFX(Effect->GetEffectID());
     Effect->OnRemoved();
 
     ActiveEffects.Remove(Effect);
@@ -339,7 +344,7 @@ void UMuksiStatusEffectComponent::ApplyStatusEffectToCurrentBattleAction(UMuksiS
 
 void UMuksiStatusEffectComponent::PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition)
 {
-	if (!EffectDefinition || EffectDefinition->AppliedFXDataAssetKey.IsNone())
+	if (!EffectDefinition || EffectDefinition->FXSettings.AppliedFXDataAssetKey.IsNone())
 		return;
 
 	ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(GetOwner());
@@ -350,22 +355,55 @@ void UMuksiStatusEffectComponent::PlayAppliedStatusEffectFX(const UStatusEffectD
 	if (!BattleFXComponent)
 		return;
 
-	if (!EffectDefinition->bWaitForAppliedFX || !bAppliedFXWaitActive)
+	if (!EffectDefinition->FXSettings.bWaitForAppliedFX || !bAppliedFXWaitActive)
 	{
-		BattleFXComponent->PlayImpactFXByDataAssetKey(EffectDefinition->AppliedFXDataAssetKey);
+		BattleFXComponent->PlayImpactFXByDataAssetKey(EffectDefinition->FXSettings.AppliedFXDataAssetKey);
 		return;
 	}
 
 	++PendingAppliedFXCount;
 
 	UE_LOG(LogTemp, Warning, TEXT("Applied FX Wait Started: %s, Pending: %d, Time: %.3f"),
-		*EffectDefinition->AppliedFXDataAssetKey.ToString(),
+		*EffectDefinition->FXSettings.AppliedFXDataAssetKey.ToString(),
 		PendingAppliedFXCount,
 		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f);
 
 	FSimpleDelegate CompletionDelegate;
 	CompletionDelegate.BindUObject(this, &UMuksiStatusEffectComponent::HandleAppliedStatusEffectFXFinished);
-	BattleFXComponent->PlayOneShotFXByDataAssetKey(EffectDefinition->AppliedFXDataAssetKey, MoveTemp(CompletionDelegate));
+	BattleFXComponent->PlayOneShotFXByDataAssetKey(EffectDefinition->FXSettings.AppliedFXDataAssetKey, MoveTemp(CompletionDelegate));
+}
+
+void UMuksiStatusEffectComponent::StartStatusEffectAuraFX(const UStatusEffectDefinitionDataAsset* EffectDefinition)
+{
+	if (!EffectDefinition || EffectDefinition->FXSettings.AuraFXDataAssetKey.IsNone())
+		return;
+
+	ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(GetOwner());
+	if (!BattleCharacter)
+		return;
+
+	UMuksiBattleFXComponent* BattleFXComponent = BattleCharacter->GetBattleFXComponent();
+	if (!BattleFXComponent)
+		return;
+
+	BattleFXComponent->StartPersistentFX(EffectDefinition->FXSettings.AuraFXDataAssetKey);
+}
+
+void UMuksiStatusEffectComponent::StopStatusEffectAuraFX(FName EffectID)
+{
+	const UStatusEffectDefinitionDataAsset* EffectDefinition = FindStatusEffectDefinition(EffectID);
+	if (!EffectDefinition || EffectDefinition->FXSettings.AuraFXDataAssetKey.IsNone())
+		return;
+
+	ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(GetOwner());
+	if (!BattleCharacter)
+		return;
+
+	UMuksiBattleFXComponent* BattleFXComponent = BattleCharacter->GetBattleFXComponent();
+	if (!BattleFXComponent)
+		return;
+
+	BattleFXComponent->StopPersistentFX(EffectDefinition->FXSettings.AuraFXDataAssetKey);
 }
 
 void UMuksiStatusEffectComponent::HandleAppliedStatusEffectFXFinished()
@@ -505,6 +543,7 @@ bool UMuksiStatusEffectComponent::RemoveExpiredEffects(bool bNotify)
 
 		if (Effect && Effect->IsExpired())
 		{
+			StopStatusEffectAuraFX(Effect->GetEffectID());
 			Effect->OnRemoved();
 			ActiveEffects.RemoveAt(Index);
 

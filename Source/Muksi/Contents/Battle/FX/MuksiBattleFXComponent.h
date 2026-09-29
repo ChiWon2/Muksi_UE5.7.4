@@ -32,6 +32,8 @@ public:
 	void PlayImpactFXByDataAssetKey(FName FXDataAssetKey);
 
 	void PlayOneShotFXByDataAssetKey(FName FXDataAssetKey, FSimpleDelegate CompletionDelegate);
+	void StartPersistentFX(FName FXDataAssetKey);
+	void StopPersistentFX(FName FXDataAssetKey);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle FX")
 	void StartTrailFX(FName FXNotifyKey);
@@ -47,8 +49,16 @@ public:
 	void ClearRuntimeFXMappings();
 
 private:
+	struct FPersistentFXInstance
+	{
+		TObjectPtr<UNiagaraComponent> NiagaraComponent = nullptr;
+		int32 RefCount = 0;
+	};
+
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<UNiagaraComponent>> ActiveTrailFXs;
+
+	TMap<FName, FPersistentFXInstance> ActivePersistentFXs;
 
 	UPROPERTY(Transient)
 	TArray<FBattleFXKeyMapping> RuntimeFXMappings;

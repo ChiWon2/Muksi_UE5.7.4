@@ -69,6 +69,8 @@ private:
 	void HandleBattleExchangeCompleted(int32 ExchangeIndex);
 	void ApplyStatusEffectToCurrentBattleAction(UMuksiStatusEffect* Effect);
 	void PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition);
+	void StartStatusEffectAuraFX(const UStatusEffectDefinitionDataAsset* EffectDefinition);
+	void StopStatusEffectAuraFX(FName EffectID);
 	void HandleAppliedStatusEffectFXFinished();
 	void TryFinishAppliedFXWait();
 	void CancelAppliedFXWait();
