@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecution.h"
+#include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecutionData.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
@@ -38,6 +39,13 @@ void USaeMaekStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	FBattleExecutionEntry HitReactionEntry;
 	HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
 	HitReactionEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
+	HitReactionEntry.ExecutionTargetOverride = CurrentAction.Attacker;
+
+	FHitReactionExecutionData HitReactionData;
+	HitReactionData.PlayRate = 1.25f;
+	HitReactionData.FXDataAssetKey = TEXT("StatusEffect_OnAffect_Saemaek");
+	HitReactionData.bWaitForFX = true;
+	HitReactionEntry.ExecutionData.InitializeAs<FHitReactionExecutionData>(HitReactionData);
 
 	ExecutionEntries.Insert(MoveTemp(HitReactionEntry), 1);
 

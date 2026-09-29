@@ -18,6 +18,7 @@ void UMultiDirectionLinePattern::ApplyPattern(ABattleGridManager* GridManager, E
 		FTargetingGroup& Group = OutGroups.AddDefaulted_GetRef();
 		const int32 GroupDirection = FHexGridMath::NormalizeDirection(Direction + DirectionOffset);
 		Group.Direction = GroupDirection;
+		Group.PathRange = Data->Range;
 
 		for (int32 Distance = 1; Distance <= Data->Range; ++Distance)
 		{

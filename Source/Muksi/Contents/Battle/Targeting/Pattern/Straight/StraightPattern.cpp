@@ -15,6 +15,7 @@ void UStraightPattern::ApplyPattern(ABattleGridManager* GridManager, EBattleSimu
 		return;
 
 	FTargetingGroup& Group = OutGroups.AddDefaulted_GetRef();
+	Group.PathRange = StraightData->Range;
 	const FHexCubeCoord HexDirection = FHexGridMath::GetCubeDirection(Direction);
 	FHexCubeCoord CurrentCube = FHexGridMath::OffsetToCube(OriginCoord);
 

@@ -21,6 +21,9 @@ struct FTargetingGroup
 	TArray<FHexOffsetCoord> PathCoords;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
+	int32 PathRange = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting")
 	TArray<TObjectPtr<ABattleCharacterBase>> Targets;
 
 	void Reset()
@@ -28,6 +31,7 @@ struct FTargetingGroup
 		Direction = INDEX_NONE;
 		AffectedCoords.Empty();
 		PathCoords.Empty();
+		PathRange = 0;
 		Targets.Empty();
 	}
 };

@@ -5,6 +5,7 @@
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Projectile/BattleProjectileActor.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Projectile/ProjectileExecutionData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingGroup.h"
@@ -26,13 +27,10 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 
 	for (const FTargetingGroup& Group : StepResult->Groups)
 	{
-		if (Group.PathCoords.IsEmpty())
+		if (Group.PathCoords.IsEmpty() && (Group.Direction == INDEX_NONE || Group.PathRange <= 0))
 			continue;
 
-		const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Group.PathCoords.Last());
-
-		if (DestinationCell)
-			++PendingProjectileCount;
+		++PendingProjectileCount;
 	}
 
 	if (PendingProjectileCount <= 0)
@@ -43,12 +41,7 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 
 	for (const FTargetingGroup& Group : StepResult->Groups)
 	{
-		if (Group.PathCoords.IsEmpty())
-			continue;
-
-		const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Group.PathCoords.Last());
-
-		if (!DestinationCell)
+		if (Group.PathCoords.IsEmpty() && (Group.Direction == INDEX_NONE || Group.PathRange <= 0))
 			continue;
 
 		if (!LaunchProjectileForGroup(Context, Group))
@@ -59,18 +52,40 @@ void UProjectileExecution::Execute(const FBattleExecutionContext& Context, FBatt
 bool UProjectileExecution::LaunchProjectileForGroup(const FBattleExecutionContext& Context, const FTargetingGroup& Group)
 {
 	const FProjectileExecutionData* ProjectileData = Context.GetExecutionData<FProjectileExecutionData>();
+	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
 
-	if (!ProjectileData || !Context.Attacker || !Context.BattleGridManager || Group.PathCoords.IsEmpty())
+	if (!ProjectileData || !StepResult || !Context.Attacker || !Context.BattleGridManager)
 		return false;
 
-	const FHexOffsetCoord DestinationCoord = Group.PathCoords.Last();
-	const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, DestinationCoord);
-
-	if (!DestinationCell)
+	if (Group.PathCoords.IsEmpty() && (Group.Direction == INDEX_NONE || Group.PathRange <= 0))
 		return false;
 
-	ABattleCharacterBase* HitTarget = FindHitTarget(Context, Group, DestinationCoord);
-	FVector TargetLocation = HitTarget ? HitTarget->GetActorLocation() : DestinationCell->WorldLocation;
+	ABattleCharacterBase* HitTarget = nullptr;
+
+	if (!Group.PathCoords.IsEmpty())
+		HitTarget = FindHitTarget(Context, Group, Group.PathCoords.Last());
+
+	FVector TargetLocation = FVector::ZeroVector;
+
+	if (HitTarget)
+	{
+		TargetLocation = HitTarget->GetActorLocation();
+	}
+	else if (Group.Direction != INDEX_NONE && Group.PathRange > 0)
+	{
+		const FHexOffsetCoord VisualDestinationCoord = FHexGridMath::GetNeighborCoord(StepResult->Step.OriginCoord, Group.Direction, Group.PathRange);
+		TargetLocation = Context.BattleGridManager->GetWorldLocationByCoord(VisualDestinationCoord);
+	}
+	else
+	{
+		const FBattleGridCell* DestinationCell = Context.BattleGridManager->GetCellByCoord(Context.GridWorldType, Group.PathCoords.Last());
+
+		if (!DestinationCell)
+			return false;
+
+		TargetLocation = DestinationCell->WorldLocation;
+	}
+
 	UWorld* World = Context.Attacker->GetWorld();
 
 	if (!World)

@@ -11,4 +11,13 @@ struct FHitReactionExecutionData : public FBattleExecutionData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	FName AnimKey = TEXT("HitReaction");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (ClampMin = "0.01"))
+	float PlayRate = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
+	FName FXDataAssetKey = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
+	bool bWaitForFX = false;
 };
