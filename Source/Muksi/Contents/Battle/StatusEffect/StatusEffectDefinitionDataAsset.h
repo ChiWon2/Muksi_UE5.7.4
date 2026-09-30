@@ -7,6 +7,21 @@
 class UMuksiStatusEffect;
 class UTexture2D;
 
+USTRUCT(BlueprintType)
+struct FStatusEffectFXSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|FX")
+	FName AppliedFXDataAssetKey = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|FX")
+	bool bWaitForAppliedFX = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|FX")
+	FName AuraFXDataAssetKey = NAME_None;
+};
+
 UCLASS(BlueprintType)
 class MUKSI_API UStatusEffectDefinitionDataAsset : public UDataAsset
 {
@@ -24,4 +39,7 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|Display")
     TSoftObjectPtr<UTexture2D> Icon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|FX")
+    FStatusEffectFXSettings FXSettings;
 };

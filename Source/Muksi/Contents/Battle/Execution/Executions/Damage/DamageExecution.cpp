@@ -4,9 +4,11 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
+#include "Muksi/Contents/Battle/Execution/Executions/Damage/Modifier/DamageModifier.h"
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecutionData.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
+#include "Muksi/Contents/Battle/FX/MuksiBattleFXComponent.h"
 
 namespace
 {
@@ -44,6 +46,7 @@ void UDamageExecution::Execute(const FBattleExecutionContext& Context, FBattleEx
 		FName HitReactionAnimKey = NAME_None;
 
 		const int32 AppliedDamage = ApplyDamageToTarget(Context, *DamageData, TargetCharacter, HitReactionAnimKey);
+		PlayHitFX(Context, *DamageData, TargetCharacter, AppliedDamage, HitReactionAnimKey);
 		BuildHitResponseExecutionEntries(HitResponse.Context, *DamageData, TargetCharacter, AppliedDamage, HitReactionAnimKey, HitResponse.ExecutionEntries);
 
 		if (!HitResponse.ExecutionEntries.IsEmpty())
@@ -90,19 +93,34 @@ void UDamageExecution::CollectTargets(const FBattleExecutionContext& Context, co
 	if (!StepResult)
 		return;
 
-	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
+	for (ABattleCharacterBase* TargetCharacter : StepResult->GetAllTargets())
 	{
 		if (TargetCharacter && TargetCharacter != Context.Attacker)
 			OutTargets.AddUnique(TargetCharacter);
 	}
 }
 
+int32 UDamageExecution::ApplyDamageModifiers(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter) const
+{
+	int32 ModifiedDamage = DamageData.DamageValue;
+
+	for (const UMuksiDamageModifier* DamageModifier : DamageData.DamageModifiers)
+	{
+		if (!DamageModifier)
+			continue;
+
+		ModifiedDamage = DamageModifier->ModifyDamage(Context, TargetCharacter, ModifiedDamage);
+	}
+
+	return FMath::Max(0, ModifiedDamage);
+}
+
 int32 UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, FName& OutHitReactionAnimKey) const
 {
-	if (!TargetCharacter || DamageData.DamageValue <= 0)
+	if (!TargetCharacter)
 		return 0;
 
-	int32 FinalDamage = DamageData.DamageValue;
+	int32 FinalDamage = ApplyDamageModifiers(Context, DamageData, TargetCharacter);
 
 	if (Context.ExecutionMode == EBattleExecutionMode::ActualBattle && DamageData.DefensePolicy == EDamageDefensePolicy::ApplyDefense)
 	{
@@ -112,7 +130,7 @@ int32 UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Conte
 
 	if (FinalDamage <= 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[DamageExecution] Damage=%d FinalDamage=0 Target=%s"), DamageData.DamageValue, *GetNameSafe(TargetCharacter));
+		UE_LOG(LogTemp, Log, TEXT("[DamageExecution] BaseDamage=%d ModifiedDamage=0 Target=%s"), DamageData.DamageValue, *GetNameSafe(TargetCharacter));
 		return 0;
 	}
 
@@ -121,9 +139,27 @@ int32 UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Conte
 	TargetCharacter->SetCurrentHP(NewHP);
 
 	const int32 AppliedDamage = PreviousHP - NewHP;
-	UE_LOG(LogTemp, Log, TEXT("[DamageExecution] Damage=%d FinalDamage=%d AppliedDamage=%d Target=%s NewHP=%d"), DamageData.DamageValue, FinalDamage, AppliedDamage, *GetNameSafe(TargetCharacter), NewHP);
+	UE_LOG(LogTemp, Log, TEXT("[DamageExecution] BaseDamage=%d FinalDamage=%d AppliedDamage=%d Target=%s NewHP=%d"), DamageData.DamageValue, FinalDamage, AppliedDamage, *GetNameSafe(TargetCharacter), NewHP);
 
 	return AppliedDamage;
+}
+
+void UDamageExecution::PlayHitFX(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey) const
+{
+	if (Context.ExecutionMode != EBattleExecutionMode::ActualBattle)
+		return;
+
+	if (DamageData.HitFXDataAssetKey.IsNone())
+		return;
+
+	if (AppliedDamage <= 0 && HitReactionAnimKey.IsNone())
+		return;
+
+	if (!TargetCharacter)
+		return;
+
+	if (UMuksiBattleFXComponent* BattleFXComponent = TargetCharacter->GetBattleFXComponent())
+		BattleFXComponent->PlayImpactFXByDataAssetKey(DamageData.HitFXDataAssetKey);
 }
 
 void UDamageExecution::BuildHitResponseExecutionEntries(const FBattleExecutionContext& Context, const FDamageExecutionData& DamageData, ABattleCharacterBase* TargetCharacter, int32 AppliedDamage, FName HitReactionAnimKey, TArray<FBattleExecutionEntry>& OutExecutionEntries) const

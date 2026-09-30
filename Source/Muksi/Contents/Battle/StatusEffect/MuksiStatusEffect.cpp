@@ -3,14 +3,12 @@
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionContext.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 
-void UMuksiStatusEffect::Initialize(AActor* InOwnerActor,FName InEffectID,int32 InStackCount,int32 InDuration)
+void UMuksiStatusEffect::Initialize(AActor* InOwnerActor, FName InEffectID, int32 InStackCount, int32 InDuration)
 {
-    OwnerActor = InOwnerActor;
-
-    EffectID = InEffectID;
-
-    CurrentStack = FMath::Max(1, InStackCount);
-    RemainingDuration = FMath::Max(1, InDuration);
+	OwnerActor = InOwnerActor;
+	EffectID = InEffectID;
+	CurrentStack = FMath::Max(1, InStackCount);
+	RemainingDuration = FMath::Max(1, InDuration);
 }
 
 void UMuksiStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries)
@@ -58,6 +56,12 @@ void UMuksiStatusEffect::OnRemoved()
 {
 }
 
+void UMuksiStatusEffect::OnStackChanged(int32 PreviousStack, int32 NewStack)
+{
+	static_cast<void>(PreviousStack);
+	static_cast<void>(NewStack);
+}
+
 void UMuksiStatusEffect::OnReapplied(int32 AddedStack,int32 AddedDuration)
 {
     AddStack(AddedStack);
@@ -72,12 +76,20 @@ bool UMuksiStatusEffect::IsExpired() const
 
 void UMuksiStatusEffect::AddStack(int32 Amount)
 {
-    CurrentStack += Amount;
+	const int32 PreviousStack = CurrentStack;
+	CurrentStack += Amount;
+
+	if (PreviousStack != CurrentStack)
+		OnStackChanged(PreviousStack, CurrentStack);
 }
 
 void UMuksiStatusEffect::ConsumeStack(int32 Amount)
 {
-    CurrentStack = FMath::Max(0, CurrentStack - Amount);
+	const int32 PreviousStack = CurrentStack;
+	CurrentStack = FMath::Max(0, CurrentStack - Amount);
+
+	if (PreviousStack != CurrentStack)
+		OnStackChanged(PreviousStack, CurrentStack);
 }
 
 void UMuksiStatusEffect::ConsumeDuration(int32 Amount)

@@ -71,7 +71,8 @@ struct FBattleExecutionContext
 		const FTargetingStepResult* StepResult = GetLastTargetingStepResult();
 		if (!StepResult) return FHexOffsetCoord::Invalid();
 		if (StepResult->Step.HasTargetCoord()) return StepResult->Step.TargetCoord;
-		return StepResult->AffectedCoords.IsValidIndex(0) ? StepResult->AffectedCoords[0] : FHexOffsetCoord::Invalid();
+		const FTargetingGroup* Group = StepResult->GetPrimaryGroup();
+		return Group && Group->AffectedCoords.IsValidIndex(0) ? Group->AffectedCoords[0] : FHexOffsetCoord::Invalid();
 	}
 
 	bool CanRequestRuntimeExecutionEntries() const

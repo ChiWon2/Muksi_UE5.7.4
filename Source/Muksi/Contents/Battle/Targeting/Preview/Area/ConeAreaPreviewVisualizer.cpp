@@ -17,9 +17,7 @@ void UConeAreaPreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewAct
 	const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
 
 	if (!Settings)
-	{
 		return;
-	}
 
 	ConePreviewMesh = Settings->ConePreviewMesh.LoadSynchronous();
 	ConePreviewMaterial = Settings->ConePreviewMaterial.LoadSynchronous();
@@ -27,85 +25,53 @@ void UConeAreaPreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewAct
 	PreviewMeshBaseSize = FMath::Max(KINDA_SMALL_NUMBER, Settings->PreviewMeshBaseSize);
 
 	if (ConePreviewMaterial)
-	{
 		ConeDynamicMaterial = UMaterialInstanceDynamic::Create(ConePreviewMaterial, this);
-	}
 }
 
 void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Context)
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid())
-	{
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.TargetingStep)
 		return;
-	}
-
-	if (!IsPatternDataValid(Context.StepData->Pattern.PatternData))
-	{
-		return;
-	}
 
 	const FConePatternData* Data = Context.StepData->Pattern.PatternData.GetPtr<FConePatternData>();
-	// Use the step explicitly bound to this preview session.
-	// Runtime presentation can display multiple steps, so the overall resolved
-	// result's last step is not necessarily the step this visualizer represents.
-	
-	if (!Data || !Context.HasOriginCoord() || !Context.HasDirection())
-	{
+	const FTargetingGroup* Group = Context.TargetingStep->GetPrimaryGroup();
+
+	if (!Data || !Group || !Context.HasOriginCoord())
 		return;
-	}
 
-	if (!Context.GridManager->IsValidCoord(Context.GetOriginCoord())) return;
+	const int32 Direction = Group->Direction != INDEX_NONE ? Group->Direction : Context.GetDirection();
 
-	const FVector LogicalOriginLocation = Context.GridManager->GetWorldLocationByCoord(Context.GetOriginCoord());
-
-	// Area previews must visualize the exact resolved pattern result.
-	// AimWorldLocation is presentation input for path/selection previews only; using it
-	// here can point the cone away from StepResult.Direction during enemy/reveal/runtime phases.
-	const FHexOffsetCoord ResolvedAimCoord = FHexGridMath::GetNeighborCoord(Context.GetOriginCoord(), Context.GetDirection());
-	FVector Direction = Context.GridManager->GetWorldLocationByCoord(ResolvedAimCoord) - LogicalOriginLocation;
-	Direction.Z = 0.0f;
-
-	if (!Direction.Normalize())
-	{
+	if (Direction == INDEX_NONE || !Context.GridManager->IsValidCoord(Context.GetOriginCoord()))
 		return;
-	}
 
-	const float TargetYaw = Direction.Rotation().Yaw;
+	const FVector OriginLocation = Context.GridManager->GetWorldLocationByCoord(Context.GetOriginCoord());
+	const FHexOffsetCoord DirectionCoord = FHexGridMath::GetNeighborCoord(Context.GetOriginCoord(), Direction);
+	FVector DirectionVector = Context.GridManager->GetWorldLocationByCoord(DirectionCoord) - OriginLocation;
+	DirectionVector.Z = 0.0f;
 
-	// Do not interpolate from an unrelated previous phase/session direction.
-	// The pattern and indicator are discrete hex-direction results, so the area mesh
-	// must snap to the same direction on every update.
-	CurrentPreviewYaw = TargetYaw;
-	bHasPreviewYaw = true;
-
-	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
-	UStaticMeshComponent* PreviewMeshComponent = PreviewActorInstance->GetAreaPreviewMesh();
-
-	if (!PreviewMeshComponent)
-	{
+	if (!DirectionVector.Normalize())
 		return;
-	}
-	PreviewMeshComponent->SetVisibility(false);
 
-	if (!ConePreviewMesh)
-	{
+	UStaticMeshComponent* PreviewMeshComponent = GetPreviewActor()->GetAreaPreviewMesh();
+
+	if (!PreviewMeshComponent || !ConePreviewMesh)
 		return;
-	}
 
-	const float WorldRadius = CalculateWorldRadius(Context, Data->Range);
+	const float WorldRadius = CalculateWorldRadius(Context, *Group);
 
 	if (WorldRadius <= KINDA_SMALL_NUMBER)
-	{
 		return;
-	}
+
+	FVector PresentationOriginLocation = FVector::ZeroVector;
+
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), PresentationOriginLocation))
+		return;
 
 	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
-	FVector PresentationOriginLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), PresentationOriginLocation)) return;
 	const FVector PreviewLocation = PresentationOriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
-	const FRotator PreviewRotation(0.0f, CurrentPreviewYaw, 0.0f);
+	const FRotator PreviewRotation(0.0f, DirectionVector.Rotation().Yaw, 0.0f);
 
 	PreviewMeshComponent->SetStaticMesh(ConePreviewMesh);
 
@@ -124,17 +90,16 @@ void UConeAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& C
 	PreviewMeshComponent->SetWorldScale3D(FVector(PreviewScale, PreviewScale, 1.0f));
 	PreviewMeshComponent->SetVisibility(true);
 }
-float UConeAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context, int32 GridRange) const
+
+float UConeAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context, const FTargetingGroup& Group) const
 {
-	if (!Context.GridManager)
-	{
+	if (!Context.GridManager || !Context.HasOriginCoord())
 		return 0.0f;
-	}
+
+	int32 GridRange = 0;
+
+	for (const FHexOffsetCoord& Coord : Group.AffectedCoords)
+		GridRange = FMath::Max(GridRange, FHexGridMath::GetHexDistance(Context.GetOriginCoord(), Coord));
 
 	return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(1, GridRange), true);
-}
-
-const UScriptStruct* UConeAreaPreviewVisualizer::GetSupportedPatternDataStruct() const
-{
-	return FConePatternData::StaticStruct();
 }

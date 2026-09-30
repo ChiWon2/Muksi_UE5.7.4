@@ -13,6 +13,7 @@
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Camera/CharacterCameraComponent.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
+#include "Muksi/Contents/Battle/FX/MuksiBattleFXComponent.h"
 #include "Muksi/Contents/Battle/Passive/CharacterPassiveComponent.h"
 
 
@@ -75,8 +76,10 @@ ABattleCharacterBase::ABattleCharacterBase()
 
 	BattleAnimationComponent = CreateDefaultSubobject<UMuksiBattleAnimationComponent>(TEXT("BattleAnimationComponent"));
 
-	BattleMovementComponent =CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
-	
+	BattleMovementComponent = CreateDefaultSubobject<UMuksiBattleMovementComponent>(TEXT("BattleMovementComponent"));
+
+	BattleFXComponent = CreateDefaultSubobject<UMuksiBattleFXComponent>(TEXT("BattleFXComponent"));
+
 	BattleStatComponent = CreateDefaultSubobject<UBattleStatComponent>(TEXT("BattleStatComponent"));
 	
 	BattleSkillComponent = CreateDefaultSubobject<UBattleSkillComponent>(TEXT("BattleSkillComponent"));
@@ -103,6 +106,9 @@ FVector2D ABattleCharacterBase::GetCurrentSelectCardTime() const
 
 float ABattleCharacterBase::GetCharacterSpeed() const
 {
+	if (BattleStatComponent)
+		return BattleStatComponent->GetSpeed();
+
 	return CharacterData.CharacterSpeed;
 }
 

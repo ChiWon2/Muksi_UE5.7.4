@@ -21,6 +21,8 @@ private:
 	UFUNCTION()
 	void HandleHitReactionFinished(UAnimMontage* Montage, bool bInterrupted);
 
+	void HandleFXFinished();
+	void TryFinishHitReaction();
 	void FinishHitReaction();
 
 private:
@@ -30,5 +32,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> PlayingMontage = nullptr;
 
+	bool bAnimationFinished = false;
+	bool bFXFinished = true;
 	FBattleExecutionFinished CachedOnFinished;
 };

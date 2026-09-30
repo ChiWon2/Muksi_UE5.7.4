@@ -6,6 +6,7 @@
 
 class UAnimMontage;
 class UMuksiBattleAnimationComponent;
+class UMuksiBattleFXComponent;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
 class MUKSI_API UPlayMontageExecution : public UBattleExecution
@@ -28,6 +29,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> PlayingMontage = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMuksiBattleFXComponent> BattleFXComponent = nullptr;
 
 	FBattleExecutionFinished CachedOnFinished;
 };

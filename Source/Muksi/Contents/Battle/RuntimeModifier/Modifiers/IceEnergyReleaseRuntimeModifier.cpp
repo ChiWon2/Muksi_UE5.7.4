@@ -1,4 +1,4 @@
-#include "Muksi/Contents/Battle/RuntimeModifier/Modifiers/WaterEnergyReleaseRuntimeModifier.h"
+#include "Muksi/Contents/Battle/RuntimeModifier/Modifiers/IceEnergyReleaseRuntimeModifier.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
@@ -11,7 +11,7 @@
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectIDs.h"
 
-namespace WaterEnergyReleaseRuntimeModifier
+namespace IceEnergyReleaseRuntimeModifier
 {
 	constexpr int32 MaxAdditionalAttackCount = 3;
 
@@ -23,12 +23,14 @@ namespace WaterEnergyReleaseRuntimeModifier
 	};
 
 	const FName MainEffectNotifyKey = TEXT("ComboEffect");
+	const FName HitFXDataAssetKey = TEXT("HitReaction_Ice");
+	const FName FinalHitFXDataAssetKey = TEXT("Impact_Ice");
 
 	ABattleCharacterBase* FindTargetCharacter(const FBattleAction& Action)
 	{
 		for (const FTargetingStepResult& StepResult : Action.TargetingResult.Steps)
 		{
-			for (ABattleCharacterBase* TargetCharacter : StepResult.Targets)
+			for (ABattleCharacterBase* TargetCharacter : StepResult.GetAllTargets())
 			{
 				if (IsValid(TargetCharacter) && TargetCharacter != Action.Attacker.Get())
 					return TargetCharacter;
@@ -38,7 +40,7 @@ namespace WaterEnergyReleaseRuntimeModifier
 		return nullptr;
 	}
 
-	FBattleExecutionEntry MakeConsumeWaterEnergyEntry(ABattleCharacterBase* Attacker)
+	FBattleExecutionEntry MakeConsumeIceEnergyEntry(ABattleCharacterBase* Attacker)
 	{
 		FBattleExecutionEntry ConsumeEntry;
 		ConsumeEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
@@ -48,14 +50,18 @@ namespace WaterEnergyReleaseRuntimeModifier
 		FStatusEffectExecutionData ConsumeData;
 		ConsumeData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 		ConsumeData.Operation = EStatusEffectExecutionOperation::Subtract;
-		ConsumeData.EffectID = MuksiStatusEffectIDs::WaterEnergy;
+		ConsumeData.EffectID = MuksiStatusEffectIDs::IceEnergy;
 		ConsumeData.StackCount = 1;
 
 		ConsumeEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(ConsumeData);
 		return ConsumeEntry;
 	}
 
-	FBattleExecutionEntry MakeDamageEntry(int32 DamageValue, ABattleCharacterBase* Attacker, ABattleCharacterBase* TargetCharacter)
+	FBattleExecutionEntry MakeDamageEntry(
+		int32 DamageValue,
+		ABattleCharacterBase* Attacker,
+		ABattleCharacterBase* TargetCharacter,
+		bool bIsFinalAttack)
 	{
 		FBattleExecutionEntry DamageEntry;
 		DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
@@ -68,13 +74,16 @@ namespace WaterEnergyReleaseRuntimeModifier
 			? EBattleExecutionTargetPolicy::ExecutionTarget
 			: EBattleExecutionTargetPolicy::TargetingResult;
 		DamageData.DamageValue = DamageValue;
+		DamageData.HitFXDataAssetKey = bIsFinalAttack
+			? FinalHitFXDataAssetKey
+			: HitFXDataAssetKey;
 
 		DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
 		return DamageEntry;
 	}
 }
 
-void UWaterEnergyReleaseRuntimeModifier::ModifyBattleAction(FBattleAction& Action) const
+void UIceEnergyReleaseRuntimeModifier::ModifyBattleAction(FBattleAction& Action) const
 {
 	ABattleCharacterBase* Attacker = Action.Attacker.Get();
 
@@ -86,14 +95,14 @@ void UWaterEnergyReleaseRuntimeModifier::ModifyBattleAction(FBattleAction& Actio
 	if (!IsValid(StatusEffectComponent))
 		return;
 
-	const int32 WaterEnergyStack = StatusEffectComponent->GetEffectStackCount(MuksiStatusEffectIDs::WaterEnergy);
-	const int32 AdditionalAttackCount = FMath::Min(WaterEnergyStack, WaterEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount);
+	const int32 IceEnergyStack = StatusEffectComponent->GetEffectStackCount(MuksiStatusEffectIDs::IceEnergy);
+	const int32 AdditionalAttackCount = FMath::Min(IceEnergyStack, IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount);
 
 	if (AdditionalAttackCount <= 0)
 		return;
 
-	ABattleCharacterBase* TargetCharacter = WaterEnergyReleaseRuntimeModifier::FindTargetCharacter(Action);
-	const int32 ComboDamageValues[WaterEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount]
+	ABattleCharacterBase* TargetCharacter = IceEnergyReleaseRuntimeModifier::FindTargetCharacter(Action);
+	const int32 ComboDamageValues[IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount]
 	{
 		Combo1Damage,
 		Combo2Damage,
@@ -102,7 +111,7 @@ void UWaterEnergyReleaseRuntimeModifier::ModifyBattleAction(FBattleAction& Actio
 
 	for (int32 AttackIndex = 0; AttackIndex < AdditionalAttackCount; ++AttackIndex)
 	{
-		const FName ComboAnimKey = WaterEnergyReleaseRuntimeModifier::ComboAnimKeys[AttackIndex];
+		const FName ComboAnimKey = IceEnergyReleaseRuntimeModifier::ComboAnimKeys[AttackIndex];
 
 		FBattleExecutionEntry ComboEntry;
 		ComboEntry.ExecutionClass = UPlayMontageExecution::StaticClass();
@@ -118,16 +127,17 @@ void UWaterEnergyReleaseRuntimeModifier::ModifyBattleAction(FBattleAction& Actio
 		Action.ExecutionEntries.Add(MoveTemp(ComboEntry));
 
 		FBattleExecutionNotify MainEffectNotify;
-		MainEffectNotify.NotifyKey = WaterEnergyReleaseRuntimeModifier::MainEffectNotifyKey;
+		MainEffectNotify.NotifyKey = IceEnergyReleaseRuntimeModifier::MainEffectNotifyKey;
 		MainEffectNotify.SourceAnimKey = ComboAnimKey;
 		MainEffectNotify.NotifySourceOverride = Attacker;
 		MainEffectNotify.ExecutionEntries.Add(
-			WaterEnergyReleaseRuntimeModifier::MakeConsumeWaterEnergyEntry(Attacker));
+			IceEnergyReleaseRuntimeModifier::MakeConsumeIceEnergyEntry(Attacker));
 		MainEffectNotify.ExecutionEntries.Add(
-			WaterEnergyReleaseRuntimeModifier::MakeDamageEntry(
+			IceEnergyReleaseRuntimeModifier::MakeDamageEntry(
 				ComboDamageValues[AttackIndex],
 				Attacker,
-				TargetCharacter));
+				TargetCharacter,
+				AttackIndex == AdditionalAttackCount - 1));
 
 		Action.ExecutionNotifies.Add(MoveTemp(MainEffectNotify));
 	}

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include "Muksi/Contents/Battle/Targeting/Preview/Base/AreaPreviewVisualizer.h"
 
 #include "ConeAreaPreviewVisualizer.generated.h"
@@ -10,6 +9,7 @@ class ATargetingPreviewActor;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UStaticMesh;
+struct FTargetingGroup;
 struct FTargetingPreviewContext;
 
 UCLASS()
@@ -20,10 +20,10 @@ class MUKSI_API UConeAreaPreviewVisualizer : public UAreaPreviewVisualizer
 public:
 	virtual void Initialize(ATargetingPreviewActor* InPreviewActor) override;
 	virtual void UpdatePreview(const FTargetingPreviewContext& Context) override;
-	virtual const UScriptStruct* GetSupportedPatternDataStruct() const override;
 
 private:
-	float CalculateWorldRadius(const FTargetingPreviewContext& Context, int32 GridRange) const;
+	float CalculateWorldRadius(const FTargetingPreviewContext& Context, const FTargetingGroup& Group) const;
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> ConePreviewMesh = nullptr;
@@ -36,9 +36,4 @@ private:
 
 	float PreviewHeightOffset = 5.0f;
 	float PreviewMeshBaseSize = 100.0f;
-
-	// Cached only for diagnostics/state continuity. The rendered cone always snaps to
-	// the resolved hex direction so it cannot diverge from Pattern/Indicator results.
-	float CurrentPreviewYaw = 0.0f;
-	bool bHasPreviewYaw = false;
 };

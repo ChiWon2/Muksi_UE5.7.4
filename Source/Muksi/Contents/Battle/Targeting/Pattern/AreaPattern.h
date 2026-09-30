@@ -5,6 +5,7 @@
 #include "UObject/Object.h"
 
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Targeting/Context/TargetingGroup.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
 #include "AreaPattern.generated.h"
@@ -24,8 +25,7 @@ public:
 		const FHexOffsetCoord& OriginCoord,
 		const FHexOffsetCoord& TargetCoord,
 		int32 Direction,
-		TArray<FHexOffsetCoord>& OutAffectedCoords,
-		TArray<FHexOffsetCoord>& OutPathCoords) const;
+		TArray<FTargetingGroup>& OutGroups) const;
 
 	virtual const UScriptStruct* GetPatternDataStruct() const;
 	virtual bool RequiresDirection() const { return false; }

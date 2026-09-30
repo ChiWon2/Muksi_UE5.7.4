@@ -8,7 +8,6 @@
 
 class ABattleGridManager;
 class USceneComponent;
-class USplineComponent;
 class USplineMeshComponent;
 class UStaticMeshComponent;
 
@@ -31,12 +30,12 @@ public:
 
 	UStaticMeshComponent* GetSelectionPreviewMesh() const { return SelectionPreviewMesh; }
 	UStaticMeshComponent* GetAreaPreviewMesh() const { return AreaPreviewMesh; }
-	UStaticMeshComponent* GetArrowPreviewMesh() const { return ArrowPreviewMesh; }
-	USplineComponent* GetPathSpline() const { return PathSpline; }
 	ABattleGridManager* GetGridManager() const { return GridManager; }
 
 	USplineMeshComponent* CreatePathMeshComponent();
+	UStaticMeshComponent* CreateArrowMeshComponent();
 	void ClearPathMeshComponents();
+	void ClearArrowMeshComponents();
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
@@ -45,17 +44,17 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> SelectionPreviewMesh = nullptr;
 
+
+
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> AreaPreviewMesh = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> ArrowPreviewMesh = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting Preview", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<USplineComponent> PathSpline = nullptr;
-
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<USplineMeshComponent>> PathMeshComponents;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> ArrowMeshComponents;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleGridManager> GridManager = nullptr;

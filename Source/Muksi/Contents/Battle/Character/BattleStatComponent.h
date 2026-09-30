@@ -95,6 +95,7 @@ public:
 	//현재 캐릭터 스피드 설정
 	UFUNCTION(BlueprintCallable, Category = "Battle Stat")
 	void SetCurrentSpeed(float NewSpeed);
+	void ModifyCurrentSpeed(float Delta);
 	
 
 	// 사망 여부

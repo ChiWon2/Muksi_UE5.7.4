@@ -2,9 +2,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
-#include "Muksi/Contents/Battle/Targeting/Pattern/Point/PointPatternData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
 
@@ -13,7 +11,9 @@ void UPointAreaPreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewAc
 	Super::Initialize(InPreviewActor);
 
 	const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
-	if (!Settings) return;
+
+	if (!Settings)
+		return;
 
 	PointPreviewMesh = Settings->CirclePreviewMesh.LoadSynchronous();
 	PointPreviewMaterial = Settings->CirclePreviewMaterial.LoadSynchronous();
@@ -25,28 +25,35 @@ void UPointAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& 
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid()) return;
-	if (!IsPatternDataValid(Context.StepData->Pattern.PatternData)) return;
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.TargetingStep)
+		return;
 
-		if (!Context.HasTargetCoord()) return;
+	const FTargetingGroup* Group = Context.TargetingStep->GetPrimaryGroup();
 
-	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
-	UStaticMeshComponent* PreviewMeshComponent = PreviewActorInstance->GetAreaPreviewMesh();
-	if (!PreviewMeshComponent) return;
+	if (!Group || Group->AffectedCoords.IsEmpty())
+		return;
 
-	PreviewMeshComponent->SetVisibility(false);
-	if (!PointPreviewMesh) return;
-
+	const FHexOffsetCoord PointCoord = Context.HasTargetCoord() ? Context.GetTargetCoord() : Group->AffectedCoords[0];
 	FVector CenterLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), CenterLocation)) return;
+
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(PointCoord, CenterLocation))
+		return;
+
+	UStaticMeshComponent* PreviewMeshComponent = GetPreviewActor()->GetAreaPreviewMesh();
+
+	if (!PreviewMeshComponent || !PointPreviewMesh)
+		return;
 
 	const float WorldRadius = Context.GridManager->GetWorldRadiusByGridRange(0, true);
-	if (WorldRadius <= KINDA_SMALL_NUMBER) return;
+
+	if (WorldRadius <= KINDA_SMALL_NUMBER)
+		return;
 
 	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
 	const FVector PreviewLocation = CenterLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
 
 	PreviewMeshComponent->SetStaticMesh(PointPreviewMesh);
+
 	if (PointPreviewMaterial)
 		PreviewMeshComponent->SetMaterial(0, PointPreviewMaterial);
 
@@ -54,9 +61,4 @@ void UPointAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& 
 	PreviewMeshComponent->SetWorldRotation(FRotator::ZeroRotator);
 	PreviewMeshComponent->SetWorldScale3D(FVector(PreviewScale, PreviewScale, 1.0f));
 	PreviewMeshComponent->SetVisibility(true);
-}
-
-const UScriptStruct* UPointAreaPreviewVisualizer::GetSupportedPatternDataStruct() const
-{
-	return FPointPatternData::StaticStruct();
 }

@@ -12,12 +12,13 @@ namespace MuksiStatusEffectIDs
     static const FName Bleed(TEXT("Bleed"));//국 시작 시 위력만큼 체력 감소와 피격 반응을 실행한 뒤 소멸
     
     
-    static const FName WaterEnergy(TEXT("WaterEnergy"));
-    static const FName ChargeWaterEnergy(TEXT("ChargeWaterEnergy"));
+    static const FName IceEnergy(TEXT("IceEnergy"));
+    static const FName ChargeIceEnergy(TEXT("ChargeIceEnergy"));
 
     static const FName Shield(TEXT("Shield"));
     static const FName ReduceDamage(TEXT("ReduceDamage"));
     static const FName MultiplyDamage(TEXT("MultiplyDamage"));
+    static const FName Haste(TEXT("Haste"));
 
     //특수Effect
     

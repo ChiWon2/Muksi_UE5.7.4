@@ -5,6 +5,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "TimerManager.h"
 
 ABattleProjectileActor::ABattleProjectileActor()
 {
@@ -53,7 +54,7 @@ void ABattleProjectileActor::Tick(float DeltaTime)
 	if (FVector::DistSquared(NewLocation, TargetLocation) <= FMath::Square(ArrivalDistance))
 	{
 		SetActorLocation(TargetLocation);
-		FinishProjectile(false);
+		BeginFinishDelay();
 	}
 }
 
@@ -69,6 +70,11 @@ void ABattleProjectileActor::LaunchProjectile(const FVector& InTargetLocation, f
 	CachedOnFinished = InOnFinished;
 	bProjectileLaunched = true;
 
+	const FVector ProjectileDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+
+	if (!ProjectileDirection.IsNearlyZero())
+		SetActorRotation(ProjectileDirection.Rotation() + RotationOffset);
+
 	if (TrailComponent)
 	{
 		TrailComponent->Activate(true);
@@ -77,11 +83,41 @@ void ABattleProjectileActor::LaunchProjectile(const FVector& InTargetLocation, f
 	if (MoveSpeed <= 0.0f || FVector::DistSquared(GetActorLocation(), TargetLocation) <= FMath::Square(ArrivalDistance))
 	{
 		SetActorLocation(TargetLocation);
-		FinishProjectile(false);
+		BeginFinishDelay();
 		return;
 	}
 
 	SetActorTickEnabled(true);
+}
+
+void ABattleProjectileActor::BeginFinishDelay()
+{
+	if (bProjectileFinished)
+		return;
+
+	bProjectileLaunched = false;
+	SetActorTickEnabled(false);
+
+	if (TrailComponent)
+		TrailComponent->Deactivate();
+
+	if (ImpactSystem && !IsHidden())
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactSystem, GetActorLocation(), GetActorRotation());
+		bImpactPlayed = true;
+	}
+
+	if (FinishDelay <= 0.0f)
+	{
+		FinishProjectile(false);
+		return;
+	}
+
+	FTimerHandle FinishTimerHandle;
+	GetWorldTimerManager().SetTimer(FinishTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		FinishProjectile(false);
+	}), FinishDelay, false);
 }
 
 void ABattleProjectileActor::FinishProjectile(bool bInterrupted)
@@ -101,10 +137,8 @@ void ABattleProjectileActor::FinishProjectile(bool bInterrupted)
 		TrailComponent->Deactivate();
 	}
 
-	if (!bInterrupted && ImpactSystem && !IsHidden())
-	{
+	if (!bInterrupted && !bImpactPlayed && ImpactSystem && !IsHidden())
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactSystem, GetActorLocation(), GetActorRotation());
-	}
 
 	CachedOnFinished.ExecuteIfBound(bInterrupted);
 	CachedOnFinished.Unbind();

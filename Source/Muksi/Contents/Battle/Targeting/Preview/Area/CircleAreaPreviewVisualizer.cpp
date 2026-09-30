@@ -2,9 +2,8 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
-#include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
+#include "Muksi/Contents/Battle/Hex/HexGridMath.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
-#include "Muksi/Contents/Battle/Targeting/Pattern/Circle/CirclePatternData.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Actor/TargetingPreviewActor.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
 
@@ -15,9 +14,7 @@ void UCircleAreaPreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewA
 	const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
 
 	if (!Settings)
-	{
 		return;
-	}
 
 	CirclePreviewMesh = Settings->CirclePreviewMesh.LoadSynchronous();
 	CirclePreviewMaterial = Settings->CirclePreviewMaterial.LoadSynchronous();
@@ -29,51 +26,29 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid())
-	{
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.TargetingStep)
 		return;
-	}
 
-	if (!IsPatternDataValid(Context.StepData->Pattern.PatternData))
-	{
+	const FTargetingGroup* Group = Context.TargetingStep->GetPrimaryGroup();
+
+	if (!Group || Group->AffectedCoords.IsEmpty())
 		return;
-	}
 
-	const FCirclePatternData* Data = Context.StepData->Pattern.PatternData.GetPtr<FCirclePatternData>();
-	// Use the step explicitly bound to this preview session.
-	// Runtime presentation can display multiple steps, so the overall resolved
-	// result's last step is not necessarily the step this visualizer represents.
-	
-	if (!Data || !Context.HasTargetCoord())
-	{
-		return;
-	}
-
-	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
-	UStaticMeshComponent* PreviewMeshComponent = PreviewActorInstance->GetAreaPreviewMesh();
-
-	if (!PreviewMeshComponent)
-	{
-		return;
-	}
-	PreviewMeshComponent->SetVisibility(false);
-
-	if (!CirclePreviewMesh)
-	{
-		return;
-	}
-
-	// CirclePattern is resolved from SelectedCoord. Raw AimWorldLocation may be an
-	// arbitrary point inside the tile, so using it here makes the mesh disagree with
-	// the indicator and with reveal/runtime previews.
+	const FHexOffsetCoord CenterCoord = Context.HasTargetCoord() ? Context.GetTargetCoord() : Group->AffectedCoords[0];
 	FVector CenterLocation = FVector::ZeroVector;
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), CenterLocation)) return;
-	const float WorldRadius = CalculateWorldRadius(Context, Data->Radius);
+
+	if (!Context.GridManager->GetPresentationWorldLocationByCoord(CenterCoord, CenterLocation))
+		return;
+
+	UStaticMeshComponent* PreviewMeshComponent = GetPreviewActor()->GetAreaPreviewMesh();
+
+	if (!PreviewMeshComponent || !CirclePreviewMesh)
+		return;
+
+	const float WorldRadius = CalculateWorldRadius(Context, *Group);
 
 	if (WorldRadius <= KINDA_SMALL_NUMBER)
-	{
 		return;
-	}
 
 	const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
 	const FVector PreviewLocation = CenterLocation + FVector(0.0f, 0.0f, PreviewHeightOffset);
@@ -81,25 +56,26 @@ void UCircleAreaPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext&
 	PreviewMeshComponent->SetStaticMesh(CirclePreviewMesh);
 
 	if (CirclePreviewMaterial)
-	{
 		PreviewMeshComponent->SetMaterial(0, CirclePreviewMaterial);
-	}
 
 	PreviewMeshComponent->SetWorldLocation(PreviewLocation);
 	PreviewMeshComponent->SetWorldRotation(FRotator::ZeroRotator);
 	PreviewMeshComponent->SetWorldScale3D(FVector(PreviewScale, PreviewScale, 1.0f));
 	PreviewMeshComponent->SetVisibility(true);
 }
-float UCircleAreaPreviewVisualizer::CalculateWorldRadius(const FTargetingPreviewContext& Context, int32 GridRange) const
+
+float UCircleAreaPreviewVisualizer::CalculateWorldRadius(
+	const FTargetingPreviewContext& Context,
+	const FTargetingGroup& Group) const
 {
-	if (!Context.GridManager)
-	{
+	if (!Context.GridManager || Group.AffectedCoords.IsEmpty())
 		return 0.0f;
-	}
+
+	const FHexOffsetCoord CenterCoord = Context.HasTargetCoord() ? Context.GetTargetCoord() : Group.AffectedCoords[0];
+	int32 GridRange = 0;
+
+	for (const FHexOffsetCoord& Coord : Group.AffectedCoords)
+		GridRange = FMath::Max(GridRange, FHexGridMath::GetHexDistance(CenterCoord, Coord));
 
 	return Context.GridManager->GetWorldRadiusByGridRange(FMath::Max(0, GridRange), true);
-}
-const UScriptStruct* UCircleAreaPreviewVisualizer::GetSupportedPatternDataStruct() const
-{
-	return FCirclePatternData::StaticStruct();
 }

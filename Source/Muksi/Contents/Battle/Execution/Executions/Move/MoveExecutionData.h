@@ -19,6 +19,9 @@ struct FMoveExecutionData : public FBattleExecutionData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Ground", meta = (EditCondition = "MoveType == EMuksiBattleMoveType::GroundPath", EditConditionHides))
 	FName GroundPathEndSection = TEXT("Run_End");
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Teleport", meta = (EditCondition = "MoveType == EMuksiBattleMoveType::Teleport", EditConditionHides))
+	FName TeleportEndSection = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Jump", meta = (EditCondition = "MoveType == EMuksiBattleMoveType::Jump", EditConditionHides, ClampMin = "0.0"))
 	float JumpDuration = 0.8f;
 

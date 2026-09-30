@@ -7,7 +7,6 @@
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
-#include "Muksi/Contents/Battle/Targeting/Pattern/AreaPattern.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
 
 bool UBattleActionExecutor::Initialize(ABattleGridManager* InGridManager, EBattleSimulationWorldType InGridWorldType)
@@ -78,47 +77,30 @@ void UBattleActionExecutor::Stop()
 bool UBattleActionExecutor::ResolveActionTargetingResult(const FBattleAction& Action, FTargetingResult& OutTargetingResult) const
 {
 	OutTargetingResult.Reset();
+
 	const FTargetingCardData& TargetingData = Action.Card->TargetingData;
 	TArray<FTargetingStep> ResolvedSteps;
+
 	if (!FBattleTargetResolver::ResolveIntent(Action.Attacker.Get(), GridManager, GridWorldType, TargetingData, Action.TargetingIntent, ResolvedSteps))
 		return false;
 
 	OutTargetingResult.Steps.Reserve(ResolvedSteps.Num());
+
 	for (int32 StepIndex = 0; StepIndex < ResolvedSteps.Num(); ++StepIndex)
 	{
 		const FTargetingStepCardData* StepData = TargetingData.GetStep(StepIndex);
+
 		if (!StepData)
 			return false;
 
 		FTargetingStepResult StepResult;
-		StepResult.Step = ResolvedSteps[StepIndex];
-		if (!StepResult.Step.HasTargetCoord())
+
+		if (!FBattleTargetResolver::BuildStepResult(GridManager, GridWorldType, *StepData, ResolvedSteps[StepIndex], StepResult))
 			return false;
 
-		if (!StepData->Pattern.PatternClass)
-		{
-			StepResult.AffectedCoords.Add(StepResult.Step.TargetCoord);
-		}
-		else
-		{
-			const UAreaPattern* Pattern = StepData->Pattern.PatternClass->GetDefaultObject<UAreaPattern>();
-			if (!Pattern)
-				return false;
-
-			Pattern->ApplyPattern(
-				GridManager,
-				GridWorldType,
-				StepData->Pattern.PatternData,
-				StepResult.Step.OriginCoord,
-				StepResult.Step.TargetCoord,
-				StepResult.Step.Direction,
-				StepResult.AffectedCoords,
-				StepResult.PathCoords);
-		}
-
-		GridManager->GetCharactersAtCoords(GridWorldType, StepResult.AffectedCoords, StepResult.Targets);
 		OutTargetingResult.Steps.Add(MoveTemp(StepResult));
 	}
+
 	return true;
 }
 

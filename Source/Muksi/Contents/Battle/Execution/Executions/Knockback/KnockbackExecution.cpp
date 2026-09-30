@@ -129,7 +129,7 @@ ABattleCharacterBase* UKnockbackExecution::ResolveKnockbackTarget(const FBattleE
 	if (!StepResult)
 		return nullptr;
 
-	for (ABattleCharacterBase* TargetCharacter : StepResult->Targets)
+	for (ABattleCharacterBase* TargetCharacter : StepResult->GetAllTargets())
 	{
 		if (IsValid(TargetCharacter) && TargetCharacter != Context.Attacker)
 			return TargetCharacter;

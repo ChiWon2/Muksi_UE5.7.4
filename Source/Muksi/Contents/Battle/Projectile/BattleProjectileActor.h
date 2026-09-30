@@ -27,6 +27,7 @@ public:
 	void LaunchProjectile(const FVector& InTargetLocation, float InMoveSpeed, FBattleProjectileFinished InOnFinished);
 
 protected:
+	void BeginFinishDelay();
 	void FinishProjectile(bool bInterrupted);
 
 protected:
@@ -42,8 +43,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
 	TObjectPtr<UNiagaraSystem> ImpactSystem = nullptr;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
+	FRotator RotationOffset = FRotator::ZeroRotator;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile", meta = (ClampMin = "0.0"))
 	float ArrivalDistance = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile", meta = (ClampMin = "0.0"))
+	float FinishDelay = 0.15f;
 
 private:
 	FVector TargetLocation = FVector::ZeroVector;
@@ -53,6 +60,8 @@ private:
 	bool bProjectileLaunched = false;
 
 	bool bProjectileFinished = false;
+
+	bool bImpactPlayed = false;
 
 	FBattleProjectileFinished CachedOnFinished;
 };

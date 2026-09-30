@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecution.h"
+#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "FaceOffExecution.generated.h"
 
 class ABattleCharacterBase;
@@ -19,6 +20,7 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
+	ABattleCharacterBase* ResolveTargetCharacter(const FBattleExecutionContext& Context, EBattleExecutionTargetPolicy TargetPolicy) const;
 	void HandleSourceMovementFinished(bool bInterrupted);
 	void HandleTargetMovementFinished(bool bInterrupted);
 	void TryFinishMovement();

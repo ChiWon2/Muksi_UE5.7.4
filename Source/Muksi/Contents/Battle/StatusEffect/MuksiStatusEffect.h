@@ -31,13 +31,16 @@ protected:
     int32 BattleActionEditPriority = 0;
 
 public:
-    void Initialize(AActor* InOwnerActor,FName InEffectID,int32 InStackCount,int32 InDuration);
+    void Initialize(AActor* InOwnerActor, FName InEffectID, int32 InStackCount, int32 InDuration);
 
 public:
     virtual void OnApplied();
     virtual void OnRemoved();
 
     virtual void OnReapplied(int32 AddedStack,int32 AddedDuration);
+
+protected:
+	virtual void OnStackChanged(int32 PreviousStack, int32 NewStack);
 
 public:
 	virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries);

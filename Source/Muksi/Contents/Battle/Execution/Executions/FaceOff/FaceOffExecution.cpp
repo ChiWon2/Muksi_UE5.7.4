@@ -13,11 +13,18 @@ void UFaceOffExecution::Execute(const FBattleExecutionContext& Context, FBattleE
 {
 	CachedOnFinished = OnFinished;
 	SourceCharacter = Context.Attacker.Get();
-	TargetCharacter = Context.ExecutionTarget.Get();
 
 	const FFaceOffExecutionData* FaceOffData = Context.GetExecutionData<FFaceOffExecutionData>();
 
-	if (!SourceCharacter || !TargetCharacter || !FaceOffData || SourceCharacter == TargetCharacter)
+	if (!SourceCharacter || !FaceOffData)
+	{
+		FinishFaceOffExecution();
+		return;
+	}
+
+	TargetCharacter = ResolveTargetCharacter(Context, FaceOffData->TargetPolicy);
+
+	if (!TargetCharacter || SourceCharacter == TargetCharacter)
 	{
 		FinishFaceOffExecution();
 		return;
@@ -46,26 +53,79 @@ void UFaceOffExecution::Execute(const FBattleExecutionContext& Context, FBattleE
 	SourceMovementComponent->SavePresentationTransform();
 	TargetMovementComponent->SavePresentationTransform();
 
-	const FVector Midpoint = (SourceLocation + TargetLocation) * 0.5f;
-	const float HalfDistance = FaceOffData->CharacterDistance * 0.5f;
-	FVector SourceStageLocation = Midpoint - Direction * HalfDistance;
-	FVector TargetStageLocation = Midpoint + Direction * HalfDistance;
+	FVector SourceStageLocation = SourceLocation;
+	FVector TargetStageLocation = TargetLocation;
+
+	switch (FaceOffData->MoveMode)
+	{
+	case EFaceOffMoveMode::AttackerToTarget:
+		SourceStageLocation = TargetLocation - Direction * FaceOffData->CharacterDistance;
+		break;
+
+	case EFaceOffMoveMode::TargetToAttacker:
+		TargetStageLocation = SourceLocation + Direction * FaceOffData->CharacterDistance;
+		break;
+
+	case EFaceOffMoveMode::Both:
+	default:
+	{
+		const FVector Midpoint = (SourceLocation + TargetLocation) * 0.5f;
+		const float HalfDistance = FaceOffData->CharacterDistance * 0.5f;
+		SourceStageLocation = Midpoint - Direction * HalfDistance;
+		TargetStageLocation = Midpoint + Direction * HalfDistance;
+		break;
+	}
+	}
 
 	SourceStageLocation.Z = SourceLocation.Z;
 	TargetStageLocation.Z = TargetLocation.Z;
 
-	bSourceMovementFinished = false;
-	bTargetMovementFinished = false;
+	bSourceMovementFinished = FaceOffData->MoveMode == EFaceOffMoveMode::TargetToAttacker;
+	bTargetMovementFinished = FaceOffData->MoveMode == EFaceOffMoveMode::AttackerToTarget;
 	bMovementInterrupted = false;
 
-	FMuksiBattleMovementFinished SourceFinished;
-	SourceFinished.BindUObject(this, &UFaceOffExecution::HandleSourceMovementFinished);
+	if (!bSourceMovementFinished)
+	{
+		FMuksiBattleMovementFinished SourceFinished;
+		SourceFinished.BindUObject(this, &UFaceOffExecution::HandleSourceMovementFinished);
+		SourceMovementComponent->StartLinearMove(SourceStageLocation, FaceOffData->MoveDuration, SourceFinished);
+	}
 
-	FMuksiBattleMovementFinished TargetFinished;
-	TargetFinished.BindUObject(this, &UFaceOffExecution::HandleTargetMovementFinished);
+	if (!bTargetMovementFinished)
+	{
+		FMuksiBattleMovementFinished TargetFinished;
+		TargetFinished.BindUObject(this, &UFaceOffExecution::HandleTargetMovementFinished);
+		TargetMovementComponent->StartLinearMove(TargetStageLocation, FaceOffData->MoveDuration, TargetFinished);
+	}
+}
 
-	SourceMovementComponent->StartLinearMove(SourceStageLocation, FaceOffData->MoveDuration, SourceFinished);
-	TargetMovementComponent->StartLinearMove(TargetStageLocation, FaceOffData->MoveDuration, TargetFinished);
+ABattleCharacterBase* UFaceOffExecution::ResolveTargetCharacter(const FBattleExecutionContext& Context, EBattleExecutionTargetPolicy TargetPolicy) const
+{
+	switch (TargetPolicy)
+	{
+	case EBattleExecutionTargetPolicy::ExecutionTarget:
+		return Context.ExecutionTarget;
+
+	case EBattleExecutionTargetPolicy::Attacker:
+		return Context.Attacker;
+
+	case EBattleExecutionTargetPolicy::TargetingResult:
+	default:
+		break;
+	}
+
+	const FTargetingStepResult* StepResult = Context.GetLastTargetingStepResult();
+
+	if (!StepResult)
+		return nullptr;
+
+	for (ABattleCharacterBase* Target : StepResult->GetAllTargets())
+	{
+		if (IsValid(Target) && Target != Context.Attacker)
+			return Target;
+	}
+
+	return nullptr;
 }
 
 void UFaceOffExecution::HandleSourceMovementFinished(bool bInterrupted)

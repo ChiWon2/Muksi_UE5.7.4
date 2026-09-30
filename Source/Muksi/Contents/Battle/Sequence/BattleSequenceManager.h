@@ -78,6 +78,7 @@ private:
 	bool bBattleActionCompletionPending = false;
 	bool bWaitingForDeceiveCardReveal = false;
 	bool bStopAfterCurrentExecution = false;
+	int32 PendingBattleActionAppliedFXWaitCount = 0;
 	UPROPERTY(Transient)
 	TObjectPtr<UBattlePhaseTask> PhaseExecutionTask = nullptr;
 
@@ -102,6 +103,7 @@ private:
 
 	void HandleExecutionEntryStarted(const FBattleAction& Action, const FBattleExecutionEntry& Entry, int32 EntryIndex, const FTargetingResult& TargetingResult);
 	void HandleBattleActionCompleted();
+	void HandleBattleActionAppliedFXWaitFinished();
 
 	void SortBattleActionQueue();
 	void StartCurrentBattleAction();

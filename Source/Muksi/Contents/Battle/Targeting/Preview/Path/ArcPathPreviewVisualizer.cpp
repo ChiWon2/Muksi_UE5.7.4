@@ -15,9 +15,7 @@ void UArcPathPreviewVisualizer::Initialize(ATargetingPreviewActor* InPreviewActo
 	const UTargetingDeveloperSettings* Settings = GetDefault<UTargetingDeveloperSettings>();
 
 	if (!Settings)
-	{
 		return;
-	}
 
 	StraightPreviewMesh = Settings->StraightPreviewMesh.LoadSynchronous();
 	ArcPreviewMaterial = Settings->ArcPreviewMaterial.LoadSynchronous();
@@ -30,7 +28,7 @@ void UArcPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Co
 {
 	ClearPreview();
 
-	if (!HasPreviewActor() || !Context.IsValid())
+	if (!HasPreviewActor() || !Context.IsValid() || !Context.IsStepValid())
 		return;
 
 	if (!IsPathPreviewDataValid(Context.StepData->Presentation.Visualizers.Path.Data))
@@ -38,23 +36,20 @@ void UArcPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Co
 
 	const FArcPathPreviewData* Data = Context.StepData->Presentation.Visualizers.Path.Data.GetPtr<FArcPathPreviewData>();
 
-	if (!Data || !StraightPreviewMesh || !Context.HasOriginCoord() || !Context.HasTargetCoord())
+	if (!Data || !StraightPreviewMesh || !Context.HasOriginCoord())
+		return;
+
+	const TArray<FTargetingGroup>* Groups = Context.GetGroups();
+
+	if (!Groups)
 		return;
 
 	FVector StartLocation = FVector::ZeroVector;
-	FVector EndLocation = FVector::ZeroVector;
 
 	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetOriginCoord(), StartLocation))
 		return;
 
-	if (!Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), EndLocation))
-		return;
-
 	StartLocation.Z += PreviewHeightOffset;
-	EndLocation.Z += PreviewHeightOffset;
-
-	if (FVector::DistSquared2D(StartLocation, EndLocation) <= KINDA_SMALL_NUMBER)
-		return;
 
 	constexpr int32 SegmentCount = 8;
 	const float Height = FMath::Max(0.0f, Data->Height);
@@ -62,34 +57,54 @@ void UArcPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Co
 	ATargetingPreviewActor* PreviewActorInstance = GetPreviewActor();
 	const FTransform ActorTransform = PreviewActorInstance->GetActorTransform();
 
-	for (int32 SegmentIndex = 0; SegmentIndex < SegmentCount; ++SegmentIndex)
+	for (const FTargetingGroup& Group : *Groups)
 	{
-		const float StartAlpha = static_cast<float>(SegmentIndex) / static_cast<float>(SegmentCount);
-		const float EndAlpha = static_cast<float>(SegmentIndex + 1) / static_cast<float>(SegmentCount);
+		FVector EndLocation = FVector::ZeroVector;
 
-		FVector SegmentStart = FMath::Lerp(StartLocation, EndLocation, StartAlpha);
-		FVector SegmentEnd = FMath::Lerp(StartLocation, EndLocation, EndAlpha);
-		SegmentStart.Z += 4.0f * Height * StartAlpha * (1.0f - StartAlpha);
-		SegmentEnd.Z += 4.0f * Height * EndAlpha * (1.0f - EndAlpha);
+		if (!Group.PathCoords.IsEmpty())
+		{
+			if (!Context.GridManager->GetPresentationWorldLocationByCoord(Group.PathCoords.Last(), EndLocation))
+				continue;
+		}
+		else if (!Context.HasTargetCoord() || !Context.GridManager->GetPresentationWorldLocationByCoord(Context.GetTargetCoord(), EndLocation))
+		{
+			continue;
+		}
 
-		const FVector LocalStart = ActorTransform.InverseTransformPosition(SegmentStart);
-		const FVector LocalEnd = ActorTransform.InverseTransformPosition(SegmentEnd);
-		const FVector LocalTangent = LocalEnd - LocalStart;
-		USplineMeshComponent* PathMeshComponent = PreviewActorInstance->CreatePathMeshComponent();
+		EndLocation.Z += PreviewHeightOffset;
 
-		if (!PathMeshComponent)
+		if (FVector::DistSquared2D(StartLocation, EndLocation) <= KINDA_SMALL_NUMBER)
 			continue;
 
-		PathMeshComponent->SetStaticMesh(StraightPreviewMesh);
-		PathMeshComponent->SetForwardAxis(ESplineMeshAxis::X, false);
-		PathMeshComponent->SetStartAndEnd(LocalStart, LocalTangent, LocalEnd, LocalTangent, false);
-		PathMeshComponent->SetStartScale(FVector2D(ThicknessScale, 1.0f), false);
-		PathMeshComponent->SetEndScale(FVector2D(ThicknessScale, 1.0f), false);
+		for (int32 SegmentIndex = 0; SegmentIndex < SegmentCount; ++SegmentIndex)
+		{
+			const float StartAlpha = static_cast<float>(SegmentIndex) / static_cast<float>(SegmentCount);
+			const float EndAlpha = static_cast<float>(SegmentIndex + 1) / static_cast<float>(SegmentCount);
 
-		if (ArcPreviewMaterial)
-			PathMeshComponent->SetMaterial(0, ArcPreviewMaterial);
+			FVector SegmentStart = FMath::Lerp(StartLocation, EndLocation, StartAlpha);
+			FVector SegmentEnd = FMath::Lerp(StartLocation, EndLocation, EndAlpha);
+			SegmentStart.Z += 4.0f * Height * StartAlpha * (1.0f - StartAlpha);
+			SegmentEnd.Z += 4.0f * Height * EndAlpha * (1.0f - EndAlpha);
 
-		PathMeshComponent->UpdateMesh();
+			const FVector LocalStart = ActorTransform.InverseTransformPosition(SegmentStart);
+			const FVector LocalEnd = ActorTransform.InverseTransformPosition(SegmentEnd);
+			const FVector LocalTangent = LocalEnd - LocalStart;
+			USplineMeshComponent* PathMeshComponent = PreviewActorInstance->CreatePathMeshComponent();
+
+			if (!PathMeshComponent)
+				continue;
+
+			PathMeshComponent->SetStaticMesh(StraightPreviewMesh);
+			PathMeshComponent->SetForwardAxis(ESplineMeshAxis::X, false);
+			PathMeshComponent->SetStartAndEnd(LocalStart, LocalTangent, LocalEnd, LocalTangent, false);
+			PathMeshComponent->SetStartScale(FVector2D(ThicknessScale, 1.0f), false);
+			PathMeshComponent->SetEndScale(FVector2D(ThicknessScale, 1.0f), false);
+
+			if (ArcPreviewMaterial)
+				PathMeshComponent->SetMaterial(0, ArcPreviewMaterial);
+
+			PathMeshComponent->UpdateMesh();
+		}
 	}
 }
 

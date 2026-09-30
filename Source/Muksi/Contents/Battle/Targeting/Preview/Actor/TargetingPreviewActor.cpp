@@ -2,7 +2,6 @@
 
 #include "Components/MeshComponent.h"
 #include "Components/SceneComponent.h"
-#include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
@@ -37,22 +36,6 @@ ATargetingPreviewActor::ATargetingPreviewActor()
 	AreaPreviewMesh->SetVisibleInRayTracing(false);
 	AreaPreviewMesh->SetCanEverAffectNavigation(false);
 	AreaPreviewMesh->SetVisibility(false);
-
-	ArrowPreviewMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowPreviewMesh"));
-	ArrowPreviewMesh->SetMobility(EComponentMobility::Movable);
-	ArrowPreviewMesh->SetupAttachment(SceneRoot);
-	ArrowPreviewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	ArrowPreviewMesh->SetCastShadow(false);
-	ArrowPreviewMesh->SetAffectDynamicIndirectLighting(false);
-	ArrowPreviewMesh->SetAffectDistanceFieldLighting(false);
-	ArrowPreviewMesh->SetVisibleInRayTracing(false);
-	ArrowPreviewMesh->SetCanEverAffectNavigation(false);
-	ArrowPreviewMesh->SetVisibility(false);
-
-	PathSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PathSpline"));
-	PathSpline->SetMobility(EComponentMobility::Movable);
-	PathSpline->SetupAttachment(SceneRoot);
-	PathSpline->SetClosedLoop(false);
 }
 
 void ATargetingPreviewActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -74,7 +57,6 @@ void ATargetingPreviewActor::ApplyPreviewStyle()
 	TArray<UMeshComponent*> Meshes;
 	Meshes.Add(SelectionPreviewMesh);
 	Meshes.Add(AreaPreviewMesh);
-	Meshes.Add(ArrowPreviewMesh);
 	for (UMeshComponent* Mesh : Meshes)
 	{
 		if (!Mesh || Mesh->GetNumMaterials() <= 0)
@@ -102,14 +84,24 @@ void ATargetingPreviewActor::ApplyPreviewStyle()
 			MID->SetVectorParameterValue(TEXT("Color"), Tint);
 		}
 	}
+
+	for (UStaticMeshComponent* Mesh : ArrowMeshComponents)
+	{
+		if (!Mesh || Mesh->GetNumMaterials() <= 0)
+			continue;
+
+		if (UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0))
+		{
+			MID->SetVectorParameterValue(TEXT("TintColor"), Tint);
+			MID->SetVectorParameterValue(TEXT("Color"), Tint);
+		}
+	}
 }
 
 void ATargetingPreviewActor::ClearPathPreview()
 {
-	ArrowPreviewMesh->SetVisibility(false);
-	PathSpline->ClearSplinePoints(false);
-	PathSpline->UpdateSpline();
 	ClearPathMeshComponents();
+	ClearArrowMeshComponents();
 }
 
 void ATargetingPreviewActor::ClearAreaPreview()
@@ -121,10 +113,8 @@ void ATargetingPreviewActor::ClearAllPreview()
 {
 	SelectionPreviewMesh->SetVisibility(false);
 	AreaPreviewMesh->SetVisibility(false);
-	ArrowPreviewMesh->SetVisibility(false);
-	PathSpline->ClearSplinePoints(false);
-	PathSpline->UpdateSpline();
 	ClearPathMeshComponents();
+	ClearArrowMeshComponents();
 }
 
 USplineMeshComponent* ATargetingPreviewActor::CreatePathMeshComponent()
@@ -163,4 +153,39 @@ void ATargetingPreviewActor::ClearPathMeshComponents()
 	}
 
 	PathMeshComponents.Empty();
+}
+
+
+UStaticMeshComponent* ATargetingPreviewActor::CreateArrowMeshComponent()
+{
+	UStaticMeshComponent* ArrowMeshComponent = NewObject<UStaticMeshComponent>(this);
+
+	if (!ArrowMeshComponent)
+		return nullptr;
+
+	ArrowMeshComponent->SetMobility(EComponentMobility::Movable);
+	ArrowMeshComponent->SetupAttachment(SceneRoot);
+	ArrowMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ArrowMeshComponent->SetCastShadow(false);
+	ArrowMeshComponent->SetAffectDynamicIndirectLighting(false);
+	ArrowMeshComponent->SetAffectDistanceFieldLighting(false);
+	ArrowMeshComponent->SetVisibleInRayTracing(false);
+	ArrowMeshComponent->SetCanEverAffectNavigation(false);
+	AddInstanceComponent(ArrowMeshComponent);
+	ArrowMeshComponent->RegisterComponent();
+	ArrowMeshComponents.Add(ArrowMeshComponent);
+	ApplyPreviewStyle();
+
+	return ArrowMeshComponent;
+}
+
+void ATargetingPreviewActor::ClearArrowMeshComponents()
+{
+	for (UStaticMeshComponent* ArrowMeshComponent : ArrowMeshComponents)
+	{
+		if (IsValid(ArrowMeshComponent))
+			ArrowMeshComponent->DestroyComponent();
+	}
+
+	ArrowMeshComponents.Empty();
 }

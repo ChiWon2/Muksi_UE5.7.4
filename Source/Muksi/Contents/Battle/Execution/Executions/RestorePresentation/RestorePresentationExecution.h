@@ -23,7 +23,7 @@ private:
 	void HandleSourceMovementFinished(bool bInterrupted);
 	void HandleTargetMovementFinished(bool bInterrupted);
 	void TryFinishRestore();
-	void RestoreSavedTransform(ABattleCharacterBase* Character, UMuksiBattleMovementComponent* MovementComponent, bool bRestoreLocation);
+	void RestoreSavedTransform(ABattleCharacterBase* Character, UMuksiBattleMovementComponent* MovementComponent);
 	void FinishRestorePresentationExecution();
 
 private:
@@ -40,6 +40,8 @@ private:
 	TObjectPtr<UMuksiBattleMovementComponent> TargetMovementComponent = nullptr;
 
 	FBattleExecutionFinished CachedOnFinished;
+	bool bRestoreLocation = true;
+	bool bRestoreRotation = true;
 	bool bSourceMovementFinished = true;
 	bool bTargetMovementFinished = true;
 };

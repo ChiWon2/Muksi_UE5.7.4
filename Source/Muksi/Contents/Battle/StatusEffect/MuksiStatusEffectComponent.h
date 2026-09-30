@@ -49,6 +49,8 @@ public:
 	int32 ApplyIncomingDamageModifiers(int32 Damage, FName& OutHitReactionAnimKey);
 
     void ExecuteSequentially(EBattlePhase OldPhase, EBattlePhase NewPhase, FSimpleDelegate CompletionDelegate);
+	void BeginAppliedFXWait(FSimpleDelegate CompletionDelegate);
+	void EndAppliedFXWait();
 
 protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -66,6 +68,12 @@ private:
 	void HandleBattleActionCompleted(const FBattleAction& CompletedAction);
 	void HandleBattleExchangeCompleted(int32 ExchangeIndex);
 	void ApplyStatusEffectToCurrentBattleAction(UMuksiStatusEffect* Effect);
+	void PlayAppliedStatusEffectFX(const UStatusEffectDefinitionDataAsset* EffectDefinition);
+	void StartStatusEffectAuraFX(const UStatusEffectDefinitionDataAsset* EffectDefinition);
+	void StopStatusEffectAuraFX(FName EffectID);
+	void HandleAppliedStatusEffectFXFinished();
+	void TryFinishAppliedFXWait();
+	void CancelAppliedFXWait();
     void ExecuteNextStatusEffect();
     void RunPhaseExecutionEntries(const TArray<FBattleExecutionEntry>& ExecutionEntries);
     void HandlePhaseExecutionRunnerFinished(UBattleExecutionRunner* FinishedRunner);
@@ -78,8 +86,12 @@ private:
 	TObjectPtr<UBattleExecutionRunner> PhaseExecutionRunner = nullptr;
 
     FSimpleDelegate ExecutionCompletionDelegate;
+	FSimpleDelegate AppliedFXWaitCompletionDelegate;
     EBattlePhase ExecutingOldPhase = EBattlePhase::None;
     EBattlePhase ExecutingNewPhase = EBattlePhase::None;
     int32 ExecutionIndex = INDEX_NONE;
+    int32 PendingAppliedFXCount = 0;
     bool bExecuting = false;
+	bool bAppliedFXWaitActive = false;
+	bool bAppliedFXWaitSealed = false;
 };

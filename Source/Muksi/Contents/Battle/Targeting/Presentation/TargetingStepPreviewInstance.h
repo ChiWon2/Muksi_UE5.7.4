@@ -55,7 +55,7 @@ private:
 	TObjectPtr<UPathPreviewVisualizer> ActivePathPreviewVisualizer = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UAreaPreviewVisualizer> ActiveAffectedAreaPreviewVisualizer = nullptr;
+	TObjectPtr<UAreaPreviewVisualizer> ActiveAreaPreviewVisualizer = nullptr;
 
 	bool bShowAffectedHighlight = false;
 	TArray<FHexOffsetCoord> AffectedHighlightCoords;

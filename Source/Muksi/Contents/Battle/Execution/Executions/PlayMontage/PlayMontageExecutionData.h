@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
+#include "Muksi/Contents/Battle/FX/MuksiBattleFXTypes.h"
 #include "PlayMontageExecutionData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -14,4 +15,7 @@ struct FPlayMontageExecutionData : public FBattleExecutionData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (ClampMin = "0.0"))
 	float PlayRate = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
+	TArray<FBattleFXKeyMapping> FXMappings;
 };
