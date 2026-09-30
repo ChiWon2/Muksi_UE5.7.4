@@ -51,6 +51,11 @@ void UWidget_BattleControlPanel::NativeConstruct()
 	{
 		BattleTimerWidget->HideTimer();
 	}
+	
+	BaseRenderTranslation = GetRenderTransform().Translation;
+
+	CurrentYOffset = 0.0f;
+	TargetYOffset = 0.0f;
 }
 
 void UWidget_BattleControlPanel::HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)
@@ -120,6 +125,10 @@ void UWidget_BattleControlPanel::NativeTick(const FGeometry& Geometry, float InD
 {
 	Super::NativeTick(Geometry, InDeltaTime);
 	
+	// UI 위치 이동
+	UpdateTargetingPosition(InDeltaTime);
+	
+	//Timer 설정
 	if (!bExchangeTimerActive)
 	{
 		return;
@@ -187,4 +196,25 @@ void UWidget_BattleControlPanel::HandleExchangeTimerExpired()
 	);
 
 	OnExchangeTimeExpired.Broadcast();
+}
+
+void UWidget_BattleControlPanel::SetTargetingMode(bool bTargeting)
+{
+	TargetYOffset = bTargeting
+		? TargetingYOffset
+		: 0.0f;
+}
+
+void UWidget_BattleControlPanel::UpdateTargetingPosition(float DeltaTime)
+{
+	CurrentYOffset = FMath::FInterpTo(
+		CurrentYOffset,
+		TargetYOffset,
+		DeltaTime,
+		TargetingMoveSpeed
+	);
+
+	SetRenderTranslation(
+		BaseRenderTranslation + FVector2D(0.0f, CurrentYOffset)
+	);
 }

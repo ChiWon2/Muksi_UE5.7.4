@@ -11,23 +11,17 @@ struct FEffectKeywordStyle
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	FText DisplayName;
-	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FSlateBrush IconBrush;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FButtonStyle ButtonStyle;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FText Description;
 };
 /**
  * 
  */
 class UEffectDescriptionPopup;
-
+class UStatusEffectDefinitionDataAsset;
 
 UCLASS()
 class MUKSI_API UEffectRichTextBlock : public URichTextBlock
@@ -39,8 +33,9 @@ public:
 	TMap<FName, FEffectKeywordStyle> KeywordStyles;
 	
 public:
-	void ShowEffectDescription(const FText& EffectName, const FEffectKeywordStyle& EffectStyle);
-	void HideEffectDescription();
+	void ShowEffectDescriptionByHover(FName EffectID, const FEffectKeywordStyle& EffectStyle);
+	
+	void HideEffectDescriptionByHover();
 	
 	bool IsHoverPopupEnabled()const {return bEnableEffectHover;}
 	
@@ -50,6 +45,8 @@ public:
 		return EffectIconScale;
 	}
 protected:
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect Popup")
 	TSubclassOf<UEffectDescriptionPopup> EffectDescriptionPopupClass;
 	
@@ -60,6 +57,11 @@ protected:
 	float EffectIconScale = 1.0f;
 
 private:
+	UStatusEffectDefinitionDataAsset* FindStatusEffectDefinition(FName EffectID) const;
+
+	void EnsureEffectDescriptionPopup();
+	
+	
 	UPROPERTY()
 	TObjectPtr<UEffectDescriptionPopup> EffectDescriptionPopup;
 	

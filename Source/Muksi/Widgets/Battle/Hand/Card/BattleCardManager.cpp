@@ -4,13 +4,13 @@
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 
 #include "Muksi/Contents/Battle/BattleManager.h"
-#include "Muksi/Contents/Battle/Character/BattleCardComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
+#include "Muksi/Contents/Battle/Sequence/BattleSequenceManager.h"
 
 bool UBattleCardManager::InitializeBattleFlow(ABattleManager* InBattleManager)
 {
@@ -22,6 +22,7 @@ bool UBattleCardManager::InitializeBattleFlow(ABattleManager* InBattleManager)
 	BattleManager = InBattleManager;
 
 	BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &UBattleCardManager::HandlePhaseEntryRequested);
+	BindDeceiveCardRevealEvent();
 
 	return true;
 }
@@ -74,6 +75,7 @@ void UBattleCardManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattl
 
 	case EBattlePhase::RoundEnd:
 		{
+			HandleRoundEnd();
 			break;
 		}
 
@@ -107,7 +109,6 @@ void UBattleCardManager::HandleRoundStart()
 		if (UBattleSkillComponent* SkillComponent = PlayerCharacter->GetBattleSkillComponent())
 		{
 			SkillComponent->ReduceCooldowns();
-			SkillComponent->RestoreSkillCost();
 		}
 	}
 
@@ -116,15 +117,95 @@ void UBattleCardManager::HandleRoundStart()
 		if (UBattleSkillComponent* SkillComponent = EnemyCharacter->GetBattleSkillComponent())
 		{
 			SkillComponent->ReduceCooldowns();
-			SkillComponent->RestoreSkillCost();
 		}
 	}
 }
 
+void UBattleCardManager::HandleRoundEnd()
+{
+	if (!BattleManager)
+	{
+		return;
+	}
+
+	UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+	if (!BattleRuntimeContext)
+	{
+		return;
+	}
+
+	ABattleCharacterBase* PlayerCharacter = BattleRuntimeContext->GetPlayerCharacter();
+
+	ABattleCharacterBase* EnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
+
+	if (PlayerCharacter)
+	{
+		if (UBattleSkillComponent* SkillComponent = PlayerCharacter->GetBattleSkillComponent())
+		{
+			SkillComponent->RecoverSkillCost();
+		}
+	}
+
+	if (EnemyCharacter)
+	{
+		if (UBattleSkillComponent* SkillComponent = EnemyCharacter->GetBattleSkillComponent())
+		{
+			SkillComponent->RecoverSkillCost();
+		}
+	}
+}
+
+void UBattleCardManager::BindDeceiveCardRevealEvent()
+{
+	if (!BattleManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleManager is nullptr (Widget_BattleMainScreen.cpp)"));
+		return;
+	}
+	ABattleSequenceManager* BattleSequenceManager = BattleManager->GetBattleSequenceManager();
+	if (!BattleSequenceManager)
+	{
+		return;
+	}
+
+	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this,&UBattleCardManager::HandleDeceiveCardRevealRequested);
+}
+
+void UBattleCardManager::HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction)
+{
+	if (BattleAction.bPlayerAction)
+	{
+		return;
+	}
+
+	ABattleCharacterBase* Attacker = BattleAction.Attacker.Get();
+
+	if (!IsValid(Attacker))
+	{
+		return;
+	}
+
+	UBattleSkillComponent* SkillComponent = Attacker->GetBattleSkillComponent();
+
+	if (!SkillComponent)
+	{
+		return;
+	}
+
+	UMuksiBattleCardDataAsset* PresentedSkill = BattleAction.Card.Get();
+
+	if (!IsValid(PresentedSkill))
+	{
+		return;
+	}
+
+	SkillComponent->RevealActualSkillCost(PresentedSkill);
+}
 
 
 bool UBattleCardManager::ReplaceHandCard(ABattleCharacterBase* Character, const FGuid& InstanceId,
-	UMuksiBattleCardDataAsset* NewCardData)
+                                         UMuksiBattleCardDataAsset* NewCardData)
 {
 	if (!IsValid(Character) || !IsValid(NewCardData))
 	{

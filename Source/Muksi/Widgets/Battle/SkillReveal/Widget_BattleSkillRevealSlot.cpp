@@ -10,6 +10,10 @@ void UWidget_BattleSkillRevealSlot::SetSkillData(UMuksiBattleCardDataAsset* InSk
 {
 	SkillData = InSkillData;
 	bIsPlayerSkill = IsPlayer;
+	if (bIsPlayerSkill)
+	{
+		
+	}
 
 	if (!Image_Skill)
 	{
@@ -26,6 +30,7 @@ void UWidget_BattleSkillRevealSlot::SetSkillData(UMuksiBattleCardDataAsset* InSk
 
 	Image_Skill->SetVisibility(ESlateVisibility::HitTestInvisible);
 	SetRenderOpacity(1.0f);
+	UpdateOwnerColor();
 }
 
 void UWidget_BattleSkillRevealSlot::ClearSkill()
@@ -78,9 +83,48 @@ void UWidget_BattleSkillRevealSlot::NativeConstruct()
 			FinishedEvent
 		);
 	}
+	
+	if (Image_SlotMaterial)
+	{
+		SlotMaterialInstance = Image_SlotMaterial->GetDynamicMaterial();
+	}
+}
+
+void UWidget_BattleSkillRevealSlot::UpdateOwnerColor()
+{
+	if (!SlotMaterialInstance)
+	{
+		return;
+	}
+
+	const FLinearColor TargetColor =
+		bIsPlayerSkill
+		? PlayerColor
+		: EnemyColor;
+
+	SlotMaterialInstance->SetVectorParameterValue(TEXT("Color"), TargetColor);
 }
 
 void UWidget_BattleSkillRevealSlot::HandleRevealAnimationFinished()
 {
 	OnRevealFinished.Broadcast(this);
+}
+
+void UWidget_BattleSkillRevealSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+	
+	if (!SkillData)
+	{
+		return;
+	}
+
+	OnSkillHovered.Broadcast(SkillData, IsPlayerSkill());
+}
+
+void UWidget_BattleSkillRevealSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	
+	OnSkillUnhovered.Broadcast(IsPlayerSkill());
 }

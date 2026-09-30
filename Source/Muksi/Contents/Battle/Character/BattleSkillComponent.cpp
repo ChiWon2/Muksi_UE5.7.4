@@ -14,9 +14,12 @@ UBattleSkillComponent::UBattleSkillComponent()
 	// ...
 }
 
-void UBattleSkillComponent::Initialize(const TArray<UMuksiBattleCardDataAsset*>& InSkills)
+void UBattleSkillComponent::Initialize(const TArray<UMuksiBattleCardDataAsset*>& InSkills, int32 InMaxSkillCost)
 {
+	UE_LOG(LogTemp, Error, TEXT("SkillComponent Init"));
 	SkillInstances.Empty();
+	
+	MaxSkillCost = InMaxSkillCost;
 
 	for (int32 Index = 0; Index < InSkills.Num(); ++Index)
 	{
@@ -30,7 +33,8 @@ void UBattleSkillComponent::Initialize(const TArray<UMuksiBattleCardDataAsset*>&
 		SkillInstances.Emplace(SkillData, Index);
 	}
 
-	CurrentSkillCost = MaxSkillCost;
+	CurrentSkillCost = 3;
+	DisplayedSkillCost = 3;
 }
 
 const FBattleSkillInstance* UBattleSkillComponent::FindSkillById(const FGuid& InstanceId) const
@@ -123,9 +127,44 @@ TArray<UMuksiBattleCardDataAsset*> UBattleSkillComponent::GetSkillDataList() con
 	return Result;
 }
 
+int32 UBattleSkillComponent::GetMaxSkillCost() const
+{
+	return MaxSkillCost;
+}
+
 int32 UBattleSkillComponent::GetCurrentSkillCost() const
 {
 	return CurrentSkillCost;
+}
+
+int32 UBattleSkillComponent::GetDisplayedSkillCost() const
+{
+	return DisplayedSkillCost;
+}
+
+void UBattleSkillComponent::RevealActualSkillCost(UMuksiBattleCardDataAsset* PresentedSkill)
+{
+	if (!IsValid(PresentedSkill))
+	{
+		return;
+	}
+
+	UMuksiBattleCardDataAsset* ActualSkill = PresentedSkill->GetActualCard();
+
+	// 변초가 아니면 보정할 필요 없음
+	if (!IsValid(ActualSkill))
+	{
+		return;
+	}
+
+	const int32 PresentedCost = PresentedSkill->Cost;
+	const int32 ActualCost = ActualSkill->Cost;
+
+	const int32 CostDifference = ActualCost - PresentedCost;
+
+	DisplayedSkillCost -= CostDifference;
+
+	OnBattleSkillCostChanged.Broadcast();
 }
 
 bool UBattleSkillComponent::CanPaySkillCost(const FGuid& InstanceId) const
@@ -137,10 +176,17 @@ bool UBattleSkillComponent::CanPaySkillCost(const FGuid& InstanceId) const
 		return false;
 	}
 
-	return Skill->SkillData->Cost <= CurrentSkillCost;
+	UMuksiBattleCardDataAsset* CostSkill = Skill->SkillData;
+
+	if (UMuksiBattleCardDataAsset* ActualSkill = Skill->SkillData->GetActualCard())
+	{
+		CostSkill = ActualSkill;
+	}
+
+	return CostSkill->Cost <= CurrentSkillCost;
 }
 
-bool UBattleSkillComponent::ConsumeSkillCost(const FGuid& InstanceId)
+bool UBattleSkillComponent::ConsumeSkillCost(const FGuid& InstanceId, EBattleSkillCostApplyType ApplyType)
 {
 	const FBattleSkillInstance* Skill = FindSkillById(InstanceId);
 
@@ -149,20 +195,52 @@ bool UBattleSkillComponent::ConsumeSkillCost(const FGuid& InstanceId)
 		return false;
 	}
 
-	if (!CanPaySkillCost(InstanceId))
+	UMuksiBattleCardDataAsset* PresentedSkill = Skill->SkillData;
+	UMuksiBattleCardDataAsset* ActualSkill = PresentedSkill->GetActualCard();
+	if (!IsValid(ActualSkill))
+	{
+		ActualSkill = PresentedSkill;
+	}
+	
+	const int32 ActualCost = ActualSkill->Cost;
+	const int32 PresentedCost = PresentedSkill->Cost;
+	
+	if (ActualCost > CurrentSkillCost)
 	{
 		return false;
 	}
+	
 
-	CurrentSkillCost -= Skill->SkillData->Cost;
+	CurrentSkillCost -= ActualCost;
+	
+	switch (ApplyType)
+	{
+	case EBattleSkillCostApplyType::Player:
+		// Player는 변초여도 실제 Cost를 바로 공개
+		DisplayedSkillCost -= ActualCost;
+		break;
+
+	case EBattleSkillCostApplyType::Enemy:
+		// Enemy는 현재 보이는 가짜 스킬 Cost를 공개
+		DisplayedSkillCost -= PresentedCost;
+		break;
+	}
+
+	OnBattleSkillCostChanged.Broadcast();
 
 	return true;
 }
 
-void UBattleSkillComponent::RestoreSkillCost()
+void UBattleSkillComponent::RecoverSkillCost()
 {
 	//일단 모든 Cost 회복
-	CurrentSkillCost = MaxSkillCost;
+	CurrentSkillCost += 3;
+	DisplayedSkillCost += 3;
+	
+	if (CurrentSkillCost > MaxSkillCost) CurrentSkillCost = MaxSkillCost;
+	if (DisplayedSkillCost > MaxSkillCost) DisplayedSkillCost = MaxSkillCost;
+	//CurrentSkillCost += 1;
+	OnBattleSkillCostChanged.Broadcast();
 }
 
 

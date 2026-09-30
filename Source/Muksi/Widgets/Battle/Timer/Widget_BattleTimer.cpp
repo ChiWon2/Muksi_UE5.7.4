@@ -25,7 +25,7 @@ void UWidget_BattleTimer::NativeConstruct()
 
 		if (IsValid(TimerMaterial))
 		{
-			TimerMaterial->SetScalarParameterValue(TEXT("Min"),0.0f);
+			TimerMaterial->SetScalarParameterValue(TEXT("Min"),-0.38f);
 		}
 	}
 }
@@ -43,7 +43,7 @@ void UWidget_BattleTimer::ShowTimer(float TotalDuration)
 	// 타이머 시작 시 Min = 0
 	if (IsValid(TimerMaterial))
 	{
-		TimerMaterial->SetScalarParameterValue(TEXT("Min"),0.0f);
+		TimerMaterial->SetScalarParameterValue(TEXT("Min"),-0.38f);
 	}
 }
 
@@ -105,7 +105,7 @@ void UWidget_BattleTimer::UpdateTimerMaterial(float RemainingRatio)
 	
 	const float ElapsedRatio = 1.0f - RemainingRatio;
 
-	const float MinValue = FMath::Lerp(0.0f,MaxMinValue,ElapsedRatio);
+	const float MinValue = FMath::Lerp(-0.38f,MaxMinValue,ElapsedRatio);
 
 	TimerMaterial->SetScalarParameterValue(TEXT("Min"), MinValue);
 	

@@ -13,6 +13,7 @@ class ABattleCharacterBase;
 class UMuksiCharacterDataAsset;
 class UBattleStatComponent;
 class UStatusEffectBarWidget;
+class UWidget_BattleCost;
 
 /**
  * 
@@ -37,6 +38,8 @@ protected:
 	UProgressBar* ProgressBar_CharacterHP;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UStatusEffectBarWidget> StatusEffectBarWidget;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget_BattleCost> BattleCostWidget;
 	
 	UPROPERTY()
 	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;

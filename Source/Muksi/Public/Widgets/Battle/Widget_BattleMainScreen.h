@@ -6,7 +6,6 @@
 #include "Widgets/Widget_ActivatableBase.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
-#include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 #include "Widget_BattleMainScreen.generated.h"
 
 class UCardPreviewPanel;
@@ -20,6 +19,7 @@ class UBattlePhaseTaskContext;
 class UBattlePipelineWidget;
 class UWidget_BattleControlPanel;
 class UWidget_BattleSkillRevealPanel;
+class UEffectDescriptionPopup;
 
 class ABattleCharacterBase;
 class UButton;
@@ -52,8 +52,7 @@ protected:
 	//~Begin UCommonActivatableWidget Interface
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
-
-	virtual FReply NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	
 
 	virtual void NativeOnActivated() override;
 	//~End UCommonActivatableWidget Interface
@@ -61,7 +60,10 @@ protected:
 	//***** Bound Widgets ****
 	
 	UPROPERTY(meta = (BindWidget))
-	UCardPreviewPanel* CardPreviewPanel;
+	UCardPreviewPanel* CardPreviewPanel_Player;
+	
+	UPROPERTY(meta = (BindWidget))
+	UCardPreviewPanel* CardPreviewPanel_Enemy;
 
 	UPROPERTY(meta = (BindWidget))
 	UPassiveActivePopupWidget* ActivePassiveWidget;
@@ -95,6 +97,12 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UBattlePhaseTask> PhaseUITask;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Effect Popup")
+	TSubclassOf<UEffectDescriptionPopup> EffectDescriptionPopupClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UEffectDescriptionPopup> EffectDescriptionPopup;
+	
 public:
 	UFUNCTION()
 	void SetCharacterData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
@@ -127,6 +135,8 @@ protected:
 	
 	void BindBattleSkillReveal();
 	void UnbindBattleSkillReveal();
+	void HandleRevealSkillHovered(UMuksiBattleCardDataAsset* SkillData, bool bIsPlayerSkill);
+	void HandleRevealSkillUnHovered(bool bIsPlayerSkill);
 	
 	void BindBattleSkillEvent();
 	void UnbindBattleSkillEvent();
@@ -134,8 +144,11 @@ protected:
 	void BindBattleControlPanelEvents();
 	void UnbindBattleControlPanelEvents();
 	void HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData);
-	void HandleBattleSkillHovered(UMuksiBattleCardDataAsset* SkillData);
-	void HandleBattleSkillUnhovered();
+
+	
+	
+	
+	void HandleBattleSkillCostChanged();
 	
 	void HandlePlayerTargetingCancelled();
 	
@@ -148,8 +161,10 @@ protected:
 
 	void HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction);
 	
+	
 	UPROPERTY()
 	int32 HandleUIFinishCount = 0;
+	
 
 	//====================================Ready<준비>===================================================================
 public:
@@ -199,6 +214,8 @@ public:
 
 	void StartExchangeSelectCard(int32 ExchangeIndex);
 	void FinishExchange(int32 ExchangeIndex);
+	
+	void ControlPanelTargetingMode(bool IsTargeting);
 
 	void ExchangeEnd();
 

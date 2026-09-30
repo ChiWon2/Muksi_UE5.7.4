@@ -65,11 +65,7 @@ FEffectRichTextDecorator::CreateDecoratorWidget(
 
 	TWeakObjectPtr<UEffectRichTextBlock> WeakEffectRichTextBlock =
 		Cast<UEffectRichTextBlock>(OwnerRichTextBlock.Get());
-
-	const FText EffectDisplayText =
-		KeywordStyle
-			? KeywordStyle->DisplayName
-			: RunInfo.Content;
+	
 
 	const FEffectKeywordStyle EffectStyleCopy =
 		KeywordStyle
@@ -94,15 +90,15 @@ FEffectRichTextDecorator::CreateDecoratorWidget(
 			FOnEffectKeywordClicked::CreateLambda(
 				[
 					WeakEffectRichTextBlock,
-					EffectDisplayText,
+					EffectName,
 					EffectStyleCopy
 				](const FString& ClickedEffectId)
 				{
 					if (UEffectRichTextBlock* RichTextBlock =
 						WeakEffectRichTextBlock.Get())
 					{
-						RichTextBlock->ShowEffectDescription(
-							EffectDisplayText,
+						RichTextBlock->ShowEffectDescriptionByHover(
+							EffectName,
 							EffectStyleCopy
 						);
 					}
@@ -112,7 +108,7 @@ FEffectRichTextDecorator::CreateDecoratorWidget(
 		FOnEffectKeywordHovered::CreateLambda(
 			[
 				WeakEffectRichTextBlock,
-				EffectDisplayText,
+				EffectName,
 				EffectStyleCopy
 			](const FString&)
 			{
@@ -121,8 +117,8 @@ FEffectRichTextDecorator::CreateDecoratorWidget(
 				{
 					if (RichTextBlock->IsHoverPopupEnabled())
 					{
-						RichTextBlock->ShowEffectDescription(
-							EffectDisplayText,
+						RichTextBlock->ShowEffectDescriptionByHover(
+							EffectName,
 							EffectStyleCopy
 						);
 					}
@@ -136,12 +132,12 @@ FEffectRichTextDecorator::CreateDecoratorWidget(
 				if (UEffectRichTextBlock* RichTextBlock =
 					WeakEffectRichTextBlock.Get())
 				{
-					if (!RichTextBlock->IsHoverPopupEnabled())
+					/*if (!RichTextBlock->IsHoverPopupEnabled())
 					{
 						return;
-					}
+					}*/
 
-					RichTextBlock->HideEffectDescription();
+					RichTextBlock->HideEffectDescriptionByHover();
 				}
 			}
 		)
