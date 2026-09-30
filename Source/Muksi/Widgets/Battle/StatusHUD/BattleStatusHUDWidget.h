@@ -8,6 +8,7 @@
 
 class ABattleCharacterBase;
 class UCharacterStatusWidget;
+class UEffectDescriptionPopup;
 
 /**
  * 
@@ -18,7 +19,6 @@ class MUKSI_API UBattleStatusHUDWidget : public UUserWidget
 	GENERATED_BODY()
 public:
 	void SetData(ABattleCharacterBase* Player, ABattleCharacterBase* Enemy);
-	
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCharacterStatusWidget> CharacterStatusWidget_Player;

@@ -138,7 +138,7 @@ void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacte
 		return;
 	}
 
-	BattleSkillComponent->Initialize(InCharacterData->CharacterDeck);
+	BattleSkillComponent->Initialize(InCharacterData->CharacterDeck, InCharacterData->MaxSkillCost);
 }
 
 void ABattleCharacterBase::InitializeBattleStats()

@@ -78,6 +78,6 @@ private:
 
 	// Material의 Min 최대값
 	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
-	float MaxMinValue = 0.85f;
+	float MaxMinValue = 0.7f;
 	
 };

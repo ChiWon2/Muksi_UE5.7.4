@@ -12,6 +12,9 @@ class UMuksiBattleCardDataAsset;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSkillRevealFinished, int32);
 DECLARE_MULTICAST_DELEGATE(FOnBattleSkillDeceiveRevealFinished);
 
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSkillRevealHovered, UMuksiBattleCardDataAsset*, bool);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSkillRevealUnhovered, bool);
 /**
  * 
  */
@@ -78,5 +81,16 @@ public:
 	FOnBattleSkillDeceiveRevealFinished OnDeceiveRevealFinished;
 private:
 	UWidget_BattleSkillRevealSlot* FindActionSlot(int32 ExchangeIndex, bool bPlayerAction) const;
+	//------------------------------------------------------------------------------------------------------------------
+	
+	//슬롯 Hover시 정보 띄우기---------------------------------------------------------------------------------------------
+public:
+	FOnBattleSkillRevealHovered OnSkillHovered;
+	FOnBattleSkillRevealUnhovered OnSkillUnhovered;
+	
+private:
+	void HandleSlotHovered(UMuksiBattleCardDataAsset* SkillData, bool bIsPlayerSkill);
+	void HandleSlotUnhovered(bool bIsPlayerSkill);
+	
 	//------------------------------------------------------------------------------------------------------------------
 };

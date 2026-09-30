@@ -9,11 +9,13 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 #include "Muksi/Contents/Battle/StatusEffect/Widgets/StatusEffectBarWidget.h"
+#include "Muksi/Widgets/Battle/BattleControl/Widget_BattleCost.h"
 
 void UCharacterStatusWidget::SetData(ABattleCharacterBase* BattleCharacter)
 {
 	UnbindBattleStatComponent();
 	if (StatusEffectBarWidget) StatusEffectBarWidget->InitWidget(nullptr);
+	if (BattleCostWidget){ BattleCostWidget->SetData(nullptr); }
 	if (!IsValid(BattleCharacter)) return;
 	if (IsValid(BattleCharacter->GetCharacterData()))
 	{
@@ -32,12 +34,20 @@ void UCharacterStatusWidget::SetData(ABattleCharacterBase* BattleCharacter)
 	BattleStatComponent->OnHPChanged.RemoveDynamic(this, &UCharacterStatusWidget::HPChanged);
 	BattleStatComponent->OnHPChanged.AddDynamic(this, &UCharacterStatusWidget::HPChanged);
 	if (StatusEffectBarWidget) StatusEffectBarWidget->InitWidget(BattleCharacter->GetStatusEffectComponent());
+	
+	
+	if (!BattleCostWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleCostWidget is null (CharacterStatusWidget.cpp)"));
+	}
+	BattleCostWidget->SetData(BattleCharacter->GetBattleSkillComponent());
 }
 
 void UCharacterStatusWidget::NativeDestruct()
 {
 	UnbindBattleStatComponent();
 	if (StatusEffectBarWidget) StatusEffectBarWidget->InitWidget(nullptr);
+	if (BattleCostWidget){ BattleCostWidget->SetData(nullptr); }
 	Super::NativeDestruct();
 }
 

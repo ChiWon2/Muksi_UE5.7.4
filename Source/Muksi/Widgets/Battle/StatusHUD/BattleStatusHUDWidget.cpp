@@ -17,3 +17,5 @@ void UBattleStatusHUDWidget::SetData(ABattleCharacterBase* Player, ABattleCharac
 		CharacterStatusWidget_Enemy->SetData(Enemy);
 	}
 }
+
+

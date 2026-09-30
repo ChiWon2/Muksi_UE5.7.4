@@ -13,6 +13,7 @@
 #include "Muksi/Contents/Battle/Setup/BattleSetupManager.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectRegistry.h"
+#include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 #include "Muksi/Contents/Battle/StatusEffect/StatusEffectRegistryDataAsset.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
@@ -89,7 +90,14 @@ bool ABattleManager::InitializeBattleFlow()
         return false;
     }
 
-    if (!IsValid(BattleSetupManager) || !IsValid(BattleGridManager) || !IsValid(BattleTargetingManager) || !IsValid(BattleSimulationManager) || !IsValid(BattleSequenceManager))
+    if (!IsValid(BattleSetupManager) || 
+        !IsValid(BattleGridManager) || 
+        !IsValid(BattleTargetingManager) || 
+        !IsValid(BattleSimulationManager) || 
+        !IsValid(BattleSequenceManager) ||
+        !IsValid(BattleCardManager) ||
+        !IsValid(BattleCameraManager)
+        )
     {
         UE_LOG(LogTemp, Error, TEXT("[BattleManager] Required manager reference is missing. Setup=%s Grid=%s Targeting=%s Simulation=%s Sequence=%s"), *GetNameSafe(BattleSetupManager), *GetNameSafe(BattleGridManager), *GetNameSafe(BattleTargetingManager), *GetNameSafe(BattleSimulationManager), *GetNameSafe(BattleSequenceManager));
         return false;
@@ -109,6 +117,11 @@ bool ABattleManager::InitializeBattleFlow()
     
     if (!BattleCardManager->InitializeBattleFlow(this))
         return false;
+    
+    if (!BattleCameraManager->InitializeBattleFlow(this))
+    {
+        return false;
+    }
 
     bBattleFlowInitialized = true;
     return true;

@@ -67,6 +67,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Stat")//캐릭터 카드 선택 시간-최솟값
 	float CardSelectTimeMin = 1.f;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Character|Stat")
+	int32 MaxSkillCost = 10;
 	
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
