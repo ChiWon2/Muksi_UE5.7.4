@@ -11,11 +11,13 @@ void UMuksiBattleTrailFXAnimNotifyState::NotifyBegin(
 	const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
+	UE_LOG(LogTemp, Warning, TEXT("[VFX] Notify Begin Mesh=%s Owner=%s Animation=%s NotifyKey=%s Duration=%.3f"), *GetNameSafe(MeshComp), MeshComp ? *GetNameSafe(MeshComp->GetOwner()) : TEXT("None"), *GetNameSafe(Animation), *FXNotifyKey.ToString(), TotalDuration);
 
 	if (!MeshComp)
 		return;
 
 	ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(MeshComp->GetOwner());
+	UE_LOG(LogTemp, Warning, TEXT("[VFX] Notify Resolve Character=%s FXComponent=%s NotifyMesh=%s BattleMesh=%s SameMesh=%s"), *GetNameSafe(BattleCharacter), BattleCharacter ? *GetNameSafe(BattleCharacter->GetBattleFXComponent()) : TEXT("None"), *GetNameSafe(MeshComp), BattleCharacter ? *GetNameSafe(BattleCharacter->GetBattleSkeletalMesh()) : TEXT("None"), BattleCharacter && MeshComp == BattleCharacter->GetBattleSkeletalMesh() ? TEXT("true") : TEXT("false"));
 	if (!BattleCharacter)
 		return;
 
@@ -29,11 +31,13 @@ void UMuksiBattleTrailFXAnimNotifyState::NotifyEnd(
 	const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
+	UE_LOG(LogTemp, Warning, TEXT("[VFX] Notify End Mesh=%s Owner=%s Animation=%s NotifyKey=%s"), *GetNameSafe(MeshComp), MeshComp ? *GetNameSafe(MeshComp->GetOwner()) : TEXT("None"), *GetNameSafe(Animation), *FXNotifyKey.ToString());
 
 	if (!MeshComp)
 		return;
 
 	ABattleCharacterBase* BattleCharacter = Cast<ABattleCharacterBase>(MeshComp->GetOwner());
+	UE_LOG(LogTemp, Warning, TEXT("[VFX] Notify Resolve Character=%s FXComponent=%s NotifyMesh=%s BattleMesh=%s SameMesh=%s"), *GetNameSafe(BattleCharacter), BattleCharacter ? *GetNameSafe(BattleCharacter->GetBattleFXComponent()) : TEXT("None"), *GetNameSafe(MeshComp), BattleCharacter ? *GetNameSafe(BattleCharacter->GetBattleSkeletalMesh()) : TEXT("None"), BattleCharacter && MeshComp == BattleCharacter->GetBattleSkeletalMesh() ? TEXT("true") : TEXT("false"));
 	if (!BattleCharacter)
 		return;
 

@@ -39,4 +39,16 @@ struct MUKSI_API FMuksiBattleFXData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX")
 	bool bAttachToSocket = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX|Trail")
+	bool bUseTrailSettings = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX|Trail", meta = (EditCondition = "bUseTrailSettings", EditConditionHides))
+	FName SkeletalMeshParameterName = TEXT("User.TrailSkeletalMesh");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX|Trail", meta = (EditCondition = "bUseTrailSettings", EditConditionHides))
+	FName TrailBaseSocketName = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX|Trail", meta = (EditCondition = "bUseTrailSettings", EditConditionHides))
+	FName TrailTipSocketName = NAME_None;
 };

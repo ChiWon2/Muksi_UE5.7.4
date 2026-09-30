@@ -70,6 +70,7 @@ private:
 	const FMuksiBattleFXData* FindFXData(FName FXDataAssetKey) const;
 	USkeletalMeshComponent* GetBattleSkeletalMesh() const;
 	UNiagaraComponent* SpawnFX(const FMuksiBattleFXData& FXDefinition, bool bAutoDestroy) const;
+	void ApplyTrailSettings(UNiagaraComponent* NiagaraComponent, USkeletalMeshComponent* SkeletalMeshComponent, const FMuksiBattleFXData& FXDefinition) const;
 
 	UFUNCTION()
 	void HandleOneShotFXFinished(UNiagaraComponent* FinishedComponent);
