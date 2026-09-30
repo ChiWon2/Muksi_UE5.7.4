@@ -510,7 +510,7 @@ bool ABattleTargetingManager::CompletePlayerTargeting()
 
         if (SkillComponent)
         {
-            SkillComponent->ConsumeSkillCost(PlayerTargetingSkillInstanceId);
+            SkillComponent->ConsumeSkillCost(PlayerTargetingSkillInstanceId, EBattleSkillCostApplyType::Player);
             SkillComponent->StartCooldown(PlayerTargetingSkillInstanceId);
         }
     }
@@ -796,7 +796,7 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
 
     if (UBattleSkillComponent* SkillComponent = EnemyCharacter->GetBattleSkillComponent())
     {
-        SkillComponent->ConsumeSkillCost(SelectedSkillInstanceId);
+        SkillComponent->ConsumeSkillCost(SelectedSkillInstanceId, EBattleSkillCostApplyType::Enemy);
         SkillComponent->StartCooldown(SelectedSkillInstanceId);
     }
     

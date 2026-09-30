@@ -8,6 +8,8 @@
 
 class UTextBlock;
 class UImage;
+class UBorder;
+class UCanvasPanel;
 /**
  * 
  */
@@ -21,8 +23,33 @@ public:
 		const FText& EffectDescription,
 		const FSlateBrush& EffectIcon
 	);
+	
+	
+	
+	
 
+	void ShowByHover(
+		FName EffectID,
+		const FText& EffectName,
+		const FText& Description,
+		const FSlateBrush& IconBrush,
+		const FVector2D& Position
+	);
+
+	void HideByHover();
+
+
+	
+
+	
 protected:
+	virtual void NativeConstruct() override;
+	void ShowAtPosition(const FVector2D& Position);
+	void HidePopup();
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCanvasPanel> CanvasPanel_Root;
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> EffectIconImage;
 
@@ -31,4 +58,8 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> EffectDescriptionText;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_Center;
+	
 };

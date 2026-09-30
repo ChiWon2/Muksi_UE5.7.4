@@ -69,4 +69,26 @@ private:
 	bool bExchangeTimerActive = false;
 	bool bWarningStarted = false;
 	//------------------------------------------------------------------------------------------------------------------
+	
+	
+	//Targeting 시점 위젯 위치 변경 관련 기능-------------------------------------------------------------------------------
+public:
+	void SetTargetingMode(bool bTargeting);
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Layout")
+	float TargetingYOffset = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Layout")
+	float TargetingMoveSpeed = 10.0f;
+
+private:
+	void UpdateTargetingPosition(float DeltaTime);
+
+	float CurrentYOffset = 0.0f;
+	float TargetYOffset = 0.0f;
+
+	FVector2D BaseRenderTranslation = FVector2D::ZeroVector;
+	
+	//------------------------------------------------------------------------------------------------------------------
 };

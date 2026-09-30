@@ -16,6 +16,7 @@ class ABattleSetupManager;
 class ABattleSimulationManager;
 class ABattleTargetingManager;
 class UBattleCardManager;
+class ABattleCameraManager;
 class ABattleCharacterBase;
 class UMuksiBattleCardDataAsset;
 class UMuksiStatusEffectRegistry;
@@ -80,6 +81,9 @@ public:
     
     UFUNCTION(BlueprintPure, Category = "Battle|Managers")
     UBattleCardManager* GetBattleCardManager() const { return BattleCardManager; }
+    
+    UFUNCTION(BlueprintPure, Category = "Battle|Managers")
+    ABattleCameraManager* GetBattleCameraManager() const { return BattleCameraManager; }
 
     UMuksiStatusEffectRegistry* GetStatusEffectRegistry() const { return StatusEffectRegistry; }
 
@@ -165,6 +169,9 @@ protected:
     
     UPROPERTY(Transient, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<UBattleCardManager> BattleCardManager = nullptr;
+    
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle|Managers", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<ABattleCameraManager> BattleCameraManager = nullptr;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Status Effect", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<UStatusEffectRegistryDataAsset> StatusEffectRegistryDataAsset = nullptr;

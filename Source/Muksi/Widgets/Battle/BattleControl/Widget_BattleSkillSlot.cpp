@@ -12,10 +12,11 @@ void UWidget_BattleSkillSlot::SetSlotIndex(int32 InSlotIndex)
 	SlotIndex = InSlotIndex;
 }
 
-void UWidget_BattleSkillSlot::SetCardInstance(const FGuid& InInstanceId, UMuksiBattleCardDataAsset* InCardData, int32 InRemainingCooldown)
+void UWidget_BattleSkillSlot::SetCardInstance(const FGuid& InInstanceId, UMuksiBattleCardDataAsset* InCardData, int32 InRemainingCooldown, int32 InCurrentCost)
 {
 	CardInstanceId = InInstanceId;
 	CardData = InCardData;
+	CurrentCost = InCurrentCost;
 
 	if (!CardData || !Image_SkillIcon)
 	{
@@ -32,6 +33,9 @@ void UWidget_BattleSkillSlot::ClearCardInstance()
 {
 	CardInstanceId.Invalidate();
 	CardData = nullptr;
+	
+	RemainingCooldown = 0;
+	CurrentCost = 0;
 
 	if (Image_SkillIcon)
 	{
@@ -40,8 +44,7 @@ void UWidget_BattleSkillSlot::ClearCardInstance()
 	
 	if (Image_CooldownOverlay)
 	{
-		Image_CooldownOverlay->SetVisibility(
-			ESlateVisibility::Collapsed
+		Image_CooldownOverlay->SetVisibility(ESlateVisibility::Collapsed
 		);
 	}
 
@@ -53,6 +56,13 @@ void UWidget_BattleSkillSlot::ClearCardInstance()
 		);
 	}
 }
+
+void UWidget_BattleSkillSlot::SetEffectType(ESkillEffectType InEffectType)
+{
+	EffectType = InEffectType;
+	UpdateEffect();
+}
+
 
 void UWidget_BattleSkillSlot::NativeConstruct()
 {
@@ -71,6 +81,12 @@ void UWidget_BattleSkillSlot::NativeConstruct()
 		CooldownMaterialInstance = Image_CooldownOverlay->GetDynamicMaterial();
 		UpdateCooldownOverlay();
 	}
+	
+	if(Image_Effect)
+	{
+		SlotMaterialInstance = Image_Effect->GetDynamicMaterial();
+		UpdateEffect();
+	}
 }
 
 void UWidget_BattleSkillSlot::UpdateCooldownOverlay()
@@ -85,8 +101,11 @@ void UWidget_BattleSkillSlot::UpdateCooldownOverlay()
 	const int32 MaxCooldown = FMath::Max(0, CardData->Cooldown);
 
 	float CooldownPercent = 0.0f;
+	
+	const bool bNotEnoughCost = CurrentCost < CardData->Cost;
+	const bool bIsCooldown = RemainingCooldown > 0;
 
-	if (MaxCooldown > 0 && RemainingCooldown > 0)
+	if (MaxCooldown > 0 && bIsCooldown)
 	{
 		CooldownPercent =
 			FMath::Clamp(
@@ -96,10 +115,23 @@ void UWidget_BattleSkillSlot::UpdateCooldownOverlay()
 				1.0f
 			);
 	}
+	else if (bNotEnoughCost)
+	{
+		CooldownPercent = 1.0f;
+	}
 
 	CooldownMaterialInstance->SetScalarParameterValue(TEXT("CooldownPercent"), CooldownPercent);
+	
+	if (bNotEnoughCost)
+	{
+		CooldownMaterialInstance->SetVectorParameterValue(TEXT("Color"), NotEnoughCostColor);
+	}
+	else
+	{
+		CooldownMaterialInstance->SetVectorParameterValue(TEXT("Color"), CooldownColor);
+	}
 
-	if (RemainingCooldown > 0)
+	if (bIsCooldown || bNotEnoughCost)
 	{
 		Image_CooldownOverlay->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
@@ -107,6 +139,35 @@ void UWidget_BattleSkillSlot::UpdateCooldownOverlay()
 	{
 		Image_CooldownOverlay->SetVisibility(ESlateVisibility::Collapsed);
 	}
+}
+
+void UWidget_BattleSkillSlot::UpdateEffect()
+{
+	if (!SlotMaterialInstance)
+	{
+		return;
+	}
+	
+	FLinearColor TargetColor = TargetColor = FLinearColor::White;
+	
+	switch (EffectType)
+	{
+	case ESkillEffectType::Strength:
+		TargetColor = StrengthEffectColor;
+		Image_Effect->SetVisibility(ESlateVisibility::Visible);
+		break;
+
+	case ESkillEffectType::ChangeEffect:
+		TargetColor = ChangeEffectColor;
+		Image_Effect->SetVisibility(ESlateVisibility::Visible);
+		break;
+	case ESkillEffectType::None:
+		Image_Effect->SetVisibility(ESlateVisibility::Hidden);
+		break;
+	default:
+		break;
+	}
+	SlotMaterialInstance->SetVectorParameterValue(TEXT("Color"), TargetColor);
 }
 
 void UWidget_BattleSkillSlot::HandleSkillButtonClicked()

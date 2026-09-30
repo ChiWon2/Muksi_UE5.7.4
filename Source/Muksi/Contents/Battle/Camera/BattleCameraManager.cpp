@@ -11,8 +11,10 @@
 #include "MovieSceneSequencePlayer.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Muksi/Contents/Battle/Data/BattlePhase.h"
 
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
+#include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 
 ABattleCameraManager::ABattleCameraManager()
@@ -412,8 +414,71 @@ void ABattleCameraManager::StopTrackingCamera()
 	TrackingCameraComponent = nullptr;
 }
 
+void ABattleCameraManager::EnterTargetingView()
+{
+	if (!IsValid(TargetingCameraAnchor))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("[BattleCameraManager] TargetingCameraAnchor is invalid.")
+		);
+		return;
+	}
+
+	StopTrackingCamera();
+
+	CameraMode = EBattleCameraMode::Targeting;
+
+	TargetSocketOffset = TargetingSocketOffset;
+	TargetArmRelativeRotation = TargetingArmRotation;
+
+	SetCameraTarget(
+		TargetingCameraAnchor->GetActorLocation(),
+		TargetingCameraAnchor->GetActorRotation(),
+		TargetingFocalLength,
+		TargetingArmLength
+	);
+}
+
+bool ABattleCameraManager::InitializeBattleFlow(ABattleManager* InBattleManager)
+{
+	if (!IsValid(InBattleManager))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[BattleCameraManager] BattleManager is invalid.")
+		);
+
+		return false;
+	}
+
+	BattleManager = InBattleManager;
+
+	BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleCameraManager::HandlePhaseEntryRequested);
+	return true;
+}
+
+void ABattleCameraManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase,
+	UBattlePhaseTaskContext* TaskContext)
+{
+	(void)TaskContext;
+
+	if (NewPhase == EBattlePhase::Targeting)
+	{
+		EnterTargetingView();
+		return;
+	}
+
+	if (OldPhase == EBattlePhase::Targeting)
+	{
+		ReturnToOverview();
+	}
+}
+
 void ABattleCameraManager::SetCameraTarget(const FVector& NewLocation, const FRotator& NewRotation,
-	float NewFocalLength, float NewArmLength)
+                                           float NewFocalLength, float NewArmLength)
 {
 	TargetCameraLocation = NewLocation;
 	TargetCameraRotation = NewRotation;

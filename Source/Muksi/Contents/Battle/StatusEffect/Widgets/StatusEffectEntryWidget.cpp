@@ -49,3 +49,24 @@ void UStatusEffectEntryWidget::InitWidget(UMuksiStatusEffect* InStatusEffect, US
         TXT_Duration->SetText(FText::AsNumber(CachedStatusEffect->GetRemainingDuration()));
     }
 }
+
+
+
+void UStatusEffectEntryWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+    Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+    
+    if (!CachedStatusEffect ||!CachedDefinition)
+    {
+        return;
+    }
+
+    OnStatusEffectEntryHovered.Broadcast(CachedStatusEffect,CachedDefinition);
+}
+
+void UStatusEffectEntryWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+    Super::NativeOnMouseLeave(InMouseEvent);
+    
+    OnStatusEffectEntryUnhovered.Broadcast();
+}

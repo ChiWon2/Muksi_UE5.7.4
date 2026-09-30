@@ -15,6 +15,15 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSkillSlotClicked, const FGuid&, UM
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSkillSlotHovered, UMuksiBattleCardDataAsset*, int32);
 DECLARE_MULTICAST_DELEGATE(FOnSkillSlotUnhovered);
+
+UENUM(BlueprintType)
+enum class ESkillEffectType : uint8
+{
+	None        UMETA(DisplayName = "None"),
+	Strength    UMETA(DisplayName = "Strength"),
+	ChangeEffect  UMETA(DisplayName = "ChangeEffect"),
+};
+
 /**
  * 
  */
@@ -28,7 +37,7 @@ public:
 	void SetSlotIndex(int32 InSlotIndex);
 	int32 GetSlotIndex() const { return SlotIndex; }
 	
-	void SetCardInstance(const FGuid& InInstanceId,UMuksiBattleCardDataAsset* InCardData, int32 InRemainingCooldown);
+	void SetCardInstance(const FGuid& InInstanceId,UMuksiBattleCardDataAsset* InCardData, int32 InRemainingCooldown, int32 InCurrentCost);
 	
 	FOnBattleSkillSlotClicked OnSkillSlotClicked;
 
@@ -37,6 +46,9 @@ public:
 	UMuksiBattleCardDataAsset* GetCardData() const{return CardData;}
 	
 	void ClearCardInstance();
+	
+	void SetEffectType(ESkillEffectType InEffectType);
+	
 	
 	FOnSkillSlotHovered OnSkillSlotHovered;
 	FOnSkillSlotUnhovered OnSkillSlotUnhovered;
@@ -52,12 +64,35 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_CooldownOverlay;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_Effect;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> CooldownMaterialInstance;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Effect")
+	ESkillEffectType EffectType = ESkillEffectType::None;
+	
 	void UpdateCooldownOverlay();
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Battle|Skill")
+	FLinearColor CooldownColor = FLinearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
+	UPROPERTY(EditDefaultsOnly, Category = "Battle|Skill")
+	FLinearColor NotEnoughCostColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
+	
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Battle|Skill")
+	FLinearColor StrengthEffectColor;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Battle|Skill")
+	FLinearColor ChangeEffectColor;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> SlotMaterialInstance;
+
+	void UpdateEffect();
 
 private:
 	UFUNCTION()
@@ -71,6 +106,9 @@ private:
 	
 	UPROPERTY()
 	int32 SlotIndex = INDEX_NONE;
+	
+	UPROPERTY()
+	int32 CurrentCost = 0;
 	
 	UPROPERTY(Transient)
 	FGuid CardInstanceId;

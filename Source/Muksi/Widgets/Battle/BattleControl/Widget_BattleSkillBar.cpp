@@ -43,6 +43,8 @@ void UWidget_BattleSkillBar::RefreshSkillSlots()
 	const TArray<FBattleSkillInstance>& SkillInstances = SkillComponent->GetSkillInstances();
 
 	const int32 SkillCount = FMath::Min(SkillInstances.Num(), SkillSlots.Num());
+	const int32 CurrentCost = SkillComponent->GetCurrentSkillCost();
+	
 
 	for (int32 Index = 0; Index < SkillCount; ++Index)
 	{
@@ -62,7 +64,7 @@ void UWidget_BattleSkillBar::RefreshSkillSlots()
 			SkillInstance.RemainingCooldown
 		);
 
-		SkillSlots[Index]->SetCardInstance(SkillInstance.InstanceId,SkillInstance.SkillData, SkillInstance.RemainingCooldown);
+		SkillSlots[Index]->SetCardInstance(SkillInstance.InstanceId,SkillInstance.SkillData, SkillInstance.RemainingCooldown, CurrentCost);
 	}
 }
 

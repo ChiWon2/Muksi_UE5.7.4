@@ -14,6 +14,8 @@ class USpringArmComponent;
 class ULevelSequence;
 class ALevelSequenceActor;
 class ULevelSequencePlayer;
+class ABattleManager;
+class UBattlePhaseTaskContext;
 
 /**
  * 카메라의 현재 동작 상태
@@ -21,9 +23,10 @@ class ULevelSequencePlayer;
 UENUM(BlueprintType)
 enum class EBattleCameraMode : uint8
 {
-	Overview,        // 전장 전체 화면
-	CharacterFocus,  // 캐릭터 선택 화면
-	Attack           // 공격 연출 화면
+	Overview,			// 전장 전체 화면
+	Targeting,			// Targeting Phase 시 카메라
+	CharacterFocus,		// 캐릭터 선택 화면
+	Attack				// 공격 연출 화면
 };
 
 /**
@@ -144,7 +147,37 @@ public:
 	// 현재 추적만 중지
 	UFUNCTION(BlueprintCallable, Category = "Battle Camera")
 	void StopTrackingCamera();
+	
+	//Targeting Phase 카메라 전환-----------------------------------------------------------------------------------------
+public:
+	UFUNCTION(BlueprintCallable, Category = "Battle Camera")
+	void EnterTargetingView();
+	
+	bool InitializeBattleFlow(ABattleManager* InBattleManager);
+	
+protected:
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle Camera|Targeting")
+	TObjectPtr<AActor> TargetingCameraAnchor = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	float TargetingFocalLength = 35.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	float TargetingArmLength = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	FVector TargetingSocketOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	FRotator TargetingArmRotation = FRotator::ZeroRotator;
+	
+	UFUNCTION()
+	void HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
+
+	UPROPERTY()
+	TObjectPtr<ABattleManager> BattleManager = nullptr;
+	//------------------------------------------------------------------------------------------------------------------
+	
 protected:
 	void SetCameraTarget(
 		const FVector& NewLocation,
