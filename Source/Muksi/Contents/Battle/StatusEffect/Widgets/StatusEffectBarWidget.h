@@ -4,9 +4,12 @@
 #include "Blueprint/UserWidget.h"
 #include "StatusEffectBarWidget.generated.h"
 
+class UStatusEffectDefinitionDataAsset;
 class UHorizontalBox;
 class UStatusEffectEntryWidget;
 class UMuksiStatusEffectComponent;
+class UMuksiStatusEffect;
+class UEffectDescriptionPopup;
 
 UCLASS()
 class MUKSI_API UStatusEffectBarWidget : public UUserWidget
@@ -18,6 +21,7 @@ public:
 	void InitWidget(UMuksiStatusEffectComponent* InStatusEffectComponent);
 	void Refresh();
 
+	
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -35,4 +39,24 @@ private:
 	void BindObservedComponent();
 	void UnbindObservedComponent();
 	void HandleStatusEffectsChanged();
+	
+	//Status Effect 설명 Popup Widget------------------------------------------------------------------------------------
+public:
+	void HandleStatusEffectEntryHovered(UMuksiStatusEffect* StatusEffect, UStatusEffectDefinitionDataAsset* Definition);
+
+	
+
+protected:
+	void HandleStatusEffectEntryUnhovered();
+	
+
+	UPROPERTY(Transient)
+	TObjectPtr<UEffectDescriptionPopup> EffectDescriptionPopup;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Status Effect|Popup")
+	TSubclassOf<UEffectDescriptionPopup> EffectDescriptionPopupClass;
+	
+	void EnsureEffectDescriptionPopup();
+	
+	//------------------------------------------------------------------------------------------------------------------
 };

@@ -123,7 +123,11 @@ void UWidget_BattleSkillRevealPanel::NativeConstruct()
 		if (Slot_)
 		{
 			Slot_->SetRenderOpacity(0.0f);
+
+			Slot_->OnSkillHovered.AddUObject(this, &UWidget_BattleSkillRevealPanel::HandleSlotHovered);
+			Slot_->OnSkillUnhovered.AddUObject(this, &UWidget_BattleSkillRevealPanel::HandleSlotUnhovered);
 		}
+		
 	}
 
 	for (UWidget_BattleSkillRevealSlot* Slot_ : SecondSlots)
@@ -131,6 +135,9 @@ void UWidget_BattleSkillRevealPanel::NativeConstruct()
 		if (Slot_)
 		{
 			Slot_->SetRenderOpacity(0.0f);
+			
+			Slot_->OnSkillHovered.AddUObject(this, &UWidget_BattleSkillRevealPanel::HandleSlotHovered);
+			Slot_->OnSkillUnhovered.AddUObject(this, &UWidget_BattleSkillRevealPanel::HandleSlotUnhovered);
 		}
 	}
 }
@@ -210,4 +217,14 @@ UWidget_BattleSkillRevealSlot* UWidget_BattleSkillRevealPanel::FindActionSlot(in
 	}
 
 	return nullptr;
+}
+
+void UWidget_BattleSkillRevealPanel::HandleSlotHovered(UMuksiBattleCardDataAsset* SkillData, bool bIsPlayerSkill)
+{
+	OnSkillHovered.Broadcast(SkillData, bIsPlayerSkill);
+}
+
+void UWidget_BattleSkillRevealPanel::HandleSlotUnhovered(bool bIsPlayerSkill)
+{
+	OnSkillUnhovered.Broadcast(bIsPlayerSkill);
 }

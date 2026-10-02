@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "BattleCardManager.generated.h"
 
+struct FBattleAction;
 class UBattlePhaseTaskContext;
 enum class EBattlePhase : uint8;
 class ABattleManager;
@@ -53,8 +54,17 @@ private:
 	TObjectPtr<ABattleManager> BattleManager = nullptr;
 	
 	void HandleRoundStart();
+	void HandleRoundEnd();
+	//변초 공개 시스템----------------------------------------------------------------------------------------------------
+protected:
+	void BindDeceiveCardRevealEvent();
+	void HandleDeceiveCardRevealRequested(const FBattleAction& BattleAction);
 	
-	//카드 변경 시스템----------------------------------------------------------
+	
+	//------------------------------------------------------------------------------------------------------------------
+	
+	
+	//카드 변경 시스템----------------------------------------------------------------------------------------------------
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnBattleHandCardChanged OnBattleHandCardChanged;

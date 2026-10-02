@@ -14,6 +14,12 @@ class USpringArmComponent;
 class ULevelSequence;
 class ALevelSequenceActor;
 class ULevelSequencePlayer;
+class ABattleManager;
+class UBattlePhaseTaskContext;
+
+
+DECLARE_MULTICAST_DELEGATE(FOnActionCameraPreArrival);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleCameraMoveFinished, EBattleCameraMode);
 
 /**
  * 카메라의 현재 동작 상태
@@ -21,9 +27,11 @@ class ULevelSequencePlayer;
 UENUM(BlueprintType)
 enum class EBattleCameraMode : uint8
 {
-	Overview,        // 전장 전체 화면
-	CharacterFocus,  // 캐릭터 선택 화면
-	Attack           // 공격 연출 화면
+	Overview,			// 전장 전체 화면
+	Targeting,			// Targeting Phase 시 카메라
+	CharacterFocus,		// 캐릭터 선택 화면
+	ActionPresentation, // 공격 직전 연출 화면
+	Attack				// 공격 연출 화면
 };
 
 /**
@@ -116,9 +124,7 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-	// 캐릭터 클릭 시 사용하는 고정 포커스 카메라
-	UFUNCTION(BlueprintCallable, Category = "Battle Camera")
-	void FocusCharacter(ABattleCharacterBase* Character);
+	
 
 	// 공격 애니메이션 중 소켓 위치를 추적하는 카메라
 	UFUNCTION(BlueprintCallable, Category = "Battle Camera")
@@ -144,7 +150,78 @@ public:
 	// 현재 추적만 중지
 	UFUNCTION(BlueprintCallable, Category = "Battle Camera")
 	void StopTrackingCamera();
+	
+	//Targeting Phase 카메라 전환-----------------------------------------------------------------------------------------
+public:
+	UFUNCTION(BlueprintCallable, Category = "Battle Camera")
+	void EnterTargetingView();
+	
+	bool InitializeBattleFlow(ABattleManager* InBattleManager);
+	
+protected:
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Battle Camera|Targeting")
+	TObjectPtr<AActor> TargetingCameraAnchor = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	float TargetingFocalLength = 35.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	float TargetingArmLength = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	FVector TargetingSocketOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Targeting")
+	FRotator TargetingArmRotation = FRotator::ZeroRotator;
+	
+	UFUNCTION()
+	void HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
+
+	UPROPERTY()
+	TObjectPtr<ABattleManager> BattleManager = nullptr;
+	//------------------------------------------------------------------------------------------------------------------
+	
+	//BattleAction Present 카메라 전환------------------------------------------------------------------------------------
+public:
+	void FocusBattleActionPresentation(ABattleCharacterBase* Character);
+	
+	FOnActionCameraPreArrival OnActionCameraPreArrival;//카메라 이동 끝나기 전
+	FOnBattleCameraMoveFinished OnCameraMoveFinished; //카메라 이동 끝난 직후
+	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Action Presentation")
+	float ActionPresentationFocalLength = 35.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Action Presentation")
+	float ActionPresentationArmLength = 0.0f;
+	
+	UPROPERTY(EditAnywhere, Category = "Battle Camera|Action Presentation")
+	float ActionPresentationPreArrivalDistance = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Action Presentation")
+	FVector ActionPresentationSocketOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Action Presentation")
+	FRotator ActionPresentationArmRotation = FRotator::ZeroRotator;
+	
+	
+	//카메라 도착 지점 오차값(클 수록 미리 도착했다고 연락함)
+	UPROPERTY(EditAnywhere, Category = "Battle Camera|Interpolation")
+	float LocationCompleteTolerance = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Battle Camera|Interpolation")
+	float RotationCompleteTolerance = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Battle Camera|Interpolation")
+	float ValueCompleteTolerance = 0.1f;
+	
+private:
+	void CheckCameraMoveFinished();
+	
+	bool bActionCameraPreArrivalTriggered = false;
+	bool bWaitingForCameraMoveCompletion = false;
+	//------------------------------------------------------------------------------------------------------------------
+	
 protected:
 	void SetCameraTarget(
 		const FVector& NewLocation,
@@ -212,43 +289,37 @@ protected:
 	)
 	float FocalLengthInterpSpeed = 5.0f;
 
+	//캐릭터 클릭 화면 Focus----------------------------------------------------------------------------------------------
+public:
+	// 캐릭터 클릭 시 사용하는 고정 포커스 카메라
+	UFUNCTION(BlueprintCallable, Category = "Battle Camera")
+	void FocusCharacter(ABattleCharacterBase* Character);
+	
 protected:
 	// 캐릭터 클릭 화면 Focal Length
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Character Focus",
-		meta = (ClampMin = "1.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Character Click Focus", meta = (ClampMin = "1.0"))
 	float CharacterFocusFocalLength = 35.0f;
 
 	// 캐릭터 클릭 화면 SpringArm 거리
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Character Focus",
-		meta = (ClampMin = "0.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Character Click Focus", meta = (ClampMin = "1.0"))
 	float CharacterFocusArmLength = 0.0f;
 
 	// 공격 카메라 기본 Focal Length
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Attack",
-		meta = (ClampMin = "1.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Character Click Focus", meta = (ClampMin = "1.0"))
 	float AttackFocalLength = 35.0f;
 
 	// 공격 카메라 기본 SpringArm 거리
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Attack",
-		meta = (ClampMin = "0.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Character Click Focus", meta = (ClampMin = "1.0"))
 	float AttackArmLength = 400.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Character Click Focus")
+	FVector CharacterFocusSocketOffset = FVector::ZeroVector;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Character Click Focus")
+	FRotator CharacterFocusArmRotation = FRotator::ZeroRotator;
 
+	//------------------------------------------------------------------------------------------------------------------
+	
 protected:
 	// 게임 시작 시 탑뷰 위치
 	FVector OverviewCameraLocation = FVector::ZeroVector;

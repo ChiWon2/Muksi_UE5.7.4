@@ -14,12 +14,15 @@ class UBattleRuntimeContext;
 class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
 class UBattleActionExecutor;
+class UBattleActionPresenter;
+class ABattleSkillInfoActor;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDeceiveCardRevealRequestedDelegate, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FBattleSequenceActionStartedDelegate, FBattleAction&, FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FBattleSequenceActionCompletedDelegate, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FBattleSequenceExchangeCompletedDelegate, int32);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattleActionPresentationRequested, const FBattleAction&, BattleAction);
 UCLASS()
 class MUKSI_API ABattleSequenceManager : public AActor
 {
@@ -114,4 +117,21 @@ private:
 	void StartNextBattleActionDeferred();
 	void FinishBattleActionSequence();
 	void ResetBattleActionSequence();
+	
+	//BattleAction 직전 행동(카메라, Enemy Cost 등등)----------------------------------------------------------------------
+public:
+	void NotifyBattleActionPresentationFinished();
+	
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Presentation")
+	FOnBattleActionPresentationRequested BattleActionPresentationRequestedDelegate;
+private:
+	void StartCurrentBattleActionPresentation();
+	bool bWaitingForBattleActionPresentation = false;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleActionPresenter> ActionPresenter = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Presentation", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<ABattleSkillInfoActor> SkillInfoActorClass;
+	//------------------------------------------------------------------------------------------------------------------
 };

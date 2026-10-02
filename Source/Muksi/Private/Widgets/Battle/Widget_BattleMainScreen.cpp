@@ -18,20 +18,37 @@
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "TimerManager.h"
 
-
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
-//#include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleControlPanel.h"
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleSkillBar.h"
 #include "Muksi/Widgets/Battle/CardPreview/CardPreviewPanel.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Widgets/Battle/Passive/PassiveActivePopupWidget.h"
 #include "Muksi/Widgets/Battle/PipeLine/BattlePipelineWidget.h"
+#include "Muksi/Widgets/Battle/Popup/EffectDescriptionPopup.h"
 #include "Muksi/Widgets/Battle/SkillReveal/Widget_BattleSkillRevealPanel.h"
 #include "Muksi/Widgets/Battle/StatusHUD/BattleStatusHUDWidget.h"
 
+
+void UWidget_BattleMainScreen::HandleBattleActionPresentationRequested(const FBattleAction& BattleAction)
+{
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT(
+			"[BattleActionPresentation] Attacker=%s Card=%s"
+		),
+		*GetNameSafe(BattleAction.Attacker.Get()),
+		*GetNameSafe(BattleAction.Card.Get())
+	);
+
+	if (BattleSequenceManager)
+	{
+		BattleSequenceManager->NotifyBattleActionPresentationFinished();
+	}
+}
 
 void UWidget_BattleMainScreen::NativeConstruct()
 {
@@ -71,6 +88,8 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	BindBattleSkillReveal();
 	BindBattleSequenceManagerEvents();
 	BindBattleControlPanelEvents();
+	
+
 
 	BattleManager->StartBattleFlow();
 	
@@ -88,7 +107,10 @@ void UWidget_BattleMainScreen::NativeDestruct()
 	UnbindBattleSkillEvent();
 	
 	UnbindBattleSkillReveal();
+	
 	UnbindBattleControlPanelEvents();
+	
+
 
 	if (BattleTargetingManager)
 	{
@@ -99,11 +121,7 @@ void UWidget_BattleMainScreen::NativeDestruct()
 	Super::NativeDestruct();
 }
 
-FReply UWidget_BattleMainScreen::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	Debug::Print(TEXT("ActivatableBase MouseDown"));
-	return FReply::Unhandled();
-}
+
 
 void UWidget_BattleMainScreen::NativeOnActivated()
 {
@@ -116,13 +134,9 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 {
 	checkf(IsValid(Player), TEXT("PlayerCharacter is null"));
 	checkf(IsValid(Enemy), TEXT("EnemyCharacter is null"));
-
+	
 	ActivePassiveWidget->SetData(Player, Enemy);//각 캐릭터 Passive 관련 위젯 설정
 	StatusHUDWidget->SetData(Player, Enemy);//각 캐릭터 Stat 관련 위젯 설정
-	
-	/*//HandWidget 관련 기능은 없어질 예정
-	HandWidget->SetBattleCharacter(Player);//BattleCharacterBase의 BattleCardId로 손패 관련 설정
-	HandWidget->BindingBattleCardManager(BattleManager->GetBattleCardManager());//HandWidget과 BattleCardComponent 바인딩*/
 	
 	BattleControlPanel->SetBattleCharacter(Player);
 	
@@ -170,6 +184,8 @@ void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
 		return;
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested);
+	
+	BattleSequenceManager->BattleActionPresentationRequestedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleBattleActionPresentationRequested);
 }
 
 void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
@@ -178,6 +194,7 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 		return;
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
+	BattleSequenceManager->BattleActionPresentationRequestedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleBattleActionPresentationRequested);
 }
 
 void UWidget_BattleMainScreen::BindBattleSkillReveal()
@@ -191,6 +208,12 @@ void UWidget_BattleMainScreen::BindBattleSkillReveal()
 		//변초 공개
 		BattleSkillRevealPanel->OnDeceiveRevealFinished.RemoveAll(this);
 		BattleSkillRevealPanel->OnDeceiveRevealFinished.AddUObject(this, &UWidget_BattleMainScreen::NotifyDeceiveCardRevealFinished);
+		
+		//호버 시 정보 표시
+		BattleSkillRevealPanel->OnSkillHovered.RemoveAll(this);
+		BattleSkillRevealPanel->OnSkillHovered.AddUObject(this, &UWidget_BattleMainScreen::HandleRevealSkillHovered);
+		BattleSkillRevealPanel->OnSkillUnhovered.RemoveAll(this);
+		BattleSkillRevealPanel->OnSkillUnhovered.AddUObject(this, &UWidget_BattleMainScreen::HandleRevealSkillUnHovered);
 	}
 }
 
@@ -200,6 +223,7 @@ void UWidget_BattleMainScreen::UnbindBattleSkillReveal()
 	{
 		BattleSkillRevealPanel->OnSkillRevealFinished.RemoveAll(this);
 		BattleSkillRevealPanel->OnDeceiveRevealFinished.RemoveAll(this);
+		BattleSkillRevealPanel->OnSkillUnhovered.RemoveAll(this);
 	}
 	
 }
@@ -225,6 +249,9 @@ void UWidget_BattleMainScreen::BindBattleSkillEvent()
 	}
 	SkillComponent->OnBattleSkillStateChanged.RemoveAll(this);
 	SkillComponent->OnBattleSkillStateChanged.AddUObject(this, &UWidget_BattleMainScreen::HandleBattleSkillStateChanged);
+	
+	SkillComponent->OnBattleSkillCostChanged.RemoveAll(this);
+	SkillComponent->OnBattleSkillCostChanged.AddUObject(this, &UWidget_BattleMainScreen::HandleBattleSkillCostChanged);
 }
 
 void UWidget_BattleMainScreen::UnbindBattleSkillEvent()
@@ -251,6 +278,7 @@ void UWidget_BattleMainScreen::UnbindBattleSkillEvent()
 	}
 
 	SkillComponent->OnBattleSkillStateChanged.RemoveAll(this);
+	SkillComponent->OnBattleSkillCostChanged.RemoveAll(this);
 }
 
 void UWidget_BattleMainScreen::BindBattleControlPanelEvents()
@@ -265,14 +293,11 @@ void UWidget_BattleMainScreen::BindBattleControlPanelEvents()
 	BattleControlPanel->OnBattleSkillSelected.AddUObject(this,&UWidget_BattleMainScreen::HandleBattleSkillSelected);
 	
 	UWidget_BattleSkillBar* BattleSkillBar = BattleControlPanel->GetBattleSkillBar();
-	BattleSkillBar->OnBattleSkillHovered.RemoveAll(
-	CardPreviewPanel);
+	BattleSkillBar->OnBattleSkillHovered.RemoveAll(CardPreviewPanel_Player);
+	BattleSkillBar->OnBattleSkillHovered.AddUObject(CardPreviewPanel_Player, &UCardPreviewPanel::HandleSkillHovered);
 
-	BattleSkillBar->OnBattleSkillHovered.AddUObject(CardPreviewPanel, &UCardPreviewPanel::HandleSkillHovered);
-
-	BattleSkillBar->OnBattleSkillUnhovered.RemoveAll(CardPreviewPanel);
-
-	BattleSkillBar->OnBattleSkillUnhovered.AddUObject(CardPreviewPanel,&UCardPreviewPanel::HandleSkillHoverEnded);
+	BattleSkillBar->OnBattleSkillUnhovered.RemoveAll(CardPreviewPanel_Player);
+	BattleSkillBar->OnBattleSkillUnhovered.AddUObject(CardPreviewPanel_Player,&UCardPreviewPanel::HandleSkillHoverEnded);
 
 }
 
@@ -296,22 +321,49 @@ void UWidget_BattleMainScreen::HandleBattleSkillSelected(const FGuid& InstanceId
 	BattleTargetingManager->RequestPlayerSkillSelection(InstanceId, CardData);
 }
 
-void UWidget_BattleMainScreen::HandleBattleSkillHovered(UMuksiBattleCardDataAsset* SkillData)
+
+void UWidget_BattleMainScreen::HandleRevealSkillHovered(UMuksiBattleCardDataAsset* SkillData, bool bIsPlayerSkill)
 {
-	/*if (!CardInfoPanel || !SkillData)
+	if (!SkillData)
 	{
 		return;
 	}
 
-	CardInfoPanel->SetCardData(SkillData);
-	CardInfoPanel->SetVisibility(
-		ESlateVisibility::HitTestInvisible
-	);*/
+	UCardPreviewPanel* PreviewPanel = bIsPlayerSkill
+		? CardPreviewPanel_Player
+		: CardPreviewPanel_Enemy;
+
+	if (!PreviewPanel)
+	{
+		return;
+	}
+
+	// SkillReveal에서는 쿨다운 정보 표시 안 함
+	PreviewPanel->HandleSkillHovered(SkillData,-1);
 }
 
-void UWidget_BattleMainScreen::HandleBattleSkillUnhovered()
+void UWidget_BattleMainScreen::HandleRevealSkillUnHovered(bool bIsPlayerSkill)
 {
+	UCardPreviewPanel* PreviewPanel = bIsPlayerSkill
+		? CardPreviewPanel_Player
+		: CardPreviewPanel_Enemy;
 	
+	if (!PreviewPanel)
+	{
+		return;
+	}
+	
+	PreviewPanel->HandleCardHoverEnded(nullptr);
+}
+
+void UWidget_BattleMainScreen::HandleBattleSkillCostChanged()
+{
+	if (!BattleControlPanel)
+	{
+		return;
+	}
+
+	BattleControlPanel->RefreshSkillBar();
 }
 
 void UWidget_BattleMainScreen::HandlePlayerTargetingCancelled()
@@ -335,6 +387,8 @@ void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAct
 {
 	if (!BattleSequenceManager || !IsValid(BattleAction.Card))
 		return;
+	
+	UMuksiBattleCardDataAsset* PresentedCard = BattleAction.Card.Get();
 
 	UMuksiBattleCardDataAsset* ActualCard = BattleAction.Card->GetActualCard();
 	if (!IsValid(ActualCard))
@@ -343,9 +397,10 @@ void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAct
 		return;
 	}
 
-	if (!PlayDeceiveCardReveal(BattleAction, BattleAction.Card.Get(), ActualCard))
+	if (!PlayDeceiveCardReveal(BattleAction, PresentedCard, ActualCard))
 		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
 }
+
 
 void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
@@ -382,15 +437,21 @@ void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBa
 		if (OldPhase != EBattlePhase::Targeting)
 		{
 			StartExchangeSelectCard(BattleManager->GetCurrentExchange());
+		}else
+		{
+			ControlPanelTargetingMode(false);
 		}
 		CompletePhaseUI(EBattlePhase::CardSelect);
 		break;
 
 	case EBattlePhase::Targeting:
+		ControlPanelTargetingMode(true);
 		CompletePhaseUI(EBattlePhase::Targeting);
 		break;
 
 	case EBattlePhase::CardReveal:
+		if (OldPhase == EBattlePhase::Targeting)
+			ControlPanelTargetingMode(false);
 		CardRevealed();
 		break;
 
@@ -518,6 +579,7 @@ void UWidget_BattleMainScreen::HandlePipelineUIFinish()
 		break;
 	}
 }
+
 
 void UWidget_BattleMainScreen::ReadyStart()
 {
@@ -697,6 +759,23 @@ void UWidget_BattleMainScreen::FinishExchange(int32 ExchangeIndex)
 
 	HandleUIFinishCount = 0;
 }
+
+void UWidget_BattleMainScreen::ControlPanelTargetingMode(bool IsTargeting)
+{
+	if (BattleControlPanel)
+	{
+		if (IsTargeting)
+		{
+			BattleControlPanel->SetTargetingMode(true);
+		}else
+		{
+			BattleControlPanel->SetTargetingMode(false);
+		}
+		
+	}
+	
+}
+
 void UWidget_BattleMainScreen::ExchangeEnd()
 {
 	HandleUIFinishCount = 0;

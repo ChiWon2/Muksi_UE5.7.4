@@ -22,3 +22,4 @@ void UHasteStatusEffect::ApplyStatModifier(int32 Amount)
 
 	OwnerCharacter->GetBattleStatComponent()->ModifyCurrentSpeed(static_cast<float>(Amount));
 }
+

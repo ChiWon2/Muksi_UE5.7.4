@@ -14,6 +14,10 @@ class UWidget_BattleSkillRevealSlot;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillRevealAnimationFinished, UWidget_BattleSkillRevealSlot*);
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSkillRevealSlotHovered, UMuksiBattleCardDataAsset*, bool);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillRevealSlotUnhovered, bool);
+
+
 /**
  * 
  */
@@ -37,14 +41,31 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 
+
 private:
+	//BindWidget
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_Skill;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleCardDataAsset> SkillData;
 	
-	//슬롯 연출
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_SlotMaterial;
+	//BindWidget--------------------------------------------------------------------------------------------------------
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> SlotMaterialInstance;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Reveal|Color")
+	FLinearColor PlayerColor = FLinearColor(0.1f, 1.0f, 0.4f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reveal|Color")
+	FLinearColor EnemyColor = FLinearColor(1.0f, 0.1f, 0.1f, 1.0f);
+	
+	void UpdateOwnerColor();
+	
+	//슬롯 연출----------------------------------------------------------------------------------------------------------
 private:
 	UFUNCTION()
 	void HandleRevealAnimationFinished();
@@ -53,4 +74,15 @@ private:
 	TObjectPtr<UWidgetAnimation> Anim_Reveal;
 	
 	bool bIsPlayerSkill = false;
+	//------------------------------------------------------------------------------------------------------------------
+	
+	//슬롯 Hover 정보띄우기-----------------------------------------------------------------------------------------------
+public:
+	FOnSkillRevealSlotHovered OnSkillHovered;
+	FOnSkillRevealSlotUnhovered OnSkillUnhovered;
+	
+protected:
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+	//------------------------------------------------------------------------------------------------------------------
 };
