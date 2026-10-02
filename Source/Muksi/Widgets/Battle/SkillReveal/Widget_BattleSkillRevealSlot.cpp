@@ -26,7 +26,7 @@ void UWidget_BattleSkillRevealSlot::SetSkillData(UMuksiBattleCardDataAsset* InSk
 		return;
 	}
 
-	Image_Skill->SetBrushFromTexture(SkillData->CardIcon);
+	Image_Skill->SetBrushFromTexture(SkillData->CardTexture);
 
 	Image_Skill->SetVisibility(ESlateVisibility::HitTestInvisible);
 	SetRenderOpacity(1.0f);

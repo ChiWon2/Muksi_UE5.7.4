@@ -62,9 +62,15 @@ ABattleCharacterBase::ABattleCharacterBase()
 		ECR_Ignore
 	);
 	
+	//스킬 위젯 액터 소환 위치
+	SkillInfoAnchorComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SkillInfoAnchorComponent"));
+	SkillInfoAnchorComponent->SetupAttachment(RootComponent);
 	//카메라 포커스 잡는 컴포넌트는 소켓에 잡기(클릭 확대용)
 	ClickCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("ClickCameraFocusComponent"));
 	ClickCameraFocusComponent->SetupAttachment(SceneRoot);
+	//BattleAction 직전 카메라 포커스
+	ActionCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("ActionCameraFocusComponent"));
+	ActionCameraFocusComponent->SetupAttachment(RootComponent);
 	//카메라 포커스 잡는 컴포넌트는 소켓에 잡기(공격 애니메이션 연출용)
 	AttackCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("AttackCameraFocusComponent"));
 	AttackCameraFocusComponent->SetupAttachment(MeshComponent,TEXT("AttackCameraSocket"));

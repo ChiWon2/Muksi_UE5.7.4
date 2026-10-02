@@ -141,14 +141,11 @@ void ABattleCameraManager::EndPlay(
 	Super::EndPlay(EndPlayReason);
 }
 
-void ABattleCameraManager::Tick(
-	float DeltaTime
-)
+void ABattleCameraManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!IsValid(BattleCamera) ||
-		!IsValid(CameraSpringArm))
+	if (!IsValid(BattleCamera) || !IsValid(CameraSpringArm))
 	{
 		return;
 	}
@@ -243,6 +240,25 @@ void ABattleCameraManager::Tick(
 		);
 
 	BattleCamera->SetCurrentFocalLength(NewFocalLength);
+	
+	//어느 정도 거리 안에 들어왔을 때 미리 보내는 신호
+	if (CameraMode == EBattleCameraMode::ActionPresentation && bWaitingForCameraMoveCompletion && !bActionCameraPreArrivalTriggered)
+	{
+		const float DistanceToTarget =
+			FVector::Dist(
+				GetActorLocation(),
+				TargetCameraLocation
+			);
+
+		if (DistanceToTarget <= ActionPresentationPreArrivalDistance)
+		{
+			bActionCameraPreArrivalTriggered = true;
+
+			OnActionCameraPreArrival.Broadcast();
+		}
+	}
+	
+	CheckCameraMoveFinished();
 }
 
 
@@ -283,17 +299,15 @@ void ABattleCameraManager::FocusCharacter(
 	const FTransform FocusTransform =
 		FocusComponent->GetComponentTransform();
 
-	TargetSocketOffset =
-		FocusComponent->SocketOffset;
+	TargetSocketOffset = CharacterFocusSocketOffset;
 
-	TargetArmRelativeRotation =
-		FocusComponent->ArmRotation;
+	TargetArmRelativeRotation = CharacterFocusArmRotation;
 
 	SetCameraTarget(
 		FocusTransform.GetLocation(),
 		FocusTransform.Rotator(),
-		FocusComponent->FocalLength,
-		FocusComponent->ArmLength
+		CharacterFocusFocalLength,
+		CharacterFocusArmLength
 	);
 }
 
@@ -433,12 +447,19 @@ void ABattleCameraManager::EnterTargetingView()
 	TargetSocketOffset = TargetingSocketOffset;
 	TargetArmRelativeRotation = TargetingArmRotation;
 
-	SetCameraTarget(
+	/*SetCameraTarget(
 		TargetingCameraAnchor->GetActorLocation(),
 		TargetingCameraAnchor->GetActorRotation(),
 		TargetingFocalLength,
 		TargetingArmLength
-	);
+	);*/
+	
+	SetCameraTarget(
+	TargetingCameraAnchor->GetActorLocation(),
+	GetActorRotation(), // 현재 Rotation 유지
+	TargetingFocalLength,
+	TargetingArmLength
+);
 }
 
 bool ABattleCameraManager::InitializeBattleFlow(ABattleManager* InBattleManager)
@@ -475,6 +496,119 @@ void ABattleCameraManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBat
 	{
 		ReturnToOverview();
 	}
+}
+
+void ABattleCameraManager::FocusBattleActionPresentation(ABattleCharacterBase* Character)
+{
+	if (!IsValid(Character))
+	{
+		return;
+	}
+
+	UCharacterCameraComponent* FocusComponent = Character->GetActionCameraFocusComponent();
+
+	if (!IsValid(FocusComponent))
+	{
+		return;
+	}
+
+	StopTrackingCamera();
+	
+	CameraMode = EBattleCameraMode::ActionPresentation;
+
+	const FTransform FocusTransform = FocusComponent->GetComponentTransform();
+
+	TargetSocketOffset = ActionPresentationSocketOffset;
+
+	TargetArmRelativeRotation = ActionPresentationArmRotation;
+
+	SetCameraTarget(
+		FocusTransform.GetLocation(),
+		FocusTransform.Rotator(),
+		ActionPresentationFocalLength,
+		ActionPresentationArmLength
+	);
+	
+	//카메라 이동 끝나기 직전의 완료 기다림
+	bActionCameraPreArrivalTriggered = false;
+	// 이번 이동의 완료를 기다림
+	bWaitingForCameraMoveCompletion = true;
+}
+
+void ABattleCameraManager::CheckCameraMoveFinished()
+{
+	if (!bWaitingForCameraMoveCompletion)
+	{
+		return;
+	}
+
+	if (!IsValid(BattleCamera) || !IsValid(CameraSpringArm))
+	{
+		return;
+	}
+
+	const bool bLocationReached = GetActorLocation().Equals(TargetCameraLocation, LocationCompleteTolerance);
+	const bool bRotationReached = GetActorRotation().Equals(TargetCameraRotation, RotationCompleteTolerance);
+
+	const bool bArmLengthReached =
+		FMath::IsNearlyEqual(
+			CameraSpringArm->TargetArmLength,
+			TargetArmLength,
+			ValueCompleteTolerance
+		);
+
+	const bool bSocketOffsetReached =
+		CameraSpringArm->SocketOffset.Equals(
+			TargetSocketOffset,
+			LocationCompleteTolerance
+		);
+
+	const bool bArmRotationReached =
+		CameraSpringArm->GetRelativeRotation().Equals(
+			TargetArmRelativeRotation,
+			RotationCompleteTolerance
+		);
+
+	const bool bFocalLengthReached =
+		FMath::IsNearlyEqual(
+			BattleCamera->CurrentFocalLength,
+			TargetFocalLength,
+			ValueCompleteTolerance
+		);
+
+	if (!bLocationReached ||
+		!bRotationReached ||
+		!bArmLengthReached ||
+		!bSocketOffsetReached ||
+		!bArmRotationReached ||
+		!bFocalLengthReached)
+	{
+		return;
+	}
+
+	bWaitingForCameraMoveCompletion = false;
+
+	// 오차 때문에 애매하게 남지 않도록 최종값으로 맞춤
+	SetActorLocationAndRotation(
+		TargetCameraLocation,
+		TargetCameraRotation
+	);
+
+	CameraSpringArm->TargetArmLength =
+		TargetArmLength;
+
+	CameraSpringArm->SocketOffset =
+		TargetSocketOffset;
+
+	CameraSpringArm->SetRelativeRotation(
+		TargetArmRelativeRotation
+	);
+
+	BattleCamera->SetCurrentFocalLength(
+		TargetFocalLength
+	);
+
+	OnCameraMoveFinished.Broadcast(CameraMode);
 }
 
 void ABattleCameraManager::SetCameraTarget(const FVector& NewLocation, const FRotator& NewRotation,

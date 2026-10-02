@@ -48,6 +48,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Battle")
 	void BP_OnSelectableCharacterClicked();
 
+	
+	//테스트 용도
+	UFUNCTION()
+	void HandleBattleActionPresentationRequested(const FBattleAction& BattleAction);
 protected:
 	//~Begin UCommonActivatableWidget Interface
 	virtual void NativeConstruct() override;
