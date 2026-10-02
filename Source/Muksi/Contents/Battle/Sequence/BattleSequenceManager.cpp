@@ -15,6 +15,7 @@
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
+#include "Presentation/BattleActionPresenter.h"
 
 ABattleSequenceManager::ABattleSequenceManager() { PrimaryActorTick.bCanEverTick = false; }
 void ABattleSequenceManager::BeginPlay() { Super::BeginPlay(); }
@@ -36,6 +37,13 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type Reason)
 	PhaseExecutionTask = nullptr;
 	BattleManager = nullptr;
 	BattleRuntimeContext = nullptr;
+	
+	if (IsValid(ActionPresenter))
+	{
+		ActionPresenter->Shutdown();
+		ActionPresenter = nullptr;
+	}
+	
 	Super::EndPlay(Reason);
 }
 
@@ -54,6 +62,13 @@ bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InManager, UBa
 		return false;
 	ActionExecutor->OnBattleActionCompleted.BindUObject(this, &ABattleSequenceManager::HandleBattleActionCompleted);
 	ActionExecutor->OnExecutionEntryStarted.BindUObject(this, &ABattleSequenceManager::HandleExecutionEntryStarted);
+	
+	ActionPresenter = NewObject<UBattleActionPresenter>(this);
+	if (!IsValid(ActionPresenter))
+		return false;
+	if (!ActionPresenter->Initialize(this, BattleManager->GetBattleCameraManager(),SkillInfoActorClass))
+		return false;
+
 	return true;
 }
 
@@ -125,7 +140,8 @@ void ABattleSequenceManager::SortBattleActionQueue()
 
 void ABattleSequenceManager::StartCurrentBattleAction()
 {
-	if (!bBattleActionSequenceRunning || bWaitingForDeceiveCardReveal)
+	//기존 변초 기다리는 bWaitingForDeceiveCardReveal 말고 카메라 연출 기다리는 bWaitingForBattleActionPresentation
+	if (!bBattleActionSequenceRunning || bWaitingForBattleActionPresentation)
 		return;
 	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
 	{
@@ -138,13 +154,17 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 		FinishCurrentBattleAction();
 		return;
 	}
-	if (ShouldRequestDeceiveCardReveal(Action) && DeceiveCardRevealRequestedDelegate.IsBound())
+	
+	StartCurrentBattleActionPresentation();
+	
+	//변초 인지 아닌지 구분해서 넘기는건 과정에서 삭제
+	/*if (ShouldRequestDeceiveCardReveal(Action) && DeceiveCardRevealRequestedDelegate.IsBound())
 	{
 		bWaitingForDeceiveCardReveal = true;
 		DeceiveCardRevealRequestedDelegate.Broadcast(Action);
 		return;
-	}
-	ExecuteCurrentBattleAction();
+	}*/
+	//ExecuteCurrentBattleAction();
 }
 
 bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const
@@ -173,7 +193,8 @@ void ABattleSequenceManager::NotifyDeceiveCardRevealFinished()
 		return;
 
 	bWaitingForDeceiveCardReveal = false;
-	ExecuteCurrentBattleAction();
+	
+	StartCurrentBattleActionPresentation();
 }
 
 bool ABattleSequenceManager::GetCurrentBattleActionPair(FBattleAction*& OutCurrentAction, FBattleAction*& OutOpponentAction)
@@ -382,6 +403,60 @@ void ABattleSequenceManager::ResetBattleActionSequence()
 	bBattleActionCompletionPending = false;
 	bWaitingForDeceiveCardReveal = false;
 	bStopAfterCurrentExecution = false;
+	bWaitingForBattleActionPresentation = false;
+}
+
+void ABattleSequenceManager::NotifyBattleActionPresentationFinished()
+{
+	if (!bWaitingForBattleActionPresentation)
+	{
+		return;
+	}
+
+	bWaitingForBattleActionPresentation = false;
+
+	ExecuteCurrentBattleAction();
+}
+
+void ABattleSequenceManager::StartCurrentBattleActionPresentation()
+{
+	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+	{
+		return;
+	}
+
+	const FBattleAction& Action = BattleActionQueue[CurrentBattleActionIndex];
+
+	if (!IsValid(ActionPresenter))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[BattleSequenceManager] ActionPresenter is invalid.")
+		);
+
+		ExecuteCurrentBattleAction();
+		return;
+	}
+
+	bWaitingForBattleActionPresentation = true;
+
+	if (!ActionPresenter->StartPresentation(Action))
+	{
+		bWaitingForBattleActionPresentation = false;
+
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT(
+				"[BattleSequenceManager] "
+				"Failed to start BattleAction Presentation."
+			)
+		);
+
+		// Presentation 실패 때문에 전투 전체가 멈추지는 않도록
+		ExecuteCurrentBattleAction();
+	}
 }
 
 void ABattleSequenceManager::PresentBattleActionTargetingResult(const FBattleAction& Action, const FTargetingResult& TargetingResult)

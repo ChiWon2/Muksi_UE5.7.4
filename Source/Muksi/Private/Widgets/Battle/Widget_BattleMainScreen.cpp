@@ -32,6 +32,24 @@
 #include "Muksi/Widgets/Battle/StatusHUD/BattleStatusHUDWidget.h"
 
 
+void UWidget_BattleMainScreen::HandleBattleActionPresentationRequested(const FBattleAction& BattleAction)
+{
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT(
+			"[BattleActionPresentation] Attacker=%s Card=%s"
+		),
+		*GetNameSafe(BattleAction.Attacker.Get()),
+		*GetNameSafe(BattleAction.Card.Get())
+	);
+
+	if (BattleSequenceManager)
+	{
+		BattleSequenceManager->NotifyBattleActionPresentationFinished();
+	}
+}
+
 void UWidget_BattleMainScreen::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -166,6 +184,8 @@ void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
 		return;
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested);
+	
+	BattleSequenceManager->BattleActionPresentationRequestedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleBattleActionPresentationRequested);
 }
 
 void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
@@ -174,6 +194,7 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 		return;
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
+	BattleSequenceManager->BattleActionPresentationRequestedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleBattleActionPresentationRequested);
 }
 
 void UWidget_BattleMainScreen::BindBattleSkillReveal()

@@ -138,11 +138,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|Stat")
 	UBattleStatComponent* GetBattleStatComponent() const { return BattleStatComponent; }
 	
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
-	UCharacterCameraComponent* GetClickCameraFocusComponent() const{ return ClickCameraFocusComponent;}
 	
-	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
-	UCharacterCameraComponent* GetAttackCameraComponent()const{ return AttackCameraFocusComponent;}
 	
 	
 	UFUNCTION(BlueprintPure, Category = "BattleCharacter|BattleSkill")
@@ -184,15 +180,38 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBattleStatComponent> BattleStatComponent = nullptr;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UCharacterCameraComponent> ClickCameraFocusComponent = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UCharacterCameraComponent> AttackCameraFocusComponent = nullptr;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Passive", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCharacterPassiveComponent> PassiveComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBattleSkillComponent> BattleSkillComponent;
+	
+	
+	//카메라 연출 Focus---------------------------------------------------------------------------------------------------
+public:
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
+	UCharacterCameraComponent* GetActionCameraFocusComponent() const { return ActionCameraFocusComponent; }
+	
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
+	UCharacterCameraComponent* GetClickCameraFocusComponent() const{ return ClickCameraFocusComponent;}
+	
+	UFUNCTION(BlueprintPure, Category = "BattleCharacter|CameraFocus")
+	UCharacterCameraComponent* GetAttackCameraComponent()const{ return AttackCameraFocusComponent;}
+	
+	USceneComponent* GetSkillInfoAnchorComponent() const{ return SkillInfoAnchorComponent; }
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCharacterCameraComponent> ClickCameraFocusComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCharacterCameraComponent> AttackCameraFocusComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCharacterCameraComponent> ActionCameraFocusComponent = nullptr;
+	
+	//스킬 위젯 액터 소환 위치
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USceneComponent> SkillInfoAnchorComponent = nullptr;
+	
+	//------------------------------------------------------------------------------------------------------------------
 };
