@@ -11,6 +11,7 @@
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
+#include "Muksi/Contents/Battle/Setup/AssetPreload/BattleAssetPreloadManager.h"
 #include "Muksi/Save/BattleEncounterSubsystem.h"
 
 ABattleSetupManager::ABattleSetupManager()
@@ -29,6 +30,10 @@ void ABattleSetupManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     if (BattleManager)
         BattleManager->PhaseEntryRequestedDelegate.RemoveDynamic(this, &ABattleSetupManager::HandlePhaseEntryRequested);
 
+    if (AssetPreloadManager)
+        AssetPreloadManager->ReleaseLoadedAssets();
+
+    AssetPreloadManager = nullptr;
     BattleGridManager = nullptr;
     BattleManager = nullptr;
 
@@ -42,6 +47,11 @@ bool ABattleSetupManager::InitializeBattleFlow(ABattleManager* InBattleManager, 
 
     BattleManager = InBattleManager;
     BattleGridManager = InBattleGridManager;
+    AssetPreloadManager = NewObject<UBattleAssetPreloadManager>(this);
+
+    if (!AssetPreloadManager || !AssetPreloadManager->Initialize(BattleManager))
+        return false;
+
     BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleSetupManager::HandlePhaseEntryRequested);
     return true;
 }
@@ -72,21 +82,23 @@ void ABattleSetupManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBatt
     switch (NewPhase)
     {
     case EBattlePhase::ReadyStart:
-        PrepareReadyData();
-        break;
+        if (!PrepareReadyData(Task))
+            Task->Complete();
+
+        return;
 
     case EBattlePhase::ReadyEnd:
         PrepareReadyEnd();
-        break;
+        Task->Complete();
+        return;
 
     default:
-        break;
+        Task->Complete();
+        return;
     }
-
-    Task->Complete();
 }
 
-bool ABattleSetupManager::PrepareReadyData()
+bool ABattleSetupManager::PrepareReadyData(UBattlePhaseTask* Task)
 {
     LoadEncounterEnemyCharacterData();
 
@@ -99,6 +111,27 @@ bool ABattleSetupManager::PrepareReadyData()
     if (!IsValid(EnemyCharacterDataAsset))
     {
         UE_LOG(LogTemp, Error, TEXT("[BattleSetupManager] Enemy character data is invalid."));
+        return false;
+    }
+
+    if (!AssetPreloadManager || !IsValid(Task))
+        return false;
+
+    TWeakObjectPtr<ABattleSetupManager> WeakThis(this);
+    TWeakObjectPtr<UBattlePhaseTask> WeakTask(Task);
+
+    const bool bPreloadStarted = AssetPreloadManager->LoadAssetsForBattle(PlayerCharacterDataAsset, EnemyCharacterDataAsset, [WeakThis, WeakTask](bool bSuccess)
+    {
+        if (!bSuccess && WeakThis.IsValid())
+            UE_LOG(LogTemp, Error, TEXT("[BattleSetupManager] Failed to preload battle assets."));
+
+        if (WeakTask.IsValid())
+            WeakTask->Complete();
+    });
+
+    if (!bPreloadStarted)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BattleSetupManager] Failed to start battle asset preload."));
         return false;
     }
 

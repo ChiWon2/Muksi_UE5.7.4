@@ -1,8 +1,21 @@
 #include "Muksi/Contents/Battle/StatusEffect/Effects/ShieldStatusEffect.h"
 
-#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
+
+UShieldStatusEffect::UShieldStatusEffect()
+{
+	FBattleExecutionEntry RemoveEntry;
+	RemoveEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
+	RemoveEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
+
+	FStatusEffectExecutionData RemoveData;
+	RemoveData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
+	RemoveData.Operation = EStatusEffectExecutionOperation::Remove;
+
+	RemoveEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(RemoveData);
+	ModifyExecutionEntries.Add(MoveTemp(RemoveEntry));
+}
 
 int32 UShieldStatusEffect::GetIncomingDamageModifierPriority() const
 {
@@ -31,14 +44,13 @@ void UShieldStatusEffect::BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBat
 	if (!bExpireAtRoundEnd || NewPhase != EBattlePhase::RoundEnd)
 		return;
 
-	FBattleExecutionEntry RemoveEntry;
-	RemoveEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
-	RemoveEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
+	TArray<FBattleExecutionEntry> ExecutionEntries = ModifyExecutionEntries;
 
-	FStatusEffectExecutionData RemoveData;
-	RemoveData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
-	RemoveData.Operation = EStatusEffectExecutionOperation::Remove;
-	RemoveData.EffectID = GetEffectID();
-	RemoveEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(RemoveData);
-	OutExecutionEntries.Add(MoveTemp(RemoveEntry));
+	for (FBattleExecutionEntry& Entry : ExecutionEntries)
+	{
+		if (FStatusEffectExecutionData* StatusEffectData = Entry.ExecutionData.GetMutablePtr<FStatusEffectExecutionData>())
+			StatusEffectData->EffectID = GetEffectID();
+	}
+
+	OutExecutionEntries.Append(ExecutionEntries);
 }

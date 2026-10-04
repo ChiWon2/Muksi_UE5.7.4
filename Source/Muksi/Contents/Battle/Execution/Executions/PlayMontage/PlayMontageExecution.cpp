@@ -41,17 +41,24 @@ void UPlayMontageExecution::Execute(const FBattleExecutionContext& Context, FBat
 	}
 
 	BattleFXComponent = Context.Attacker->GetBattleFXComponent();
-	if (BattleFXComponent)
+	if (BattleFXComponent && MontageData->bWaitForMontageEnd)
 		BattleFXComponent->SetRuntimeFXMappings(MontageData->FXMappings);
 
-	AnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
+	if (MontageData->bWaitForMontageEnd)
+		AnimationComponent->OnBattleAnimationFinished.AddUniqueDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
 
 	if (!AnimationComponent->PlayBattleAnimation(MontageData->AnimKey, MontageData->PlayRate))
 	{
-		AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
+		if (MontageData->bWaitForMontageEnd)
+			AnimationComponent->OnBattleAnimationFinished.RemoveDynamic(this, &UPlayMontageExecution::HandleMontageFinished);
+
 		PlayingMontage = nullptr;
 		FinishPlayMontage();
+		return;
 	}
+
+	if (!MontageData->bWaitForMontageEnd)
+		FinishPlayMontage();
 }
 
 void UPlayMontageExecution::HandleMontageFinished(UAnimMontage* Montage, bool bInterrupted)

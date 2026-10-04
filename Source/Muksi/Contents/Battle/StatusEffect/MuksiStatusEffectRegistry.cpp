@@ -57,6 +57,18 @@ UStatusEffectDefinitionDataAsset* UMuksiStatusEffectRegistry::FindDefinition(FNa
     return DefinitionReference->LoadSynchronous();
 }
 
+TSoftObjectPtr<UStatusEffectDefinitionDataAsset> UMuksiStatusEffectRegistry::FindDefinitionReference(FName EffectID) const
+{
+    if (EffectID.IsNone())
+        return nullptr;
+
+    const TSoftObjectPtr<UStatusEffectDefinitionDataAsset>* DefinitionReference = DefinitionMap.Find(EffectID);
+    if (!DefinitionReference)
+        return nullptr;
+
+    return *DefinitionReference;
+}
+
 TSubclassOf<UMuksiStatusEffect> UMuksiStatusEffectRegistry::FindEffectClass(FName EffectID) const
 {
     UStatusEffectDefinitionDataAsset* Definition = FindDefinition(EffectID);

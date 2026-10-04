@@ -15,59 +15,35 @@ UPlayBattleCameraExecution::UPlayBattleCameraExecution()
 
 void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
-	const FPlayBattleCameraExecutionData* CameraData =
-		Context.GetExecutionData<FPlayBattleCameraExecutionData>();
+	const FPlayBattleCameraExecutionData* CameraData = Context.GetExecutionData<FPlayBattleCameraExecutionData>();
 
-	if (!CameraData)
+	if (!CameraData || CameraData->CameraKey.IsNone() || !IsValid(Context.Attacker))
 	{
 		FinishExecution(OnFinished);
 		return;
 	}
 
-	if (!CameraData->LevelSequence)
-	{
-		FinishExecution(OnFinished);
-		return;
-	}
-
-	if (!IsValid(Context.Attacker))
-	{
-		FinishExecution(OnFinished);
-		return;
-	}
-
-	UMuksiWorldManagerSubsystem* ManagerSubsystem =
-		UMuksiWorldManagerSubsystem::Get(Context.Attacker);
-
+	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(Context.Attacker);
 	if (!IsValid(ManagerSubsystem))
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("PlayBattleCameraExecution: ManagerSubsystem is invalid")
-		);
-
+		UE_LOG(LogTemp, Warning, TEXT("PlayBattleCameraExecution: ManagerSubsystem is invalid"));
 		FinishExecution(OnFinished);
 		return;
 	}
 
-	ABattleCameraManager* CameraManager =
-		ManagerSubsystem->GetManager<ABattleCameraManager>();
-
+	ABattleCameraManager* CameraManager = ManagerSubsystem->GetManager<ABattleCameraManager>();
 	if (!IsValid(CameraManager))
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("PlayBattleCameraExecution: BattleCameraManager is invalid")
-		);
-
+		UE_LOG(LogTemp, Warning, TEXT("PlayBattleCameraExecution: BattleCameraManager is invalid"));
 		FinishExecution(OnFinished);
 		return;
 	}
-	
-	CameraManager->PlayAttackCameraSequence(CameraData->LevelSequence,Context.Attacker);
 
+	CameraManager->PlayBattleCameraSequence(
+		CameraData->CameraKey,
+		Context.Attacker,
+		Context.ExecutionTarget
+	);
 	FinishExecution(OnFinished);
 }
 

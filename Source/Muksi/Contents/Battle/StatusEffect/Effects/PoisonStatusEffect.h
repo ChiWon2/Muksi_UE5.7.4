@@ -1,14 +1,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../MuksiStatusEffect.h"
+#include "Muksi/Contents/Battle/StatusEffect/ExecutionModifyStatusEffect.h"
 #include "PoisonStatusEffect.generated.h"
 
 UCLASS()
-class MUKSI_API UPoisonStatusEffect : public UMuksiStatusEffect
+class MUKSI_API UPoisonStatusEffect : public UExecutionModifyStatusEffect
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries) override;
+	UPoisonStatusEffect();
+
+	virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries) override;
 };

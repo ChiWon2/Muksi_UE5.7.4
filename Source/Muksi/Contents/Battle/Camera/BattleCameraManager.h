@@ -16,6 +16,7 @@ class ALevelSequenceActor;
 class ULevelSequencePlayer;
 class ABattleManager;
 class UBattlePhaseTaskContext;
+class UMuksiBattleCameraDataAsset;
 
 
 DECLARE_MULTICAST_DELEGATE(FOnActionCameraPreArrival);
@@ -367,11 +368,25 @@ protected:
 	
 	
 public:
+	const TSoftObjectPtr<ULevelSequence>* FindBattleCameraSequence(FName CameraKey) const;
+	void CollectBattleCameraAssetPaths(const TSet<FName>& CameraKeys, TArray<FSoftObjectPath>& OutAssetPaths) const;
+	void PlayBattleCameraSequence(
+		FName CameraKey,
+		ABattleCharacterBase* Attacker,
+		ABattleCharacterBase* Target
+	);
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Camera|Sequence")
+	TArray<TObjectPtr<UMuksiBattleCameraDataAsset>> BattleCameraDataAssets;
+
+public:
 	//공격 애니메이션 실행 Sequencer 작용
 	UFUNCTION(BlueprintCallable, Category = "Battle Camera|Sequence")
 	void PlayAttackCameraSequence(
 		ULevelSequence* CameraSequence,
-		ABattleCharacterBase* Attacker
+		ABattleCharacterBase* Attacker,
+		ABattleCharacterBase* Target
 	);
 protected:
 	UPROPERTY(EditInstanceOnly, Category = "Battle Camera|Sequence")
@@ -382,6 +397,8 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULevelSequencePlayer> ActiveSequencePlayer = nullptr;
+
+	bool bOwnsAttackSequenceActor = false;
 
 	UFUNCTION()
 	void HandleAttackCameraSequenceFinished();

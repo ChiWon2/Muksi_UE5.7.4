@@ -16,4 +16,5 @@ public:
 
 public:
 	const FMuksiBattleFXData* FindFXData(FName FXKey) const;
+	void CollectFXAssetPaths(const TSet<FName>& FXKeys, TArray<FSoftObjectPath>& OutAssetPaths) const;
 };

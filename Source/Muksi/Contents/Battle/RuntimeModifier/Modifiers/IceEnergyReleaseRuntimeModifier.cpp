@@ -14,15 +14,6 @@
 namespace IceEnergyReleaseRuntimeModifier
 {
 	constexpr int32 MaxAdditionalAttackCount = 3;
-
-	const FName ComboAnimKeys[MaxAdditionalAttackCount]
-	{
-		TEXT("Combo_1"),
-		TEXT("Combo_2"),
-		TEXT("Combo_3")
-	};
-
-	const FName MainEffectNotifyKey = TEXT("ComboEffect");
 	const FName HitFXDataAssetKey = TEXT("HitReaction_Ice");
 	const FName FinalHitFXDataAssetKey = TEXT("Impact_Ice");
 
@@ -39,13 +30,44 @@ namespace IceEnergyReleaseRuntimeModifier
 
 		return nullptr;
 	}
+}
 
-	FBattleExecutionEntry MakeConsumeIceEnergyEntry(ABattleCharacterBase* Attacker)
+UIceEnergyReleaseRuntimeModifier::UIceEnergyReleaseRuntimeModifier()
+{
+	const FName ComboAnimKeys[IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount]
 	{
+		TEXT("Combo_1"),
+		TEXT("Combo_2"),
+		TEXT("Combo_3")
+	};
+
+	const int32 ComboDamageValues[IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount]
+	{
+		8,
+		15,
+		30
+	};
+
+	for (int32 AttackIndex = 0; AttackIndex < IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount; ++AttackIndex)
+	{
+		FBattleExecutionEntry ComboEntry;
+		ComboEntry.ExecutionClass = UPlayMontageExecution::StaticClass();
+		ComboEntry.ExecutionScope = EBattleExecutionScope::Both;
+
+		FPlayMontageExecutionData ComboData;
+		ComboData.AnimKey = ComboAnimKeys[AttackIndex];
+		ComboData.PlayRate = 1.35f;
+
+		ComboEntry.ExecutionData.InitializeAs<FPlayMontageExecutionData>(ComboData);
+		ModifierExecutionEntries.Add(MoveTemp(ComboEntry));
+
+		FBattleExecutionNotify MainEffectNotify;
+		MainEffectNotify.NotifyKey = TEXT("ComboEffect");
+		MainEffectNotify.SourceAnimKey = ComboAnimKeys[AttackIndex];
+
 		FBattleExecutionEntry ConsumeEntry;
 		ConsumeEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
 		ConsumeEntry.ExecutionScope = EBattleExecutionScope::Both;
-		ConsumeEntry.ExecutionSourceOverride = Attacker;
 
 		FStatusEffectExecutionData ConsumeData;
 		ConsumeData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
@@ -54,32 +76,21 @@ namespace IceEnergyReleaseRuntimeModifier
 		ConsumeData.StackCount = 1;
 
 		ConsumeEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(ConsumeData);
-		return ConsumeEntry;
-	}
+		MainEffectNotify.ExecutionEntries.Add(MoveTemp(ConsumeEntry));
 
-	FBattleExecutionEntry MakeDamageEntry(
-		int32 DamageValue,
-		ABattleCharacterBase* Attacker,
-		ABattleCharacterBase* TargetCharacter,
-		bool bIsFinalAttack)
-	{
 		FBattleExecutionEntry DamageEntry;
 		DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
 		DamageEntry.ExecutionScope = EBattleExecutionScope::Both;
-		DamageEntry.ExecutionSourceOverride = Attacker;
-		DamageEntry.ExecutionTargetOverride = TargetCharacter;
 
 		FDamageExecutionData DamageData;
-		DamageData.TargetPolicy = IsValid(TargetCharacter)
-			? EBattleExecutionTargetPolicy::ExecutionTarget
-			: EBattleExecutionTargetPolicy::TargetingResult;
-		DamageData.DamageValue = DamageValue;
-		DamageData.HitFXDataAssetKey = bIsFinalAttack
-			? FinalHitFXDataAssetKey
-			: HitFXDataAssetKey;
+		DamageData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
+		DamageData.DamageValue = ComboDamageValues[AttackIndex];
+		DamageData.HitFXDataAssetKey = IceEnergyReleaseRuntimeModifier::HitFXDataAssetKey;
 
 		DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
-		return DamageEntry;
+		MainEffectNotify.ExecutionEntries.Add(MoveTemp(DamageEntry));
+
+		ModifierExecutionNotifies.Add(MoveTemp(MainEffectNotify));
 	}
 }
 
@@ -102,42 +113,33 @@ void UIceEnergyReleaseRuntimeModifier::ModifyBattleAction(FBattleAction& Action)
 		return;
 
 	ABattleCharacterBase* TargetCharacter = IceEnergyReleaseRuntimeModifier::FindTargetCharacter(Action);
-	const int32 ComboDamageValues[IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount]
-	{
-		Combo1Damage,
-		Combo2Damage,
-		Combo3Damage
-	};
 
 	for (int32 AttackIndex = 0; AttackIndex < AdditionalAttackCount; ++AttackIndex)
 	{
-		const FName ComboAnimKey = IceEnergyReleaseRuntimeModifier::ComboAnimKeys[AttackIndex];
+		if (!ModifierExecutionEntries.IsValidIndex(AttackIndex) || !ModifierExecutionNotifies.IsValidIndex(AttackIndex))
+			break;
 
-		FBattleExecutionEntry ComboEntry;
-		ComboEntry.ExecutionClass = UPlayMontageExecution::StaticClass();
-		ComboEntry.ExecutionScope = EBattleExecutionScope::Both;
+		FBattleExecutionEntry ComboEntry = ModifierExecutionEntries[AttackIndex];
 		ComboEntry.ExecutionSourceOverride = Attacker;
 		ComboEntry.ExecutionTargetOverride = TargetCharacter;
-
-		FPlayMontageExecutionData ComboData;
-		ComboData.AnimKey = ComboAnimKey;
-		ComboData.PlayRate = ComboPlayRate;
-
-		ComboEntry.ExecutionData.InitializeAs<FPlayMontageExecutionData>(ComboData);
 		Action.ExecutionEntries.Add(MoveTemp(ComboEntry));
 
-		FBattleExecutionNotify MainEffectNotify;
-		MainEffectNotify.NotifyKey = IceEnergyReleaseRuntimeModifier::MainEffectNotifyKey;
-		MainEffectNotify.SourceAnimKey = ComboAnimKey;
+		FBattleExecutionNotify MainEffectNotify = ModifierExecutionNotifies[AttackIndex];
 		MainEffectNotify.NotifySourceOverride = Attacker;
-		MainEffectNotify.ExecutionEntries.Add(
-			IceEnergyReleaseRuntimeModifier::MakeConsumeIceEnergyEntry(Attacker));
-		MainEffectNotify.ExecutionEntries.Add(
-			IceEnergyReleaseRuntimeModifier::MakeDamageEntry(
-				ComboDamageValues[AttackIndex],
-				Attacker,
-				TargetCharacter,
-				AttackIndex == AdditionalAttackCount - 1));
+
+		for (FBattleExecutionEntry& NotifyEntry : MainEffectNotify.ExecutionEntries)
+		{
+			NotifyEntry.ExecutionSourceOverride = Attacker;
+			NotifyEntry.ExecutionTargetOverride = TargetCharacter;
+
+			FDamageExecutionData* DamageData = NotifyEntry.ExecutionData.GetMutablePtr<FDamageExecutionData>();
+			if (!DamageData)
+				continue;
+
+			DamageData->TargetPolicy = IsValid(TargetCharacter) ? EBattleExecutionTargetPolicy::ExecutionTarget : EBattleExecutionTargetPolicy::TargetingResult;
+
+			DamageData->HitFXDataAssetKey = AttackIndex == AdditionalAttackCount - 1 ? IceEnergyReleaseRuntimeModifier::FinalHitFXDataAssetKey : IceEnergyReleaseRuntimeModifier::HitFXDataAssetKey;
+		}
 
 		Action.ExecutionNotifies.Add(MoveTemp(MainEffectNotify));
 	}

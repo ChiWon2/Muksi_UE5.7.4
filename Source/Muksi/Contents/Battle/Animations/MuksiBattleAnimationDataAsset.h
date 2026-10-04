@@ -16,10 +16,11 @@ public:
 	TArray<FMuksiWeaponBattleAnimationSet> WeaponAnimationSets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Animation|Common")
-	TMap<FName, TObjectPtr<UAnimMontage>> CommonMontageMap;
+	TMap<FName, TSoftObjectPtr<UAnimMontage>> CommonMontageMap;
 
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Battle Animation")
 	UAnimMontage* FindMontage(FName AnimKey, EMuksiWeaponTypes WeaponType = EMuksiWeaponTypes::None) const;
+	void CollectMontageAssetPaths(const TSet<FName>& AnimKeys, TArray<FSoftObjectPath>& OutAssetPaths) const;
 };

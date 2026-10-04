@@ -6,6 +6,7 @@
 #include "CharacterCameraComponent.h"
 #include "CineCameraComponent.h"
 #include "LevelSequence.h"
+#include "DefaultLevelSequenceInstanceData.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "MovieSceneSequencePlayer.h"
@@ -16,6 +17,8 @@
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
+#include "Muksi/Contents/Battle/Camera/MuksiBattleCameraDataAsset.h"
 
 ABattleCameraManager::ABattleCameraManager()
 {
@@ -118,10 +121,36 @@ void ABattleCameraManager::BeginPlay()
 	ActivateBattleCamera(0.0f);
 }
 
+// void ABattleCameraManager::EndPlay(
+// 	const EEndPlayReason::Type EndPlayReason
+// )
+// {
+// 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem =
+// 		UMuksiWorldManagerSubsystem::Get(this))
+// 	{
+// 		if (!ManagerSubsystem->UnregisterManager(this))
+// 		{
+// 			UE_LOG(
+// 				LogTemp,
+// 				Warning,
+// 				TEXT(
+// 					"BattleCameraManager: "
+// 					"Failed to unregister manager"
+// 				)
+// 			);
+// 		}
+// 	}
+//
+// 	Super::EndPlay(EndPlayReason);
+// }
+
+//CHANGE_CHIWON
 void ABattleCameraManager::EndPlay(
 	const EEndPlayReason::Type EndPlayReason
 )
 {
+	StopAttackCameraSequence();
+
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem =
 		UMuksiWorldManagerSubsystem::Get(this))
 	{
@@ -630,109 +659,303 @@ void ABattleCameraManager::SetCameraTarget(const FVector& NewLocation, const FRo
 		);
 }
 
-void ABattleCameraManager::PlayAttackCameraSequence(ULevelSequence* CameraSequence, ABattleCharacterBase* Attacker)
+const TSoftObjectPtr<ULevelSequence>* ABattleCameraManager::FindBattleCameraSequence(FName CameraKey) const
 {
-	if (!IsValid(CameraSequence) ||
-		!IsValid(Attacker) ||
-		!IsValid(AttackSequenceActor) ||
-		!IsValid(AttackSequenceOrigin))
+	if (CameraKey.IsNone())
+		return nullptr;
+
+	for (const UMuksiBattleCameraDataAsset* DataAsset : BattleCameraDataAssets)
 	{
+		if (!IsValid(DataAsset))
+			continue;
+
+		const TSoftObjectPtr<ULevelSequence>* CameraSequence = DataAsset->FindCameraSequence(CameraKey);
+		if (CameraSequence)
+			return CameraSequence;
+	}
+
+	return nullptr;
+}
+
+void ABattleCameraManager::CollectBattleCameraAssetPaths(const TSet<FName>& CameraKeys, TArray<FSoftObjectPath>& OutAssetPaths) const
+{
+	for (const FName CameraKey : CameraKeys)
+	{
+		const TSoftObjectPtr<ULevelSequence>* CameraSequence = FindBattleCameraSequence(CameraKey);
+		if (!CameraSequence || CameraSequence->IsNull())
+			continue;
+
+		OutAssetPaths.AddUnique(CameraSequence->ToSoftObjectPath());
+	}
+}
+
+void ABattleCameraManager::PlayBattleCameraSequence(
+	FName CameraKey,
+	ABattleCharacterBase* Attacker,
+	ABattleCharacterBase* Target
+)
+{
+	const TSoftObjectPtr<ULevelSequence>* CameraSequence = FindBattleCameraSequence(CameraKey);
+	if (!CameraSequence)
+		return;
+
+	ULevelSequence* LevelSequence = CameraSequence->Get();
+	if (!IsValid(LevelSequence))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleCameraManager] Camera sequence is not preloaded. Key: %s"), *CameraKey.ToString());
 		return;
 	}
+
+	PlayAttackCameraSequence(LevelSequence, Attacker, Target);
+}
+
+// void ABattleCameraManager::PlayAttackCameraSequence(ULevelSequence* CameraSequence, ABattleCharacterBase* Attacker)
+// {
+// 	if (!IsValid(CameraSequence) ||
+// 		!IsValid(Attacker) ||
+// 		!IsValid(AttackSequenceActor) ||
+// 		!IsValid(AttackSequenceOrigin))
+// 	{
+// 		return;
+// 	}
+//
+// 	StopAttackCameraSequence();
+//
+// 	// 기존 부모가 있다면 분리
+// 	AttackSequenceOrigin->DetachFromActor(
+// 		FDetachmentTransformRules::KeepWorldTransform
+// 	);
+//
+// 	// 공격자의 Actor Root에 부착
+// 	AttackSequenceOrigin->AttachToActor(
+// 		Attacker,
+// 		FAttachmentTransformRules::SnapToTargetNotIncludingScale
+// 	);
+//
+// 	// 공격자 기준 원점
+// 	AttackSequenceOrigin->SetActorRelativeLocation(
+// 		FVector::ZeroVector
+// 	);
+//
+// 	AttackSequenceOrigin->SetActorRelativeRotation(
+// 		FRotator::ZeroRotator
+// 	);
+//
+// 	AttackSequenceActor->SetSequence(CameraSequence);
+//
+// 	ULevelSequencePlayer* SequencePlayer =
+// 		AttackSequenceActor->GetSequencePlayer();
+//
+// 	if (!IsValid(SequencePlayer))
+// 	{
+// 		return;
+// 	}
+//
+// 	ActiveSequencePlayer = SequencePlayer;
+//
+// 	ActiveSequencePlayer->OnFinished.RemoveDynamic(
+// 		this,
+// 		&ThisClass::HandleAttackCameraSequenceFinished
+// 	);
+//
+// 	ActiveSequencePlayer->OnFinished.AddDynamic(
+// 		this,
+// 		&ThisClass::HandleAttackCameraSequenceFinished
+// 	);
+//
+// 	ActiveSequencePlayer->SetPlaybackPosition(
+// 		FMovieSceneSequencePlaybackParams(
+// 			0.0f,
+// 			EUpdatePositionMethod::Jump
+// 		)
+// 	);
+//
+// 	ActiveSequencePlayer->Play();
+// }
+
+// //CHANGE_CHIWON
+// void ABattleCameraManager::PlayAttackCameraSequence(ULevelSequence* CameraSequence, ABattleCharacterBase* Attacker)
+// {
+// 	if (!IsValid(CameraSequence) || !IsValid(Attacker))
+// 		return;
+//
+// 	StopAttackCameraSequence();
+//
+// 	FMovieSceneSequencePlaybackSettings PlaybackSettings;
+// 	ALevelSequenceActor* CreatedSequenceActor = nullptr;
+// 	ULevelSequencePlayer* SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(this, CameraSequence, PlaybackSettings, CreatedSequenceActor);
+//
+// 	if (!IsValid(SequencePlayer) || !IsValid(CreatedSequenceActor))
+// 		return;
+//
+// 	AttackSequenceActor = CreatedSequenceActor;
+// 	bOwnsAttackSequenceActor = true;
+// 	ActiveSequencePlayer = SequencePlayer;
+//
+// 	AActor* TransformOriginActor = Attacker;
+//
+// 	if (IsValid(AttackSequenceOrigin))
+// 	{
+// 		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+// 		AttackSequenceOrigin->AttachToActor(Attacker, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+// 		AttackSequenceOrigin->SetActorRelativeTransform(FTransform::Identity);
+// 		TransformOriginActor = AttackSequenceOrigin;
+// 	}
+//
+// 	UDefaultLevelSequenceInstanceData* InstanceData = NewObject<UDefaultLevelSequenceInstanceData>(AttackSequenceActor);
+// 	if (IsValid(InstanceData))
+// 	{
+// 		InstanceData->TransformOriginActor = TransformOriginActor;
+// 		AttackSequenceActor->DefaultInstanceData = InstanceData;
+// 		AttackSequenceActor->bOverrideInstanceData = true;
+// 	}
+//
+// 	ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
+// 	ActiveSequencePlayer->OnFinished.AddDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
+// 	ActiveSequencePlayer->Play();
+// }
+
+//CHANGE_CHIWON
+void ABattleCameraManager::PlayAttackCameraSequence(
+	ULevelSequence* CameraSequence,
+	ABattleCharacterBase* Attacker,
+	ABattleCharacterBase* Target
+)
+{
+	if (!IsValid(CameraSequence) || !IsValid(Attacker))
+		return;
 
 	StopAttackCameraSequence();
 
-	// 기존 부모가 있다면 분리
-	AttackSequenceOrigin->DetachFromActor(
-		FDetachmentTransformRules::KeepWorldTransform
-	);
+	FMovieSceneSequencePlaybackSettings PlaybackSettings;
+	ALevelSequenceActor* CreatedSequenceActor = nullptr;
+	ULevelSequencePlayer* SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(this, CameraSequence, PlaybackSettings, CreatedSequenceActor);
 
-	// 공격자의 Actor Root에 부착
-	AttackSequenceOrigin->AttachToActor(
-		Attacker,
-		FAttachmentTransformRules::SnapToTargetNotIncludingScale
-	);
-
-	// 공격자 기준 원점
-	AttackSequenceOrigin->SetActorRelativeLocation(
-		FVector::ZeroVector
-	);
-
-	AttackSequenceOrigin->SetActorRelativeRotation(
-		FRotator::ZeroRotator
-	);
-
-	AttackSequenceActor->SetSequence(CameraSequence);
-
-	ULevelSequencePlayer* SequencePlayer =
-		AttackSequenceActor->GetSequencePlayer();
-
-	if (!IsValid(SequencePlayer))
-	{
+	if (!IsValid(SequencePlayer) || !IsValid(CreatedSequenceActor))
 		return;
-	}
 
+	AttackSequenceActor = CreatedSequenceActor;
+	bOwnsAttackSequenceActor = true;
 	ActiveSequencePlayer = SequencePlayer;
 
-	ActiveSequencePlayer->OnFinished.RemoveDynamic(
-		this,
-		&ThisClass::HandleAttackCameraSequenceFinished
-	);
+	AActor* TransformOriginActor = Attacker;
 
-	ActiveSequencePlayer->OnFinished.AddDynamic(
-		this,
-		&ThisClass::HandleAttackCameraSequenceFinished
-	);
+	if (IsValid(AttackSequenceOrigin))
+	{
+		FRotator OriginRotation = Attacker->GetActorRotation();
 
-	ActiveSequencePlayer->SetPlaybackPosition(
-		FMovieSceneSequencePlaybackParams(
-			0.0f,
-			EUpdatePositionMethod::Jump
-		)
-	);
+		if (IsValid(Target))
+		{
+			FVector FacingDirection = Target->GetActorLocation() - Attacker->GetActorLocation();
+			FacingDirection.Z = 0.0f;
 
+			if (!FacingDirection.IsNearlyZero())
+			{
+				const UMuksiBattleMovementComponent* MovementComponent = Attacker->GetBattleMovementComponent();
+				const float MovementYawOffset = IsValid(MovementComponent) ? MovementComponent->MovementYawOffset : 0.0f;
+				const float OriginYaw = FRotator::NormalizeAxis(FacingDirection.Rotation().Yaw + MovementYawOffset);
+				OriginRotation = FRotator(0.0f, OriginYaw, 0.0f);
+			}
+		}
+
+		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		AttackSequenceOrigin->SetActorLocationAndRotation(Attacker->GetActorLocation(), OriginRotation);
+		TransformOriginActor = AttackSequenceOrigin;
+	}
+
+	UDefaultLevelSequenceInstanceData* InstanceData = NewObject<UDefaultLevelSequenceInstanceData>(AttackSequenceActor);
+	if (IsValid(InstanceData))
+	{
+		InstanceData->TransformOriginActor = TransformOriginActor;
+		AttackSequenceActor->DefaultInstanceData = InstanceData;
+		AttackSequenceActor->bOverrideInstanceData = true;
+	}
+
+	ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
+	ActiveSequencePlayer->OnFinished.AddDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
 	ActiveSequencePlayer->Play();
 }
 
+// void ABattleCameraManager::HandleAttackCameraSequenceFinished()
+// {
+// 	if (IsValid(ActiveSequencePlayer))
+// 	{
+// 		ActiveSequencePlayer->OnFinished.RemoveDynamic(
+// 			this,
+// 			&ThisClass::HandleAttackCameraSequenceFinished
+// 		);
+// 	}
+//
+// 	ActiveSequencePlayer = nullptr;
+//
+// 	ReturnToOverview();
+// }
+
+//CHANGE_CHIWON
 void ABattleCameraManager::HandleAttackCameraSequenceFinished()
 {
 	if (IsValid(ActiveSequencePlayer))
-	{
-		ActiveSequencePlayer->OnFinished.RemoveDynamic(
-			this,
-			&ThisClass::HandleAttackCameraSequenceFinished
-		);
-	}
+		ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
 
 	ActiveSequencePlayer = nullptr;
+
+	if (bOwnsAttackSequenceActor && IsValid(AttackSequenceActor))
+		AttackSequenceActor->Destroy();
+
+	AttackSequenceActor = nullptr;
+	bOwnsAttackSequenceActor = false;
+
+	if (IsValid(AttackSequenceOrigin))
+		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	ReturnToOverview();
 }
 
+// void ABattleCameraManager::StopAttackCameraSequence()
+// {
+// 	if (IsValid(ActiveSequencePlayer))
+// 	{
+// 		ActiveSequencePlayer->OnFinished.RemoveDynamic(
+// 			this,
+// 			&ThisClass::HandleAttackCameraSequenceFinished
+// 		);
+//
+// 		if (ActiveSequencePlayer->IsPlaying())
+// 		{
+// 			ActiveSequencePlayer->Stop();
+// 		}
+// 	}
+//
+// 	ActiveSequencePlayer = nullptr;
+//
+// 	if (IsValid(AttackSequenceOrigin))
+// 	{
+// 		AttackSequenceOrigin->DetachFromActor(
+// 			FDetachmentTransformRules::KeepWorldTransform
+// 		);
+// 	}
+// }
+
+//CHANGE_CHIWON
 void ABattleCameraManager::StopAttackCameraSequence()
 {
 	if (IsValid(ActiveSequencePlayer))
 	{
-		ActiveSequencePlayer->OnFinished.RemoveDynamic(
-			this,
-			&ThisClass::HandleAttackCameraSequenceFinished
-		);
+		ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
 
 		if (ActiveSequencePlayer->IsPlaying())
-		{
 			ActiveSequencePlayer->Stop();
-		}
 	}
 
 	ActiveSequencePlayer = nullptr;
 
+	if (bOwnsAttackSequenceActor && IsValid(AttackSequenceActor))
+		AttackSequenceActor->Destroy();
+
+	AttackSequenceActor = nullptr;
+	bOwnsAttackSequenceActor = false;
+
 	if (IsValid(AttackSequenceOrigin))
-	{
-		AttackSequenceOrigin->DetachFromActor(
-			FDetachmentTransformRules::KeepWorldTransform
-		);
-	}
+		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 }
-
-
 

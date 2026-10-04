@@ -10,6 +10,8 @@ class MUKSI_API UShieldStatusEffect : public UMuksiIncomingDamageModifierStatusE
 	GENERATED_BODY()
 
 public:
+	UShieldStatusEffect();
+
 	virtual int32 GetIncomingDamageModifierPriority() const override;
 	virtual void ModifyIncomingDamage(FIncomingDamageModifierContext& Context) override;
 	virtual FName GetHitReactionAnimKey() const override;

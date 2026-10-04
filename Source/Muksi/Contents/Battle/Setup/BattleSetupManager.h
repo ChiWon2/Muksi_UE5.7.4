@@ -12,7 +12,9 @@ class ABattleCharacter_Enemy;
 class ABattleGridManager;
 class ABattleManager;
 class UMuksiCharacterDataAsset;
+class UBattlePhaseTask;
 class UBattlePhaseTaskContext;
+class UBattleAssetPreloadManager;
 
 /**
  * Ready 단계의 전투 데이터 준비, 캐릭터 생성, 초기 배치와 사망 이벤트 연결을 담당한다.
@@ -35,7 +37,7 @@ private:
     UFUNCTION()
     void HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext);
 
-    bool PrepareReadyData();
+    bool PrepareReadyData(UBattlePhaseTask* Task);
     bool PrepareReadyEnd();
     bool ShouldHandlePhaseEntry(EBattlePhase Phase) const;
     void LoadEncounterEnemyCharacterData();
@@ -50,6 +52,9 @@ private:
 private:
     UPROPERTY(Transient)
     TObjectPtr<ABattleManager> BattleManager = nullptr;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UBattleAssetPreloadManager> AssetPreloadManager = nullptr;
 
     UPROPERTY(EditAnywhere, Category = "Battle|Setup|Grid")
     TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
