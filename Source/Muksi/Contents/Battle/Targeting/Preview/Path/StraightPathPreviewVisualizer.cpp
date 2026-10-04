@@ -59,21 +59,10 @@ void UStraightPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContex
 
 	for (const FTargetingGroup& Group : *Groups)
 	{
-		FVector RawEndLocation = FVector::ZeroVector;
+		FVector EndLocation = FVector::ZeroVector;
 
-		if (!MuksiPathPreview::GetGroupEndLocation(Context, Group, RawEndLocation))
+		if (!MuksiPathPreview::GetPathRangeEndLocation(Context, Group, StartLocation, EndLocation))
 			continue;
-
-		RawEndLocation.Z += PreviewHeightOffset;
-
-		FVector AimDirection = FVector::ZeroVector;
-
-		if (!MuksiPathPreview::GetPathDirection(Context, Group, *Data, StartLocation, RawEndLocation, AimDirection))
-			continue;
-
-		const float RawLength = FVector::Dist2D(StartLocation, RawEndLocation);
-		const float Length = Data->bUseFixedLength ? FMath::Max(0.0f, Data->Length) : RawLength;
-		const FVector EndLocation = StartLocation + AimDirection * Length;
 
 		if (FVector::DistSquared(StartLocation, EndLocation) <= KINDA_SMALL_NUMBER)
 			continue;
