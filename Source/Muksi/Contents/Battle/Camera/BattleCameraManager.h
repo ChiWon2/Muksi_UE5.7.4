@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "MuksiBattleCameraDataAsset.h"
 #include "BattleCameraManager.generated.h"
 
 class APlayerController;
@@ -17,6 +18,7 @@ class ULevelSequencePlayer;
 class ABattleManager;
 class UBattlePhaseTaskContext;
 class UMuksiBattleCameraDataAsset;
+struct FMuksiBattleCameraData;
 
 
 DECLARE_MULTICAST_DELEGATE(FOnActionCameraPreArrival);
@@ -368,7 +370,7 @@ protected:
 	
 	
 public:
-	const TSoftObjectPtr<ULevelSequence>* FindBattleCameraSequence(FName CameraKey) const;
+	const FMuksiBattleCameraData* FindBattleCameraData(FName CameraKey) const;
 	void CollectBattleCameraAssetPaths(const TSet<FName>& CameraKeys, TArray<FSoftObjectPath>& OutAssetPaths) const;
 	void PlayBattleCameraSequence(
 		FName CameraKey,
@@ -399,9 +401,29 @@ protected:
 	TObjectPtr<ULevelSequencePlayer> ActiveSequencePlayer = nullptr;
 
 	bool bOwnsAttackSequenceActor = false;
+	EBattleCameraBlendOutMode ActiveSequenceBlendOutMode = EBattleCameraBlendOutMode::Legacy;
+	float ActiveSequenceBlendOutDuration = 0.2f;
+	float ActiveSequenceBlendOutExponent = 2.0f;
+
+	bool bCameraPOVBlendActive = false;
+	float CameraPOVBlendElapsedTime = 0.0f;
+	float CameraPOVBlendDuration = 0.2f;
+	float CameraPOVBlendExponent = 2.0f;
+	FVector CameraPOVBlendStartLocation = FVector::ZeroVector;
+	FQuat CameraPOVBlendStartRotation = FQuat::Identity;
+	float CameraPOVBlendStartFocalLength = 35.0f;
+	FVector CameraPOVBlendTargetLocation = FVector::ZeroVector;
+	FQuat CameraPOVBlendTargetRotation = FQuat::Identity;
+	FVector OverviewOrbitCenter = FVector::ZeroVector;
 
 	UFUNCTION()
 	void HandleAttackCameraSequenceFinished();
 	
 	void StopAttackCameraSequence();
+	void ReturnToOverviewImmediately();
+	void StartCameraPOVBlendToOverview(float BlendDuration, float BlendExponent);
+	void StartOverviewOrbitBlendToOverview(float BlendDuration, float BlendExponent);
+	void UpdateCameraPOVBlend(float DeltaTime);
+	void UpdateOverviewOrbitBlend(float DeltaTime);
+	void FinishCameraPOVBlend();
 };

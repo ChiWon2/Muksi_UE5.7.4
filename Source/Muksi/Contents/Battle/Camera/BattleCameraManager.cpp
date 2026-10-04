@@ -5,6 +5,7 @@
 
 #include "CharacterCameraComponent.h"
 #include "CineCameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "LevelSequence.h"
 #include "DefaultLevelSequenceInstanceData.h"
 #include "LevelSequenceActor.h"
@@ -170,12 +171,137 @@ void ABattleCameraManager::EndPlay(
 	Super::EndPlay(EndPlayReason);
 }
 
+// void ABattleCameraManager::Tick(float DeltaTime)
+// {
+// 	Super::Tick(DeltaTime);
+//
+// 	if (!IsValid(BattleCamera) || !IsValid(CameraSpringArm))
+// 	{
+// 		return;
+// 	}
+//
+// 	/*
+// 	 * 공격 애니메이션 중에는
+// 	 * AttackCameraComponent의 월드 Transform을 매 프레임 읽는다.
+// 	 */
+// 	if (bTrackingCameraComponent)
+// 	{
+// 		if (IsValid(TrackingCameraComponent))
+// 		{
+// 			const FTransform TrackingTransform =
+// 				TrackingCameraComponent->GetComponentTransform();
+//
+// 			TargetCameraLocation =
+// 				TrackingTransform.GetLocation();
+//
+// 			/*TargetCameraRotation =
+// 				TrackingTransform.Rotator();*/
+// 		}
+// 		else
+// 		{
+// 			bTrackingCameraComponent = false;
+// 			TrackingCameraComponent = nullptr;
+// 		}
+// 	}
+//
+// 	// Manager Actor 위치 보간
+// 	const FVector NewLocation =
+// 		FMath::VInterpTo(
+// 			GetActorLocation(),
+// 			TargetCameraLocation,
+// 			DeltaTime,
+// 			LocationInterpSpeed
+// 		);
+//
+// 	// Manager Actor 회전 보간
+// 	const FRotator NewRotation =
+// 		FMath::RInterpTo(
+// 			GetActorRotation(),
+// 			TargetCameraRotation,
+// 			DeltaTime,
+// 			RotationInterpSpeed
+// 		);
+//
+// 	SetActorLocationAndRotation(
+// 		NewLocation,
+// 		NewRotation
+// 	);
+//
+// 	// SpringArm 길이 보간
+// 	const float NewArmLength =
+// 		FMath::FInterpTo(
+// 			CameraSpringArm->TargetArmLength,
+// 			TargetArmLength,
+// 			DeltaTime,
+// 			ArmLengthInterpSpeed
+// 		);
+//
+// 	CameraSpringArm->TargetArmLength = NewArmLength;
+//
+// 	// SpringArm SocketOffset 보간
+// 	const FVector NewSocketOffset =
+// 		FMath::VInterpTo(
+// 			CameraSpringArm->SocketOffset,
+// 			TargetSocketOffset,
+// 			DeltaTime,
+// 			LocationInterpSpeed
+// 		);
+//
+// 	CameraSpringArm->SocketOffset = NewSocketOffset;
+//
+// 	// SpringArm 상대 회전 보간
+// 	const FRotator NewArmRotation =
+// 		FMath::RInterpTo(
+// 			CameraSpringArm->GetRelativeRotation(),
+// 			TargetArmRelativeRotation,
+// 			DeltaTime,
+// 			RotationInterpSpeed
+// 		);
+//
+// 	CameraSpringArm->SetRelativeRotation(NewArmRotation);
+//
+// 	// CineCamera Focal Length 보간
+// 	const float NewFocalLength =
+// 		FMath::FInterpTo(
+// 			BattleCamera->CurrentFocalLength,
+// 			TargetFocalLength,
+// 			DeltaTime,
+// 			FocalLengthInterpSpeed
+// 		);
+//
+// 	BattleCamera->SetCurrentFocalLength(NewFocalLength);
+// 	
+// 	//어느 정도 거리 안에 들어왔을 때 미리 보내는 신호
+// 	if (CameraMode == EBattleCameraMode::ActionPresentation && bWaitingForCameraMoveCompletion && !bActionCameraPreArrivalTriggered)
+// 	{
+// 		const float DistanceToTarget =
+// 			FVector::Dist(
+// 				GetActorLocation(),
+// 				TargetCameraLocation
+// 			);
+//
+// 		if (DistanceToTarget <= ActionPresentationPreArrivalDistance)
+// 		{
+// 			bActionCameraPreArrivalTriggered = true;
+//
+// 			OnActionCameraPreArrival.Broadcast();
+// 		}
+// 	}
+// 	
+// 	CheckCameraMoveFinished();
+// }
+
+//CHANGE_CHIWON
 void ABattleCameraManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	if (!IsValid(BattleCamera) || !IsValid(CameraSpringArm))
+		return;
+
+	if (bCameraPOVBlendActive)
 	{
+		UpdateCameraPOVBlend(DeltaTime);
 		return;
 	}
 
@@ -203,7 +329,6 @@ void ABattleCameraManager::Tick(float DeltaTime)
 		}
 	}
 
-	// Manager Actor 위치 보간
 	const FVector NewLocation =
 		FMath::VInterpTo(
 			GetActorLocation(),
@@ -212,7 +337,6 @@ void ABattleCameraManager::Tick(float DeltaTime)
 			LocationInterpSpeed
 		);
 
-	// Manager Actor 회전 보간
 	const FRotator NewRotation =
 		FMath::RInterpTo(
 			GetActorRotation(),
@@ -226,7 +350,6 @@ void ABattleCameraManager::Tick(float DeltaTime)
 		NewRotation
 	);
 
-	// SpringArm 길이 보간
 	const float NewArmLength =
 		FMath::FInterpTo(
 			CameraSpringArm->TargetArmLength,
@@ -237,7 +360,6 @@ void ABattleCameraManager::Tick(float DeltaTime)
 
 	CameraSpringArm->TargetArmLength = NewArmLength;
 
-	// SpringArm SocketOffset 보간
 	const FVector NewSocketOffset =
 		FMath::VInterpTo(
 			CameraSpringArm->SocketOffset,
@@ -248,7 +370,6 @@ void ABattleCameraManager::Tick(float DeltaTime)
 
 	CameraSpringArm->SocketOffset = NewSocketOffset;
 
-	// SpringArm 상대 회전 보간
 	const FRotator NewArmRotation =
 		FMath::RInterpTo(
 			CameraSpringArm->GetRelativeRotation(),
@@ -259,7 +380,6 @@ void ABattleCameraManager::Tick(float DeltaTime)
 
 	CameraSpringArm->SetRelativeRotation(NewArmRotation);
 
-	// CineCamera Focal Length 보간
 	const float NewFocalLength =
 		FMath::FInterpTo(
 			BattleCamera->CurrentFocalLength,
@@ -269,8 +389,7 @@ void ABattleCameraManager::Tick(float DeltaTime)
 		);
 
 	BattleCamera->SetCurrentFocalLength(NewFocalLength);
-	
-	//어느 정도 거리 안에 들어왔을 때 미리 보내는 신호
+
 	if (CameraMode == EBattleCameraMode::ActionPresentation && bWaitingForCameraMoveCompletion && !bActionCameraPreArrivalTriggered)
 	{
 		const float DistanceToTarget =
@@ -286,7 +405,7 @@ void ABattleCameraManager::Tick(float DeltaTime)
 			OnActionCameraPreArrival.Broadcast();
 		}
 	}
-	
+
 	CheckCameraMoveFinished();
 }
 
@@ -659,7 +778,7 @@ void ABattleCameraManager::SetCameraTarget(const FVector& NewLocation, const FRo
 		);
 }
 
-const TSoftObjectPtr<ULevelSequence>* ABattleCameraManager::FindBattleCameraSequence(FName CameraKey) const
+const FMuksiBattleCameraData* ABattleCameraManager::FindBattleCameraData(FName CameraKey) const
 {
 	if (CameraKey.IsNone())
 		return nullptr;
@@ -669,9 +788,9 @@ const TSoftObjectPtr<ULevelSequence>* ABattleCameraManager::FindBattleCameraSequ
 		if (!IsValid(DataAsset))
 			continue;
 
-		const TSoftObjectPtr<ULevelSequence>* CameraSequence = DataAsset->FindCameraSequence(CameraKey);
-		if (CameraSequence)
-			return CameraSequence;
+		const FMuksiBattleCameraData* CameraData = DataAsset->FindCameraData(CameraKey);
+		if (CameraData)
+			return CameraData;
 	}
 
 	return nullptr;
@@ -681,30 +800,57 @@ void ABattleCameraManager::CollectBattleCameraAssetPaths(const TSet<FName>& Came
 {
 	for (const FName CameraKey : CameraKeys)
 	{
-		const TSoftObjectPtr<ULevelSequence>* CameraSequence = FindBattleCameraSequence(CameraKey);
-		if (!CameraSequence || CameraSequence->IsNull())
+		const FMuksiBattleCameraData* CameraData = FindBattleCameraData(CameraKey);
+		if (!CameraData || CameraData->LevelSequence.IsNull())
 			continue;
 
-		OutAssetPaths.AddUnique(CameraSequence->ToSoftObjectPath());
+		OutAssetPaths.AddUnique(CameraData->LevelSequence.ToSoftObjectPath());
 	}
 }
 
+// void ABattleCameraManager::PlayBattleCameraSequence(
+// 	FName CameraKey,
+// 	ABattleCharacterBase* Attacker,
+// 	ABattleCharacterBase* Target
+// )
+// {
+// 	const FMuksiBattleCameraData* CameraData = FindBattleCameraData(CameraKey);
+// 	if (!CameraData)
+// 		return;
+//
+// 	ULevelSequence* LevelSequence = CameraData->LevelSequence.Get();
+// 	if (!IsValid(LevelSequence))
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("[BattleCameraManager] Camera sequence is not preloaded. Key: %s"), *CameraKey.ToString());
+// 		return;
+// 	}
+//
+// 	bActiveSequenceAutoBlendOut = CameraData->bAutoBlendOut;
+// 	PlayAttackCameraSequence(LevelSequence, Attacker, Target);
+// }
+
+//CHANGE_CHIWON
 void ABattleCameraManager::PlayBattleCameraSequence(
 	FName CameraKey,
 	ABattleCharacterBase* Attacker,
 	ABattleCharacterBase* Target
 )
 {
-	const TSoftObjectPtr<ULevelSequence>* CameraSequence = FindBattleCameraSequence(CameraKey);
-	if (!CameraSequence)
+	const FMuksiBattleCameraData* CameraData = FindBattleCameraData(CameraKey);
+	if (!CameraData)
 		return;
 
-	ULevelSequence* LevelSequence = CameraSequence->Get();
+	ULevelSequence* LevelSequence = CameraData->LevelSequence.Get();
 	if (!IsValid(LevelSequence))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleCameraManager] Camera sequence is not preloaded. Key: %s"), *CameraKey.ToString());
 		return;
 	}
+
+	bCameraPOVBlendActive = false;
+	ActiveSequenceBlendOutMode = CameraData->BlendOutMode;
+	ActiveSequenceBlendOutDuration = CameraData->BlendOutDuration;
+	ActiveSequenceBlendOutExponent = CameraData->BlendOutExponent;
 
 	PlayAttackCameraSequence(LevelSequence, Attacker, Target);
 }
@@ -892,6 +1038,29 @@ void ABattleCameraManager::PlayAttackCameraSequence(
 // }
 
 //CHANGE_CHIWON
+// void ABattleCameraManager::HandleAttackCameraSequenceFinished()
+// {
+// 	if (IsValid(ActiveSequencePlayer))
+// 		ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
+//
+// 	ActiveSequencePlayer = nullptr;
+//
+// 	if (bOwnsAttackSequenceActor && IsValid(AttackSequenceActor))
+// 		AttackSequenceActor->Destroy();
+//
+// 	AttackSequenceActor = nullptr;
+// 	bOwnsAttackSequenceActor = false;
+//
+// 	if (IsValid(AttackSequenceOrigin))
+// 		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+//
+// 	if (bActiveSequenceAutoBlendOut)
+// 		ReturnToOverview();
+// 	else
+// 		ReturnToOverviewImmediately();
+// }
+
+//CHANGE_CHIWON
 void ABattleCameraManager::HandleAttackCameraSequenceFinished()
 {
 	if (IsValid(ActiveSequencePlayer))
@@ -899,17 +1068,364 @@ void ABattleCameraManager::HandleAttackCameraSequenceFinished()
 
 	ActiveSequencePlayer = nullptr;
 
+	if (IsValid(AttackSequenceOrigin))
+		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+	switch (ActiveSequenceBlendOutMode)
+	{
+	case EBattleCameraBlendOutMode::Legacy:
+		ReturnToOverview();
+		break;
+
+	case EBattleCameraBlendOutMode::Instant:
+		ReturnToOverviewImmediately();
+		break;
+
+	case EBattleCameraBlendOutMode::CameraPOV:
+		StartCameraPOVBlendToOverview(
+			ActiveSequenceBlendOutDuration,
+			ActiveSequenceBlendOutExponent
+		);
+		break;
+
+	case EBattleCameraBlendOutMode::OverviewOrbit:
+		StartOverviewOrbitBlendToOverview(
+			ActiveSequenceBlendOutDuration,
+			ActiveSequenceBlendOutExponent
+		);
+		break;
+	}
+
 	if (bOwnsAttackSequenceActor && IsValid(AttackSequenceActor))
 		AttackSequenceActor->Destroy();
 
 	AttackSequenceActor = nullptr;
 	bOwnsAttackSequenceActor = false;
-
-	if (IsValid(AttackSequenceOrigin))
-		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-
-	ReturnToOverview();
 }
+
+void ABattleCameraManager::ReturnToOverviewImmediately()
+{
+	StopTrackingCamera();
+
+	CameraMode = EBattleCameraMode::Overview;
+
+	TargetCameraLocation = OverviewCameraLocation;
+	TargetCameraRotation = OverviewCameraRotation;
+	TargetArmLength = OverviewArmLength;
+	TargetFocalLength = OverviewFocalLength;
+	TargetSocketOffset = FVector::ZeroVector;
+	TargetArmRelativeRotation = FRotator::ZeroRotator;
+
+	SetActorLocationAndRotation(OverviewCameraLocation, OverviewCameraRotation);
+	CameraSpringArm->TargetArmLength = OverviewArmLength;
+	CameraSpringArm->SocketOffset = FVector::ZeroVector;
+	CameraSpringArm->SetRelativeRotation(FRotator::ZeroRotator);
+	BattleCamera->SetCurrentFocalLength(OverviewFocalLength);
+
+	ActivateBattleCamera(0.0f);
+}
+
+void ABattleCameraManager::StartCameraPOVBlendToOverview(
+	float BlendDuration,
+	float BlendExponent
+)
+{
+	if (!IsValid(BattleCamera) || !IsValid(CameraSpringArm))
+	{
+		ReturnToOverviewImmediately();
+		return;
+	}
+
+	APlayerCameraManager* PlayerCameraManager =
+		UGameplayStatics::GetPlayerCameraManager(this, 0);
+
+	if (!IsValid(PlayerCameraManager) || BlendDuration <= 0.0f)
+	{
+		ReturnToOverviewImmediately();
+		return;
+	}
+
+	StopTrackingCamera();
+
+	CameraMode = EBattleCameraMode::Overview;
+	bWaitingForCameraMoveCompletion = false;
+
+	TargetCameraLocation = OverviewCameraLocation;
+	TargetCameraRotation = OverviewCameraRotation;
+	TargetArmLength = OverviewArmLength;
+	TargetFocalLength = OverviewFocalLength;
+	TargetSocketOffset = FVector::ZeroVector;
+	TargetArmRelativeRotation = FRotator::ZeroRotator;
+
+	CameraPOVBlendStartLocation = PlayerCameraManager->GetCameraLocation();
+	CameraPOVBlendStartRotation = PlayerCameraManager->GetCameraRotation().Quaternion();
+
+	const float StartFOV =
+		FMath::Clamp(
+			PlayerCameraManager->GetFOVAngle(),
+			1.0f,
+			170.0f
+		);
+
+	const float HalfFOVRadians = FMath::DegreesToRadians(StartFOV * 0.5f);
+	const float SensorWidth = FMath::Max(BattleCamera->Filmback.SensorWidth, KINDA_SMALL_NUMBER);
+
+	CameraPOVBlendStartFocalLength =
+		SensorWidth / (2.0f * FMath::Tan(HalfFOVRadians));
+
+	CameraPOVBlendTargetLocation =
+		OverviewCameraLocation
+		- OverviewCameraRotation.Vector() * OverviewArmLength;
+
+	CameraPOVBlendTargetRotation = OverviewCameraRotation.Quaternion();
+	CameraPOVBlendElapsedTime = 0.0f;
+	CameraPOVBlendDuration = BlendDuration;
+	CameraPOVBlendExponent = FMath::Max(1.0f, BlendExponent);
+	bCameraPOVBlendActive = true;
+
+	SetActorLocationAndRotation(
+		CameraPOVBlendStartLocation,
+		CameraPOVBlendStartRotation.Rotator()
+	);
+
+	CameraSpringArm->TargetArmLength = 0.0f;
+	CameraSpringArm->SocketOffset = FVector::ZeroVector;
+	CameraSpringArm->SetRelativeRotation(FRotator::ZeroRotator);
+	BattleCamera->SetCurrentFocalLength(CameraPOVBlendStartFocalLength);
+
+	ActivateBattleCamera(0.0f);
+}
+
+void ABattleCameraManager::StartOverviewOrbitBlendToOverview(
+	float BlendDuration,
+	float BlendExponent
+)
+{
+	if (!IsValid(BattleCamera) || !IsValid(CameraSpringArm))
+	{
+		ReturnToOverviewImmediately();
+		return;
+	}
+
+	APlayerCameraManager* PlayerCameraManager =
+		UGameplayStatics::GetPlayerCameraManager(this, 0);
+
+	if (!IsValid(PlayerCameraManager) || BlendDuration <= 0.0f)
+	{
+		ReturnToOverviewImmediately();
+		return;
+	}
+
+	StopTrackingCamera();
+
+	CameraMode = EBattleCameraMode::Overview;
+	bWaitingForCameraMoveCompletion = false;
+
+	TargetCameraLocation = OverviewCameraLocation;
+	TargetCameraRotation = OverviewCameraRotation;
+	TargetArmLength = OverviewArmLength;
+	TargetFocalLength = OverviewFocalLength;
+	TargetSocketOffset = FVector::ZeroVector;
+	TargetArmRelativeRotation = FRotator::ZeroRotator;
+
+	CameraPOVBlendStartLocation = PlayerCameraManager->GetCameraLocation();
+	CameraPOVBlendStartRotation = PlayerCameraManager->GetCameraRotation().Quaternion();
+
+	const float StartFOV =
+		FMath::Clamp(
+			PlayerCameraManager->GetFOVAngle(),
+			1.0f,
+			170.0f
+		);
+
+	const float HalfFOVRadians = FMath::DegreesToRadians(StartFOV * 0.5f);
+	const float SensorWidth = FMath::Max(BattleCamera->Filmback.SensorWidth, KINDA_SMALL_NUMBER);
+
+	CameraPOVBlendStartFocalLength =
+		SensorWidth / (2.0f * FMath::Tan(HalfFOVRadians));
+
+	OverviewOrbitCenter = OverviewCameraLocation;
+
+	CameraPOVBlendTargetLocation =
+		OverviewCameraLocation
+		- OverviewCameraRotation.Vector() * OverviewArmLength;
+
+	CameraPOVBlendTargetRotation = OverviewCameraRotation.Quaternion();
+	CameraPOVBlendElapsedTime = 0.0f;
+	CameraPOVBlendDuration = BlendDuration;
+	CameraPOVBlendExponent = FMath::Max(1.0f, BlendExponent);
+	bCameraPOVBlendActive = true;
+
+	SetActorLocationAndRotation(
+		CameraPOVBlendStartLocation,
+		CameraPOVBlendStartRotation.Rotator()
+	);
+
+	CameraSpringArm->TargetArmLength = 0.0f;
+	CameraSpringArm->SocketOffset = FVector::ZeroVector;
+	CameraSpringArm->SetRelativeRotation(FRotator::ZeroRotator);
+	BattleCamera->SetCurrentFocalLength(CameraPOVBlendStartFocalLength);
+
+	ActivateBattleCamera(0.0f);
+}
+
+void ABattleCameraManager::UpdateCameraPOVBlend(float DeltaTime)
+{
+	if (ActiveSequenceBlendOutMode == EBattleCameraBlendOutMode::OverviewOrbit)
+	{
+		UpdateOverviewOrbitBlend(DeltaTime);
+		return;
+	}
+
+	CameraPOVBlendElapsedTime += DeltaTime;
+
+	const float LinearAlpha =
+		FMath::Clamp(
+			CameraPOVBlendElapsedTime / CameraPOVBlendDuration,
+			0.0f,
+			1.0f
+		);
+
+	const float BlendAlpha =
+		FMath::InterpEaseInOut(
+			0.0f,
+			1.0f,
+			LinearAlpha,
+			CameraPOVBlendExponent
+		);
+
+	const FVector BlendedLocation =
+		FMath::Lerp(
+			CameraPOVBlendStartLocation,
+			CameraPOVBlendTargetLocation,
+			BlendAlpha
+		);
+
+	const FQuat BlendedRotation =
+		FQuat::Slerp(
+			CameraPOVBlendStartRotation,
+			CameraPOVBlendTargetRotation,
+			BlendAlpha
+		).GetNormalized();
+
+	const float BlendedFocalLength =
+		FMath::Lerp(
+			CameraPOVBlendStartFocalLength,
+			OverviewFocalLength,
+			BlendAlpha
+		);
+
+	SetActorLocationAndRotation(
+		BlendedLocation,
+		BlendedRotation.Rotator()
+	);
+
+	BattleCamera->SetCurrentFocalLength(BlendedFocalLength);
+
+	if (LinearAlpha >= 1.0f)
+		FinishCameraPOVBlend();
+}
+
+void ABattleCameraManager::UpdateOverviewOrbitBlend(float DeltaTime)
+{
+	CameraPOVBlendElapsedTime += DeltaTime;
+
+	const float LinearAlpha =
+		FMath::Clamp(
+			CameraPOVBlendElapsedTime / CameraPOVBlendDuration,
+			0.0f,
+			1.0f
+		);
+
+	const float BlendAlpha =
+		FMath::InterpEaseInOut(
+			0.0f,
+			1.0f,
+			LinearAlpha,
+			CameraPOVBlendExponent
+		);
+
+	const FVector StartOffset =
+		CameraPOVBlendStartLocation - OverviewOrbitCenter;
+
+	const FVector TargetOffset =
+		CameraPOVBlendTargetLocation - OverviewOrbitCenter;
+
+	const float StartDistance = StartOffset.Size();
+	const float TargetDistance = TargetOffset.Size();
+
+	if (StartDistance <= KINDA_SMALL_NUMBER || TargetDistance <= KINDA_SMALL_NUMBER)
+	{
+		ActiveSequenceBlendOutMode = EBattleCameraBlendOutMode::CameraPOV;
+		UpdateCameraPOVBlend(0.0f);
+		return;
+	}
+
+	const FVector StartDirection = StartOffset / StartDistance;
+	const FVector TargetDirection = TargetOffset / TargetDistance;
+
+	const FQuat DirectionRotation =
+		FQuat::FindBetweenNormals(
+			StartDirection,
+			TargetDirection
+		);
+
+	const FQuat BlendedDirectionRotation =
+		FQuat::Slerp(
+			FQuat::Identity,
+			DirectionRotation,
+			BlendAlpha
+		).GetNormalized();
+
+	const FVector BlendedDirection =
+		BlendedDirectionRotation.RotateVector(StartDirection).GetSafeNormal();
+
+	const float BlendedDistance =
+		FMath::Lerp(
+			StartDistance,
+			TargetDistance,
+			BlendAlpha
+		);
+
+	const FVector BlendedLocation =
+		OverviewOrbitCenter + BlendedDirection * BlendedDistance;
+
+	const FRotator BlendedRotation =
+		(OverviewOrbitCenter - BlendedLocation).Rotation();
+
+	const float BlendedFocalLength =
+		FMath::Lerp(
+			CameraPOVBlendStartFocalLength,
+			OverviewFocalLength,
+			BlendAlpha
+		);
+
+	SetActorLocationAndRotation(
+		BlendedLocation,
+		BlendedRotation
+	);
+
+	BattleCamera->SetCurrentFocalLength(BlendedFocalLength);
+
+	if (LinearAlpha >= 1.0f)
+		FinishCameraPOVBlend();
+}
+
+void ABattleCameraManager::FinishCameraPOVBlend()
+{
+	bCameraPOVBlendActive = false;
+
+	SetActorLocationAndRotation(
+		OverviewCameraLocation,
+		OverviewCameraRotation
+	);
+
+	CameraSpringArm->TargetArmLength = OverviewArmLength;
+	CameraSpringArm->SocketOffset = FVector::ZeroVector;
+	CameraSpringArm->SetRelativeRotation(FRotator::ZeroRotator);
+	BattleCamera->SetCurrentFocalLength(OverviewFocalLength);
+}
+
 
 // void ABattleCameraManager::StopAttackCameraSequence()
 // {

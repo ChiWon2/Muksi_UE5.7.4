@@ -1,6 +1,6 @@
 #include "Muksi/Contents/Battle/Camera/MuksiBattleCameraDataAsset.h"
 
-const TSoftObjectPtr<ULevelSequence>* UMuksiBattleCameraDataAsset::FindCameraSequence(FName CameraKey) const
+const FMuksiBattleCameraData* UMuksiBattleCameraDataAsset::FindCameraData(FName CameraKey) const
 {
 	if (CameraKey.IsNone())
 		return nullptr;
