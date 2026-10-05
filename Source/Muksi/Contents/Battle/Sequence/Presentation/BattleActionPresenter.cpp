@@ -82,6 +82,11 @@ bool UBattleActionPresenter::StartPresentation(const FBattleAction& BattleAction
 
 	CurrentAction = BattleAction;
 	bPresentationRunning = true;
+	
+	bSkillInfoDeceiveFinished = false;
+	bSkillRevealDeceiveFinished = false;
+	const bool bIsDeceive = (IsValid(CurrentAction.Card.Get()) && IsValid(CurrentAction.Card->GetDeceivedCard()));
+	bWaitingForDeceivePresentation = bIsDeceive;
 
 	UE_LOG(
 		LogTemp,
@@ -167,11 +172,23 @@ void UBattleActionPresenter::SpawnSkillInfoActor()
 
 		return;
 	}
-
-	SkillInfoActor->SetBattleAction(CurrentAction);
-	SkillInfoActor->PlayShowPresentation();
-
+	
 	SkillInfoActor->OnShowFinished.AddUObject(this, &UBattleActionPresenter::HandleSkillInfoShowFinished);
+	SkillInfoActor->OnDeceiveRevealStarted.AddUObject(this, &UBattleActionPresenter::HandleSkillInfoDeceiveRevealStarted);
+
+	SkillInfoActor->PlayShowPresentation(CurrentAction);
+}
+
+void UBattleActionPresenter::NotifySkillRevealDeceiveFinished()
+{
+	if (!bPresentationRunning)
+	{
+		return;
+	}
+
+	bSkillRevealDeceiveFinished = true;
+
+	TryFinishDeceivePresentation();
 }
 
 void UBattleActionPresenter::HandleCameraPreArrival()
@@ -208,6 +225,21 @@ void UBattleActionPresenter::HandleCameraMoveFinished(EBattleCameraMode Finished
 
 void UBattleActionPresenter::HandleSkillInfoShowFinished()
 {
+	if (!bPresentationRunning)
+	{
+		return;
+	}
+
+	// 변초인 경우
+	if (bWaitingForDeceivePresentation)
+	{
+		bSkillInfoDeceiveFinished = true;
+
+		TryFinishDeceivePresentation();
+		return;
+	}
+
+	// 일반 Skill
 	FinishPresentation();
 }
 
@@ -239,4 +271,53 @@ void UBattleActionPresenter::FinishPresentation()
 	{
 		SequenceManager->NotifyBattleActionPresentationFinished();
 	}
+}
+
+void UBattleActionPresenter::TryFinishDeceivePresentation()
+{
+	if (!bPresentationRunning)
+	{
+		return;
+	}
+
+	if (!bWaitingForDeceivePresentation)
+	{
+		return;
+	}
+
+	if (!bSkillInfoDeceiveFinished)
+	{
+		return;
+	}
+
+	if (!bSkillRevealDeceiveFinished)
+	{
+		return;
+	}
+
+	bWaitingForDeceivePresentation = false;
+
+	FinishPresentation();
+}
+
+void UBattleActionPresenter::RequestSkillRevealDeceivePresentation()
+{
+	if (!OnSkillRevealDeceiveRequested.IsBound())
+	{
+		bSkillRevealDeceiveFinished = true;
+		NotifySkillRevealDeceiveFinished();
+		return;
+	}
+
+	OnSkillRevealDeceiveRequested.Broadcast(CurrentAction);
+}
+
+void UBattleActionPresenter::HandleSkillInfoDeceiveRevealStarted()
+{
+	if (!bPresentationRunning)
+	{
+		return;
+	}
+
+	RequestSkillRevealDeceivePresentation();
 }

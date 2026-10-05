@@ -126,6 +126,20 @@ void UCharacterDataPanelWidget_Player::OnPassiveButtonClicked()
 	SwitchPlayerPanel(2);
 }
 
+void UCharacterDataPanelWidget_Player::SwitchPlayerPanel(EPlayerDataPanel PanelType)
+{
+	
+}
+
+void UCharacterDataPanelWidget_Player::UpdateButtonState()
+{
+}
+
+void UCharacterDataPanelWidget_Player::SetButtonSelected(UButton* Button, bool bSelected)
+{
+	
+}
+
 void UCharacterDataPanelWidget_Player::SwitchPlayerPanel(int32 PanelIndex)
 {
 	if (!WidgetSwitcher)

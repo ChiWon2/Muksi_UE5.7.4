@@ -21,6 +21,7 @@
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Contents/Battle/Sequence/Presentation/BattleActionPresenter.h"
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleControlPanel.h"
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleSkillBar.h"
 #include "Muksi/Widgets/Battle/CardPreview/CardPreviewPanel.h"
@@ -86,7 +87,7 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	
 	
 	BindBattleSkillReveal();
-	BindBattleSequenceManagerEvents();
+
 	BindBattleControlPanelEvents();
 	
 
@@ -184,8 +185,12 @@ void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
 		return;
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested);
-	
 	BattleSequenceManager->BattleActionPresentationRequestedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleBattleActionPresentationRequested);
+	
+	UBattleActionPresenter* BattleActionPresenter = BattleSequenceManager->GetActionPresenter();
+	if (!BattleActionPresenter)
+		return;
+	BattleActionPresenter->OnSkillRevealDeceiveRequested.AddUObject(this, &UWidget_BattleMainScreen::HandleSkillRevealDeceiveRequested);
 }
 
 void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
@@ -388,9 +393,9 @@ void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAct
 	if (!BattleSequenceManager || !IsValid(BattleAction.Card))
 		return;
 	
-	UMuksiBattleCardDataAsset* PresentedCard = BattleAction.Card.Get();
+	UMuksiBattleCardDataAsset* PresentedCard = BattleAction.Card->GetDeceivedCard();
 
-	UMuksiBattleCardDataAsset* ActualCard = BattleAction.Card->GetActualCard();
+	UMuksiBattleCardDataAsset* ActualCard = BattleAction.Card.Get();
 	if (!IsValid(ActualCard))
 	{
 		BattleSequenceManager->NotifyDeceiveCardRevealFinished();
@@ -589,6 +594,8 @@ void UWidget_BattleMainScreen::ReadyStart()
 	{
 		BattleControlPanel->OnExchangeTimeExpired.AddUObject(this, &UWidget_BattleMainScreen::TimeOutCardSelect);
 	}
+	
+	BindBattleSequenceManagerEvents();
 }
 
 void UWidget_BattleMainScreen::ReadyEnd()
@@ -1068,6 +1075,38 @@ void UWidget_BattleMainScreen::HandleBattleSkillStateChanged()
 	BattleControlPanel->RefreshSkillBar();
 }
 
+void UWidget_BattleMainScreen::HandleSkillRevealDeceiveRequested(const FBattleAction& Action)
+{
+	if (!BattleSequenceManager)
+	{
+		return;
+	}
+
+	//BattleSequenceManager->NotifyDeceiveCardRevealFinished();
+	UBattleActionPresenter* BattleActionPresenter = BattleSequenceManager->GetActionPresenter();
+	if (!BattleActionPresenter)
+	{
+		return;
+	}
+	
+	if (!BattleSkillRevealPanel)
+	{
+		BattleActionPresenter->NotifySkillRevealDeceiveFinished();
+		return;
+	}
+
+	const bool bStarted =
+		BattleSkillRevealPanel->PlayDeceiveReveal(
+			Action.ExchangeIndex,
+			Action.bPlayerAction
+		);
+
+	if (!bStarted)
+	{
+		BattleActionPresenter->NotifySkillRevealDeceiveFinished();
+	}
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 //------------------------------------Battle Action Sequence------------------------------------------------------------
 
@@ -1113,7 +1152,7 @@ bool UWidget_BattleMainScreen::PlayDeceiveCardReveal_Implementation(const FBattl
 		return false;
 
 	
-	return BattleSkillRevealPanel->PlayDeceiveReveal(BattleAction.ExchangeIndex, BattleAction.bPlayerAction, ActualCard);
+	return BattleSkillRevealPanel->PlayDeceiveReveal(BattleAction.ExchangeIndex, BattleAction.bPlayerAction);
 }
 
 void UWidget_BattleMainScreen::NotifyDeceiveCardRevealFinished()
@@ -1123,7 +1162,13 @@ void UWidget_BattleMainScreen::NotifyDeceiveCardRevealFinished()
 		return;
 	}
 
-	BattleSequenceManager->NotifyDeceiveCardRevealFinished();
+	//BattleSequenceManager->NotifyDeceiveCardRevealFinished();
+	UBattleActionPresenter* BattleActionPresenter = BattleSequenceManager->GetActionPresenter();
+	if (!BattleActionPresenter)
+	{
+		return;
+	}
+	BattleActionPresenter->NotifySkillRevealDeceiveFinished();
 }
 
 void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset)

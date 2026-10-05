@@ -12,7 +12,12 @@ class UWidgetComponent;
 class UActor_SkillInfoImage;
 class UActor_SkillInfoDescription;
 
+class UNiagaraSystem;
+class UNiagaraComponent;
+
 DECLARE_MULTICAST_DELEGATE(FOnSkillInfoShowFinished);
+DECLARE_MULTICAST_DELEGATE(FOnSkillInfoDeceiveRevealStarted);
+
 
 
 UCLASS()
@@ -23,7 +28,7 @@ class MUKSI_API ABattleSkillInfoActor : public AActor
 public:
 	ABattleSkillInfoActor();
 	
-	void PlayShowPresentation();
+	
 
 	FOnSkillInfoShowFinished OnShowFinished;
 protected:
@@ -78,11 +83,37 @@ private:
 	
 	//스킬 정보 받기------------------------------------------------------------------------------------------------------
 public:
-	void SetBattleAction(const FBattleAction& InBattleAction);
-	
+	void PlayShowPresentation(const FBattleAction& InBattleAction);
 private:
+	void SetDisplayedCardData(UMuksiBattleCardDataAsset* CardData);
+	
 	UPROPERTY(Transient)
 	FBattleAction CurrentAction;
 	
+	//------------------------------------------------------------------------------------------------------------------
+	
+	//변초 공개 연출------------------------------------------------------------------------------------------------------
+public:
+	FOnSkillInfoDeceiveRevealStarted OnDeceiveRevealStarted;
+protected:
+	void DeceiveSkillReveal();
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Presentation|Niagara")
+	TObjectPtr<UNiagaraSystem> NiagaraSystem;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Presentation|Niagara")
+	TObjectPtr<UNiagaraComponent> ActiveNiagaraComponent;
+	
+	void ChangeDeceiveSkill();
+private:
+	UPROPERTY(EditAnywhere, Category = "Skill Info|Presentation")
+	float ShowDeceiveDuration = 0.8f;
+	
+	UPROPERTY(EditAnywhere, Category = "Skill Info|Presentation")
+	float ShowRevealDuration = 5.f;
+	
+	UPROPERTY(EditAnywhere, Category = "Skill Info|Presentation")
+	float ShowDeceiveCardRevealTime = 0.3f;
+	FTimerHandle ShowDeceiveSkillRevealTimerHandle;
 	//------------------------------------------------------------------------------------------------------------------
 };

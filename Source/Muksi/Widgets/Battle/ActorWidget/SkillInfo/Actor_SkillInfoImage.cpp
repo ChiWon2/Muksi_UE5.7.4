@@ -21,7 +21,7 @@ void UActor_SkillInfoImage::SetCardData(UMuksiBattleCardDataAsset* InCardData)
 		return;
 	}
 
-	// CardIcon이 UTexture2D*인 경우
+
 	if (IsValid(CardData->CardTexture))
 	{
 		Image_Skill->SetBrushFromTexture(CardData->CardTexture);

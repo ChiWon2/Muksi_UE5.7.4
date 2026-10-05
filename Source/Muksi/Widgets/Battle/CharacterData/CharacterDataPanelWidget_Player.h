@@ -13,6 +13,15 @@ class UCommonAnimatedSwitcher;
 class ABattleCharacter_Player;
 class UButton;
 
+
+UENUM()
+enum class EPlayerDataPanel : uint8
+{
+	Profile,
+	Deck,
+	Passive
+};
+
 /**
  * 
  */
@@ -31,9 +40,6 @@ protected:
 	virtual void NativeDestruct() override;
 	
 protected:
-	bool bCheckUI = false;	
-	
-	
 	//***** BindWidget *****
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCommonAnimatedSwitcher> WidgetSwitcher;
@@ -54,14 +60,29 @@ protected:
 	TObjectPtr<UWidget_CharacterPassivePanel> CharacterPassivePanelWidget;
 	//***** BindWidget *****
 	
+	
+	void SwitchPlayerPanel(int32 PanelIndex);
+	
+	//Switcher 변경 기능-------------------------------------------------------------------------------------------------
+protected:
+	bool bCheckUI = false;
+
+	EPlayerDataPanel CurrentPanel = EPlayerDataPanel::Profile;
+
 private:
 	//Button Function
 	UFUNCTION()
 	void OnProfileButtonClicked();
+
 	UFUNCTION()
 	void OnDeckButtonClicked();
+
 	UFUNCTION()
 	void OnPassiveButtonClicked();
-	
-	void SwitchPlayerPanel(int32 PanelIndex);
+
+	void SwitchPlayerPanel(EPlayerDataPanel PanelType);
+	void UpdateButtonState();
+
+	void SetButtonSelected(UButton* Button, bool bSelected);
+	//------------------------------------------------------------------------------------------------------------------
 };

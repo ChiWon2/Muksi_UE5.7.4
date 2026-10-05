@@ -218,13 +218,10 @@ bool UBattleSimulationWorldRuntime::BuildSimulationAction(const FBattleAction& A
 	OutAction.Attacker = SimulationAttacker;
 
 	UMuksiBattleCardDataAsset* ExecutionCard = Action.Card.Get();
-	if (BattleSimulationWorld::UsesActualCard(WorldType, Action.bPlayerAction))
-	{
-		UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetActualCard();
-		if (IsValid(ActualCard))
-			ExecutionCard = ActualCard;
-	}
-
+	UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetDeceivedCard();
+	if (IsValid(ActualCard))
+		ExecutionCard = ActualCard;
+	
 	OutAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
 	OutAction.ExecutionNotifies = ExecutionCard->ExecutionNotifies;
 	OutAction.bStatusEffectEditLocked = false;

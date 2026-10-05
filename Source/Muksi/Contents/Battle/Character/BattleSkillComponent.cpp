@@ -149,13 +149,7 @@ void UBattleSkillComponent::RevealActualSkillCost(UMuksiBattleCardDataAsset* Pre
 		return;
 	}
 
-	UMuksiBattleCardDataAsset* ActualSkill = PresentedSkill->GetActualCard();
-
-	// 변초가 아니면 보정할 필요 없음
-	if (!IsValid(ActualSkill))
-	{
-		return;
-	}
+	UMuksiBattleCardDataAsset* ActualSkill = PresentedSkill;
 
 	const int32 PresentedCost = PresentedSkill->Cost;
 	const int32 ActualCost = ActualSkill->Cost;
@@ -178,11 +172,6 @@ bool UBattleSkillComponent::CanPaySkillCost(const FGuid& InstanceId) const
 
 	UMuksiBattleCardDataAsset* CostSkill = Skill->SkillData;
 
-	if (UMuksiBattleCardDataAsset* ActualSkill = Skill->SkillData->GetActualCard())
-	{
-		CostSkill = ActualSkill;
-	}
-
 	return CostSkill->Cost <= CurrentSkillCost;
 }
 
@@ -194,12 +183,12 @@ bool UBattleSkillComponent::ConsumeSkillCost(const FGuid& InstanceId, EBattleSki
 	{
 		return false;
 	}
+	UMuksiBattleCardDataAsset* ActualSkill = Skill->SkillData;
+	UMuksiBattleCardDataAsset* PresentedSkill = ActualSkill->GetDeceivedCard();
 
-	UMuksiBattleCardDataAsset* PresentedSkill = Skill->SkillData;
-	UMuksiBattleCardDataAsset* ActualSkill = PresentedSkill->GetActualCard();
-	if (!IsValid(ActualSkill))
+	if (!IsValid(PresentedSkill))
 	{
-		ActualSkill = PresentedSkill;
+		PresentedSkill = ActualSkill;
 	}
 	
 	const int32 ActualCost = ActualSkill->Cost;

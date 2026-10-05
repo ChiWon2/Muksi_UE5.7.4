@@ -169,7 +169,7 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 
 bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const
 {
-	return IsValid(Action.Card.Get()) && IsValid(Action.Card->GetActualCard());
+	return true;
 }
 
 void ABattleSequenceManager::StopAfterCurrentExecution()
@@ -227,9 +227,6 @@ void ABattleSequenceManager::ApplyBattleActionRuntimeModifier(FBattleAction& Act
 		return;
 
 	UMuksiBattleCardDataAsset* ExecutionCard = Action.Card.Get();
-
-	if (UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetActualCard())
-		ExecutionCard = ActualCard;
 
 	Action.bRuntimeModifierApplied = true;
 

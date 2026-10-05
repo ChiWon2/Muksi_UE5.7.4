@@ -52,6 +52,9 @@ private:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_SlotMaterial;
+	
+	// 변초가 BattleActionPresentation에서 공개되었는지
+	bool bDeceiveRevealed = false;
 	//BindWidget--------------------------------------------------------------------------------------------------------
 	
 	UPROPERTY(Transient)
@@ -66,6 +69,8 @@ private:
 	void UpdateOwnerColor();
 	
 	//슬롯 연출----------------------------------------------------------------------------------------------------------
+public:
+	void RevealDeceive(); //변초 공개
 private:
 	UFUNCTION()
 	void HandleRevealAnimationFinished();

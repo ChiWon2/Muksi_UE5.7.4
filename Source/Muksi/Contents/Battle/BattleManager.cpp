@@ -148,9 +148,9 @@ bool ABattleManager::SubmitTargetingAction(ABattleCharacterBase* Attacker, UMuks
     BattleAction.bPlayerAction = bPlayerAction;
     BattleAction.TargetingIntent = TargetingIntent;
 
-    UMuksiBattleCardDataAsset* ExecutionCard = Card->GetActualCard();
-    if (!IsValid(ExecutionCard))
-        ExecutionCard = Card;
+    UMuksiBattleCardDataAsset* ExecutionCard = Card;
+    /*if (!IsValid(ExecutionCard))
+        ExecutionCard = Card;*/
 
     BattleAction.ExecutionEntries = ExecutionCard->MainExecutionEntries;
     BattleAction.ExecutionNotifies = ExecutionCard->ExecutionNotifies;

@@ -8,12 +8,19 @@ UMuksiBattleCardDataAsset::UMuksiBattleCardDataAsset()
 	CardTexture = nullptr;
 }
 
-UMuksiBattleCardDataAsset* UMuksiBattleCardDataAsset::GetActualCard() const
+/*UMuksiBattleCardDataAsset* UMuksiBattleCardDataAsset::GetActualCard() const
 {
 	if (!bIsDeceiveCard || !IsValid(ActualCard) || ActualCard.Get() == this)
 		return nullptr;
 
 	return ActualCard.Get();
+}*/
+
+UMuksiBattleCardDataAsset* UMuksiBattleCardDataAsset::GetDeceivedCard() const
+{
+	if (!bIsDeceiveCard || !IsValid(DeceivedCard) || DeceivedCard.Get() == this)
+		return nullptr;
+	return DeceivedCard.Get();
 }
 
 
