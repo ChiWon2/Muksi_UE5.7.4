@@ -73,10 +73,7 @@ private:
 		
 	//변초 공개----------------------------------------------------------------------------------------------------------
 public:
-	bool PlayDeceiveReveal(
-		int32 ExchangeIndex,
-		bool bPlayerAction,
-		UMuksiBattleCardDataAsset* ActualSkill);
+	bool PlayDeceiveReveal(int32 ExchangeIndex, bool bPlayerAction);
 
 	FOnBattleSkillDeceiveRevealFinished OnDeceiveRevealFinished;
 private:

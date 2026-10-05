@@ -13,6 +13,8 @@ class ABattleCameraManager;
 class ABattleSkillInfoActor;
 
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillRevealDeceiveRequested, const FBattleAction&);
+
 /**
  * 
  */
@@ -30,6 +32,10 @@ public:
 	void StartCameraPresentation();
 	
 	void SpawnSkillInfoActor();
+	
+	void NotifySkillRevealDeceiveFinished();
+	
+	FOnSkillRevealDeceiveRequested OnSkillRevealDeceiveRequested;
 private:
 	//카메라 이동 끝나기 직전
 	void HandleCameraPreArrival();
@@ -39,6 +45,12 @@ private:
 	void HandleSkillInfoShowFinished();
 	
 	void FinishPresentation();
+	
+	void TryFinishDeceivePresentation();
+	
+	void RequestSkillRevealDeceivePresentation();
+	
+	void HandleSkillInfoDeceiveRevealStarted();
 	
 	UPROPERTY(Transient)
 	TObjectPtr<ABattleSequenceManager> SequenceManager = nullptr;
@@ -55,4 +67,9 @@ private:
 	FBattleAction CurrentAction;
 
 	bool bPresentationRunning = false;
+	
+	bool bSkillInfoDeceiveFinished = false;
+	bool bSkillRevealDeceiveFinished = false;
+	
+	bool bWaitingForDeceivePresentation = false;
 };

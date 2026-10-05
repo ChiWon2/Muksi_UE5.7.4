@@ -17,7 +17,7 @@ void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context,
 {
 	const FPlayBattleCameraExecutionData* CameraData = Context.GetExecutionData<FPlayBattleCameraExecutionData>();
 
-	if (!CameraData || CameraData->CameraKey.IsNone() || !IsValid(Context.Attacker))
+	if (!CameraData || !IsValid(Context.Attacker))
 	{
 		FinishExecution(OnFinished);
 		return;

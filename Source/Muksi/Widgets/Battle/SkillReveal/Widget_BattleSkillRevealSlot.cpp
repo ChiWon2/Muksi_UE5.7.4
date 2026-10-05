@@ -10,11 +10,8 @@ void UWidget_BattleSkillRevealSlot::SetSkillData(UMuksiBattleCardDataAsset* InSk
 {
 	SkillData = InSkillData;
 	bIsPlayerSkill = IsPlayer;
-	if (bIsPlayerSkill)
-	{
-		
-	}
-
+	bDeceiveRevealed = false;
+	
 	if (!Image_Skill)
 	{
 		return;
@@ -26,8 +23,16 @@ void UWidget_BattleSkillRevealSlot::SetSkillData(UMuksiBattleCardDataAsset* InSk
 		return;
 	}
 
-	Image_Skill->SetBrushFromTexture(SkillData->CardTexture);
+	if (UMuksiBattleCardDataAsset* DeceivedCard = SkillData->GetDeceivedCard())
+	{
+		Image_Skill->SetBrushFromTexture(DeceivedCard->CardTexture);
+	}
+	else
+	{
+		Image_Skill->SetBrushFromTexture(SkillData->CardTexture);
+	}
 
+	
 	Image_Skill->SetVisibility(ESlateVisibility::HitTestInvisible);
 	SetRenderOpacity(1.0f);
 	UpdateOwnerColor();
@@ -105,6 +110,32 @@ void UWidget_BattleSkillRevealSlot::UpdateOwnerColor()
 	SlotMaterialInstance->SetVectorParameterValue(TEXT("Color"), TargetColor);
 }
 
+void UWidget_BattleSkillRevealSlot::RevealDeceive()
+{
+	if (!IsValid(SkillData))
+	{
+		return;
+	}
+
+	if (!IsValid(SkillData->GetDeceivedCard()))
+	{
+		return;
+	}
+
+	bDeceiveRevealed = true;
+
+	if (Image_Skill)
+	{
+		Image_Skill->SetBrushFromTexture(SkillData->CardTexture);
+	}
+
+	// 현재 Hover 중이면 CardPreview도 즉시 실제 스킬로 갱신
+	if (IsHovered())
+	{
+		OnSkillHovered.Broadcast(SkillData, IsPlayerSkill());
+	}
+}
+
 void UWidget_BattleSkillRevealSlot::HandleRevealAnimationFinished()
 {
 	OnRevealFinished.Broadcast(this);
@@ -116,6 +147,12 @@ void UWidget_BattleSkillRevealSlot::NativeOnMouseEnter(const FGeometry& InGeomet
 	
 	if (!SkillData)
 	{
+		return;
+	}
+
+	if (!IsPlayerSkill() && !bDeceiveRevealed && IsValid(SkillData->GetDeceivedCard()))
+	{
+		OnSkillHovered.Broadcast(SkillData->GetDeceivedCard(), false);
 		return;
 	}
 

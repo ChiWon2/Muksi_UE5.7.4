@@ -124,6 +124,8 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Battle|Presentation")
 	FOnBattleActionPresentationRequested BattleActionPresentationRequestedDelegate;
+	
+	UBattleActionPresenter* GetActionPresenter() const{ return ActionPresenter.Get(); }
 private:
 	void StartCurrentBattleActionPresentation();
 	bool bWaitingForBattleActionPresentation = false;

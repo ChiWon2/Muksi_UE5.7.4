@@ -168,8 +168,8 @@ void UInsightStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	if (!IsValid(OpponentExecutionCard))
 		return;
 
-	if (UMuksiBattleCardDataAsset* ActualCard = OpponentExecutionCard->GetActualCard())
-		OpponentExecutionCard = ActualCard;
+	/*if (UMuksiBattleCardDataAsset* ActualCard = OpponentExecutionCard->GetActualCard())
+		OpponentExecutionCard = ActualCard;*/
 
 	if (OpponentExecutionCard->CardTypeInfo.CardType != EMuksiBattleCardType::Attack)
 		return;

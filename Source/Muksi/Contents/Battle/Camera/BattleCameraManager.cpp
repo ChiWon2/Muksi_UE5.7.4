@@ -808,28 +808,6 @@ void ABattleCameraManager::CollectBattleCameraAssetPaths(const TSet<FName>& Came
 	}
 }
 
-// void ABattleCameraManager::PlayBattleCameraSequence(
-// 	FName CameraKey,
-// 	ABattleCharacterBase* Attacker,
-// 	ABattleCharacterBase* Target
-// )
-// {
-// 	const FMuksiBattleCameraData* CameraData = FindBattleCameraData(CameraKey);
-// 	if (!CameraData)
-// 		return;
-//
-// 	ULevelSequence* LevelSequence = CameraData->LevelSequence.Get();
-// 	if (!IsValid(LevelSequence))
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("[BattleCameraManager] Camera sequence is not preloaded. Key: %s"), *CameraKey.ToString());
-// 		return;
-// 	}
-//
-// 	bActiveSequenceAutoBlendOut = CameraData->bAutoBlendOut;
-// 	PlayAttackCameraSequence(LevelSequence, Attacker, Target);
-// }
-
-//CHANGE_CHIWON
 void ABattleCameraManager::PlayBattleCameraSequence(
 	FName CameraKey,
 	ABattleCharacterBase* Attacker,
@@ -838,12 +816,31 @@ void ABattleCameraManager::PlayBattleCameraSequence(
 {
 	const FMuksiBattleCameraData* CameraData = FindBattleCameraData(CameraKey);
 	if (!CameraData)
+	{
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT("[BattleCameraManager] Camera data is missing. Use Overview Camera. Key: %s"),
+			*CameraKey.ToString()
+		);
+
+		StopAttackCameraSequence();
+		ReturnToOverview();
 		return;
+	}
 
 	ULevelSequence* LevelSequence = CameraData->LevelSequence.Get();
 	if (!IsValid(LevelSequence))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleCameraManager] Camera sequence is not preloaded. Key: %s"), *CameraKey.ToString());
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT("[BattleCameraManager] Camera sequence is missing or not preloaded. Use Overview Camera. Key: %s"),
+			*CameraKey.ToString()
+		);
+
+		StopAttackCameraSequence();
+		ReturnToOverview();
 		return;
 	}
 
@@ -855,123 +852,28 @@ void ABattleCameraManager::PlayBattleCameraSequence(
 	PlayAttackCameraSequence(LevelSequence, Attacker, Target);
 }
 
-// void ABattleCameraManager::PlayAttackCameraSequence(ULevelSequence* CameraSequence, ABattleCharacterBase* Attacker)
-// {
-// 	if (!IsValid(CameraSequence) ||
-// 		!IsValid(Attacker) ||
-// 		!IsValid(AttackSequenceActor) ||
-// 		!IsValid(AttackSequenceOrigin))
-// 	{
-// 		return;
-// 	}
-//
-// 	StopAttackCameraSequence();
-//
-// 	// 기존 부모가 있다면 분리
-// 	AttackSequenceOrigin->DetachFromActor(
-// 		FDetachmentTransformRules::KeepWorldTransform
-// 	);
-//
-// 	// 공격자의 Actor Root에 부착
-// 	AttackSequenceOrigin->AttachToActor(
-// 		Attacker,
-// 		FAttachmentTransformRules::SnapToTargetNotIncludingScale
-// 	);
-//
-// 	// 공격자 기준 원점
-// 	AttackSequenceOrigin->SetActorRelativeLocation(
-// 		FVector::ZeroVector
-// 	);
-//
-// 	AttackSequenceOrigin->SetActorRelativeRotation(
-// 		FRotator::ZeroRotator
-// 	);
-//
-// 	AttackSequenceActor->SetSequence(CameraSequence);
-//
-// 	ULevelSequencePlayer* SequencePlayer =
-// 		AttackSequenceActor->GetSequencePlayer();
-//
-// 	if (!IsValid(SequencePlayer))
-// 	{
-// 		return;
-// 	}
-//
-// 	ActiveSequencePlayer = SequencePlayer;
-//
-// 	ActiveSequencePlayer->OnFinished.RemoveDynamic(
-// 		this,
-// 		&ThisClass::HandleAttackCameraSequenceFinished
-// 	);
-//
-// 	ActiveSequencePlayer->OnFinished.AddDynamic(
-// 		this,
-// 		&ThisClass::HandleAttackCameraSequenceFinished
-// 	);
-//
-// 	ActiveSequencePlayer->SetPlaybackPosition(
-// 		FMovieSceneSequencePlaybackParams(
-// 			0.0f,
-// 			EUpdatePositionMethod::Jump
-// 		)
-// 	);
-//
-// 	ActiveSequencePlayer->Play();
-// }
-
-// //CHANGE_CHIWON
-// void ABattleCameraManager::PlayAttackCameraSequence(ULevelSequence* CameraSequence, ABattleCharacterBase* Attacker)
-// {
-// 	if (!IsValid(CameraSequence) || !IsValid(Attacker))
-// 		return;
-//
-// 	StopAttackCameraSequence();
-//
-// 	FMovieSceneSequencePlaybackSettings PlaybackSettings;
-// 	ALevelSequenceActor* CreatedSequenceActor = nullptr;
-// 	ULevelSequencePlayer* SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(this, CameraSequence, PlaybackSettings, CreatedSequenceActor);
-//
-// 	if (!IsValid(SequencePlayer) || !IsValid(CreatedSequenceActor))
-// 		return;
-//
-// 	AttackSequenceActor = CreatedSequenceActor;
-// 	bOwnsAttackSequenceActor = true;
-// 	ActiveSequencePlayer = SequencePlayer;
-//
-// 	AActor* TransformOriginActor = Attacker;
-//
-// 	if (IsValid(AttackSequenceOrigin))
-// 	{
-// 		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-// 		AttackSequenceOrigin->AttachToActor(Attacker, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-// 		AttackSequenceOrigin->SetActorRelativeTransform(FTransform::Identity);
-// 		TransformOriginActor = AttackSequenceOrigin;
-// 	}
-//
-// 	UDefaultLevelSequenceInstanceData* InstanceData = NewObject<UDefaultLevelSequenceInstanceData>(AttackSequenceActor);
-// 	if (IsValid(InstanceData))
-// 	{
-// 		InstanceData->TransformOriginActor = TransformOriginActor;
-// 		AttackSequenceActor->DefaultInstanceData = InstanceData;
-// 		AttackSequenceActor->bOverrideInstanceData = true;
-// 	}
-//
-// 	ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
-// 	ActiveSequencePlayer->OnFinished.AddDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
-// 	ActiveSequencePlayer->Play();
-// }
-
-//CHANGE_CHIWON
 void ABattleCameraManager::PlayAttackCameraSequence(
 	ULevelSequence* CameraSequence,
 	ABattleCharacterBase* Attacker,
 	ABattleCharacterBase* Target
 )
 {
-	if (!IsValid(CameraSequence) || !IsValid(Attacker))
-		return;
-
 	StopAttackCameraSequence();
+
+	if (!IsValid(CameraSequence))
+	{
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT("[BattleCameraManager] Attack Camera Sequence is null. Use Overview Camera.")
+		);
+
+		ReturnToOverview();
+		return;
+	}
+
+	if (!IsValid(Attacker))
+		return;
 
 	FMovieSceneSequencePlaybackSettings PlaybackSettings;
 	ALevelSequenceActor* CreatedSequenceActor = nullptr;
@@ -1022,45 +924,6 @@ void ABattleCameraManager::PlayAttackCameraSequence(
 	ActiveSequencePlayer->Play();
 }
 
-// void ABattleCameraManager::HandleAttackCameraSequenceFinished()
-// {
-// 	if (IsValid(ActiveSequencePlayer))
-// 	{
-// 		ActiveSequencePlayer->OnFinished.RemoveDynamic(
-// 			this,
-// 			&ThisClass::HandleAttackCameraSequenceFinished
-// 		);
-// 	}
-//
-// 	ActiveSequencePlayer = nullptr;
-//
-// 	ReturnToOverview();
-// }
-
-//CHANGE_CHIWON
-// void ABattleCameraManager::HandleAttackCameraSequenceFinished()
-// {
-// 	if (IsValid(ActiveSequencePlayer))
-// 		ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
-//
-// 	ActiveSequencePlayer = nullptr;
-//
-// 	if (bOwnsAttackSequenceActor && IsValid(AttackSequenceActor))
-// 		AttackSequenceActor->Destroy();
-//
-// 	AttackSequenceActor = nullptr;
-// 	bOwnsAttackSequenceActor = false;
-//
-// 	if (IsValid(AttackSequenceOrigin))
-// 		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-//
-// 	if (bActiveSequenceAutoBlendOut)
-// 		ReturnToOverview();
-// 	else
-// 		ReturnToOverviewImmediately();
-// }
-
-//CHANGE_CHIWON
 void ABattleCameraManager::HandleAttackCameraSequenceFinished()
 {
 	if (IsValid(ActiveSequencePlayer))

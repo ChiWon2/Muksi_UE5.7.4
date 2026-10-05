@@ -100,7 +100,7 @@ void UBattleAssetPreloadManager::CollectCardResources(const UMuksiBattleCardData
     }
 
     if (CardData->bIsDeceiveCard)
-        CollectCardResources(CardData->ActualCard, VisitedCards);
+        CollectCardResources(CardData->DeceivedCard, VisitedCards);
 }
 
 void UBattleAssetPreloadManager::CollectExecutionResources(const TArray<FBattleExecutionEntry>& ExecutionEntries, const TArray<FBattleExecutionNotify>& ExecutionNotifies, const FString& SourceReason)
