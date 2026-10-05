@@ -61,7 +61,7 @@ void UCardPreviewEffectPanel::SetCardData(UMuksiBattleCardDataAsset* InCardData)
 	
 	const FString DeceiveText = FString::Printf(
 		TEXT("<Deceive>[변초]: </><CardName>%s</>"),
-		*InCardData->ActualCard->CardName.ToString()
+		*InCardData->CardName.ToString()
 	);
 
 	RichText_DeceiveInfo->SetText(FText::FromString(DeceiveText));

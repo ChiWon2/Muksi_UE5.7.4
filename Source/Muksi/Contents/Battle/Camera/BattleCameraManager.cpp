@@ -632,15 +632,29 @@ void ABattleCameraManager::SetCameraTarget(const FVector& NewLocation, const FRo
 
 void ABattleCameraManager::PlayAttackCameraSequence(ULevelSequence* CameraSequence, ABattleCharacterBase* Attacker)
 {
-	if (!IsValid(CameraSequence) ||
-		!IsValid(Attacker) ||
+	StopAttackCameraSequence();
+	
+	//레벨시퀀스가 없는 경우 Overview 화면으로 
+	if (!IsValid(CameraSequence))
+	{
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT("[BattleCameraManager] Attack Camera Sequence is null. Use Overview Camera.")
+		);
+
+		ReturnToOverview();
+		return;
+	}
+	
+	if (!IsValid(Attacker) ||
 		!IsValid(AttackSequenceActor) ||
 		!IsValid(AttackSequenceOrigin))
 	{
 		return;
 	}
 
-	StopAttackCameraSequence();
+	
 
 	// 기존 부모가 있다면 분리
 	AttackSequenceOrigin->DetachFromActor(

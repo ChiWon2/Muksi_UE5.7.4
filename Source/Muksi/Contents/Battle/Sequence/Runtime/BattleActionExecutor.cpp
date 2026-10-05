@@ -114,7 +114,7 @@ UMuksiBattleCardDataAsset* UBattleActionExecutor::ResolveExecutionCard(const FBa
 	if (!BattleSimulationWorld::UsesActualCard(GridWorldType, Action.bPlayerAction))
 		return Action.Card.Get();
 
-	UMuksiBattleCardDataAsset* ActualCard = Action.Card->GetActualCard();
+	UMuksiBattleCardDataAsset* ActualCard = Action.Card;
 	return IsValid(ActualCard) ? ActualCard : Action.Card.Get();
 }
 

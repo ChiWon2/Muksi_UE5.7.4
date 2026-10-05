@@ -252,6 +252,8 @@ protected:
 	void RefreshBattleSkillUI();
 	
 	void HandleBattleSkillStateChanged();
+	
+	void HandleSkillRevealDeceiveRequested(const FBattleAction& Action);
 	//------------------------------------------------------------------------------------------------------------------
 
 	//==========================Battle Action Sequence==================================================================

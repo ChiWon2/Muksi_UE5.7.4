@@ -15,20 +15,21 @@ UPlayBattleCameraExecution::UPlayBattleCameraExecution()
 
 void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished)
 {
+	ULevelSequence* LevelSequence = nullptr;
+	
 	const FPlayBattleCameraExecutionData* CameraData =
 		Context.GetExecutionData<FPlayBattleCameraExecutionData>();
 
-	if (!CameraData)
+	if (CameraData)
 	{
-		FinishExecution(OnFinished);
-		return;
+		LevelSequence = CameraData->LevelSequence;
 	}
 
-	if (!CameraData->LevelSequence)
+	/*if (!CameraData->LevelSequence)
 	{
 		FinishExecution(OnFinished);
 		return;
-	}
+	}*/
 
 	if (!IsValid(Context.Attacker))
 	{
@@ -36,8 +37,7 @@ void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context,
 		return;
 	}
 
-	UMuksiWorldManagerSubsystem* ManagerSubsystem =
-		UMuksiWorldManagerSubsystem::Get(Context.Attacker);
+	UMuksiWorldManagerSubsystem* ManagerSubsystem = UMuksiWorldManagerSubsystem::Get(Context.Attacker);
 
 	if (!IsValid(ManagerSubsystem))
 	{
@@ -51,8 +51,7 @@ void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context,
 		return;
 	}
 
-	ABattleCameraManager* CameraManager =
-		ManagerSubsystem->GetManager<ABattleCameraManager>();
+	ABattleCameraManager* CameraManager = ManagerSubsystem->GetManager<ABattleCameraManager>();
 
 	if (!IsValid(CameraManager))
 	{
@@ -66,7 +65,7 @@ void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context,
 		return;
 	}
 	
-	CameraManager->PlayAttackCameraSequence(CameraData->LevelSequence,Context.Attacker);
+	CameraManager->PlayAttackCameraSequence(LevelSequence,Context.Attacker);
 
 	FinishExecution(OnFinished);
 }

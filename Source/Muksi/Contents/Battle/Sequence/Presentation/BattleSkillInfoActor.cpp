@@ -3,6 +3,9 @@
 
 #include "Muksi/Contents/Battle/Sequence/Presentation/BattleSkillInfoActor.h"
 
+#include "IMediaControls.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Components/WidgetComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Widgets/Battle/ActorWidget/SkillInfo/Actor_SkillInfoDescription.h"
@@ -29,6 +32,10 @@ ABattleSkillInfoActor::ABattleSkillInfoActor()
 	SkillDescriptionWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
 	SkillDescriptionWidgetComponent->SetDrawAtDesiredSize(true);
 	SkillDescriptionWidgetComponent->SetTwoSided(true);
+	
+	ActiveNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>("ActiveNiagaraComponent");
+	ActiveNiagaraComponent->SetupAttachment(SceneRoot);
+	ActiveNiagaraComponent->SetAutoActivate(false);
 }
 
 // Called when the game starts or when spawned
@@ -149,23 +156,15 @@ void ABattleSkillInfoActor::FinishShowPresentation()
 	OnShowFinished.Broadcast();
 }
 
-void ABattleSkillInfoActor::SetBattleAction(const FBattleAction& InBattleAction)
-{
-	if (!IsValid(InBattleAction.Card.Get()))
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("[BattleSkillInfoActor] BattleAction Card is invalid.")
-		);
 
+
+void ABattleSkillInfoActor::SetDisplayedCardData(UMuksiBattleCardDataAsset* CardData)
+{
+	if (!IsValid(CardData))
+	{
 		return;
 	}
 
-	CurrentAction = InBattleAction;
-
-	UMuksiBattleCardDataAsset* CardData = CurrentAction.Card.Get();
-	
 	if (IsValid(SkillImageWidget))
 	{
 		SkillImageWidget->SetCardData(CardData);
@@ -175,24 +174,54 @@ void ABattleSkillInfoActor::SetBattleAction(const FBattleAction& InBattleAction)
 	{
 		SkillDescriptionWidget->SetCardData(CardData);
 	}
-	
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT(
-			"[BattleSkillInfoActor] SetBattleAction. "
-			"Card=%s"
-		),
-		*GetNameSafe(CardData)
-	);
-
-	// 다음 단계에서
-	// SkillImageWidget->SetCardData(CardData);
-	// SkillDescriptionWidget->SetCardData(CardData);
 }
 
-void ABattleSkillInfoActor::PlayShowPresentation()
+
+void ABattleSkillInfoActor::DeceiveSkillReveal()
+{
+	if (IsValid(ActiveNiagaraComponent) && IsValid(NiagaraSystem))
+	{
+		ActiveNiagaraComponent->SetAsset(NiagaraSystem);
+		ActiveNiagaraComponent->Activate(true);
+	}
+	
+	//카드 텍스쳐 바꾸기 TimeHandler
+	GetWorldTimerManager().ClearTimer(ShowDeceiveSkillRevealTimerHandle);
+	GetWorldTimerManager().SetTimer(
+		ShowDeceiveSkillRevealTimerHandle,
+		this,
+		&ABattleSkillInfoActor::ChangeDeceiveSkill,
+		ShowDeceiveCardRevealTime,
+		false
+	);
+	
+	//BattleActionPresenter에게 연출 끝났다고 보낼 TimeHandler
+	// 이전 타이머가 있다면 제거
+	GetWorldTimerManager().ClearTimer(ShowPresentationTimerHandle);
+	// 일정 시간 뒤 Presentation 완료
+	GetWorldTimerManager().SetTimer(
+		ShowPresentationTimerHandle,
+		this,
+		&ABattleSkillInfoActor::FinishShowPresentation,
+		ShowRevealDuration,
+		false
+	);
+}
+
+void ABattleSkillInfoActor::ChangeDeceiveSkill()
+{
+	if (!IsValid(CurrentAction.Card.Get()))
+	{
+		FinishShowPresentation();
+		return;
+	}
+
+	// SkillInfoActor를 Actual 정보로 변경
+	SetDisplayedCardData(CurrentAction.Card.Get());
+	OnDeceiveRevealStarted.Broadcast();
+}
+
+void ABattleSkillInfoActor::PlayShowPresentation(const FBattleAction& InBattleAction)
 {
 	// 최종 위치 + 등장 Offset
 	const FVector ImageStartLocation = SkillImageTargetLocation + SkillImageShowOffset;
@@ -207,32 +236,60 @@ void ABattleSkillInfoActor::PlayShowPresentation()
 
 	SetActorTickEnabled(true);
 	
+	CurrentAction = InBattleAction;
+	UMuksiBattleCardDataAsset* CardData = CurrentAction.Card.Get();
 	
-	
-	/*// 위치를 먼저 바꾼 뒤 표시
-	SkillImageWidgetComponent->SetVisibility(true);
-	SkillDescriptionWidgetComponent->SetVisibility(true);*/
-	
-	if (SkillImageWidget)
+	if (UMuksiBattleCardDataAsset* DeceivedCard = CardData->GetDeceivedCard())
 	{
-		SkillImageWidget->PlayShowAnimation();
-	}
+		SetDisplayedCardData(DeceivedCard);
+		
+		if (SkillImageWidget)
+		{
+			SkillImageWidget->PlayShowAnimation();
+		}
 
-	if (SkillDescriptionWidget)
+		if (SkillDescriptionWidget)
+		{
+			SkillDescriptionWidget->PlayShowAnimation();
+		}
+		
+		
+		
+		GetWorldTimerManager().ClearTimer(ShowPresentationTimerHandle);
+		
+		// 일정 시간 뒤 Presentation 완료
+		GetWorldTimerManager().SetTimer(
+			ShowPresentationTimerHandle,
+			this,
+			&ABattleSkillInfoActor::DeceiveSkillReveal,
+			ShowDeceiveDuration,
+			false
+		);
+	}else
 	{
-		SkillDescriptionWidget->PlayShowAnimation();
-	}
-	// 이전 타이머가 있다면 제거
-	GetWorldTimerManager().ClearTimer(ShowPresentationTimerHandle);
+		SetDisplayedCardData(CardData);
+		
+		if (SkillImageWidget)
+		{
+			SkillImageWidget->PlayShowAnimation();
+		}
 
-	// 일정 시간 뒤 Presentation 완료
-	GetWorldTimerManager().SetTimer(
-		ShowPresentationTimerHandle,
-		this,
-		&ABattleSkillInfoActor::FinishShowPresentation,
-		ShowPresentationDuration,
-		false
-	);
+		if (SkillDescriptionWidget)
+		{
+			SkillDescriptionWidget->PlayShowAnimation();
+		}
+		// 이전 타이머가 있다면 제거
+		GetWorldTimerManager().ClearTimer(ShowPresentationTimerHandle);
+
+		// 일정 시간 뒤 Presentation 완료
+		GetWorldTimerManager().SetTimer(
+			ShowPresentationTimerHandle,
+			this,
+			&ABattleSkillInfoActor::FinishShowPresentation,
+			ShowPresentationDuration,
+			false
+		);
+	}
 }
 
 

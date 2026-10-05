@@ -82,12 +82,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive")
 	bool bIsDeceiveCard = false;
 
-	// Actual World에서 실제 동작에 사용할 카드.
+	/*// Actual World에서 실제 동작에 사용할 카드.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive", meta = (EditCondition = "bIsDeceiveCard"))
 	TObjectPtr<UMuksiBattleCardDataAsset> ActualCard = nullptr;
 
 	UFUNCTION(BlueprintPure, Category = "Battle|Deceive")
-	UMuksiBattleCardDataAsset* GetActualCard() const;
+	UMuksiBattleCardDataAsset* GetActualCard() const;*/
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive", meta = (EditCondition = "bIsDeceiveCard"))
+	TObjectPtr<UMuksiBattleCardDataAsset> DeceivedCard = nullptr;
+
+	UFUNCTION(BlueprintPure, Category = "Battle|Deceive")
+	UMuksiBattleCardDataAsset* GetDeceivedCard() const;
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "Card|Type")
 	FBattleCardTypeInfoData CardTypeInfo;

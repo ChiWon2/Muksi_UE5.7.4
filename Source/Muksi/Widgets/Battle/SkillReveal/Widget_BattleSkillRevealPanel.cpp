@@ -168,26 +168,18 @@ void UWidget_BattleSkillRevealPanel::HandleSlotRevealFinished(UWidget_BattleSkil
 	OnSkillRevealFinished.Broadcast(FinishedExchangeIndex);
 }
 
-bool UWidget_BattleSkillRevealPanel::PlayDeceiveReveal(int32 ExchangeIndex, bool bPlayerAction,
-	UMuksiBattleCardDataAsset* ActualSkill)
+bool UWidget_BattleSkillRevealPanel::PlayDeceiveReveal(int32 ExchangeIndex, bool bPlayerAction)
 {
-	if (!ActualSkill)
-	{
-		return false;
-	}
-
 	UWidget_BattleSkillRevealSlot* RevealSlot = FindActionSlot(ExchangeIndex, bPlayerAction);
 
 	if (!RevealSlot)
 	{
 		return false;
 	}
+	//RevealSlot->SetSkillData(ActualSkill, bPlayerAction);
+	RevealSlot->RevealDeceive();
 
-	// TODO 변초 공개 연출 넣기
-
-
-	RevealSlot->SetSkillData(ActualSkill, bPlayerAction);
-
+	// TODO 변초 공개 연출 넣고 거기서 Broadcast 하기
 	OnDeceiveRevealFinished.Broadcast();
 
 	return true;
