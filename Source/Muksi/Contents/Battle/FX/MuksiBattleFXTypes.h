@@ -23,7 +23,7 @@ struct MUKSI_API FMuksiBattleFXData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX")
-	TObjectPtr<UNiagaraSystem> NiagaraSystem = nullptr;
+	TSoftObjectPtr<UNiagaraSystem> NiagaraSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle FX")
 	FName SocketName = NAME_None;

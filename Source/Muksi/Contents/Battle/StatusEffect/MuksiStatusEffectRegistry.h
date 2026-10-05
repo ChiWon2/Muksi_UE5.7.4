@@ -16,6 +16,7 @@ class MUKSI_API UMuksiStatusEffectRegistry : public UObject
 public:
     bool Initialize(const UStatusEffectRegistryDataAsset* InRegistryDataAsset);
     UStatusEffectDefinitionDataAsset* FindDefinition(FName EffectID) const;
+    TSoftObjectPtr<UStatusEffectDefinitionDataAsset> FindDefinitionReference(FName EffectID) const;
     TSubclassOf<UMuksiStatusEffect> FindEffectClass(FName EffectID) const;
 
 private:

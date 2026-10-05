@@ -14,5 +14,5 @@ struct FMuksiWeaponBattleAnimationSet
 	EMuksiWeaponTypes WeaponType = EMuksiWeaponTypes::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Animation")
-	TMap<FName, TObjectPtr<UAnimMontage>> MontageMap;
+	TMap<FName, TSoftObjectPtr<UAnimMontage>> MontageMap;
 };

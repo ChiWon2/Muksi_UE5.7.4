@@ -3,6 +3,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/FX/MuksiBattleFXDataAsset.h"
 
@@ -41,8 +42,8 @@ void UMuksiBattleFXComponent::StartTrailFX(FName FXNotifyKey)
 	UE_LOG(LogTemp, Warning, TEXT("[VFX] Trail Start Owner=%s NotifyKey=%s ResolvedKey=%s DataAssets=%d Mappings=%d"), *GetNameSafe(GetOwner()), *FXNotifyKey.ToString(), *ResolveFXDataAssetKey(FXNotifyKey, RuntimeFXMappings).ToString(), FXDataAssets.Num(), RuntimeFXMappings.Num());
 
 	const FMuksiBattleFXData* FXDefinition = FindFXData(ResolveFXDataAssetKey(FXNotifyKey, RuntimeFXMappings));
-	UE_LOG(LogTemp, Warning, TEXT("[VFX] Trail Definition Found=%s Niagara=%s"), FXDefinition ? TEXT("true") : TEXT("false"), FXDefinition ? *GetNameSafe(FXDefinition->NiagaraSystem) : TEXT("None"));
-	if (!FXDefinition || !FXDefinition->NiagaraSystem)
+	UE_LOG(LogTemp, Warning, TEXT("[VFX] Trail Definition Found=%s Niagara=%s"), FXDefinition ? TEXT("true") : TEXT("false"), FXDefinition ? *GetNameSafe(FXDefinition->NiagaraSystem.Get()) : TEXT("None"));
+	if (!FXDefinition || FXDefinition->NiagaraSystem.IsNull())
 		return;
 
 	StopTrailFX(FXNotifyKey);
@@ -111,7 +112,7 @@ void UMuksiBattleFXComponent::PlayImpactFXByDataAssetKey(FName FXDataAssetKey)
 void UMuksiBattleFXComponent::PlayOneShotFXByDataAssetKey(FName FXDataAssetKey, FSimpleDelegate CompletionDelegate)
 {
 	const FMuksiBattleFXData* FXDefinition = FindFXData(FXDataAssetKey);
-	if (!FXDefinition || !FXDefinition->NiagaraSystem)
+	if (!FXDefinition || FXDefinition->NiagaraSystem.IsNull())
 	{
 		CompletionDelegate.ExecuteIfBound();
 		return;
@@ -143,7 +144,7 @@ void UMuksiBattleFXComponent::StartPersistentFX(FName FXDataAssetKey)
 	}
 
 	const FMuksiBattleFXData* FXDefinition = FindFXData(FXDataAssetKey);
-	if (!FXDefinition || !FXDefinition->NiagaraSystem)
+	if (!FXDefinition || FXDefinition->NiagaraSystem.IsNull())
 		return;
 
 	UNiagaraComponent* NiagaraComponent = SpawnFX(*FXDefinition, false);
@@ -218,9 +219,13 @@ USkeletalMeshComponent* UMuksiBattleFXComponent::GetBattleSkeletalMesh() const
 UNiagaraComponent* UMuksiBattleFXComponent::SpawnFX(const FMuksiBattleFXData& FXDefinition, bool bAutoDestroy) const
 {
 	USkeletalMeshComponent* BattleSkeletalMesh = GetBattleSkeletalMesh();
-	UE_LOG(LogTemp, Warning, TEXT("[VFX] Spawn Input Owner=%s Mesh=%s MeshAsset=%s Niagara=%s Socket=%s SocketExists=%s Attach=%s AutoDestroy=%s"), *GetNameSafe(GetOwner()), *GetNameSafe(BattleSkeletalMesh), BattleSkeletalMesh ? *GetNameSafe(BattleSkeletalMesh->GetSkeletalMeshAsset()) : TEXT("None"), *GetNameSafe(FXDefinition.NiagaraSystem), *FXDefinition.SocketName.ToString(), BattleSkeletalMesh && BattleSkeletalMesh->DoesSocketExist(FXDefinition.SocketName) ? TEXT("true") : TEXT("false"), FXDefinition.bAttachToSocket ? TEXT("true") : TEXT("false"), bAutoDestroy ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Warning, TEXT("[VFX] Spawn Input Owner=%s Mesh=%s MeshAsset=%s Niagara=%s Socket=%s SocketExists=%s Attach=%s AutoDestroy=%s"), *GetNameSafe(GetOwner()), *GetNameSafe(BattleSkeletalMesh), BattleSkeletalMesh ? *GetNameSafe(BattleSkeletalMesh->GetSkeletalMeshAsset()) : TEXT("None"), *GetNameSafe(FXDefinition.NiagaraSystem.Get()), *FXDefinition.SocketName.ToString(), BattleSkeletalMesh && BattleSkeletalMesh->DoesSocketExist(FXDefinition.SocketName) ? TEXT("true") : TEXT("false"), FXDefinition.bAttachToSocket ? TEXT("true") : TEXT("false"), bAutoDestroy ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Warning, TEXT("[VFX] Spawn Transform Offset=%s Rotation=%s Scale=%s"), *FXDefinition.LocationOffset.ToString(), *FXDefinition.RotationOffset.ToString(), *FXDefinition.Scale.ToString());
-	if (!BattleSkeletalMesh || !FXDefinition.NiagaraSystem)
+	if (!BattleSkeletalMesh || FXDefinition.NiagaraSystem.IsNull())
+		return nullptr;
+
+	UNiagaraSystem* NiagaraSystem = FXDefinition.NiagaraSystem.LoadSynchronous();
+	if (!IsValid(NiagaraSystem))
 		return nullptr;
 
 	if (FXDefinition.bUseTrailSettings && (FXDefinition.SkeletalMeshParameterName.IsNone() || FXDefinition.TrailBaseSocketName.IsNone() || FXDefinition.TrailTipSocketName.IsNone() || !BattleSkeletalMesh->DoesSocketExist(FXDefinition.TrailBaseSocketName) || !BattleSkeletalMesh->DoesSocketExist(FXDefinition.TrailTipSocketName)))
@@ -231,7 +236,7 @@ UNiagaraComponent* UMuksiBattleFXComponent::SpawnFX(const FMuksiBattleFXData& FX
 
 	if (FXDefinition.bAttachToSocket)
 	{
-		UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(FXDefinition.NiagaraSystem, BattleSkeletalMesh, FXDefinition.SocketName, FXDefinition.LocationOffset, FXDefinition.RotationOffset, EAttachLocation::KeepRelativeOffset, bAutoDestroy, !FXDefinition.bUseTrailSettings, ENCPoolMethod::None, true);
+		UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(NiagaraSystem, BattleSkeletalMesh, FXDefinition.SocketName, FXDefinition.LocationOffset, FXDefinition.RotationOffset, EAttachLocation::KeepRelativeOffset, bAutoDestroy, !FXDefinition.bUseTrailSettings, ENCPoolMethod::None, true);
 
 		if (NiagaraComponent)
 			NiagaraComponent->SetRelativeScale3D(FXDefinition.Scale);
@@ -252,7 +257,7 @@ UNiagaraComponent* UMuksiBattleFXComponent::SpawnFX(const FMuksiBattleFXData& FX
 	SpawnTransform.ConcatenateRotation(FXDefinition.RotationOffset.Quaternion());
 
 	UE_LOG(LogTemp, Warning, TEXT("[VFX] Spawn AtLocation Location=%s Rotation=%s"), *SpawnTransform.GetLocation().ToString(), *SpawnTransform.Rotator().ToString());
-	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FXDefinition.NiagaraSystem, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), FXDefinition.Scale, bAutoDestroy, !FXDefinition.bUseTrailSettings, ENCPoolMethod::None, true);
+	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, NiagaraSystem, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), FXDefinition.Scale, bAutoDestroy, !FXDefinition.bUseTrailSettings, ENCPoolMethod::None, true);
 
 	if (NiagaraComponent && FXDefinition.bUseTrailSettings)
 		ApplyTrailSettings(NiagaraComponent, BattleSkeletalMesh, FXDefinition);

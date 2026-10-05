@@ -2,12 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/IncomingDamageModifierTypes.h"
-#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffect.h"
+#include "Muksi/Contents/Battle/StatusEffect/ExecutionModifyStatusEffect.h"
 #include "MuksiIncomingDamageModifierStatusEffect.generated.h"
 
-
 UCLASS(Abstract, BlueprintType)
-class MUKSI_API UMuksiIncomingDamageModifierStatusEffect : public UMuksiStatusEffect
+class MUKSI_API UMuksiIncomingDamageModifierStatusEffect : public UExecutionModifyStatusEffect
 {
 	GENERATED_BODY()
 

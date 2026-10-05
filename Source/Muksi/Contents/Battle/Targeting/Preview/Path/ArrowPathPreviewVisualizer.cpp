@@ -62,25 +62,21 @@ void UArrowPathPreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& 
 
 	for (const FTargetingGroup& Group : *Groups)
 	{
-		FVector RawEndLocation = FVector::ZeroVector;
+		FVector EndLocation = FVector::ZeroVector;
 
-		if (!MuksiPathPreview::GetGroupEndLocation(Context, Group, RawEndLocation))
+		if (!MuksiPathPreview::GetPathRangeEndLocation(Context, Group, StartLocation, EndLocation))
 			continue;
 
-		RawEndLocation.Z += PreviewHeightOffset;
+		FVector AimDirection = EndLocation - StartLocation;
+		AimDirection.Z = 0.0f;
 
-		FVector AimDirection = FVector::ZeroVector;
-
-		if (!MuksiPathPreview::GetPathDirection(Context, Group, *Data, StartLocation, RawEndLocation, AimDirection))
+		if (!AimDirection.Normalize())
 			continue;
 
-		const float RawLength = FVector::Dist2D(StartLocation, RawEndLocation);
-		const float TotalLength = Data->bUseFixedLength ? FMath::Max(0.0f, Data->Length) : RawLength;
+		const float TotalLength = FVector::Dist2D(StartLocation, EndLocation);
 
 		if (TotalLength <= KINDA_SMALL_NUMBER)
 			continue;
-
-		const FVector EndLocation = StartLocation + AimDirection * TotalLength;
 		const float ArrowHeadLength = FMath::Min(FMath::Max(0.0f, Data->ArrowHeadLength), TotalLength);
 		const float ArrowHeadWidth = FMath::Max(0.0f, Data->ArrowHeadWidth);
 		const FVector BodyEndLocation = EndLocation - AimDirection * ArrowHeadLength;

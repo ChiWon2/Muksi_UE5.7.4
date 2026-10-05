@@ -1,11 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Muksi/Contents/Battle/StatusEffect/Effects/SaeMaekStatusEffect.h"
 
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
-#include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
 #include "Muksi/Contents/Battle/Execution/Executions/HitReaction/HitReactionExecution.h"
@@ -13,41 +10,32 @@
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecution.h"
 #include "Muksi/Contents/Battle/Execution/Executions/StatusEffect/StatusEffectExecutionData.h"
 
-void USaeMaekStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction)
+USaeMaekStatusEffect::USaeMaekStatusEffect()
 {
-	static_cast<void>(OpponentAction);
-
-	if (!CurrentAction.Card || CurrentAction.Card->CardTypeInfo.CardType != EMuksiBattleCardType::Attack || GetCurrentStack() <= 0)
-		return;
-
-	TArray<FBattleExecutionEntry>& ExecutionEntries = CurrentAction.ExecutionEntries;
-
 	FBattleExecutionEntry DamageEntry;
 	DamageEntry.ExecutionClass = UDamageExecution::StaticClass();
 	DamageEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
 
 	FDamageExecutionData DamageData;
 	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
-	DamageData.DamageValue = GetCurrentStack();
 	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
 	DamageData.bTriggerHitReaction = false;
 	DamageData.bTriggerStatusEffectReactions = true;
-	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
 
-	ExecutionEntries.Insert(MoveTemp(DamageEntry), 0);
+	DamageEntry.ExecutionData.InitializeAs<FDamageExecutionData>(DamageData);
+	ModifyExecutionEntries.Add(MoveTemp(DamageEntry));
 
 	FBattleExecutionEntry HitReactionEntry;
 	HitReactionEntry.ExecutionClass = UHitReactionExecution::StaticClass();
 	HitReactionEntry.ExecutionScope = EBattleExecutionScope::ActualBattleOnly;
-	HitReactionEntry.ExecutionTargetOverride = CurrentAction.Attacker;
 
 	FHitReactionExecutionData HitReactionData;
 	HitReactionData.PlayRate = 1.25f;
 	HitReactionData.FXDataAssetKey = TEXT("StatusEffect_OnAffect_Saemaek");
 	HitReactionData.bWaitForFX = true;
-	HitReactionEntry.ExecutionData.InitializeAs<FHitReactionExecutionData>(HitReactionData);
 
-	ExecutionEntries.Insert(MoveTemp(HitReactionEntry), 1);
+	HitReactionEntry.ExecutionData.InitializeAs<FHitReactionExecutionData>(HitReactionData);
+	ModifyExecutionEntries.Add(MoveTemp(HitReactionEntry));
 
 	FBattleExecutionEntry SubtractEntry;
 	SubtractEntry.ExecutionClass = UStatusEffectExecution::StaticClass();
@@ -56,9 +44,33 @@ void USaeMaekStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBatt
 	FStatusEffectExecutionData SubtractData;
 	SubtractData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 	SubtractData.Operation = EStatusEffectExecutionOperation::Subtract;
-	SubtractData.EffectID = GetEffectID();
 	SubtractData.StackCount = 1;
-	SubtractEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(SubtractData);
 
-	ExecutionEntries.Insert(MoveTemp(SubtractEntry), 2);
+	SubtractEntry.ExecutionData.InitializeAs<FStatusEffectExecutionData>(SubtractData);
+	ModifyExecutionEntries.Add(MoveTemp(SubtractEntry));
+}
+
+void USaeMaekStatusEffect::EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction)
+{
+	static_cast<void>(OpponentAction);
+
+	if (!CurrentAction.Card || CurrentAction.Card->CardTypeInfo.CardType != EMuksiBattleCardType::Attack || GetCurrentStack() <= 0)
+		return;
+
+	TArray<FBattleExecutionEntry> ExecutionEntries = ModifyExecutionEntries;
+
+	for (FBattleExecutionEntry& Entry : ExecutionEntries)
+	{
+		if (FDamageExecutionData* DamageData = Entry.ExecutionData.GetMutablePtr<FDamageExecutionData>())
+			DamageData->DamageValue = GetCurrentStack();
+
+		if (Entry.ExecutionData.GetPtr<FHitReactionExecutionData>())
+			Entry.ExecutionTargetOverride = CurrentAction.Attacker;
+
+		if (FStatusEffectExecutionData* StatusEffectData = Entry.ExecutionData.GetMutablePtr<FStatusEffectExecutionData>())
+			StatusEffectData->EffectID = GetEffectID();
+	}
+
+	ExecutionEntries.Append(CurrentAction.ExecutionEntries);
+	CurrentAction.ExecutionEntries = MoveTemp(ExecutionEntries);
 }
