@@ -79,6 +79,8 @@ void UWidget_CharacterData::NativeOnDeactivated()
 	
 }
 
+
+
 void UWidget_CharacterData::GetCharacterData(ABattleCharacterBase* CharacterData)
 {
 	PlayerData = nullptr;
@@ -102,13 +104,13 @@ void UWidget_CharacterData::SetWidgetVisible()
 	if (PlayerData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Player Data Print"));
-		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
+		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		PlayerDataPanelWidget->ApplyCharacterData(PlayerData);
 		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
 	}else if (EnemyData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Enemy Data Print"));
-		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::Visible);
+		EnemyDataPanelWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		EnemyDataPanelWidget->ApplyCharacterData(EnemyData);
 		PlayerDataPanelWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
