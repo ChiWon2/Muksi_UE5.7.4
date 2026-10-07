@@ -10,9 +10,12 @@
 class UImage;
 class UWidgetAnimation;
 class UMuksiBattleCardDataAsset;
+class UMaterialInstanceDynamic;
 class UWidget_BattleSkillRevealSlot;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillRevealAnimationFinished, UWidget_BattleSkillRevealSlot*);
+
+
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSkillRevealSlotHovered, UMuksiBattleCardDataAsset*, bool);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillRevealSlotUnhovered, bool);
@@ -40,7 +43,7 @@ public:
 	}
 protected:
 	virtual void NativeConstruct() override;
-
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
 	//BindWidget
@@ -71,6 +74,28 @@ private:
 	//슬롯 연출----------------------------------------------------------------------------------------------------------
 public:
 	void RevealDeceive(); //변초 공개
+	
+protected:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_DissolveReveal;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> DissolveMaterialInstance;
+	bool bPlayingDissolveReveal = false;
+
+	float DissolveElapsedTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Deceive Reveal")
+	float DissolveDuration = 0.7f;
+
+	UPROPERTY(EditAnywhere, Category = "Deceive Reveal")
+	float DissolveStartValue = 0.7f;
+
+	UPROPERTY(EditAnywhere, Category = "Deceive Reveal")
+	float DissolveEndValue = -0.47f;
+	
+	void FinishDeceiveReveal();
+
 private:
 	UFUNCTION()
 	void HandleRevealAnimationFinished();

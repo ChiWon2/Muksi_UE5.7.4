@@ -12,34 +12,42 @@ void UTest_Widget_BattleTimerProgeress::NativeConstruct()
 {
 	Super::NativeConstruct();
 	InitializeTimer();
+	
+	
 }
 
 void UTest_Widget_BattleTimerProgeress::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	
-	if (!bTimerRunning || TotalTime <= 0.0f)
+	if (!bPlayingDissolve || !DissolveMID)
 	{
 		return;
 	}
 
-	RemainingTime -= InDeltaTime;
+	DissolveElapsedTime += InDeltaTime;
 
-	if (RemainingTime <= 0.0f)
-	{
-		RemainingTime = 0.0f;
-		bTimerRunning = false;
-	}
-
-	const float Percent = FMath::Clamp(
-		RemainingTime / TotalTime,
+	const float Alpha = FMath::Clamp(
+		DissolveElapsedTime / DissolveDuration,
 		0.0f,
 		1.0f
 	);
 
-	ProgressBar_Timer->SetPercent(Percent);
+	const float DissolveValue = FMath::Lerp(
+		-0.47f,
+		0.7f,
+		Alpha
+	);
 
-	UpdateTimerVisual(Percent);
+	DissolveMID->SetScalarParameterValue(
+		TEXT("Dissolve"),
+		DissolveValue
+	);
+
+	if (Alpha >= 1.0f)
+	{
+		bPlayingDissolve = false;
+	}
 }
 
 void UTest_Widget_BattleTimerProgeress::InitializeTimer()
@@ -48,14 +56,42 @@ void UTest_Widget_BattleTimerProgeress::InitializeTimer()
 
 	bTimerRunning = true;
 
-	if (ProgressBar_Timer)
+	/*if (ProgressBar_Timer)
 	{
 		ProgressBar_Timer->SetPercent(1.0f);
+	}*/
+	if (Image_Dissolve)
+	{
+		DissolveMID = Image_Dissolve->GetDynamicMaterial();
+
+		if (DissolveMID)
+		{
+			DissolveMID->SetScalarParameterValue(
+				TEXT("Dissolve"),
+				-0.47f
+			);
+		}
 	}
+	
+	if (!DissolveMID)
+	{
+		return;
+	}
+
+	DissolveElapsedTime = 0.0f;
+	bPlayingDissolve = true;
+
+	DissolveMID->SetScalarParameterValue(
+		TEXT("Dissolve"),
+		-0.47f
+	);
 }
 
 void UTest_Widget_BattleTimerProgeress::UpdateTimerVisual(float Percent)
 {
+	
+	
+	
 	if (!ProgressBar_Timer || !Image_TimerHandle)
 	{
 		return;

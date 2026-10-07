@@ -16,12 +16,12 @@ void UWidget_PlayerProfilePanel::SetData(UMuksiCharacterDataAsset* DataAsset)
 	//이미지
 	PlayerImage->SetBrushFromTexture(DataAsset->CharacterIllustration);
 	//캐릭터 이름
-	PlayerName->SetVerticalText(DataAsset->CharacterName);
+	TextBlock_PlayerName->SetText(DataAsset->CharacterName);
 	//캐릭터 소속
-	PlayerIntroduction->SetVerticalText(DataAsset->FactionDescription);
+	TextBlock_PlayerIntroduction->SetText(DataAsset->FactionDescription);
 	//캐릭터 체력
 	MaxHP = DataAsset->MaxHP;
-	SetHP(DataAsset->MaxHP);
+	SetHP(PlayerCharacter->GetCurrentHP());
 	if (!PlayerCharacter){UE_LOG(LogTemp, Error, TEXT("BattleCharacter is null (Widget_PlayerProfilePanel.cpp)"));return;}
 	PlayerCharacter->BattleStatComponent->OnHPChanged.AddUniqueDynamic(this, &UWidget_PlayerProfilePanel::HPChanged);
 }
@@ -70,5 +70,6 @@ void UWidget_PlayerProfilePanel::HPDown(float PreHP, float AftHP)
 	const float HPRatio = AftHP / MaxHP;
 	CharacterHPProgressBar->SetPercent(FMath::Clamp(HPRatio, 0.0f, 1.0f));
 }
+
 
 
