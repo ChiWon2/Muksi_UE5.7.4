@@ -5,6 +5,7 @@
 #include "CircleRangePreviewVisualizer.generated.h"
 
 class UMaterialInterface;
+class UMaterialInstanceDynamic;
 class UStaticMesh;
 struct FTargetingPreviewContext;
 
@@ -27,6 +28,10 @@ private:
     UPROPERTY(Transient)
     TObjectPtr<UMaterialInterface> SelectionRangePreviewMaterial = nullptr;
 
+    UPROPERTY(Transient)
+    TObjectPtr<UMaterialInstanceDynamic> SelectionRangePreviewMID = nullptr;
+
+    float BaseBorderThickness = 0.012f;
     float PreviewHeightOffset = 5.0f;
     float PreviewMeshBaseSize = 100.0f;
 };

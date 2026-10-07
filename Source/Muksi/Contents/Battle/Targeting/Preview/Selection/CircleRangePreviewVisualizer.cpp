@@ -1,6 +1,9 @@
 #include "Muksi/Contents/Battle/Targeting/Preview/Selection/CircleRangePreviewVisualizer.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/MaterialParameters.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingStepCardData.h"
 #include "Muksi/Contents/Battle/Targeting/DeveloperSettings/TargetingDeveloperSettings.h"
@@ -19,8 +22,16 @@ void UCircleRangePreviewVisualizer::Initialize(ATargetingPreviewActor* InPreview
 
     SelectionRangePreviewMesh = Settings->SelectionRangePreviewMesh.LoadSynchronous();
     SelectionRangePreviewMaterial = Settings->SelectionRangePreviewMaterial.LoadSynchronous();
+    SelectionRangePreviewMID = nullptr;
+    BaseBorderThickness = 0.012f;
     PreviewHeightOffset = Settings->PreviewHeightOffset;
     PreviewMeshBaseSize = FMath::Max(KINDA_SMALL_NUMBER, Settings->PreviewMeshBaseSize);
+
+    if (SelectionRangePreviewMaterial)
+    {
+        SelectionRangePreviewMaterial->GetScalarParameterValue(FMaterialParameterInfo(TEXT("BorderThickness"), EMaterialParameterAssociation::GlobalParameter, INDEX_NONE), BaseBorderThickness);
+        SelectionRangePreviewMID = UMaterialInstanceDynamic::Create(SelectionRangePreviewMaterial, this);
+    }
 }
 
 void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext& Context)
@@ -55,7 +66,13 @@ void UCircleRangePreviewVisualizer::UpdatePreview(const FTargetingPreviewContext
     const float PreviewScale = WorldRadius * 2.0f / PreviewMeshBaseSize;
     PreviewMesh->SetStaticMesh(SelectionRangePreviewMesh);
 
-    if (SelectionRangePreviewMaterial)
+    if (SelectionRangePreviewMID)
+    {
+        const float BorderThickness = FMath::Max(0.0f, BaseBorderThickness) / FMath::Max(KINDA_SMALL_NUMBER, PreviewScale);
+        SelectionRangePreviewMID->SetScalarParameterValue(TEXT("BorderThickness"), BorderThickness);
+        PreviewMesh->SetMaterial(0, SelectionRangePreviewMID);
+    }
+    else if (SelectionRangePreviewMaterial)
         PreviewMesh->SetMaterial(0, SelectionRangePreviewMaterial);
 
     PreviewMesh->SetWorldLocation(OriginLocation + FVector(0.0f, 0.0f, PreviewHeightOffset));
