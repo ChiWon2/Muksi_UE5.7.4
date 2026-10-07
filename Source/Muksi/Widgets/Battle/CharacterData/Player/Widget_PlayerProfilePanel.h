@@ -31,9 +31,9 @@ protected:
 	TObjectPtr<UImage> PlayerImage;
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalCommonTextBlock> PlayerName;
+	TObjectPtr<UTextBlock> TextBlock_PlayerName;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalCommonTextBlock> PlayerIntroduction;
+	TObjectPtr<UTextBlock> TextBlock_PlayerIntroduction;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UProgressBar> CharacterHPProgressBar;
@@ -50,5 +50,7 @@ protected:
 
 	void HPUp(float PreHP, float AftHP);
 	void HPDown(float PreHP, float AftHP);
+	
+
 	
 };

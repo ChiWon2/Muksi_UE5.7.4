@@ -30,6 +30,16 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UImage* Image_TimerHandle;
 	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_Dissolve;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> DissolveMID;
+
+	float DissolveElapsedTime = 0.0f;
+	float DissolveDuration = 1.0f;
+	bool bPlayingDissolve = false;
+	
 private:
 	// 전체 시간
 	UPROPERTY(EditAnywhere, Category = "Timer Test")

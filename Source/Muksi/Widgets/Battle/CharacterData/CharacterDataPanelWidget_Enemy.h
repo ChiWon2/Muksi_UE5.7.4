@@ -6,6 +6,7 @@
 #include "Muksi/Widgets/Battle/CharacterData/CharacterDataPanelWidget.h"
 #include "CharacterDataPanelWidget_Enemy.generated.h"
 
+enum class EPlayerDataPanel : uint8;
 class UCharacterData_Enemy;
 class UButton;
 class UWidget_PlayerProfilePanel;
@@ -20,9 +21,9 @@ UCLASS()
 class MUKSI_API UCharacterDataPanelWidget_Enemy : public UCharacterDataPanelWidget
 {
 	GENERATED_BODY()
+
 	
-public:
-	void InitializeFromPlayerMode();
+/*
 	void ApplyCharacterData(ABattleCharacter_Enemy* PlayerData);
 	
 	
@@ -65,6 +66,9 @@ private:
 	UFUNCTION()
 	void OnPassiveButtonClicked();
 	
-	void SwitchEnemyPanel(int32 PanelIndex);
+	
+	
+	void SwitchPlayerPanel(EPlayerDataPanel PanelType);
+	void UpdateButtonState();*/
 	
 };

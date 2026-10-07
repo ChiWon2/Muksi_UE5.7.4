@@ -56,6 +56,7 @@ protected:
 	
 	
 	//Connect PlayerMode_Battle
+
 public:
 	void GetClickedActor(AActor* ClickedActor){SelectedActor = ClickedActor;};
 	
