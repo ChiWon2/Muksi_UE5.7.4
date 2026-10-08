@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "MuksiBattleMovementComponent.generated.h"
 
+class ABattleGridManager;
+
 DECLARE_DELEGATE_OneParam(FMuksiBattleMovementFinished, bool);
 
 enum class EMuksiBattleMovementMode : uint8
@@ -38,6 +40,8 @@ public:
 	bool HasSavedPresentationTransform() const { return bHasSavedPresentationTransform; }
 	const FTransform& GetSavedPresentationTransform() const { return SavedPresentationTransform; }
 	void ClearSavedPresentationTransform();
+	FTransform GetPresentationRestoreTransform(ABattleGridManager* GridManager) const;
+	void RestorePresentationTransform(ABattleGridManager* GridManager, bool bRestoreLocation = true, bool bRestoreRotation = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Battle|Movement")
 	void StopMovement(bool bNotifyInterruption = true);

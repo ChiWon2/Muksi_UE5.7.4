@@ -1,6 +1,8 @@
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 
 #include "GameFramework/Actor.h"
+#include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
 UMuksiBattleMovementComponent::UMuksiBattleMovementComponent()
 {
@@ -203,6 +205,35 @@ void UMuksiBattleMovementComponent::ClearSavedPresentationTransform()
 {
 	SavedPresentationTransform = FTransform::Identity;
 	bHasSavedPresentationTransform = false;
+}
+
+FTransform UMuksiBattleMovementComponent::GetPresentationRestoreTransform(ABattleGridManager* GridManager) const
+{
+	FTransform RestoreTransform = SavedPresentationTransform;
+	const ABattleCharacterBase* Character = Cast<ABattleCharacterBase>(GetOwner());
+
+	if (IsValid(GridManager) && Character && GridManager->IsValidCoord(Character->GetCharacterCoord()))
+		RestoreTransform.SetLocation(GridManager->GetTransformToPosition(Character->GetCharacterCoord()).GetLocation());
+
+	return RestoreTransform;
+}
+
+void UMuksiBattleMovementComponent::RestorePresentationTransform(ABattleGridManager* GridManager, bool bRestoreLocation, bool bRestoreRotation)
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || !bHasSavedPresentationTransform)
+		return;
+
+	const FTransform RestoreTransform = GetPresentationRestoreTransform(GridManager);
+
+	if (bRestoreLocation)
+		Owner->SetActorLocation(RestoreTransform.GetLocation());
+
+	if (bRestoreRotation)
+		Owner->SetActorRotation(RestoreTransform.GetRotation());
+
+	if (bRestoreLocation)
+		ClearSavedPresentationTransform();
 }
 
 void UMuksiBattleMovementComponent::StopMovement(bool bNotifyInterruption)

@@ -5,6 +5,7 @@
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Execution/Core/BattleExecutionRunner.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
+#include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Context/TargetingStep.h"
 #include "Muksi/Contents/Battle/Targeting/Resolver/BattleTargetResolver.h"
@@ -34,6 +35,7 @@ bool UBattleActionExecutor::ExecuteBattleAction(const FBattleAction& Action)
 	CurrentAction = Action;
 	CurrentExecutionCard = ExecutionCard;
 	ActionTargetingResult = MoveTemp(TargetingResult);
+	PresentationCharacters = MakeShared<TArray<TWeakObjectPtr<ABattleCharacterBase>>>();
 	bRunning = true;
 	bStopAfterCurrentExecution = false;
 	ActiveExecutionRunners.Reset();
@@ -208,6 +210,7 @@ bool UBattleActionExecutor::RunExecutionEntries(const TArray<FBattleExecutionEnt
 	Context.TargetingResult = ActionTargetingResult;
 	Context.BattleGridManager = GridManager;
 	Context.GridWorldType = GridWorldType;
+	Context.PresentationCharacters = PresentationCharacters;
 
 	ActiveExecutionRunners.Add(Runner);
 
@@ -256,10 +259,33 @@ void UBattleActionExecutor::ResetRuntime()
 {
 	UnbindExecutionNotifySources();
 	bRunning = false;
+	RestorePresentationCharacters();
+	PresentationCharacters.Reset();
 	bStopAfterCurrentExecution = false;
 	CurrentAction = FBattleAction();
 	CurrentExecutionCard = nullptr;
 	ActionTargetingResult.Reset();
 	NotifyAnimationComponents.Reset();
 	ActiveExecutionRunners.Reset();
+}
+
+void UBattleActionExecutor::RestorePresentationCharacters()
+{
+	if (!PresentationCharacters)
+		return;
+
+	for (const TWeakObjectPtr<ABattleCharacterBase>& Character : *PresentationCharacters)
+	{
+		if (!Character.IsValid())
+			continue;
+
+		UMuksiBattleMovementComponent* MovementComponent = Character->GetBattleMovementComponent();
+		if (!MovementComponent || !MovementComponent->HasSavedPresentationTransform())
+			continue;
+
+		MovementComponent->StopMovement(false);
+		MovementComponent->RestorePresentationTransform(GridManager, true, false);
+	}
+
+	PresentationCharacters->Reset();
 }
