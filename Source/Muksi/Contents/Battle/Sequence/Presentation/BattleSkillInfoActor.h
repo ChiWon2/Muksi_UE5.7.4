@@ -12,8 +12,9 @@ class UWidgetComponent;
 class UActor_SkillInfoImage;
 class UActor_SkillInfoDescription;
 
-class UNiagaraSystem;
-class UNiagaraComponent;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+
 
 DECLARE_MULTICAST_DELEGATE(FOnSkillInfoShowFinished);
 DECLARE_MULTICAST_DELEGATE(FOnSkillInfoDeceiveRevealStarted);
@@ -26,94 +27,158 @@ class MUKSI_API ABattleSkillInfoActor : public AActor
 	GENERATED_BODY()
 	
 public:
-	ABattleSkillInfoActor();
-	
-	
+    ABattleSkillInfoActor();
 
-	FOnSkillInfoShowFinished OnShowFinished;
-protected:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
+    FOnSkillInfoShowFinished OnShowFinished;
+    FOnSkillInfoDeceiveRevealStarted OnDeceiveRevealStarted;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<USceneComponent> SceneRoot = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UWidgetComponent> SkillImageWidgetComponent = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UWidgetComponent> SkillDescriptionWidgetComponent = nullptr;
-	
-private:
-	UPROPERTY(Transient)
-	TObjectPtr<UActor_SkillInfoImage> SkillImageWidget = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UActor_SkillInfoDescription> SkillDescriptionWidget = nullptr;
-
+    void PlayShowPresentation(const FBattleAction& InBattleAction);
 
 protected:
-	// BP에서 설정한 최종 위치를 런타임에 저장
-	FVector SkillImageTargetLocation;
-	FVector SkillDescriptionTargetLocation;
+    virtual void BeginPlay() override;
+    virtual void Tick(float DeltaTime) override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	// 등장할 때 최종 위치에서 얼마나 떨어져 시작할지
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Info|Presentation")
-	FVector SkillImageShowOffset = FVector(0.0f, -300.0f, 0.0f);
+    // Components
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<USceneComponent> SceneRoot = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Info|Presentation")
-	FVector SkillDescriptionShowOffset = FVector(0.0f, 300.0f, 0.0f);
+    // 실제 카드
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<UWidgetComponent> SkillImageWidgetComponent = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Info|Presentation")
-	float ShowInterpSpeed = 8.0f;
+    // 가짜 카드
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<UWidgetComponent> DeceiveImageWidgetComponent = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Info|Presentation")
-	float ShowCompleteTolerance = 1.0f;
+    // 카드 설명
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<UWidgetComponent> SkillDescriptionWidgetComponent = nullptr;
+
+    // 등장 연출
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Presentation")
+    FVector SkillImageShowOffset =
+        FVector(0.0f, -300.0f, 0.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Presentation")
+    FVector SkillDescriptionShowOffset =
+        FVector(0.0f, 300.0f, 0.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Presentation")
+    float ShowInterpSpeed = 8.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Presentation")
+    float ShowCompleteTolerance = 1.0f;
+
+    // 가짜 카드와 실제 카드의 앞뒤 간격
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Deceive")
+    FVector DeceiveImageDepthOffset =
+        FVector(0.1f, 0.0f, 0.0f);
+
+    // Dissolve Material
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,
+        Category = "Skill Info|Deceive")
+    TObjectPtr<UMaterialInterface> DeceiveDissolveMaterial = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Deceive",
+        meta = (ClampMin = "0.01"))
+    float DissolveDuration = 1.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Deceive")
+    float DissolveStartValue = -0.68f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+        Category = "Skill Info|Deceive")
+    float DissolveEndValue = 0.7f;
 
 private:
-	bool bPlayingShowPresentation = false;
-	
-	//공개 연출 끝내고 BattleActionPresenter에 보내기-----------------------------------------------------------------------
-private:
-	UPROPERTY(EditAnywhere, Category = "Skill Info|Presentation")
-	float ShowPresentationDuration = 0.5f;
-	void FinishShowPresentation();
-	FTimerHandle ShowPresentationTimerHandle;
-	//------------------------------------------------------------------------------------------------------------------
-	
-	//스킬 정보 받기------------------------------------------------------------------------------------------------------
-public:
-	void PlayShowPresentation(const FBattleAction& InBattleAction);
-private:
-	void SetDisplayedCardData(UMuksiBattleCardDataAsset* CardData);
-	
-	UPROPERTY(Transient)
-	FBattleAction CurrentAction;
-	
-	//------------------------------------------------------------------------------------------------------------------
-	
-	//변초 공개 연출------------------------------------------------------------------------------------------------------
-public:
-	FOnSkillInfoDeceiveRevealStarted OnDeceiveRevealStarted;
-protected:
-	void DeceiveSkillReveal();
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Presentation|Niagara")
-	TObjectPtr<UNiagaraSystem> NiagaraSystem;
+    // Widget References
+    UPROPERTY(Transient)
+    TObjectPtr<UActor_SkillInfoImage> SkillImageWidget = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Presentation|Niagara")
-	TObjectPtr<UNiagaraComponent> ActiveNiagaraComponent;
-	
-	void ChangeDeceiveSkill();
-private:
-	UPROPERTY(EditAnywhere, Category = "Skill Info|Presentation")
-	float ShowDeceiveDuration = 0.8f;
-	
-	UPROPERTY(EditAnywhere, Category = "Skill Info|Presentation")
-	float ShowRevealDuration = 5.f;
-	
-	UPROPERTY(EditAnywhere, Category = "Skill Info|Presentation")
-	float ShowDeceiveCardRevealTime = 0.3f;
-	FTimerHandle ShowDeceiveSkillRevealTimerHandle;
-	//------------------------------------------------------------------------------------------------------------------
+    UPROPERTY(Transient)
+    TObjectPtr<UActor_SkillInfoImage> DeceiveImageWidget = nullptr;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UActor_SkillInfoDescription> SkillDescriptionWidget = nullptr;
+
+    // Material Instance
+    UPROPERTY(Transient)
+    TObjectPtr<UMaterialInstanceDynamic> DeceiveDissolveMID = nullptr;
+
+    // Battle Action
+    UPROPERTY(Transient)
+    FBattleAction CurrentAction;
+
+    // 최종 위치
+    FVector SkillImageTargetLocation = FVector::ZeroVector;
+    FVector DeceiveImageTargetLocation = FVector::ZeroVector;
+    FVector SkillDescriptionTargetLocation = FVector::ZeroVector;
+
+    // 진행 상태
+    bool bPlayingShowPresentation = false;
+    bool bPlayingShowMovement = false;
+    bool bPlayingDissolve = false;
+    bool bIsDeceiveAction = false;
+
+    float DissolveElapsedTime = 0.0f;
+
+    // 기존 연출 시간
+    UPROPERTY(EditAnywhere,
+        Category = "Skill Info|Presentation")
+    float ShowPresentationDuration = 0.5f;
+
+    UPROPERTY(EditAnywhere,
+        Category = "Skill Info|Presentation")
+    float ShowDeceiveDuration = 0.8f;
+
+    UPROPERTY(EditAnywhere,
+        Category = "Skill Info|Presentation")
+    float ShowRevealDuration = 5.0f;
+
+    UPROPERTY(EditAnywhere,
+        Category = "Skill Info|Presentation")
+    float ShowDeceiveCardRevealTime = 0.3f;
+
+    // Timers
+    FTimerHandle ShowPresentationTimerHandle;
+    FTimerHandle ShowDeceiveSkillRevealTimerHandle;
+
+    // Initialization
+    void InitializeWidgets();
+    void InitializeDissolveMaterial();
+
+    // Data
+    void SetDisplayedCardData(
+        UMuksiBattleCardDataAsset* CardData
+    );
+
+    // 등장 이동
+    void UpdateShowMovement(float DeltaTime);
+
+    // Dissolve
+    void StartDissolve();
+    void UpdateDissolve(float DeltaTime);
+    void FinishDissolve();
+    void UpdateDissolveTexture();
+
+    // 변초 처리
+    void DeceiveSkillReveal();
+    void ChangeDeceiveSkill();
+
+    // 연출 완료
+    void FinishShowPresentation();
+
+    // Tick 관리
+    void UpdateTickState();
+
+    // 상태 초기화
+    void ResetPresentation();
 };
