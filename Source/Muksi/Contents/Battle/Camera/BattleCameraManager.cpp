@@ -7,6 +7,7 @@
 #include "CineCameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "LevelSequence.h"
+#include "TimerManager.h"
 #include "DefaultLevelSequenceInstanceData.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
@@ -150,6 +151,7 @@ void ABattleCameraManager::EndPlay(
 	const EEndPlayReason::Type EndPlayReason
 )
 {
+	CameraPlaybackFinishedDelegate.Unbind();
 	StopAttackCameraSequence();
 
 	if (UMuksiWorldManagerSubsystem* ManagerSubsystem =
@@ -517,6 +519,9 @@ void ABattleCameraManager::FocusAttackCamera(ABattleCharacterBase* Character)
 
 void ABattleCameraManager::ReturnToOverview()
 {
+	FSimpleDelegate OnFinished = CameraPlaybackFinishedDelegate;
+	CameraPlaybackFinishedDelegate.Unbind();
+
 	StopTrackingCamera();
 
 	CameraMode = EBattleCameraMode::Overview;
@@ -530,6 +535,9 @@ void ABattleCameraManager::ReturnToOverview()
 		OverviewFocalLength,
 		OverviewArmLength
 	);
+
+	bWaitingForCameraMoveCompletion = true;
+	WaitForBattleCameraEnd(OnFinished);
 }
 
 void ABattleCameraManager::ActivateBattleCamera(float BlendTime)
@@ -756,12 +764,22 @@ void ABattleCameraManager::CheckCameraMoveFinished()
 		TargetFocalLength
 	);
 
+	FSimpleDelegate OnPlaybackFinished;
+	if (!bWaitingForSequenceEnd)
+	{
+		OnPlaybackFinished = CameraPlaybackFinishedDelegate;
+		CameraPlaybackFinishedDelegate.Unbind();
+	}
+
 	OnCameraMoveFinished.Broadcast(CameraMode);
+	OnPlaybackFinished.ExecuteIfBound();
 }
 
 void ABattleCameraManager::SetCameraTarget(const FVector& NewLocation, const FRotator& NewRotation,
                                            float NewFocalLength, float NewArmLength)
 {
+	CancelBattleCameraWait();
+
 	TargetCameraLocation = NewLocation;
 	TargetCameraRotation = NewRotation;
 
@@ -808,13 +826,12 @@ void ABattleCameraManager::CollectBattleCameraAssetPaths(const TSet<FName>& Came
 	}
 }
 
-void ABattleCameraManager::PlayBattleCameraSequence(
-	FName CameraKey,
-	ABattleCharacterBase* Attacker,
-	ABattleCharacterBase* Target
-)
+void ABattleCameraManager::PlayBattleCameraSequence(FName CameraKey, ABattleCharacterBase* Attacker, ABattleCharacterBase* Target, FSimpleDelegate OnFinished)
 {
-	const FMuksiBattleCameraData* CameraData = FindBattleCameraData(CameraKey);
+	CancelBattleCameraWait();
+	bCameraPOVBlendActive = false;
+
+	const FMuksiBattleCameraData* CameraData = CameraKey.IsNone() ? nullptr : FindBattleCameraData(CameraKey);
 	if (!CameraData)
 	{
 		UE_LOG(
@@ -826,6 +843,7 @@ void ABattleCameraManager::PlayBattleCameraSequence(
 
 		StopAttackCameraSequence();
 		ReturnToOverview();
+		WaitForBattleCameraEnd(OnFinished);
 		return;
 	}
 
@@ -841,6 +859,7 @@ void ABattleCameraManager::PlayBattleCameraSequence(
 
 		StopAttackCameraSequence();
 		ReturnToOverview();
+		WaitForBattleCameraEnd(OnFinished);
 		return;
 	}
 
@@ -850,6 +869,7 @@ void ABattleCameraManager::PlayBattleCameraSequence(
 	ActiveSequenceBlendOutExponent = CameraData->BlendOutExponent;
 
 	PlayAttackCameraSequence(LevelSequence, Attacker, Target);
+	WaitForBattleCameraEnd(OnFinished);
 }
 
 void ABattleCameraManager::PlayAttackCameraSequence(
@@ -926,6 +946,10 @@ void ABattleCameraManager::PlayAttackCameraSequence(
 
 void ABattleCameraManager::HandleAttackCameraSequenceFinished()
 {
+	FSimpleDelegate OnPlaybackFinished = CameraPlaybackFinishedDelegate;
+	CameraPlaybackFinishedDelegate.Unbind();
+	bWaitingForSequenceEnd = false;
+
 	if (IsValid(ActiveSequencePlayer))
 		ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
 
@@ -964,11 +988,14 @@ void ABattleCameraManager::HandleAttackCameraSequenceFinished()
 
 	AttackSequenceActor = nullptr;
 	bOwnsAttackSequenceActor = false;
+	WaitForBattleCameraEnd(OnPlaybackFinished);
 }
 
 void ABattleCameraManager::ReturnToOverviewImmediately()
 {
 	StopTrackingCamera();
+	bCameraPOVBlendActive = false;
+	bWaitingForCameraMoveCompletion = false;
 
 	CameraMode = EBattleCameraMode::Overview;
 
@@ -986,6 +1013,7 @@ void ABattleCameraManager::ReturnToOverviewImmediately()
 	BattleCamera->SetCurrentFocalLength(OverviewFocalLength);
 
 	ActivateBattleCamera(0.0f);
+	FinishBattleCameraWait();
 }
 
 void ABattleCameraManager::StartCameraPOVBlendToOverview(
@@ -1277,6 +1305,7 @@ void ABattleCameraManager::UpdateOverviewOrbitBlend(float DeltaTime)
 void ABattleCameraManager::FinishCameraPOVBlend()
 {
 	bCameraPOVBlendActive = false;
+	bWaitingForCameraMoveCompletion = false;
 
 	SetActorLocationAndRotation(
 		OverviewCameraLocation,
@@ -1287,6 +1316,7 @@ void ABattleCameraManager::FinishCameraPOVBlend()
 	CameraSpringArm->SocketOffset = FVector::ZeroVector;
 	CameraSpringArm->SetRelativeRotation(FRotator::ZeroRotator);
 	BattleCamera->SetCurrentFocalLength(OverviewFocalLength);
+	FinishBattleCameraWait();
 }
 
 
@@ -1318,6 +1348,8 @@ void ABattleCameraManager::FinishCameraPOVBlend()
 //CHANGE_CHIWON
 void ABattleCameraManager::StopAttackCameraSequence()
 {
+	CancelBattleCameraWait();
+
 	if (IsValid(ActiveSequencePlayer))
 	{
 		ActiveSequencePlayer->OnFinished.RemoveDynamic(this, &ThisClass::HandleAttackCameraSequenceFinished);
@@ -1338,3 +1370,36 @@ void ABattleCameraManager::StopAttackCameraSequence()
 		AttackSequenceOrigin->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 }
 
+
+void ABattleCameraManager::WaitForBattleCameraEnd(FSimpleDelegate OnFinished)
+{
+	if (!OnFinished.IsBound())
+		return;
+
+	if (IsValid(ActiveSequencePlayer) || (IsValid(BattleCamera) && IsValid(CameraSpringArm) && (bCameraPOVBlendActive || bWaitingForCameraMoveCompletion)))
+	{
+		CameraPlaybackFinishedDelegate = OnFinished;
+		bWaitingForSequenceEnd = IsValid(ActiveSequencePlayer);
+		return;
+	}
+
+	OnFinished.ExecuteIfBound();
+}
+
+void ABattleCameraManager::FinishBattleCameraWait()
+{
+	FSimpleDelegate OnFinished = CameraPlaybackFinishedDelegate;
+	CameraPlaybackFinishedDelegate.Unbind();
+	bWaitingForSequenceEnd = false;
+	OnFinished.ExecuteIfBound();
+}
+
+void ABattleCameraManager::CancelBattleCameraWait()
+{
+	FSimpleDelegate OnFinished = CameraPlaybackFinishedDelegate;
+	CameraPlaybackFinishedDelegate.Unbind();
+	bWaitingForSequenceEnd = false;
+
+	if (OnFinished.IsBound() && GetWorld())
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([OnFinished]() { OnFinished.ExecuteIfBound(); }));
+}
