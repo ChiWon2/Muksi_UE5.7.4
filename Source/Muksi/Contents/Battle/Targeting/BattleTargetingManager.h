@@ -18,6 +18,7 @@ class UTargetingPresentationController;
 
 struct FHitResult;
 struct FTargetingIntent;
+struct FEnemySkillSelectResult;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnemyCardSelectionReady, UMuksiBattleCardDataAsset*, int32);
 DECLARE_MULTICAST_DELEGATE(FOnPlayerTargetingCancelled);
@@ -76,8 +77,9 @@ private:
     void ClearAllTargeting();
     bool StartPlayerTargeting();
     bool CompletePlayerTargeting();
-    bool CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedSkill, FGuid& OutSkillInstanceId, FTargetingIntent& OutIntent);
-    bool CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, ABattleCharacterBase* TargetCharacter);
+    bool CompleteEnemyTargeting(const FEnemySkillSelectResult& SkillResult, UMuksiBattleCardDataAsset*& OutSelectedSkill, FGuid& OutSkillInstanceId, FTargetingIntent& OutIntent);
+    bool CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, const FEnemySkillSelectResult& SkillResult);
+    void FinishEnemyCardSelectionDecision(const FEnemySkillSelectResult& SkillResult);
     void CompleteEnemyCardSelectionRequest();
     void TryCompleteTargetingPhase();
 
