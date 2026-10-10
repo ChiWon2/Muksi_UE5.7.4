@@ -52,6 +52,16 @@ ABattleSkillInfoActor::ABattleSkillInfoActor()
 	SkillDescriptionWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
 	SkillDescriptionWidgetComponent->SetDrawAtDesiredSize(true);
 	SkillDescriptionWidgetComponent->SetTwoSided(true);
+	
+	DeceiveDescriptionWidgetComponent =
+	CreateDefaultSubobject<UWidgetComponent>(
+		TEXT("DeceiveDescriptionWidgetComponent")
+	);
+
+	DeceiveDescriptionWidgetComponent->SetupAttachment(SceneRoot);
+	DeceiveDescriptionWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+	DeceiveDescriptionWidgetComponent->SetDrawAtDesiredSize(true);
+	DeceiveDescriptionWidgetComponent->SetTwoSided(true);
 }
 
 // Called when the game starts or when spawned
@@ -78,6 +88,16 @@ void ABattleSkillInfoActor::BeginPlay()
 	);
 
 	DeceiveImageWidgetComponent->SetVisibility(false);
+	
+	DeceiveDescriptionTargetLocation =
+	SkillDescriptionTargetLocation +
+	DeceiveDescriptionDepthOffset;
+
+	DeceiveDescriptionWidgetComponent->SetRelativeLocation(
+		DeceiveDescriptionTargetLocation
+	);
+
+	DeceiveDescriptionWidgetComponent->SetVisibility(false);
 
 	UpdateTickState();
 }
@@ -145,6 +165,13 @@ void ABattleSkillInfoActor::FinishShowPresentation()
 		);
 	}
 
+	if (DeceiveDescriptionWidgetComponent)
+	{
+		DeceiveDescriptionWidgetComponent->SetRelativeLocation(
+			DeceiveDescriptionTargetLocation
+		);
+	}
+	
 	// 진행 중인 Dissolve가 있다면 Tick 유지
 	UpdateTickState();
 
@@ -201,6 +228,22 @@ void ABattleSkillInfoActor::ResetPresentation()
 		// 누락된 부분
 		DeceiveImageWidgetComponent->SetVisibility(false);
 	}
+	
+	if (IsValid(DeceiveDescriptionWidgetComponent))
+	{
+		if (UMaterialInstanceDynamic* DescriptionMID =
+			DeceiveDescriptionWidgetComponent->GetMaterialInstance())
+		{
+			DeceiveDescriptionDissolveMID = DescriptionMID;
+
+			DescriptionMID->SetScalarParameterValue(
+				TEXT("Dissolve"),
+				DissolveStartValue
+			);
+		}
+
+		DeceiveDescriptionWidgetComponent->SetVisibility(false);
+	}
 
 	UpdateTickState();
 }
@@ -235,6 +278,16 @@ void ABattleSkillInfoActor::InitializeWidgets()
 		SkillDescriptionWidget =
 			Cast<UActor_SkillInfoDescription>(
 				SkillDescriptionWidgetComponent->GetUserWidgetObject()
+			);
+	}
+	
+	if (DeceiveDescriptionWidgetComponent)
+	{
+		DeceiveDescriptionWidgetComponent->InitWidget();
+
+		DeceiveDescriptionWidget =
+			Cast<UActor_SkillInfoDescription>(
+				DeceiveDescriptionWidgetComponent->GetUserWidgetObject()
 			);
 	}
 
@@ -279,13 +332,33 @@ void ABattleSkillInfoActor::InitializeDissolveMaterial()
 		TEXT("Dissolve"),
 		DissolveStartValue
 	);
+	
+	if (IsValid(DeceiveDescriptionWidgetComponent) &&
+	IsValid(DeceiveDissolveMaterial))
+	{
+		DeceiveDescriptionWidgetComponent->SetMaterial(
+			0,
+			DeceiveDissolveMaterial
+		);
 
-	UE_LOG(LogTemp, Warning,
-		TEXT("[DissolveInit] Stored=%s Ptr=%p Parent=%s"),
-		*GetNameSafe(DeceiveDissolveMID),
-		static_cast<void*>(DeceiveDissolveMID.Get()),
-		*GetNameSafe(DeceiveDissolveMID->Parent)
-	);
+		DeceiveDescriptionDissolveMID =
+			DeceiveDescriptionWidgetComponent->GetMaterialInstance();
+
+		if (IsValid(DeceiveDescriptionDissolveMID))
+		{
+			DeceiveDescriptionDissolveMID->SetScalarParameterValue(
+				TEXT("Dissolve"),
+				DissolveStartValue
+			);
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[DescriptionDissolve] MID=%s Parent=%s"),
+				*GetNameSafe(DeceiveDescriptionDissolveMID),
+				*GetNameSafe(DeceiveDescriptionDissolveMID->Parent)
+			);
+		}
+	}
+	
 }
 
 void ABattleSkillInfoActor::SetDisplayedCardData(UMuksiBattleCardDataAsset* CardData)
@@ -346,6 +419,11 @@ void ABattleSkillInfoActor::UpdateShowMovement(float DeltaTime)
 	SkillDescriptionWidgetComponent->SetRelativeLocation(
 		NewDescriptionLocation
 	);
+	
+	DeceiveDescriptionWidgetComponent->SetRelativeLocation(
+	NewDescriptionLocation +
+	DeceiveDescriptionDepthOffset
+);
 
 	const bool bImageFinished =
 		NewImageLocation.Equals(
@@ -361,17 +439,13 @@ void ABattleSkillInfoActor::UpdateShowMovement(float DeltaTime)
 
 	if (bImageFinished && bDescriptionFinished)
 	{
-		SkillImageWidgetComponent->SetRelativeLocation(
-			SkillImageTargetLocation
-		);
+		SkillImageWidgetComponent->SetRelativeLocation(SkillImageTargetLocation);
 
-		DeceiveImageWidgetComponent->SetRelativeLocation(
-			DeceiveImageTargetLocation
-		);
+		DeceiveImageWidgetComponent->SetRelativeLocation(DeceiveImageTargetLocation);
 
-		SkillDescriptionWidgetComponent->SetRelativeLocation(
-			SkillDescriptionTargetLocation
-		);
+		SkillDescriptionWidgetComponent->SetRelativeLocation(SkillDescriptionTargetLocation);
+		
+		DeceiveDescriptionWidgetComponent->SetRelativeLocation(DeceiveDescriptionTargetLocation);
 
 		bPlayingShowMovement = false;
 	}
@@ -380,15 +454,26 @@ void ABattleSkillInfoActor::UpdateShowMovement(float DeltaTime)
 
 void ABattleSkillInfoActor::StartDissolve()
 {
+	if (IsValid(DeceiveDescriptionWidgetComponent))
+	{
+		UMaterialInstanceDynamic* DescriptionMID = DeceiveDescriptionWidgetComponent->GetMaterialInstance();
+
+		if (IsValid(DescriptionMID))
+		{
+			DeceiveDescriptionDissolveMID = DescriptionMID;
+
+			DescriptionMID->SetScalarParameterValue(TEXT("Dissolve"), DissolveStartValue);
+		}
+	}
+	
 	if (!IsValid(DeceiveImageWidgetComponent))
 	{
 		UE_LOG(LogTemp, Error,
 			TEXT("[DissolveStart] Invalid WidgetComponent"));
 		return;
 	}
-
-	UMaterialInstanceDynamic* ActiveMID =
-		DeceiveImageWidgetComponent->GetMaterialInstance();
+	
+	UMaterialInstanceDynamic* ActiveMID = DeceiveImageWidgetComponent->GetMaterialInstance();
 
 	UE_LOG(LogTemp, Warning,
 		TEXT("[DissolveStart] Stored=%s Ptr=%p | Active=%s Ptr=%p Parent=%s"),
@@ -480,6 +565,22 @@ void ABattleSkillInfoActor::UpdateDissolve(float DeltaTime)
         TEXT("Dissolve"),
         DissolveValue
     );
+	
+	if (IsValid(DeceiveDescriptionWidgetComponent))
+	{
+		UMaterialInstanceDynamic* DescriptionMID =
+			DeceiveDescriptionWidgetComponent->GetMaterialInstance();
+
+		if (IsValid(DescriptionMID))
+		{
+			DeceiveDescriptionDissolveMID = DescriptionMID;
+
+			DescriptionMID->SetScalarParameterValue(
+				TEXT("Dissolve"),
+				DissolveValue
+			);
+		}
+	}
 
     // 0.2초마다 상태 확인
     const float PreviousElapsed =
@@ -535,6 +636,22 @@ void ABattleSkillInfoActor::FinishDissolve()
 	if (DeceiveImageWidgetComponent)
 	{
 		DeceiveImageWidgetComponent->SetVisibility(false);
+	}
+	
+	if (IsValid(DeceiveDescriptionWidgetComponent))
+	{
+		if (UMaterialInstanceDynamic* DescriptionMID =
+			DeceiveDescriptionWidgetComponent->GetMaterialInstance())
+		{
+			DeceiveDescriptionDissolveMID = DescriptionMID;
+
+			DescriptionMID->SetScalarParameterValue(
+				TEXT("Dissolve"),
+				DissolveEndValue
+			);
+		}
+
+		DeceiveDescriptionWidgetComponent->SetVisibility(false);
 	}
 
 	UE_LOG(LogTemp, Warning,
@@ -620,13 +737,8 @@ void ABattleSkillInfoActor::ChangeDeceiveSkill()
 	}
 
 	// 실제 카드 이미지는 이미 아래에 배치되어 있음.
-	// 따라서 SkillImageWidget은 다시 설정하지 않음.
 
-	// 설명만 실제 카드 데이터로 변경
-	if (SkillDescriptionWidget)
-	{
-		SkillDescriptionWidget->SetCardData(ActualCard);
-	}
+	
 
 	// 기존 BattleSkillRevealSlot 변초 공개 요청
 	OnDeceiveRevealStarted.Broadcast();
@@ -660,24 +772,17 @@ void ABattleSkillInfoActor::PlayShowPresentation(const FBattleAction& InBattleAc
     }
 
     // 이동 시작 위치
-    const FVector ImageStartLocation =
-        SkillImageTargetLocation + SkillImageShowOffset;
+    const FVector ImageStartLocation = SkillImageTargetLocation + SkillImageShowOffset;
 
-    const FVector DescriptionStartLocation =
-        SkillDescriptionTargetLocation +
-        SkillDescriptionShowOffset;
+    const FVector DescriptionStartLocation = SkillDescriptionTargetLocation + SkillDescriptionShowOffset;
 
-    SkillImageWidgetComponent->SetRelativeLocation(
-        ImageStartLocation
-    );
+    SkillImageWidgetComponent->SetRelativeLocation(ImageStartLocation);
 
-    DeceiveImageWidgetComponent->SetRelativeLocation(
-        ImageStartLocation + DeceiveImageDepthOffset
-    );
+    DeceiveImageWidgetComponent->SetRelativeLocation(ImageStartLocation + DeceiveImageDepthOffset);
 
-    SkillDescriptionWidgetComponent->SetRelativeLocation(
-        DescriptionStartLocation
-    );
+    SkillDescriptionWidgetComponent->SetRelativeLocation(DescriptionStartLocation);
+	
+	DeceiveDescriptionWidgetComponent->SetRelativeLocation(DescriptionStartLocation + DeceiveDescriptionDepthOffset);
 
     bPlayingShowPresentation = true;
     bPlayingShowMovement = true;
@@ -702,15 +807,20 @@ void ABattleSkillInfoActor::PlayShowPresentation(const FBattleAction& InBattleAc
         {
             DeceiveImageWidget->SetCardData(DeceivedCard);
         }
-
-        // 설명은 처음에 가짜 카드 내용
-        if (SkillDescriptionWidget)
-        {
-            SkillDescriptionWidget->SetCardData(DeceivedCard);
-        }
+    	
+    	if (SkillDescriptionWidget)
+    	{
+    		SkillDescriptionWidget->SetCardData(CardData);
+    	}
+    	
+    	if (DeceiveDescriptionWidget)
+    	{
+    		DeceiveDescriptionWidget->SetCardData(DeceivedCard);
+    	}
 
         // 가짜 카드 표시
         DeceiveImageWidgetComponent->SetVisibility(true);
+    	DeceiveDescriptionWidgetComponent->SetVisibility(true);
 
         if (DeceiveDissolveMID)
         {
@@ -737,6 +847,11 @@ void ABattleSkillInfoActor::PlayShowPresentation(const FBattleAction& InBattleAc
         {
             SkillDescriptionWidget->PlayShowAnimation();
         }
+    	
+    	if (DeceiveDescriptionWidget)
+    	{
+    		DeceiveDescriptionWidget->PlayShowAnimation();
+    	}
 
         // 가짜 카드 표시 후 변초 공개 시작
         GetWorldTimerManager().SetTimer(
@@ -751,6 +866,7 @@ void ABattleSkillInfoActor::PlayShowPresentation(const FBattleAction& InBattleAc
     {
         // 일반 스킬은 실제 이미지만 표시
         DeceiveImageWidgetComponent->SetVisibility(false);
+    	DeceiveDescriptionWidgetComponent->SetVisibility(false);
 
         SetDisplayedCardData(CardData);
 

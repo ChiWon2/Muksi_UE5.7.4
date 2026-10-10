@@ -4,6 +4,7 @@
 #include "Muksi/Widgets/Battle/CardPreview/CardPreviewPanel.h"
 
 #include "CardPreviewEffectPanel.h"
+#include "CardPreview_ValuePanel.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
@@ -94,6 +95,19 @@ void UCardPreviewPanel::SetCardData(UMuksiBattleCardDataAsset* InCardData)
 	if (CardPreviewEffectPanel)
 	{
 		CardPreviewEffectPanel->SetCardData(InCardData);
+	}
+	
+	if (ValuePanel)
+	{
+		if (!InCardData->EffectDisplayData.IsEmpty())
+		{
+			ValuePanel->SetVisibility(ESlateVisibility::HitTestInvisible);
+			ValuePanel->SetValue(EValueType::Attack, InCardData->EffectDisplayData[0].AttackValue);
+		}else
+		{
+			ValuePanel->SetVisibility(ESlateVisibility::Hidden);
+		}
+		
 	}
 }
 

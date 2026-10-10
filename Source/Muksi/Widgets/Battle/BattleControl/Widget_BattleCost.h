@@ -28,6 +28,9 @@ class MUKSI_API UWidget_BattleCost : public UUserWidget
 	GENERATED_BODY()
 public:
 	void SetData(UBattleSkillComponent* InSkillComponent);
+	
+	void SetPreviewCost(int32 InCost);
+	void ClearPreviewCost();
 
 protected:
 	virtual void NativeDestruct() override;
@@ -57,5 +60,7 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleCostSlot>> CostSlots;
+	
+	int32 PreviewCost = 0;
 	
 };

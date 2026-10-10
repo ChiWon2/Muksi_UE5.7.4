@@ -21,6 +21,8 @@ void UWidget_BattleCost::SetData(UBattleSkillComponent* InSkillComponent)
 		UpdateCostSlots(0);
 		return;
 	}
+	
+	PreviewCost = 0;
 
 	BattleSkillComponent->OnBattleSkillCostChanged.AddUObject(this, &UWidget_BattleCost::HandleCostChanged);
 
@@ -28,6 +30,21 @@ void UWidget_BattleCost::SetData(UBattleSkillComponent* InSkillComponent)
 	
 	// 처음 표시할 때 현재 Cost를 즉시 읽음
 	RefreshCost();
+}
+
+void UWidget_BattleCost::SetPreviewCost(int32 InCost)
+{
+	PreviewCost = FMath::Max(0, InCost);
+
+	if (BattleSkillComponent)
+	{
+		RefreshCost();
+	}
+}
+
+void UWidget_BattleCost::ClearPreviewCost()
+{
+	SetPreviewCost(0);
 }
 
 void UWidget_BattleCost::NativeDestruct()
@@ -73,7 +90,7 @@ void UWidget_BattleCost::InitializeCostSlots(int32 MaxCost)
 		CostSlots.Add(NewSlot);
 
 		// 처음에는 빈 슬롯으로
-		NewSlot->SetFilled(false);
+		NewSlot->SetState(EBattleCostSlotState::Empty);
 	}
 }
 
@@ -119,12 +136,10 @@ void UWidget_BattleCost::UpdateCostSlots(int32 CurrentCost)
 	);
 	}
 	
-	if (!HorizontalBox_CostSlots || !CostSlotClass)
-	{
-		return;
-	}
+	const int32 FilledCount = FMath::Clamp(CurrentCost, 0, CostSlots.Num());
+	const int32 ConsumeCount = FMath::Clamp(PreviewCost, 0, FilledCount);
+	const int32 PreviewStartIndex = FilledCount - ConsumeCount;
 
-	// 필요한 Cost보다 현재 슬롯이 적으면 추가
 	for (int32 i = 0; i < CostSlots.Num(); ++i)
 	{
 		if (!CostSlots[i])
@@ -132,7 +147,16 @@ void UWidget_BattleCost::UpdateCostSlots(int32 CurrentCost)
 			continue;
 		}
 
-		CostSlots[i]->SetFilled(i < CurrentCost);
+		EBattleCostSlotState State = EBattleCostSlotState::Empty;
+
+		if (i < FilledCount)
+		{
+			State = i >= PreviewStartIndex
+				? EBattleCostSlotState::PreviewConsume
+				: EBattleCostSlotState::Filled;
+		}
+
+		CostSlots[i]->SetState(State);
 	}
 }
 
