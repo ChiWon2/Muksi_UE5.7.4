@@ -16,7 +16,7 @@ class UTexture2D;
 class UPanicStrategyBase;
 class UBattleActionRuntimeModifier;
 
-UCLASS()
+UCLASS(PrioritizeCategories = ("CardData", "Battle"))
 class MUKSI_API UMuksiBattleCardDataAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
@@ -32,35 +32,44 @@ public:
 
 public:
 	// 카드 내부 식별용 이름.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData")
 	FName CardID = NAME_None;
 
 	// 카드 표시 이름.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData")
 	FText CardName;
 
 	// 카드 설명.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data", meta = (MultiLine = true))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData", meta = (MultiLine = true))
 	FText CardDescription;
 
 	// 카드 이미지.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData")
 	TObjectPtr<UTexture2D> CardTexture = nullptr;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData")
 	TObjectPtr<UTexture2D> CardIcon = nullptr;
 
 	// 카드 행동 순서 결정에 사용하는 속도.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData")
+	int Cost = 0;
+
+	// 카드 행동 순서 결정에 사용하는 속도.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData")
 	float CardSpeed = 1.0f;
 
 	// 카드 행동 순서 결정에 사용하는 속도.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData")
 	int Cooldown = 0;
 
-	// 카드 행동 순서 결정에 사용하는 속도.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card Data")
-	int Cost = 0;
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "CardData")
+	FBattleCardTypeInfoData CardTypeInfo;
+
+	//카드 발동 효과 묘사
+public:
+	//카드 발동 효과 정보 <- 여기에 다 적힐 예정
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData|DisplayData")
+	TArray<FCardEffectDisplayData> EffectDisplayData;
 
 	// 카드 시작 시 순서대로 실행할 Main BattleExecutionEntry 목록.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Execution")
@@ -95,14 +104,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Battle|Deceive")
 	UMuksiBattleCardDataAsset* GetDeceivedCard() const;
 
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "Card|Type")
-	FBattleCardTypeInfoData CardTypeInfo;
-
-	//카드 발동 효과 묘사
-public:
-	//카드 발동 효과 정보 <- 여기에 다 적힐 예정
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|DisplayData")
-	TArray<FCardEffectDisplayData> EffectDisplayData;
 	
 public:
 	// 패닉 상황에서 이 카드를 자동으로 사용할 때의 좌표 선택 방식.

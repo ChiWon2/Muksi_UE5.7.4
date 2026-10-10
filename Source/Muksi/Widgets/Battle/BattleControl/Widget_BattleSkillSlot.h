@@ -8,7 +8,7 @@
 
 class UMuksiBattleCardDataAsset;
 class UImage;
-
+class UTextBlock;
 class UButton;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBattleSkillSlotClicked, const FGuid&, UMuksiBattleCardDataAsset*);
@@ -67,6 +67,9 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_Effect;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_SlotIndex = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> CooldownMaterialInstance;

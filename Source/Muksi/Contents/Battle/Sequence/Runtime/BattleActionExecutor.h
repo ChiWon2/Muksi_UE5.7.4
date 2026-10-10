@@ -50,6 +50,7 @@ private:
 	void TryCompleteAction();
 	void CompleteAction();
 	void ResetRuntime();
+	void RestorePresentationCharacters();
 
 	UFUNCTION()
 	void HandleBattleExecutionNotify(ABattleCharacterBase* NotifySource, FName NotifyKey, FName SourceAnimKey);
@@ -74,6 +75,7 @@ private:
 	TArray<TObjectPtr<UBattleExecutionRunner>> ActiveExecutionRunners;
 
 	EBattleSimulationWorldType GridWorldType = EBattleSimulationWorldType::PlayerActualEnemyActual;
+	TSharedPtr<TArray<TWeakObjectPtr<ABattleCharacterBase>>> PresentationCharacters;
 	bool bRunning = false;
 	bool bStopAfterCurrentExecution = false;
 };

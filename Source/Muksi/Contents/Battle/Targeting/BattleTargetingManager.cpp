@@ -5,9 +5,10 @@
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Enemy.h"
+#include "Muksi/Contents/Battle/Character/Enemy/AI/MuksiBattleAIComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
-#include "Muksi/Contents/Battle/Character/Enemy/AI/CardSelectStrategyBase/EnemyCardSelectStrategyBase.h"
+#include "Muksi/Contents/Battle/Character/Enemy/AI/EnemyBattleAITypes.h"
 #include "Muksi/Contents/Battle/Character/Panic/PanicStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
@@ -36,6 +37,15 @@ ABattleTargetingManager::ABattleTargetingManager()
 
 void ABattleTargetingManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    if (BattleManager && BattleManager->GetBattleRuntimeContext())
+    {
+        if (ABattleCharacter_Enemy* EnemyCharacter = BattleManager->GetBattleRuntimeContext()->GetEnemyCharacter())
+        {
+            if (EnemyCharacter->BattleAIComponent)
+                EnemyCharacter->BattleAIComponent->CancelDecision();
+        }
+    }
+
     GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
     GetWorldTimerManager().ClearTimer(CardRevealPreviewTimerHandle);
 
@@ -757,6 +767,15 @@ void ABattleTargetingManager::CancelPendingEnemyCardSelection()
 
     GetWorldTimerManager().ClearTimer(EnemyCardSelectionTimerHandle);
 
+    if (BattleManager && BattleManager->GetBattleRuntimeContext())
+    {
+        if (ABattleCharacter_Enemy* EnemyCharacter = BattleManager->GetBattleRuntimeContext()->GetEnemyCharacter())
+        {
+            if (EnemyCharacter->BattleAIComponent)
+                EnemyCharacter->BattleAIComponent->CancelDecision();
+        }
+    }
+
     // 아직 완성되지 않은 Enemy Targeting 결과 제거
     EnemyTargetingSession = nullptr;
     bEnemyCardPresentationFinished = false;
@@ -773,10 +792,42 @@ void ABattleTargetingManager::CancelPendingEnemyCardSelection()
 
 void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
 {
-    UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
-    ABattleCharacter_Enemy* EnemyCharacter = BattleRuntimeContext->GetEnemyCharacter();
-    if (!IsValid(EnemyCharacter))
+    if (!BattleManager || !BattleManager->GetBattleRuntimeContext() || !BattleManager->GetBattleSimulationManager())
+        return;
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+    ABattleCharacter_Enemy* EnemyCharacter = RuntimeContext->GetEnemyCharacter();
+    ABattleCharacterBase* EnemyDA = BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(EnemyCharacter, EnemyTargetingWorldType);
+    ABattleCharacterBase* PlayerDA = BattleManager->GetBattleSimulationManager()->GetCharacterForWorld(RuntimeContext->GetPlayerCharacter(), EnemyTargetingWorldType);
+
+    if (!EnemyCharacter || !EnemyCharacter->BattleAIComponent || !EnemyDA || !PlayerDA)
+        return;
+
+    const bool bStarted = EnemyCharacter->BattleAIComponent->RequestDecision(EnemyDA, PlayerDA, EnemyCharacter, RuntimeContext->GetPlayerCharacter(), BattleManager->GetBattleGridManager(),
+        [WeakThis = TWeakObjectPtr<ABattleTargetingManager>(this)](const FEnemySkillSelectResult& Result)
+        {
+            if (WeakThis.IsValid())
+                WeakThis->FinishEnemyCardSelectionDecision(Result);
+        });
+
+    if (!bStarted)
+        UE_LOG(LogTemp, Error, TEXT("[EnemyAI] Cannot start BT decision. Check DecisionTree and Blackboard."));
+}
+
+void ABattleTargetingManager::FinishEnemyCardSelectionDecision(const FEnemySkillSelectResult& SkillResult)
+{
+    if (!BattleManager || (BattleManager->GetCurrentPhase() != EBattlePhase::CardSelect && BattleManager->GetCurrentPhase() != EBattlePhase::Targeting))
+        return;
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+    ABattleCharacter_Enemy* EnemyCharacter = RuntimeContext ? RuntimeContext->GetEnemyCharacter() : nullptr;
+    if (!EnemyCharacter)
+        return;
+
+    UBattleSkillComponent* SkillComponent = EnemyCharacter->GetBattleSkillComponent();
+    if (SkillResult.State == EEnemySkillSelectState::Selected && (!SkillComponent || !SkillComponent->CanUseSkill(SkillResult.SelectedSkillInstanceId)))
     {
+        UE_LOG(LogTemp, Warning, TEXT("[EnemyAI] Selected skill is no longer usable."));
         return;
     }
 
@@ -784,26 +835,22 @@ void ABattleTargetingManager::CompleteEnemyCardSelectionRequest()
     FGuid SelectedSkillInstanceId;
     FTargetingIntent TargetingIntent;
 
-    if (!CompleteEnemyTargeting(SelectedSkill,SelectedSkillInstanceId,TargetingIntent))
-    {
+    if (!CompleteEnemyTargeting(SkillResult, SelectedSkill, SelectedSkillInstanceId, TargetingIntent))
         return;
-    }
 
     if (!BattleManager->SubmitTargetingAction(EnemyCharacter, SelectedSkill, TargetingIntent, false))
-    {
         return;
+
+    if (UBattleSkillComponent* Skills = EnemyCharacter->GetBattleSkillComponent())
+    {
+        Skills->ConsumeSkillCost(SelectedSkillInstanceId, EBattleSkillCostApplyType::Enemy);
+        Skills->StartCooldown(SelectedSkillInstanceId);
     }
 
-    if (UBattleSkillComponent* SkillComponent = EnemyCharacter->GetBattleSkillComponent())
-    {
-        SkillComponent->ConsumeSkillCost(SelectedSkillInstanceId, EBattleSkillCostApplyType::Enemy);
-        SkillComponent->StartCooldown(SelectedSkillInstanceId);
-    }
-    
     OnEnemyCardSelectionReady.Broadcast(SelectedSkill, BattleManager->GetCurrentExchange());
 }
 
-bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*& OutSelectedSkill, FGuid& OutSkillInstanceId, FTargetingIntent& OutIntent)
+bool ABattleTargetingManager::CompleteEnemyTargeting(const FEnemySkillSelectResult& SkillResult, UMuksiBattleCardDataAsset*& OutSelectedSkill, FGuid& OutSkillInstanceId, FTargetingIntent& OutIntent)
 {
     OutSelectedSkill = nullptr;
     OutSkillInstanceId.Invalidate();
@@ -827,8 +874,6 @@ bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*&
         return false;
     }
 
-    const FEnemySkillSelectResult SkillResult =
-    EnemyCharacter->SelectSkillForExchange(RuntimeGridManager,EnemyTargetingActor->GetCharacterCoord(),PlayerTargetingActor->GetCharacterCoord());
     
     if (SkillResult.State == EEnemySkillSelectState::NoUsableSkill)
     {
@@ -874,7 +919,7 @@ bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*&
         return false;
     }
 
-    if (!CompleteEnemyTargetingSession(SelectedSkill, PlayerTargetingActor))
+    if (!CompleteEnemyTargetingSession(SelectedSkill, SkillResult))
     {
         EnemyTargetingSession = nullptr;
         return false;
@@ -886,9 +931,9 @@ bool ABattleTargetingManager::CompleteEnemyTargeting(UMuksiBattleCardDataAsset*&
     return true;
 }
 
-bool ABattleTargetingManager::CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, ABattleCharacterBase* TargetCharacter)
+bool ABattleTargetingManager::CompleteEnemyTargetingSession(UMuksiBattleCardDataAsset* SelectedCard, const FEnemySkillSelectResult& SkillResult)
 {
-    if (!EnemyTargetingSession || !IsValid(SelectedCard) || !IsValid(TargetCharacter))
+    if (!EnemyTargetingSession || !IsValid(SelectedCard))
     {
         return false;
     }
@@ -896,8 +941,11 @@ bool ABattleTargetingManager::CompleteEnemyTargetingSession(UMuksiBattleCardData
     while (EnemyTargetingSession->IsSelecting())
     {
         const int32 StepIndex = EnemyTargetingSession->GetCurrentStepIndex();
-        const FHexOffsetCoord TargetCoord = TargetCharacter->GetCharacterCoord();
-        const int32 Direction = CalculateDirectionToCoord(EnemyTargetingSession, TargetCoord);
+        if (!SkillResult.TargetingStepCoords.IsValidIndex(StepIndex) || !SkillResult.TargetingStepDirections.IsValidIndex(StepIndex))
+            return false;
+
+        const FHexOffsetCoord TargetCoord = SkillResult.TargetingStepCoords[StepIndex];
+        const int32 Direction = SkillResult.TargetingStepDirections[StepIndex];
 
         if (!EnemyTargetingSession->UpdateSelection(TargetCoord, Direction))
         {

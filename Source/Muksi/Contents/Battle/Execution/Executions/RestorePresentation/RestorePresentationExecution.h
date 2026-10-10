@@ -6,6 +6,7 @@
 #include "RestorePresentationExecution.generated.h"
 
 class ABattleCharacterBase;
+class ABattleGridManager;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
 class MUKSI_API URestorePresentationExecution : public UBattleExecution
@@ -19,29 +20,20 @@ public:
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
 
 private:
-	void StartCharacterRestore(ABattleCharacterBase* Character, UMuksiBattleMovementComponent* MovementComponent, float MoveDuration, FMuksiBattleMovementFinished OnFinished);
-	void HandleSourceMovementFinished(bool bInterrupted);
-	void HandleTargetMovementFinished(bool bInterrupted);
+	void AddRestoreCharacter(ABattleCharacterBase* Character);
+	void HandleMovementFinished(bool bInterrupted, UMuksiBattleMovementComponent* MovementComponent);
 	void TryFinishRestore();
-	void RestoreSavedTransform(ABattleCharacterBase* Character, UMuksiBattleMovementComponent* MovementComponent);
 	void FinishRestorePresentationExecution();
 
 private:
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleCharacterBase> SourceCharacter = nullptr;
+	TObjectPtr<ABattleGridManager> GridManager = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<ABattleCharacterBase> TargetCharacter = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMuksiBattleMovementComponent> SourceMovementComponent = nullptr;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMuksiBattleMovementComponent> TargetMovementComponent = nullptr;
+	TArray<TObjectPtr<UMuksiBattleMovementComponent>> PendingMovementComponents;
 
 	FBattleExecutionFinished CachedOnFinished;
 	bool bRestoreLocation = true;
 	bool bRestoreRotation = true;
-	bool bSourceMovementFinished = true;
-	bool bTargetMovementFinished = true;
+	bool bStartingRestore = false;
 };

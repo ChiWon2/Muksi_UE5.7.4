@@ -57,6 +57,22 @@ void UCharacterStatusWidget::UnbindBattleStatComponent()
 	BattleStatComponent = nullptr;
 }
 
+void UCharacterStatusWidget::SetCostPreview(int32 Cost)
+{
+	if (BattleCostWidget)
+	{
+		BattleCostWidget->SetPreviewCost(Cost);
+	}
+}
+
+void UCharacterStatusWidget::ClearCostPreview()
+{
+	if (BattleCostWidget)
+	{
+		BattleCostWidget->ClearPreviewCost();
+	}
+}
+
 void UCharacterStatusWidget::HPChanged(float PreHP, float AftHP)
 {
 	if (AftHP - PreHP >= 0)

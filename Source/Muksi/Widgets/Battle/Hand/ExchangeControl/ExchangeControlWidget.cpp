@@ -9,8 +9,6 @@
 void UExchangeControlWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
-	BattleTimerWidget->HideTimer();
 }
 
 
@@ -65,11 +63,7 @@ void UExchangeControlWidget::StopExchangeTimer()
 	bExchangeTimerActive = false;
 	bWarningStarted = false;
 	ExchangeRemainingTime = 0.0f;
-
-	if (BattleTimerWidget)
-	{
-		BattleTimerWidget->HideTimer();
-	}
+	
 }
 
 void UExchangeControlWidget::UpdateExchangeTimer(float DeltaTime)

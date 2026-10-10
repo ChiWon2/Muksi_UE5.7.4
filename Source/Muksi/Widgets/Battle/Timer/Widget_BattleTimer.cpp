@@ -4,30 +4,20 @@
 #include "Muksi/Widgets/Battle/Timer/Widget_BattleTimer.h"
 
 #include "Components/Image.h"
+#include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 
 void UWidget_BattleTimer::NativeConstruct()
 {
 	Super::NativeConstruct();
-	//SetVisibility(ESlateVisibility::Collapsed);
-	
 
+	
 	if (IsValid(RemainingTimeText))
 	{
 		RemainingTimeText->SetText(FText::AsNumber(0));
 	}
 	
-	// RopeBurnImage에 설정된 UI Material에서
-	// Dynamic Material Instance 생성
-	if (IsValid(BottleTimerImage))
-	{
-		TimerMaterial = BottleTimerImage->GetDynamicMaterial();
-
-		if (IsValid(TimerMaterial))
-		{
-			TimerMaterial->SetScalarParameterValue(TEXT("Min"),-0.38f);
-		}
-	}
+	UpdateTimerDisplay(0.0f, 0.0f);
 }
 
 void UWidget_BattleTimer::ShowTimer(float TotalDuration)
@@ -45,23 +35,41 @@ void UWidget_BattleTimer::ShowTimer(float TotalDuration)
 	{
 		TimerMaterial->SetScalarParameterValue(TEXT("Min"),-0.38f);
 	}
+	
+	const float Duration = FMath::Max(TotalDuration, 0.0f);
+	const float InitialRatio = Duration > 0.0f ? 1.0f : 0.0f;
+
+	UpdateTimerDisplay(Duration, InitialRatio);
 }
 
 void UWidget_BattleTimer::UpdateTimerDisplay(float RemainingTime, float RemainingRatio)
 {
 	
+	const float Ratio = FMath::Clamp(RemainingRatio, 0.0f, 1.0f);
+
 	if (IsValid(RemainingTimeText))
 	{
 		RemainingTimeText->SetText(
 			FText::AsNumber(
-				FMath::CeilToInt(
-					FMath::Max(RemainingTime, 0.0f)
-				)
+				FMath::CeilToInt(FMath::Max(RemainingTime, 0.0f))
 			)
 		);
 	}
+
+	if (IsValid(ProgressBar_Timer))
+	{
+		ProgressBar_Timer->SetPercent(Ratio);
+
+		// 남은 비율 1: 파랑, 0: 빨강
+		const FLinearColor CurrentColor = FMath::Lerp(
+			ProgressEndColor,
+			ProgressStartColor,
+			Ratio
+		);
+
+		ProgressBar_Timer->SetFillColorAndOpacity(CurrentColor);
+	}
 	
-	UpdateTimerMaterial(RemainingRatio);
 }
 
 void UWidget_BattleTimer::StartWarning()
@@ -78,51 +86,8 @@ void UWidget_BattleTimer::ExpireTimer()
 
 }
 
-void UWidget_BattleTimer::HideTimer()
-{
-	
-	//SetVisibility(ESlateVisibility::Collapsed);
-}
 
-void UWidget_BattleTimer::UpdateTimerMaterial(float RemainingRatio)
-{
-	/*
-	 * RemainingRatio
-	 *
-	 * 시작 : 1.0
-	 * 종료 : 0.0
-	 *
-	 * Material Min
-	 *
-	 * 시작 : 0.0
-	 * 종료 : 0.85
-	 */
-	
-	if (!IsValid(TimerMaterial))
-	{
-		return;
-	}
-	
-	const float ElapsedRatio = 1.0f - RemainingRatio;
 
-	const float MinValue = FMath::Lerp(-0.38f,MaxMinValue,ElapsedRatio);
 
-	TimerMaterial->SetScalarParameterValue(TEXT("Min"), MinValue);
-	
-	const FLinearColor CurrentColor = GetTimerColor(ElapsedRatio);
-	TimerMaterial->SetVectorParameterValue(TEXT("Color"), CurrentColor);
-}
 
-FLinearColor UWidget_BattleTimer::GetTimerColor(float ElapsedRatio) const
-{
-	if (ElapsedRatio < 0.5f)
-	{
-		const float Alpha = ElapsedRatio * 2.0f;
 
-		return FMath::Lerp(StartColor,MiddleColor,Alpha);
-	}
-
-	const float Alpha = (ElapsedRatio - 0.5f) * 2.0f;
-
-	return FMath::Lerp(MiddleColor,EndColor,Alpha);
-}

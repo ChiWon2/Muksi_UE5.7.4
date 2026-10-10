@@ -6,6 +6,7 @@
 #include "FaceOffExecution.generated.h"
 
 class ABattleCharacterBase;
+class ABattleGridManager;
 class UMuksiBattleMovementComponent;
 
 UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced)
@@ -41,7 +42,11 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMuksiBattleMovementComponent> TargetMovementComponent = nullptr;
 
+	UPROPERTY(Transient)
+	TObjectPtr<ABattleGridManager> GridManager = nullptr;
+
 	FBattleExecutionFinished CachedOnFinished;
+	bool bStartingMovement = false;
 	bool bSourceMovementFinished = false;
 	bool bTargetMovementFinished = false;
 	bool bMovementInterrupted = false;

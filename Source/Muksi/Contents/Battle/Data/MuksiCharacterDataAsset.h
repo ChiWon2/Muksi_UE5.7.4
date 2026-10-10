@@ -7,7 +7,6 @@
 #include "Engine/DataAsset.h"
 #include "MuksiCharacterDataAsset.generated.h"
 
-class UEnemyCardSelectStrategyBase;
 class UMuksiBattleCardDataAsset;
 class ABattleCharacterBase;
 class UCharacterPassive;
@@ -83,9 +82,6 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Timeout Penalty")
 	TArray<FCharacterPanicData> TimeoutPenalties;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|AI")
-	TSubclassOf<UEnemyCardSelectStrategyBase> CardSelectStrategyClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Passive")
 	TArray<TSubclassOf<UCharacterPassive>> CharacterPassiveClass;

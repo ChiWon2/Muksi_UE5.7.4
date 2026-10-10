@@ -6,6 +6,14 @@
 #include "Blueprint/UserWidget.h"
 #include "Widget_BattleCostSlot.generated.h"
 
+UENUM(BlueprintType)
+enum class EBattleCostSlotState : uint8
+{
+	Empty,
+	Filled,
+	PreviewConsume
+};
+
 class UImage;
 /**
  * 
@@ -16,6 +24,8 @@ class MUKSI_API UWidget_BattleCostSlot : public UUserWidget
 	GENERATED_BODY()
 public:
 	void SetFilled(bool bFilled);
+	
+	void SetState(EBattleCostSlotState eState);
 	
 	protected:
 	UPROPERTY(meta = (BindWidget))

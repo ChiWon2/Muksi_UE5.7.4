@@ -54,4 +54,9 @@ protected:
 	void HPDown(float PreHP, float AftHP);
 	void UnbindBattleStatComponent();
 	
+	//스킬 호버링 코스트 보여주기-------------------------------------------------------------------------------------------
+public:
+	void SetCostPreview(int32 Cost);
+	void ClearCostPreview();
+	//------------------------------------------------------------------------------------------------------------------
 };

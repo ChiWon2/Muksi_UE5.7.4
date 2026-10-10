@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
+#include "Muksi/Contents/Battle/Setup/AssetPreload/BattleAssetPreloadManager.h"
 #include "BattleSetupManager.generated.h"
 
 class ABattleCharacterBase;
@@ -28,6 +29,9 @@ class MUKSI_API ABattleSetupManager : public AActor
 public:
     ABattleSetupManager();
     bool InitializeBattleFlow(ABattleManager* InBattleManager, ABattleGridManager* InBattleGridManager);
+
+    UFUNCTION(BlueprintPure, Category = "Battle|Preload")
+    UBattleAssetPreloadManager* GetAssetPreloadManager() const { return AssetPreloadManager; }
 
 protected:
     virtual void BeginPlay() override;
@@ -55,6 +59,9 @@ private:
 
     UPROPERTY(Transient)
     TObjectPtr<UBattleAssetPreloadManager> AssetPreloadManager = nullptr;
+
+    UPROPERTY(EditAnywhere, Category = "Battle|Setup|Preload", meta = (ClampMin = "1.0"))
+    float RenderPreparationTimeoutSeconds = 60.0f;
 
     UPROPERTY(EditAnywhere, Category = "Battle|Setup|Grid")
     TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;

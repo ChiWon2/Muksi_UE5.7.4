@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "CardPreviewPanel.generated.h"
 
+class UCardPreview_ValuePanel;
 class UTextBlock;
 class UImage;
 
@@ -49,6 +50,9 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCardPreviewEffectPanel> CardPreviewEffectPanel;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCardPreview_ValuePanel> ValuePanel;
 	
 private:
 	UPROPERTY(Transient)

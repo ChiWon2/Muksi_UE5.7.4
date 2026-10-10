@@ -372,11 +372,7 @@ protected:
 public:
 	const FMuksiBattleCameraData* FindBattleCameraData(FName CameraKey) const;
 	void CollectBattleCameraAssetPaths(const TSet<FName>& CameraKeys, TArray<FSoftObjectPath>& OutAssetPaths) const;
-	void PlayBattleCameraSequence(
-		FName CameraKey,
-		ABattleCharacterBase* Attacker,
-		ABattleCharacterBase* Target
-	);
+	void PlayBattleCameraSequence(FName CameraKey, ABattleCharacterBase* Attacker, ABattleCharacterBase* Target, FSimpleDelegate OnFinished = FSimpleDelegate());
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle Camera|Sequence")
@@ -426,4 +422,12 @@ protected:
 	void UpdateCameraPOVBlend(float DeltaTime);
 	void UpdateOverviewOrbitBlend(float DeltaTime);
 	void FinishCameraPOVBlend();
+
+private:
+	void WaitForBattleCameraEnd(FSimpleDelegate OnFinished);
+	void FinishBattleCameraWait();
+	void CancelBattleCameraWait();
+
+	FSimpleDelegate CameraPlaybackFinishedDelegate;
+	bool bWaitingForSequenceEnd = false;
 };
