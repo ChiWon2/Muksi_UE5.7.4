@@ -49,7 +49,7 @@ bool ABattleSetupManager::InitializeBattleFlow(ABattleManager* InBattleManager, 
     BattleGridManager = InBattleGridManager;
     AssetPreloadManager = NewObject<UBattleAssetPreloadManager>(this);
 
-    if (!AssetPreloadManager || !AssetPreloadManager->Initialize(BattleManager))
+    if (!AssetPreloadManager || !AssetPreloadManager->Initialize(BattleManager, RenderPreparationTimeoutSeconds))
         return false;
 
     BattleManager->PhaseEntryRequestedDelegate.AddUniqueDynamic(this, &ABattleSetupManager::HandlePhaseEntryRequested);
@@ -58,7 +58,7 @@ bool ABattleSetupManager::InitializeBattleFlow(ABattleManager* InBattleManager, 
 
 bool ABattleSetupManager::ShouldHandlePhaseEntry(EBattlePhase Phase) const
 {
-    return Phase == EBattlePhase::ReadyStart || Phase == EBattlePhase::ReadyEnd;
+    return Phase == EBattlePhase::ReadyStart || Phase == EBattlePhase::ReadyEnd || Phase == EBattlePhase::BattleEnd;
 }
 
 void ABattleSetupManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
@@ -89,6 +89,13 @@ void ABattleSetupManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, EBatt
 
     case EBattlePhase::ReadyEnd:
         PrepareReadyEnd();
+        Task->Complete();
+        return;
+
+    case EBattlePhase::BattleEnd:
+        if (AssetPreloadManager)
+            AssetPreloadManager->ReleaseLoadedAssets();
+
         Task->Complete();
         return;
 

@@ -18,4 +18,9 @@ public:
 	UPlayBattleCameraExecution();
 	virtual void Execute(const FBattleExecutionContext& Context, FBattleExecutionFinished OnFinished) override;
 	virtual const UScriptStruct* GetExecutionDataStruct() const override;
+
+private:
+	void HandleCameraFinished();
+
+	FBattleExecutionFinished CameraFinishedDelegate;
 };

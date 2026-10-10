@@ -3,6 +3,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Execution/Executions/FaceOff/FaceOffExecutionData.h"
 #include "Muksi/Contents/Battle/Movement/MuksiBattleMovementComponent.h"
+#include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 
 UFaceOffExecution::UFaceOffExecution()
 {
@@ -13,6 +14,7 @@ void UFaceOffExecution::Execute(const FBattleExecutionContext& Context, FBattleE
 {
 	CachedOnFinished = OnFinished;
 	SourceCharacter = Context.Attacker.Get();
+	GridManager = Context.BattleGridManager;
 
 	const FFaceOffExecutionData* FaceOffData = Context.GetExecutionData<FFaceOffExecutionData>();
 
@@ -39,6 +41,9 @@ void UFaceOffExecution::Execute(const FBattleExecutionContext& Context, FBattleE
 		return;
 	}
 
+	SourceMovementComponent->StopMovement(true);
+	TargetMovementComponent->StopMovement(true);
+
 	FVector SourceLocation = SourceCharacter->GetActorLocation();
 	FVector TargetLocation = TargetCharacter->GetActorLocation();
 	FVector Direction = TargetLocation - SourceLocation;
@@ -52,6 +57,12 @@ void UFaceOffExecution::Execute(const FBattleExecutionContext& Context, FBattleE
 
 	SourceMovementComponent->SavePresentationTransform();
 	TargetMovementComponent->SavePresentationTransform();
+
+	if (Context.PresentationCharacters)
+	{
+		Context.PresentationCharacters->AddUnique(TWeakObjectPtr<ABattleCharacterBase>(SourceCharacter.Get()));
+		Context.PresentationCharacters->AddUnique(TWeakObjectPtr<ABattleCharacterBase>(TargetCharacter.Get()));
+	}
 
 	FVector SourceStageLocation = SourceLocation;
 	FVector TargetStageLocation = TargetLocation;
@@ -83,6 +94,7 @@ void UFaceOffExecution::Execute(const FBattleExecutionContext& Context, FBattleE
 	bSourceMovementFinished = FaceOffData->MoveMode == EFaceOffMoveMode::TargetToAttacker;
 	bTargetMovementFinished = FaceOffData->MoveMode == EFaceOffMoveMode::AttackerToTarget;
 	bMovementInterrupted = false;
+	bStartingMovement = true;
 
 	if (!bSourceMovementFinished)
 	{
@@ -97,6 +109,9 @@ void UFaceOffExecution::Execute(const FBattleExecutionContext& Context, FBattleE
 		TargetFinished.BindUObject(this, &UFaceOffExecution::HandleTargetMovementFinished);
 		TargetMovementComponent->StartLinearMove(TargetStageLocation, FaceOffData->MoveDuration, TargetFinished);
 	}
+
+	bStartingMovement = false;
+	TryFinishMovement();
 }
 
 ABattleCharacterBase* UFaceOffExecution::ResolveTargetCharacter(const FBattleExecutionContext& Context, EBattleExecutionTargetPolicy TargetPolicy) const
@@ -144,7 +159,7 @@ void UFaceOffExecution::HandleTargetMovementFinished(bool bInterrupted)
 
 void UFaceOffExecution::TryFinishMovement()
 {
-	if (!bSourceMovementFinished || !bTargetMovementFinished)
+	if (IsExecutionFinished() || bStartingMovement || !bSourceMovementFinished || !bTargetMovementFinished)
 		return;
 
 	if (bMovementInterrupted)
@@ -183,17 +198,11 @@ void UFaceOffExecution::FaceCharactersTowardEachOther()
 
 void UFaceOffExecution::RestoreSavedTransforms()
 {
-	if (SourceCharacter && SourceMovementComponent && SourceMovementComponent->HasSavedPresentationTransform())
-	{
-		SourceCharacter->SetActorTransform(SourceMovementComponent->GetSavedPresentationTransform());
-		SourceMovementComponent->ClearSavedPresentationTransform();
-	}
+	if (SourceMovementComponent)
+		SourceMovementComponent->RestorePresentationTransform(GridManager);
 
-	if (TargetCharacter && TargetMovementComponent && TargetMovementComponent->HasSavedPresentationTransform())
-	{
-		TargetCharacter->SetActorTransform(TargetMovementComponent->GetSavedPresentationTransform());
-		TargetMovementComponent->ClearSavedPresentationTransform();
-	}
+	if (TargetMovementComponent)
+		TargetMovementComponent->RestorePresentationTransform(GridManager);
 }
 
 void UFaceOffExecution::FinishFaceOffExecution()
@@ -201,6 +210,8 @@ void UFaceOffExecution::FinishFaceOffExecution()
 	if (IsExecutionFinished())
 		return;
 
+	GridManager = nullptr;
+	bStartingMovement = false;
 	SourceCharacter = nullptr;
 	TargetCharacter = nullptr;
 	SourceMovementComponent = nullptr;

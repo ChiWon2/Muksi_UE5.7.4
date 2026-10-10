@@ -6,7 +6,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "BattleCharacter_Enemy.generated.h"
 
-class UEnemyBattleAIComponent;
+class UMuksiBattleAIComponent;
 class UMuksiCharacterDataAsset;
 class ABattleGridManager;
 struct FEnemySkillSelectResult;
@@ -21,10 +21,11 @@ public:
 	ABattleCharacter_Enemy();
 
 public:
-	UEnemyBattleAIComponent* BattleAIComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle|AI")
+	TObjectPtr<UMuksiBattleAIComponent> BattleAIComponent = nullptr;
 	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager) override;
 	
-	FEnemySkillSelectResult SelectSkillForExchange(ABattleGridManager* GridManager, const FHexOffsetCoord& EnemyCoord, const FHexOffsetCoord& PlayerCoord) const;
+
 
 
 	void InitData();

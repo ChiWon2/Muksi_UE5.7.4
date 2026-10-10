@@ -55,6 +55,8 @@ struct FBattleExecutionContext
 	// BattleExecution 실행 중 추가 ExecutionEntries를 별도 BattleExecutionRunner로 실행하도록 요청하는 통로이다.
 	FRequestRuntimeExecutionEntries RequestRuntimeExecutionEntries;
 
+	TSharedPtr<TArray<TWeakObjectPtr<ABattleCharacterBase>>> PresentationCharacters;
+
 	bool IsValidContext() const
 	{
 		return Attacker != nullptr;

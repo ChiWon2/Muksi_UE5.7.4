@@ -12,4 +12,7 @@ struct FPlayBattleCameraExecutionData : public FBattleExecutionData
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	FName CameraKey = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	bool bWaitForCameraEnd = false;
 };

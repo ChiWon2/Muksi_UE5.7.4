@@ -2,6 +2,20 @@
 
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
+#include "Engine/Texture2D.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "PipelineStateCache.h"
+#include "RHI.h"
+#include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
+#include "HAL/PlatformTime.h"
+#include "Materials/MaterialInterface.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "ShaderPipelineCache.h"
+#include "TimerManager.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectGlobals.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationComponent.h"
 #include "Muksi/Contents/Battle/Animations/MuksiBattleAnimationDataAsset.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
@@ -23,12 +37,13 @@
 #include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectRegistry.h"
 #include "Muksi/Contents/Battle/StatusEffect/StatusEffectDefinitionDataAsset.h"
 
-bool UBattleAssetPreloadManager::Initialize(ABattleManager* InBattleManager)
+bool UBattleAssetPreloadManager::Initialize(ABattleManager* InBattleManager, float InPreparationTimeoutSeconds)
 {
     if (!IsValid(InBattleManager))
         return false;
 
     BattleManager = InBattleManager;
+    PreparationTimeoutSeconds = FMath::Max(1.0f, InPreparationTimeoutSeconds);
     return true;
 }
 
@@ -38,6 +53,7 @@ bool UBattleAssetPreloadManager::LoadAssetsForBattle(const UMuksiCharacterDataAs
         return false;
 
     ReleaseLoadedAssets();
+    bLoading = true;
 
     PlayerCharacterData = InPlayerCharacterData;
     EnemyCharacterData = InEnemyCharacterData;
@@ -51,6 +67,26 @@ bool UBattleAssetPreloadManager::LoadAssetsForBattle(const UMuksiCharacterDataAs
 
 void UBattleAssetPreloadManager::ReleaseLoadedAssets()
 {
+    if (IsValid(BattleManager) && BattleManager->GetWorld())
+    {
+        BattleManager->GetWorld()->GetTimerManager().ClearTimer(PreparationTimerHandle);
+        BattleManager->GetWorld()->GetTimerManager().ClearTimer(TextureResidencyTimerHandle);
+    }
+
+    ReleasePreparationComponents();
+
+    for (UTexture2D* Texture : ResidentTextures)
+    {
+        if (IsValid(Texture))
+            Texture->SetForceMipLevelsToBeResident(-1.0f, 0);
+    }
+
+    ResidentTextures.Reset();
+    bLoading = false;
+    bPreparationTimedOut = false;
+    PendingTextureCount = 0;
+    PendingPSOCount = 0;
+    ReadyCheckCount = 0;
     if (PreloadHandle.IsValid())
         PreloadHandle->CancelHandle();
 
@@ -355,7 +391,7 @@ void UBattleAssetPreloadManager::BeginFinalAssetPreload()
 
     if (AssetPaths.IsEmpty())
     {
-        CompletePreload(true);
+        BeginRenderPreparation();
         return;
     }
 
@@ -380,7 +416,7 @@ void UBattleAssetPreloadManager::HandleFinalAssetsLoaded()
     }
 
     UE_LOG(LogTemp, Log, TEXT("[BattleAssetPreload] Async preload completed. Loaded Asset Count: %d"), LoadedAssets.Num());
-    CompletePreload(true);
+    BeginRenderPreparation();
 }
 
 void UBattleAssetPreloadManager::CollectBattleCameraAssets(TArray<FSoftObjectPath>& OutAssetPaths) const
@@ -460,6 +496,11 @@ void UBattleAssetPreloadManager::AddAssetPathUnique(TArray<FSoftObjectPath>& Ass
 
 void UBattleAssetPreloadManager::CompletePreload(bool bSuccess)
 {
+    if (IsValid(BattleManager) && BattleManager->GetWorld())
+        BattleManager->GetWorld()->GetTimerManager().ClearTimer(PreparationTimerHandle);
+
+    ReleasePreparationComponents();
+    bLoading = false;
     PreloadHandle.Reset();
 
     TFunction<void(bool)> Callback = MoveTemp(CompletionCallback);
@@ -467,4 +508,212 @@ void UBattleAssetPreloadManager::CompletePreload(bool bSuccess)
 
     if (Callback)
         Callback(bSuccess);
+}
+
+void UBattleAssetPreloadManager::BeginRenderPreparation()
+{
+    UWorld* World = IsValid(BattleManager) ? BattleManager->GetWorld() : nullptr;
+    if (!World)
+    {
+        CompletePreload(false);
+        return;
+    }
+
+    CollectRenderResources();
+    RenewTextureResidency();
+    RequestBattlePSOs();
+    PreparationFence.BeginFence();
+    PreparationStartTime = FPlatformTime::Seconds();
+    LastPreparationLogTime = PreparationStartTime;
+    ReadyCheckCount = 0;
+    UE_LOG(LogTemp, Log, TEXT("[BattleAssetPreload] Render preparation started. Textures=%d PSOComponents=%d Timeout=%.1fs"), ResidentTextures.Num(), PreparationComponents.Num(), PreparationTimeoutSeconds);
+    World->GetTimerManager().SetTimer(TextureResidencyTimerHandle, this, &UBattleAssetPreloadManager::RenewTextureResidency, 10.0f, true);
+    World->GetTimerManager().SetTimer(PreparationTimerHandle, this, &UBattleAssetPreloadManager::UpdateRenderPreparation, 0.1f, true);
+}
+
+void UBattleAssetPreloadManager::CollectRenderResources()
+{
+    TArray<UObject*> PendingObjects;
+    TSet<UObject*> VisitedObjects;
+
+    for (UObject* Asset : LoadedAssets)
+        PendingObjects.Add(Asset);
+
+    if (PlayerCharacterData && PlayerCharacterData->BattleCharacterClass)
+        PendingObjects.Add(PlayerCharacterData->BattleCharacterClass->GetDefaultObject());
+
+    if (EnemyCharacterData && EnemyCharacterData->BattleCharacterClass)
+        PendingObjects.Add(EnemyCharacterData->BattleCharacterClass->GetDefaultObject());
+
+    for (int32 ObjectIndex = 0; ObjectIndex < PendingObjects.Num(); ++ObjectIndex)
+    {
+        UObject* Object = PendingObjects[ObjectIndex];
+        if (!IsValid(Object) || VisitedObjects.Contains(Object) || Object->IsA<UClass>() || Object->IsA<UPackage>() || Object->IsA<UWorld>() || (Object->IsA<AActor>() && !Object->HasAnyFlags(RF_ClassDefaultObject)) || Object->GetOutermost() == GetTransientPackage())
+            continue;
+
+        VisitedObjects.Add(Object);
+
+        if (UTexture2D* Texture = Cast<UTexture2D>(Object))
+        {
+            if (Texture->IsStreamable())
+                ResidentTextures.AddUnique(Texture);
+
+            continue;
+        }
+
+        if (Object->IsA<UNiagaraSystem>())
+            LoadedAssets.AddUnique(Object);
+
+        if (UMaterialInterface* Material = Cast<UMaterialInterface>(Object))
+        {
+            TArray<UTexture*> Textures;
+            Material->GetUsedTextures(Textures, TOptional<EMaterialQualityLevel::Type>(), TOptional<EShaderPlatform>(GMaxRHIShaderPlatform));
+
+            for (UTexture* Texture : Textures)
+                PendingObjects.Add(Texture);
+        }
+
+        TArray<UObject*> References;
+        FReferenceFinder ReferenceFinder(References, nullptr, false, true, false, false);
+        ReferenceFinder.FindReferences(Object);
+        PendingObjects.Append(References);
+    }
+}
+
+void UBattleAssetPreloadManager::RequestBattlePSOs()
+{
+    const IConsoleVariable* ComponentPSOPrecaching = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PSOPrecache.Components"));
+    if (!PipelineStateCache::IsPSOPrecachingEnabled() || !ComponentPSOPrecaching || ComponentPSOPrecaching->GetInt() == 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BattleAssetPreload] PSO precaching is unavailable or disabled. Check supported RHI, r.PSOPrecaching and r.PSOPrecache.Components at project startup."));
+        return;
+    }
+
+    PrepareCharacterPSOs(PlayerCharacterData);
+    PrepareCharacterPSOs(EnemyCharacterData);
+
+    for (UObject* Asset : LoadedAssets)
+    {
+        UNiagaraSystem* System = Cast<UNiagaraSystem>(Asset);
+        if (!System)
+            continue;
+
+        UNiagaraComponent* Component = NewObject<UNiagaraComponent>(BattleManager);
+        Component->SetAutoActivate(false);
+        Component->SetAutoDestroy(false);
+        Component->SetVisibility(false);
+        Component->SetHiddenInGame(true);
+        Component->SetAsset(System);
+        Component->RegisterComponentWithWorld(BattleManager->GetWorld());
+        Component->PrecachePSOs();
+        PreparationComponents.Add(Component);
+    }
+}
+
+void UBattleAssetPreloadManager::UpdateRenderPreparation()
+{
+    PendingTextureCount = 0;
+
+    for (UTexture2D* Texture : ResidentTextures)
+    {
+        if (IsValid(Texture) && (Texture->HasPendingInitOrStreaming() || !Texture->IsFullyStreamedIn()))
+            ++PendingTextureCount;
+    }
+
+    PendingPSOCount = static_cast<int32>(FMath::Max(FShaderPipelineCache::NumPrecompilesRemaining(), PipelineStateCache::NumActivePrecacheRequests()));
+    const double CurrentTime = FPlatformTime::Seconds();
+    const double ElapsedSeconds = CurrentTime - PreparationStartTime;
+
+    if (CurrentTime - LastPreparationLogTime >= 1.0)
+    {
+        LastPreparationLogTime = CurrentTime;
+        UE_LOG(LogTemp, Log, TEXT("[BattleAssetPreload] Preparing render resources. PendingTextures=%d PendingPSOs=%d Elapsed=%.1fs"), PendingTextureCount, PendingPSOCount, ElapsedSeconds);
+    }
+
+    if (PreparationFence.IsFenceComplete() && PendingTextureCount == 0 && PendingPSOCount == 0)
+        ++ReadyCheckCount;
+    else
+        ReadyCheckCount = 0;
+
+    if (ReadyCheckCount >= 3)
+    {
+        UE_LOG(LogTemp, Log, TEXT("[BattleAssetPreload] Render preparation completed in %.2fs."), ElapsedSeconds);
+        CompletePreload(true);
+        return;
+    }
+
+    if (ElapsedSeconds >= PreparationTimeoutSeconds)
+    {
+        bPreparationTimedOut = true;
+        UE_LOG(LogTemp, Warning, TEXT("[BattleAssetPreload] Render preparation timed out. Continuing battle with PendingTextures=%d PendingPSOs=%d."), PendingTextureCount, PendingPSOCount);
+        CompletePreload(true);
+    }
+}
+
+void UBattleAssetPreloadManager::RenewTextureResidency()
+{
+    for (UTexture2D* Texture : ResidentTextures)
+    {
+        if (IsValid(Texture))
+            Texture->SetForceMipLevelsToBeResident(30.0f, 0);
+    }
+}
+
+void UBattleAssetPreloadManager::ReleasePreparationComponents()
+{
+    for (UPrimitiveComponent* Component : PreparationComponents)
+    {
+        if (IsValid(Component))
+            Component->DestroyComponent();
+    }
+
+    PreparationComponents.Reset();
+}
+
+void UBattleAssetPreloadManager::PrepareCharacterPSOs(const UMuksiCharacterDataAsset* CharacterData)
+{
+    if (!CharacterData || !CharacterData->BattleCharacterClass)
+        return;
+
+    const ABattleCharacterBase* CharacterDefault = CharacterData->BattleCharacterClass->GetDefaultObject<ABattleCharacterBase>();
+    TArray<UObject*> PendingObjects;
+    TSet<UObject*> VisitedObjects;
+    PendingObjects.Add(const_cast<ABattleCharacterBase*>(CharacterDefault));
+
+    for (int32 ObjectIndex = 0; ObjectIndex < PendingObjects.Num(); ++ObjectIndex)
+    {
+        UObject* Object = PendingObjects[ObjectIndex];
+        if (!IsValid(Object) || VisitedObjects.Contains(Object) || (Object != CharacterDefault && !Object->IsIn(CharacterDefault)))
+            continue;
+
+        VisitedObjects.Add(Object);
+
+        if (USkeletalMeshComponent* SourceMesh = Cast<USkeletalMeshComponent>(Object))
+        {
+            if (!SourceMesh->GetSkeletalMeshAsset())
+                continue;
+
+            USkeletalMeshComponent* Component = NewObject<USkeletalMeshComponent>(BattleManager);
+            Component->SetAutoActivate(false);
+            Component->SetComponentTickEnabled(false);
+            Component->SetVisibility(false);
+            Component->SetHiddenInGame(true);
+            Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+            Component->SetCastShadow(SourceMesh->CastShadow);
+            Component->SetRenderCustomDepth(SourceMesh->bRenderCustomDepth);
+            Component->SetSkeletalMeshAsset(SourceMesh->GetSkeletalMeshAsset());
+
+            for (int32 MaterialIndex = 0; MaterialIndex < SourceMesh->GetNumMaterials(); ++MaterialIndex)
+                Component->SetMaterial(MaterialIndex, SourceMesh->GetMaterial(MaterialIndex));
+
+            Component->RegisterComponentWithWorld(BattleManager->GetWorld());
+            Component->PrecachePSOs();
+            PreparationComponents.Add(Component);
+        }
+
+        TArray<UObject*> References;
+        FReferenceFinder ReferenceFinder(References, nullptr, false, true, false, false);
+        ReferenceFinder.FindReferences(Object);
+        PendingObjects.Append(References);
+    }
 }

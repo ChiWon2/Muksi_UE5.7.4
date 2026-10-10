@@ -6,6 +6,7 @@
 #include "PlayBattleCameraExecutionData.h"
 #include "Muksi/Contents/MuksiWorldManagerSubsystem.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
 
 
 UPlayBattleCameraExecution::UPlayBattleCameraExecution()
@@ -39,12 +40,22 @@ void UPlayBattleCameraExecution::Execute(const FBattleExecutionContext& Context,
 		return;
 	}
 
-	CameraManager->PlayBattleCameraSequence(
-		CameraData->CameraKey,
-		Context.Attacker,
-		Context.ExecutionTarget
-	);
-	FinishExecution(OnFinished);
+	if (!CameraData->bWaitForCameraEnd)
+	{
+		CameraManager->PlayBattleCameraSequence(CameraData->CameraKey, Context.Attacker, Context.ExecutionTarget);
+		FinishExecution(OnFinished);
+		return;
+	}
+
+	CameraFinishedDelegate = OnFinished;
+	FSimpleDelegate OnCameraFinished;
+	OnCameraFinished.BindUObject(this, &UPlayBattleCameraExecution::HandleCameraFinished);
+	CameraManager->PlayBattleCameraSequence(CameraData->CameraKey, Context.Attacker, Context.ExecutionTarget, OnCameraFinished);
+}
+
+void UPlayBattleCameraExecution::HandleCameraFinished()
+{
+	FinishExecution(CameraFinishedDelegate);
 }
 
 const UScriptStruct* UPlayBattleCameraExecution::GetExecutionDataStruct() const
