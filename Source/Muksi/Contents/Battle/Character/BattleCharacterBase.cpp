@@ -68,9 +68,11 @@ ABattleCharacterBase::ABattleCharacterBase()
 	//카메라 포커스 잡는 컴포넌트는 소켓에 잡기(클릭 확대용)
 	ClickCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("ClickCameraFocusComponent"));
 	ClickCameraFocusComponent->SetupAttachment(SceneRoot);
+	ClickCameraFocusComponent->SetRelativeLocation(FVector(-40.0f, 150.0f, 160.0f));
 	//BattleAction 직전 카메라 포커스
 	ActionCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("ActionCameraFocusComponent"));
 	ActionCameraFocusComponent->SetupAttachment(RootComponent);
+	ActionCameraFocusComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 168.0f));
 	//카메라 포커스 잡는 컴포넌트는 소켓에 잡기(공격 애니메이션 연출용)
 	AttackCameraFocusComponent = CreateDefaultSubobject<UCharacterCameraComponent>(TEXT("AttackCameraFocusComponent"));
 	AttackCameraFocusComponent->SetupAttachment(MeshComponent,TEXT("AttackCameraSocket"));

@@ -13,5 +13,8 @@ UCLASS()
 class MUKSI_API ABattleCharacter_Player : public ABattleCharacterBase
 {
 	GENERATED_BODY()
+
+public:
+	ABattleCharacter_Player();
 	
 };

@@ -8,6 +8,8 @@
 
 ABattleCharacter_Enemy::ABattleCharacter_Enemy()
 {
+	SkillInfoAnchorComponent->SetRelativeLocation(FVector(131.0f, 0.0f, 131.0f));
+
 	//카드선택 AI Component
 	BattleAIComponent = CreateDefaultSubobject<UMuksiBattleAIComponent>(TEXT("MuksiBattleAIComponent"));
 
