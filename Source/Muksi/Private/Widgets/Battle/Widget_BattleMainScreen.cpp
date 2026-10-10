@@ -298,11 +298,11 @@ void UWidget_BattleMainScreen::BindBattleControlPanelEvents()
 	BattleControlPanel->OnBattleSkillSelected.AddUObject(this,&UWidget_BattleMainScreen::HandleBattleSkillSelected);
 	
 	UWidget_BattleSkillBar* BattleSkillBar = BattleControlPanel->GetBattleSkillBar();
-	BattleSkillBar->OnBattleSkillHovered.RemoveAll(CardPreviewPanel_Player);
-	BattleSkillBar->OnBattleSkillHovered.AddUObject(CardPreviewPanel_Player, &UCardPreviewPanel::HandleSkillHovered);
+	BattleSkillBar->OnBattleSkillHovered.RemoveAll(this);
+	BattleSkillBar->OnBattleSkillHovered.AddUObject(this, &UWidget_BattleMainScreen::HandleBattleSkillHovered);
 
-	BattleSkillBar->OnBattleSkillUnhovered.RemoveAll(CardPreviewPanel_Player);
-	BattleSkillBar->OnBattleSkillUnhovered.AddUObject(CardPreviewPanel_Player,&UCardPreviewPanel::HandleSkillHoverEnded);
+	BattleSkillBar->OnBattleSkillUnhovered.RemoveAll(this);
+	BattleSkillBar->OnBattleSkillUnhovered.AddUObject(this,&UWidget_BattleMainScreen::HandleBattleSkillUnhovered);
 
 }
 
@@ -324,6 +324,41 @@ void UWidget_BattleMainScreen::HandleBattleSkillSelected(const FGuid& InstanceId
 	}
 
 	BattleTargetingManager->RequestPlayerSkillSelection(InstanceId, CardData);
+}
+
+void UWidget_BattleMainScreen::HandleBattleSkillHovered(UMuksiBattleCardDataAsset* SkillData, int32 RemainingCooldown)
+{
+	if (!SkillData)
+	{
+		HandleBattleSkillUnhovered();
+		return;
+	}
+
+	if (CardPreviewPanel_Player)
+	{
+		CardPreviewPanel_Player->HandleSkillHovered(SkillData, RemainingCooldown);
+	}
+
+	if (StatusHUDWidget && RemainingCooldown <= 0)
+	{
+		StatusHUDWidget->SetPlayerCostPreview(SkillData->Cost);
+	}else
+	{
+		StatusHUDWidget->ClearPlayerCostPreview();
+	}
+}
+
+void UWidget_BattleMainScreen::HandleBattleSkillUnhovered()
+{
+	if (CardPreviewPanel_Player)
+	{
+		CardPreviewPanel_Player->HandleSkillHoverEnded();
+	}
+
+	if (StatusHUDWidget)
+	{
+		StatusHUDWidget->ClearPlayerCostPreview();
+	}
 }
 
 

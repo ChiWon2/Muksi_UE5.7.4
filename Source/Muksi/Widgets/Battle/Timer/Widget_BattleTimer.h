@@ -39,38 +39,26 @@ public:
 	//시간 종료 연출
 	UFUNCTION(BlueprintCallable, Category = "Battle|Timer")
 	void ExpireTimer();
-	
-	UFUNCTION(BlueprintCallable, Category = "Battle|Timer")
-	void HideTimer();
+
 
 protected:
 	//*** BindWidget
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> RemainingTimeText = nullptr;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UProgressBar> ProgressBar_Timer = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Timer|Progress")
+	FLinearColor ProgressStartColor = FLinearColor(0.15f, 0.65f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Timer|Progress")
+	FLinearColor ProgressEndColor = FLinearColor(1.0f, 0.08f, 0.05f, 1.0f);
 	//*** BindWidget
 
 private:
 	float CurrentTotalDuration = 0.0f;
 	float CurrentWarningTime = 0.0f;
-	
-	//UI Material 전용 타이머
-	
-protected:
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UImage> BottleTimerImage = nullptr;
-	
-	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
-	FLinearColor StartColor =  FLinearColor(0.05f, 0.5f, 5.0f, 1.0f);// 형광 파랑
-
-	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
-	FLinearColor MiddleColor = FLinearColor(5.0f, 5.0f, 0.1f, 1.0f);
-
-	UPROPERTY(EditAnywhere, Category = "Battle|Timer|Material")
-	FLinearColor EndColor = FLinearColor(5.0f, 0.1f, 0.05f, 1.0f);
-private:
-	void UpdateTimerMaterial(float RemainingRatio);
-	
-	FLinearColor GetTimerColor(float ElapsedRatio) const;
 
 private:
 	UPROPERTY(Transient)

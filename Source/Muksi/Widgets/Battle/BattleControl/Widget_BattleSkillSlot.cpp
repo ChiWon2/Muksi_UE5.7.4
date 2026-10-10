@@ -5,11 +5,17 @@
 
 #include "Components/Button.h"
 #include "Components/Image.h"
+#include "Components/TextBlock.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 
 void UWidget_BattleSkillSlot::SetSlotIndex(int32 InSlotIndex)
 {
 	SlotIndex = InSlotIndex;
+	
+	if (TextBlock_SlotIndex)
+	{
+		TextBlock_SlotIndex->SetText(FText::AsNumber(SlotIndex + 1));
+	}
 }
 
 void UWidget_BattleSkillSlot::SetCardInstance(const FGuid& InInstanceId, UMuksiBattleCardDataAsset* InCardData, int32 InRemainingCooldown, int32 InCurrentCost)

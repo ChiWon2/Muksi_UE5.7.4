@@ -54,6 +54,9 @@ protected:
     // 카드 설명
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     TObjectPtr<UWidgetComponent> SkillDescriptionWidgetComponent = nullptr;
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<UWidgetComponent> DeceiveDescriptionWidgetComponent = nullptr;
 
     // 등장 연출
     UPROPERTY(EditAnywhere, BlueprintReadWrite,
@@ -78,6 +81,11 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite,
         Category = "Skill Info|Deceive")
     FVector DeceiveImageDepthOffset =
+        FVector(0.1f, 0.0f, 0.0f);
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite,
+    Category = "Skill Info|Deceive")
+    FVector DeceiveDescriptionDepthOffset =
         FVector(0.1f, 0.0f, 0.0f);
 
     // Dissolve Material
@@ -108,10 +116,16 @@ private:
 
     UPROPERTY(Transient)
     TObjectPtr<UActor_SkillInfoDescription> SkillDescriptionWidget = nullptr;
+    
+    UPROPERTY(Transient)
+    TObjectPtr<UActor_SkillInfoDescription> DeceiveDescriptionWidget = nullptr;
 
     // Material Instance
     UPROPERTY(Transient)
     TObjectPtr<UMaterialInstanceDynamic> DeceiveDissolveMID = nullptr;
+    
+    UPROPERTY(Transient)
+    TObjectPtr<UMaterialInstanceDynamic> DeceiveDescriptionDissolveMID = nullptr;
 
     // Battle Action
     UPROPERTY(Transient)
@@ -121,6 +135,7 @@ private:
     FVector SkillImageTargetLocation = FVector::ZeroVector;
     FVector DeceiveImageTargetLocation = FVector::ZeroVector;
     FVector SkillDescriptionTargetLocation = FVector::ZeroVector;
+    FVector DeceiveDescriptionTargetLocation = FVector::ZeroVector;
 
     // 진행 상태
     bool bPlayingShowPresentation = false;

@@ -47,10 +47,10 @@ void UWidget_BattleControlPanel::NativeConstruct()
 		BattleSkillBar->OnBattleSkillSelected.AddUObject(this,&UWidget_BattleControlPanel::HandleBattleSkillSelected);
 	}
 	
-	if (BattleTimerWidget)
+	/*if (BattleTimerWidget)
 	{
 		BattleTimerWidget->HideTimer();
-	}
+	}*/
 	
 	BaseRenderTranslation = GetRenderTransform().Translation;
 
@@ -115,10 +115,10 @@ void UWidget_BattleControlPanel::StopExchangeTimer()
 
 	ExchangeRemainingTime = 0.0f;
 
-	if (BattleTimerWidget)
+	/*if (BattleTimerWidget)
 	{
 		BattleTimerWidget->HideTimer();
-	}
+	}*/
 }
 
 void UWidget_BattleControlPanel::NativeTick(const FGeometry& Geometry, float InDeltaTime)

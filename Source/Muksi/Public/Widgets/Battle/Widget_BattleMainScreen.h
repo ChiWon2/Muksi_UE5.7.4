@@ -149,7 +149,8 @@ protected:
 	void UnbindBattleControlPanelEvents();
 	void HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData);
 
-	
+	void HandleBattleSkillHovered(UMuksiBattleCardDataAsset* SkillData, int32 RemainingCooldown);
+	void HandleBattleSkillUnhovered();
 	
 	
 	void HandleBattleSkillCostChanged();
