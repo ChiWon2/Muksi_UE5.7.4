@@ -34,7 +34,9 @@ public class Muksi : ModuleRules
 
         PrivateDependencyModuleNames.AddRange(new string[]
         {
-            "CinematicCamera"
+            "CinematicCamera",
+            "RenderCore",
+            "RHI"
         });
 
         // Uncomment if you are using Slate UI
