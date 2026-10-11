@@ -2,16 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTTask_EvaluateCandidates.generated.h"
+#include "BTTask_EvaluateApproachOpponentTargeting.generated.h"
 
 UCLASS()
-class MUKSI_API UBTTask_EvaluateCandidates : public UBTTaskNode
+class MUKSI_API UBTTask_EvaluateApproachOpponentTargeting : public UBTTaskNode
 {
     GENERATED_BODY()
 
 public:
-    UBTTask_EvaluateCandidates();
+    UBTTask_EvaluateApproachOpponentTargeting();
 
-protected:
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
