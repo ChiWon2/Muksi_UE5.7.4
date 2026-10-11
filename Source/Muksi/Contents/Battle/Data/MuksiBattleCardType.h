@@ -3,17 +3,6 @@
 #include "CoreMinimal.h"
 #include "MuksiBattleCardType.generated.h"
 
-/*UENUM(BlueprintType)
-enum class EMuksiBattleCardType : uint8
-{
-	None		UMETA(DisplayName = "None"),
-	Rush		UMETA(DisplayName = "Rush"),
-	RangeAttack	UMETA(DisplayName = "Range Attack"),
-	Defense		UMETA(DisplayName = "Defense"),
-	Heal		UMETA(DisplayName = "Heal"),
-	Move		UMETA(DisplayName = "Move"),
-};*/
-
 UENUM(BlueprintType)
 enum class EMuksiBattleCardType : uint8
 {
@@ -28,28 +17,36 @@ enum class EMuksiBattleCardType : uint8
 UENUM(BlueprintType)
 enum class EMuksiAttackCardType : uint8
 {
+	None		UMETA(DisplayName = "None"),
 	Normal		UMETA(DisplayName = "Normal Attack"),
 	Rush		UMETA(DisplayName = "Rush"),
 	RangeAttack	UMETA(DisplayName = "Range Attack"),
-	
-	None		UMETA(DisplayName = "None"),
 };
 
 UENUM(BlueprintType)
 enum class EMuksiDefenceCardType : uint8
 {
+	None		UMETA(DisplayName = "None"),
 	Guard		UMETA(DisplayName = "Guard"),
 	Dodge		UMETA(DisplayName = "Dodge"),
-	
-	None		UMETA(DisplayName = "None"),
 };
 
 
 UENUM(BlueprintType)
 enum class EMuksiMoveCardType : uint8
 {
+	None		UMETA(DisplayName = "None"),
 	Teleport	UMETA(DisplayName = "Teleport"),
 	GroundPath	UMETA(DisplayName = "Ground Path"),
+};
+
+UENUM(BlueprintType)
+enum class EMuksiSpecialCardType : uint8
+{
+	None		UMETA(DisplayName = "None"),
+	Counter		UMETA(DisplayName = "Counter"),
+	Knockback	UMETA(DisplayName = "Knockback"),
+	StackChargeAttack UMETA(DisplayName = "StackChargeAttack")
 };
 
 USTRUCT(BlueprintType)
@@ -62,12 +59,15 @@ struct FBattleCardTypeInfoData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData",
 		meta = (EditCondition = "CardType == EMuksiBattleCardType::Attack", EditConditionHides))
-	EMuksiAttackCardType AttackType =EMuksiAttackCardType::Normal;
+	EMuksiAttackCardType AttackType =EMuksiAttackCardType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData",
 		meta = (EditCondition = "CardType == EMuksiBattleCardType::Defence", EditConditionHides))
-	EMuksiDefenceCardType DefenceType = EMuksiDefenceCardType::Guard;
+	EMuksiDefenceCardType DefenceType = EMuksiDefenceCardType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData", meta = (EditCondition = "CardType == EMuksiBattleCardType::Move", EditConditionHides))
-	EMuksiMoveCardType MoveType = EMuksiMoveCardType::GroundPath;
+	EMuksiMoveCardType MoveType = EMuksiMoveCardType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CardData", meta = (EditCondition = "CardType == EMuksiBattleCardType::Special", EditConditionHides))
+	EMuksiSpecialCardType SpecialType = EMuksiSpecialCardType::None;
 };
