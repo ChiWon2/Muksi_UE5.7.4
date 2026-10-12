@@ -16,5 +16,8 @@ public:
     UPROPERTY(EditAnywhere, Category = "AI|Filter")
     TArray<FBattleCardTypeInfoData> AllowedCardTypes;
 
+    UPROPERTY(EditAnywhere, Category = "AI|Filter")
+    TArray<FName> AllowedCardIDs;
+
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };

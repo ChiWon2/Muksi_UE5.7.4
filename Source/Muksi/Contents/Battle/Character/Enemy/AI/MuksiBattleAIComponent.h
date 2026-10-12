@@ -76,7 +76,8 @@ public:
 public:
     bool AnalyzeOpponent();
     bool GenerateAvailableSkills();
-    bool FilterAvailableSkills(const TArray<FBattleCardTypeInfoData>& AllowedCardTypes);
+    bool FilterAvailableSkills(const TArray<FBattleCardTypeInfoData>& AllowedCardTypes, const TArray<FName>& AllowedCardIDs);
+    bool CheckSelfStatusEffect(FName EffectID, int32 MinimumStack) const;
     bool EvaluateSkillCandidates();
     bool GenerateTargetingCandidates();
     bool EvaluateOpponentTargeting();

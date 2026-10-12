@@ -21,5 +21,5 @@ EBTNodeResult::Type UBTTask_FilterAvailableSkills::ExecuteTask(UBehaviorTreeComp
     if (!AI)
         return EBTNodeResult::Failed;
 
-    return AI->FilterAvailableSkills(AllowedCardTypes) ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
+    return AI->FilterAvailableSkills(AllowedCardTypes, AllowedCardIDs) ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
 }

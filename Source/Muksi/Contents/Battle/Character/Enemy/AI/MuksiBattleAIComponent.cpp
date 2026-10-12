@@ -11,6 +11,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillTypes.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
@@ -177,22 +178,29 @@ bool UMuksiBattleAIComponent::GenerateAvailableSkills()
         if (!Instance.SkillData || !Skills->CanUseSkill(Instance.InstanceId))
             continue;
 
-        if (Instance.SkillData->CardTypeInfo.CardType == EMuksiBattleCardType::Special)
-            continue;
-
         AvailableSkillIds.Add(Instance.InstanceId);
     }
 
     return true;
 }
 
-bool UMuksiBattleAIComponent::FilterAvailableSkills(const TArray<FBattleCardTypeInfoData>& AllowedCardTypes)
+bool UMuksiBattleAIComponent::CheckSelfStatusEffect(FName EffectID, int32 MinimumStack) const
+{
+    if (!SelfSkillOwner || EffectID.IsNone())
+        return false;
+
+    const UMuksiStatusEffectComponent* StatusEffects = SelfSkillOwner->GetStatusEffectComponent();
+
+    return StatusEffects && StatusEffects->GetEffectStackCount(EffectID) >= MinimumStack;
+}
+
+bool UMuksiBattleAIComponent::FilterAvailableSkills(const TArray<FBattleCardTypeInfoData>& AllowedCardTypes, const TArray<FName>& AllowedCardIDs)
 {
     FilteredSkillIds.Reset();
     Candidates.Reset();
     SkillScores.Reset();
 
-    if (!SelfSkillOwner || AllowedCardTypes.IsEmpty())
+    if (!SelfSkillOwner || (AllowedCardTypes.IsEmpty() && AllowedCardIDs.IsEmpty()))
         return false;
 
     const UBattleSkillComponent* Skills = SelfSkillOwner->GetBattleSkillComponent();
@@ -204,6 +212,15 @@ bool UMuksiBattleAIComponent::FilterAvailableSkills(const TArray<FBattleCardType
     {
         if (!AvailableSkillIds.Contains(Instance.InstanceId) || !Instance.SkillData)
             continue;
+
+        if (!AllowedCardIDs.IsEmpty() && !AllowedCardIDs.Contains(Instance.SkillData->CardID))
+            continue;
+
+        if (AllowedCardTypes.IsEmpty())
+        {
+            FilteredSkillIds.Add(Instance.InstanceId);
+            continue;
+        }
 
         const FBattleCardTypeInfoData& Type = Instance.SkillData->CardTypeInfo;
 
@@ -514,8 +531,19 @@ bool UMuksiBattleAIComponent::SelectRandomValidAction()
     if (!Skills)
         return false;
 
-    FilteredSkillIds = AvailableSkillIds;
-    FilteredSkillIds.RemoveAll([Skills](const FGuid& Id) { return !Skills->CanUseSkill(Id); });
+    FilteredSkillIds.Reset();
+
+    for (const FBattleSkillInstance& Instance : Skills->GetSkillInstances())
+    {
+        if (!AvailableSkillIds.Contains(Instance.InstanceId) || !Instance.SkillData)
+            continue;
+
+        if (Instance.SkillData->CardTypeInfo.CardType == EMuksiBattleCardType::Special)
+            continue;
+
+        if (Skills->CanUseSkill(Instance.InstanceId))
+            FilteredSkillIds.Add(Instance.InstanceId);
+    }
 
     if (!GenerateTargetingCandidates())
         return false;
