@@ -9,10 +9,13 @@
 class UCardPreview_ValuePanel;
 class UTextBlock;
 class UImage;
+class UVerticalBox;
+
 
 class UMuksiBattleCardDataAsset;
 class UWidget_BattleCardBase;
 class UCardPreviewEffectPanel;
+class UCardPreview_ValuePanel;
 
 /**
  * 
@@ -41,9 +44,15 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_CardName;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Text_SkillCost;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Text_SkillSpeed;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_CardSpeed;
+	TObjectPtr<UTextBlock> Text_SkillCoolDown;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_CardIllustration;
@@ -52,10 +61,19 @@ protected:
 	TObjectPtr<UCardPreviewEffectPanel> CardPreviewEffectPanel;
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UCardPreview_ValuePanel> ValuePanel;
+	TObjectPtr<UVerticalBox> VerticalBox_ValuePanels;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Battle|Preview")
+	TSubclassOf<UCardPreview_ValuePanel> ValuePanelClass;
 	
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<const UMuksiBattleCardDataAsset> CurrentCardData;
+	
+	// 생성한 위젯을 보관해서 재사용
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UCardPreview_ValuePanel>> ValuePanels;
+
+	void RefreshValuePanels(const UMuksiBattleCardDataAsset* CardData);
 	
 };

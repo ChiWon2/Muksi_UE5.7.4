@@ -55,7 +55,10 @@ void UWidget_BattleCost::NativeDestruct()
 
 void UWidget_BattleCost::HandleCostChanged()
 {
-	RefreshCost();
+	if (bAutoRefreshCost)
+	{
+		RefreshCost();
+	}
 }
 
 void UWidget_BattleCost::InitializeCostSlots(int32 MaxCost)
