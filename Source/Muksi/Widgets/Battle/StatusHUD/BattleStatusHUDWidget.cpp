@@ -34,4 +34,12 @@ void UBattleStatusHUDWidget::ClearPlayerCostPreview()
 	}
 }
 
+void UBattleStatusHUDWidget::RefreshEnemyCost()
+{
+	if (CharacterStatusWidget_Enemy)
+	{
+		CharacterStatusWidget_Enemy->RefreshCost();
+	}
+}
+
 

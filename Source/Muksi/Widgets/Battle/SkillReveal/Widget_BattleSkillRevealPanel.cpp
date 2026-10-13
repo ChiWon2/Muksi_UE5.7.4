@@ -4,6 +4,9 @@
 #include "Muksi/Widgets/Battle/SkillReveal/Widget_BattleSkillRevealPanel.h"
 
 #include "Widget_BattleSkillRevealSlot.h"
+#include "Components/Border.h"
+#include "Components/Overlay.h"
+#include "Framework/Application/SlateApplication.h"
 
 void UWidget_BattleSkillRevealPanel::SetExchangeSkills(int32 ExchangeIndex, UMuksiBattleCardDataAsset* FirstSkill,
                                                        bool bFirstIsPlayer, UMuksiBattleCardDataAsset* SecondSkill, bool bSecondIsPlayer)
@@ -31,6 +34,13 @@ void UWidget_BattleSkillRevealPanel::SetExchangeSkills(int32 ExchangeIndex, UMuk
 
 void UWidget_BattleSkillRevealPanel::ClearAllSkills()
 {
+	if (IsValid(PendingDeceiveSlot))
+	{
+		PendingDeceiveSlot->OnDeceiveRevealFinished.RemoveAll(this);
+	}
+
+	PendingDeceiveSlot = nullptr;
+	
 	for (UWidget_BattleSkillRevealSlot* Slot_ : FirstSlots)
 	{
 		if (Slot_)
@@ -51,6 +61,10 @@ void UWidget_BattleSkillRevealPanel::ClearAllSkills()
 
 	PendingRevealExchangeIndex = INDEX_NONE;
 	PendingRevealCount = 0;
+	
+	
+	bRevealPresentationRunning = false;
+	RevealHoldElapsed = 0.0f;
 }
 
 bool UWidget_BattleSkillRevealPanel::RevealExchangeSkills(int32 ExchangeIndex, UMuksiBattleCardDataAsset* FirstSkill,
@@ -79,6 +93,9 @@ bool UWidget_BattleSkillRevealPanel::RevealExchangeSkills(int32 ExchangeIndex, U
 	PendingRevealExchangeIndex = ExchangeIndex;
 	PendingRevealCount = 2;
 
+	bRevealPresentationRunning = true;
+	RevealHoldElapsed = 0.0f;
+	
 	// 완료 콜백 연결
 	FirstSlot->OnRevealFinished.RemoveAll(this);
 	SecondSlot->OnRevealFinished.RemoveAll(this);
@@ -105,6 +122,15 @@ bool UWidget_BattleSkillRevealPanel::RevealExchangeSkills(int32 ExchangeIndex, U
 void UWidget_BattleSkillRevealPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
+	
+	if (Overlay_Slots)
+	{
+		BaseSlotsTranslation = Overlay_Slots->GetRenderTransform().Translation;
+	}
+
+	bHoverAreaHovered = false;
+	bRevealPresentationRunning = false;
+	RevealHoldElapsed = 0.0f;
 	
 	FirstSlots = {
 		Slot_Exchange1_First,
@@ -153,35 +179,42 @@ void UWidget_BattleSkillRevealPanel::HandleSlotRevealFinished(UWidget_BattleSkil
 
 	FinishedSlot->OnRevealFinished.RemoveAll(this);
 
-	PendingRevealCount--;
+	--PendingRevealCount;
 
-	if (PendingRevealCount > 0)
-	{
-		return;
-	}
-
-	const int32 FinishedExchangeIndex = PendingRevealExchangeIndex;
-
-	PendingRevealExchangeIndex = INDEX_NONE;
-	PendingRevealCount = 0;
-
-	OnSkillRevealFinished.Broadcast(FinishedExchangeIndex);
+	TryFinishRevealPresentation();
 }
 
 bool UWidget_BattleSkillRevealPanel::PlayDeceiveReveal(int32 ExchangeIndex, bool bPlayerAction)
 {
+	if (IsValid(PendingDeceiveSlot))
+	{
+		return false;
+	}
+	
 	UWidget_BattleSkillRevealSlot* RevealSlot = FindActionSlot(ExchangeIndex, bPlayerAction);
-
+	
+	
 	if (!RevealSlot)
 	{
 		return false;
 	}
 	//RevealSlot->SetSkillData(ActualSkill, bPlayerAction);
-	RevealSlot->RevealDeceive();
+	PendingDeceiveSlot = RevealSlot;
+	RevealSlot->OnDeceiveRevealFinished.RemoveAll(this);
+	RevealSlot->OnDeceiveRevealFinished.AddUObject(this, &UWidget_BattleSkillRevealPanel::HandleSlotDeceiveRevealFinished);
+	
+	if (!RevealSlot->RevealDeceive())
+	{
+		RevealSlot->OnDeceiveRevealFinished.RemoveAll(this);
+		PendingDeceiveSlot = nullptr;
 
+		return false;
+	}
+
+	/*
 	// TODO 변초 공개 연출 넣고 거기서 Broadcast 하기
 	OnDeceiveRevealFinished.Broadcast();
-
+	*/
 	return true;
 }
 
@@ -211,6 +244,21 @@ UWidget_BattleSkillRevealSlot* UWidget_BattleSkillRevealPanel::FindActionSlot(in
 	return nullptr;
 }
 
+void UWidget_BattleSkillRevealPanel::HandleSlotDeceiveRevealFinished(UWidget_BattleSkillRevealSlot* FinishedSlot)
+{
+	if (!IsValid(FinishedSlot) || FinishedSlot != PendingDeceiveSlot.Get())
+	{
+		return;
+	}
+
+	FinishedSlot->OnDeceiveRevealFinished.RemoveAll(this);
+
+	// 완료 통지로 다음 Action이 시작될 수 있으므로 먼저 정리
+	PendingDeceiveSlot = nullptr;
+
+	OnDeceiveRevealFinished.Broadcast();
+}
+
 void UWidget_BattleSkillRevealPanel::HandleSlotHovered(UMuksiBattleCardDataAsset* SkillData, bool bIsPlayerSkill)
 {
 	OnSkillHovered.Broadcast(SkillData, bIsPlayerSkill);
@@ -219,4 +267,80 @@ void UWidget_BattleSkillRevealPanel::HandleSlotHovered(UMuksiBattleCardDataAsset
 void UWidget_BattleSkillRevealPanel::HandleSlotUnhovered(bool bIsPlayerSkill)
 {
 	OnSkillUnhovered.Broadcast(bIsPlayerSkill);
+}
+
+void UWidget_BattleSkillRevealPanel::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	
+	// 1. 고정된 Border 영역 안에 마우스가 있는지 확인
+	bHoverAreaHovered = false;
+
+	if (Border_HoverArea && FSlateApplication::IsInitialized())
+	{
+		const FVector2D MousePosition =
+			FSlateApplication::Get().GetCursorPos();
+
+		bHoverAreaHovered = Border_HoverArea->GetCachedGeometry().IsUnderLocation(MousePosition);
+	}
+
+	if (!Overlay_Slots)
+	{
+		return;
+	}
+
+	// 2. 공개 중이거나 마우스가 근처에 있으면 내려온 상태 유지
+	const bool bShouldStayDown = bRevealPresentationRunning || bHoverAreaHovered;
+
+	const float DownY = BaseSlotsTranslation.Y + SlideDownDistance;
+
+	const float TargetY = bShouldStayDown
+		? DownY
+		: BaseSlotsTranslation.Y;
+
+	// 3. 현재 위치에서 목표 위치로 이동
+	const FVector2D CurrentTranslation = Overlay_Slots->GetRenderTransform().Translation;
+
+	const float NewY = FMath::FInterpConstantTo(
+		CurrentTranslation.Y,
+		TargetY,
+		InDeltaTime,
+		SlideSpeed
+	);
+
+	Overlay_Slots->SetRenderTranslation(FVector2D(CurrentTranslation.X, NewY));
+
+	// 4. 내려온 위치에 도착한 뒤부터 유지 시간 계산
+	if (bRevealPresentationRunning)
+	{
+		if (FMath::IsNearlyEqual(NewY, DownY, 0.1f))
+		{
+			RevealHoldElapsed += InDeltaTime;
+		}
+
+		TryFinishRevealPresentation();
+	}
+}
+
+void UWidget_BattleSkillRevealPanel::TryFinishRevealPresentation()
+{
+	if (!bRevealPresentationRunning
+		|| PendingRevealExchangeIndex == INDEX_NONE
+		|| PendingRevealCount > 0
+		|| RevealHoldElapsed < RevealHoldDuration)
+	{
+		return;
+	}
+
+	const int32 FinishedExchangeIndex =
+		PendingRevealExchangeIndex;
+
+	// 방송 전에 상태 정리
+	bRevealPresentationRunning = false;
+	RevealHoldElapsed = 0.0f;
+
+	PendingRevealExchangeIndex = INDEX_NONE;
+	PendingRevealCount = 0;
+
+	OnSkillRevealFinished.Broadcast(FinishedExchangeIndex);
 }

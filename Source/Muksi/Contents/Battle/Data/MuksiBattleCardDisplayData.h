@@ -5,15 +5,24 @@
 #include "MuksiBattleCardDisplayData.generated.h"
 
 USTRUCT(BlueprintType)
+struct FDescriptionValueData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EDescriptionValueType DescriptionType = EDescriptionValueType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 MainValue = 0;
+};
+
+USTRUCT(BlueprintType)
 struct FCardEffectDisplayData
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EMuksiAttackCardType AttackType = EMuksiAttackCardType::None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 AttackValue = 0;
+	TArray<FDescriptionValueData> DescriptionValues;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (MultiLine = true))
 	FText EffectDescription;

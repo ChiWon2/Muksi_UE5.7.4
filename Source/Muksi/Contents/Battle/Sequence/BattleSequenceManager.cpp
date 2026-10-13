@@ -15,6 +15,7 @@
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
+#include "Presentation/BattleActionGroupController.h"
 #include "Presentation/BattleActionPresenter.h"
 
 ABattleSequenceManager::ABattleSequenceManager() { PrimaryActorTick.bCanEverTick = false; }
@@ -44,6 +45,12 @@ void ABattleSequenceManager::EndPlay(const EEndPlayReason::Type Reason)
 		ActionPresenter = nullptr;
 	}
 	
+	if (IsValid(ActionGroupController))
+	{
+		ActionGroupController->Shutdown();
+		ActionGroupController = nullptr;
+	}
+	
 	Super::EndPlay(Reason);
 }
 
@@ -67,6 +74,12 @@ bool ABattleSequenceManager::InitializeBattleFlow(ABattleManager* InManager, UBa
 	if (!IsValid(ActionPresenter))
 		return false;
 	if (!ActionPresenter->Initialize(this, BattleManager->GetBattleCameraManager(),SkillInfoActorClass))
+		return false;
+	
+	ActionGroupController = NewObject<UBattleActionGroupController>(this);
+	if (!IsValid(ActionGroupController))
+		return false;
+	if (!ActionGroupController->Initialize(this, BattleManager->GetBattleCameraManager(),SkillInfoActorClass))
 		return false;
 
 	return true;
@@ -120,10 +133,25 @@ bool ABattleSequenceManager::StartBattleActionSequence(const TArray<FBattleActio
 	BattleActionQueue = InBattleActions;
 	SortBattleActionQueue();
 	CurrentBattleActionIndex = 0;
+	
+	// 정렬된 큐에서 첫 Exchange의 Action들을 저장
+	BuildCurrentActionGroup();
+	
 	bBattleActionSequenceRunning = true;
 	bBattleActionCompletionPending = false;
 	bStopAfterCurrentExecution = false;
-	StartCurrentBattleAction();
+	
+	if (IsValid(ActionGroupController))
+	{
+		// PlayGroupStart가 즉시 완료를 통지할 수 있으므로
+		// 호출하기 전에 대기 상태를 설정
+		bWaitingForActionGroupStart = true;
+		ActionGroupController->PlayGroupStart(CurrentGroupActions);
+	}
+	else
+	{
+		StartCurrentBattleAction();
+	}
 	return true;
 }
 
@@ -141,7 +169,9 @@ void ABattleSequenceManager::SortBattleActionQueue()
 void ABattleSequenceManager::StartCurrentBattleAction()
 {
 	//기존 변초 기다리는 bWaitingForDeceiveCardReveal 말고 카메라 연출 기다리는 bWaitingForBattleActionPresentation
-	if (!bBattleActionSequenceRunning || bWaitingForBattleActionPresentation)
+	if (!bBattleActionSequenceRunning || 
+		bWaitingForActionGroupStart || 
+		bWaitingForBattleActionPresentation)
 		return;
 	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
 	{
@@ -156,15 +186,6 @@ void ABattleSequenceManager::StartCurrentBattleAction()
 	}
 	
 	StartCurrentBattleActionPresentation();
-	
-	//변초 인지 아닌지 구분해서 넘기는건 과정에서 삭제
-	/*if (ShouldRequestDeceiveCardReveal(Action) && DeceiveCardRevealRequestedDelegate.IsBound())
-	{
-		bWaitingForDeceiveCardReveal = true;
-		DeceiveCardRevealRequestedDelegate.Broadcast(Action);
-		return;
-	}*/
-	//ExecuteCurrentBattleAction();
 }
 
 bool ABattleSequenceManager::ShouldRequestDeceiveCardReveal(const FBattleAction& Action) const
@@ -360,17 +381,38 @@ void ABattleSequenceManager::FinishCurrentBattleAction()
 	++CurrentBattleActionIndex;
 
 	const bool bSequenceFinished = !BattleActionQueue.IsValidIndex(CurrentBattleActionIndex);
-	const bool bExchangeFinished = bSequenceFinished
-		|| BattleActionQueue[CurrentBattleActionIndex].ExchangeIndex != CompletedExchangeIndex;
+	const bool bExchangeFinished = bSequenceFinished || BattleActionQueue[CurrentBattleActionIndex].ExchangeIndex != CompletedExchangeIndex;
+	
 
-	if (CompletedExchangeIndex != INDEX_NONE && bExchangeFinished)
-		BattleExchangeCompletedDelegate.Broadcast(CompletedExchangeIndex);
-
-	if (bSequenceFinished)
+	//기존에 bSequenceFinished 검사하고 FinishBattleActionSequence()를 호출하는건 ActionGroupController 이후 NotifyActionGroupEndFinished()에서 호출
+	if (bExchangeFinished)
 	{
-		FinishBattleActionSequence();
+		// 이벤트 호출 전 대기 상태 설정
+		bWaitingForActionGroupEnd = true;
+
+		if (CompletedExchangeIndex != INDEX_NONE)
+		{
+			BattleExchangeCompletedDelegate.Broadcast(CompletedExchangeIndex);
+		}
+
+		// 이벤트 처리 중 시퀀스가 종료된 경우
+		if (!bBattleActionSequenceRunning)
+		{
+			return;
+		}
+
+		if (IsValid(ActionGroupController))
+		{
+			ActionGroupController->PlayGroupEnd();
+		}
+		else
+		{
+			NotifyActionGroupEndFinished();
+		}
+
 		return;
 	}
+
 
 	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
 	NextBattleActionTimerHandle = GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ABattleSequenceManager::StartNextBattleActionDeferred));
@@ -400,7 +442,104 @@ void ABattleSequenceManager::ResetBattleActionSequence()
 	bBattleActionCompletionPending = false;
 	bWaitingForDeceiveCardReveal = false;
 	bStopAfterCurrentExecution = false;
+	bWaitingForActionGroupStart = false;
 	bWaitingForBattleActionPresentation = false;
+}
+
+void ABattleSequenceManager::NotifyActionGroupStartFinished()
+{
+	if (!bBattleActionSequenceRunning || !bWaitingForActionGroupStart)
+	{
+		return;
+	}
+
+	bWaitingForActionGroupStart = false;
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[ActionGroup] Start Finished. Exchange=%d"),
+		CurrentGroupExchangeIndex
+	);
+
+	StartCurrentBattleAction();
+}
+
+void ABattleSequenceManager::NotifyActionGroupEndFinished()
+{
+	if (!bBattleActionSequenceRunning ||
+		!bWaitingForActionGroupEnd)
+	{
+		return;
+	}
+
+	bWaitingForActionGroupEnd = false;
+
+	UE_LOG(
+		LogTemp, Warning,
+		TEXT("[ActionGroup] End Finished. Exchange=%d"),
+		CurrentGroupExchangeIndex
+	);
+
+	GetWorldTimerManager().ClearTimer(NextBattleActionTimerHandle);
+
+	NextBattleActionTimerHandle =
+		GetWorldTimerManager().SetTimerForNextTick(
+			FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				if (!bBattleActionSequenceRunning)
+				{
+					return;
+				}
+
+				bBattleActionCompletionPending = false;
+
+				if (!BattleActionQueue.IsValidIndex(
+						CurrentBattleActionIndex))
+				{
+					FinishBattleActionSequence();
+					return;
+				}
+
+				// 이전 그룹 종료 후 다음 그룹 구성
+				BuildCurrentActionGroup();
+
+				if (IsValid(ActionGroupController))
+				{
+					bWaitingForActionGroupStart = true;
+					ActionGroupController->PlayGroupStart(
+						CurrentGroupActions);
+				}
+				else
+				{
+					StartCurrentBattleAction();
+				}
+			}));
+}
+
+void ABattleSequenceManager::BuildCurrentActionGroup()
+{
+	CurrentGroupActions.Reset();
+	CurrentGroupExchangeIndex = INDEX_NONE;
+
+	if (!BattleActionQueue.IsValidIndex(CurrentBattleActionIndex))
+	{
+		return;
+	}
+
+	CurrentGroupExchangeIndex = BattleActionQueue[CurrentBattleActionIndex].ExchangeIndex;
+
+	for (int32 Index = CurrentBattleActionIndex; Index < BattleActionQueue.Num(); ++Index)
+	{
+		const FBattleAction& Action = BattleActionQueue[Index];
+
+		if (Action.ExchangeIndex != CurrentGroupExchangeIndex)
+		{
+			break;
+		}
+
+		CurrentGroupActions.Add(Action);
+	}
 }
 
 void ABattleSequenceManager::NotifyBattleActionPresentationFinished()

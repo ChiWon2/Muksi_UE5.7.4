@@ -5,6 +5,7 @@
 
 #include "CardPreviewEffectEntry.h"
 #include "Components/RichTextBlock.h"
+#include "Components/ScrollBox.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
@@ -101,5 +102,92 @@ void UCardPreviewEffectPanel::EnsureEntryCount(int32 RequiredCount)
 			EffectSlot->SetPadding(FMargin(0.f, 10.f, 0.f, 4.f));
 		}
 		EffectEntries.Add(NewEntry);
+	}
+}
+
+void UCardPreviewEffectPanel::StartAutoScroll()
+{
+	bWaitingAtBottom = false;
+	AutoScrollOffset = 0.0f;
+	ScrollDelayRemaining = ScrollStartDelay;
+	bAutoScrollActive = true;
+
+	if (ScrollBox_Effects)
+	{
+		ScrollBox_Effects->SetScrollOffset(0.0f);
+	}
+}
+
+void UCardPreviewEffectPanel::StopAutoScroll()
+{
+	bWaitingAtBottom = false;
+	bAutoScrollActive = false;
+	AutoScrollOffset = 0.0f;
+	ScrollDelayRemaining = 0.0f;
+
+	if (ScrollBox_Effects)
+	{
+		ScrollBox_Effects->SetScrollOffset(0.0f);
+	}
+}
+
+void UCardPreviewEffectPanel::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	
+	if (!bAutoScrollActive || !ScrollBox_Effects)
+	{
+		return;
+	}
+
+	float MoveDeltaTime = InDeltaTime;
+
+	if (ScrollDelayRemaining > 0.0f)
+	{
+		const float WaitTime = FMath::Min(ScrollDelayRemaining, MoveDeltaTime);
+
+		ScrollDelayRemaining -= WaitTime;
+		MoveDeltaTime -= WaitTime;
+
+		if (ScrollDelayRemaining > 0.0f)
+		{
+			return;
+		}
+	}
+
+	// 맨 아래 대기가 끝났으면 맨 위로 복귀
+	if (bWaitingAtBottom)
+	{
+		bWaitingAtBottom = false;
+		AutoScrollOffset = 0.0f;
+		ScrollDelayRemaining = ScrollStartDelay;
+
+		ScrollBox_Effects->SetScrollOffset(0.0f);
+		return;
+	}
+
+	if (MoveDeltaTime <= 0.0f)
+	{
+		return;
+	}
+
+	const float EndOffset = ScrollBox_Effects->GetScrollOffsetOfEnd();
+
+	if (EndOffset <= KINDA_SMALL_NUMBER)
+	{
+		AutoScrollOffset = 0.0f;
+		ScrollBox_Effects->SetScrollOffset(0.0f);
+		return;
+	}
+
+	AutoScrollOffset = FMath::Min(AutoScrollOffset + AutoScrollSpeed * MoveDeltaTime,EndOffset);
+
+	ScrollBox_Effects->SetScrollOffset(AutoScrollOffset);
+
+	// 맨 아래에 도착하면 해당 위치에서 대기
+	if (AutoScrollOffset >= EndOffset)
+	{
+		bWaitingAtBottom = true;
+		ScrollDelayRemaining = ScrollEndDelay;
 	}
 }

@@ -15,7 +15,7 @@ class UWidget_BattleSkillRevealSlot;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillRevealAnimationFinished, UWidget_BattleSkillRevealSlot*);
 
-
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillSlotDeceiveRevealFinished, UWidget_BattleSkillRevealSlot*);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSkillRevealSlotHovered, UMuksiBattleCardDataAsset*, bool);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillRevealSlotUnhovered, bool);
@@ -73,8 +73,9 @@ private:
 	
 	//슬롯 연출----------------------------------------------------------------------------------------------------------
 public:
-	void RevealDeceive(); //변초 공개
+	bool RevealDeceive(); //변초 공개
 	
+	FOnSkillSlotDeceiveRevealFinished OnDeceiveRevealFinished;
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_DissolveReveal;

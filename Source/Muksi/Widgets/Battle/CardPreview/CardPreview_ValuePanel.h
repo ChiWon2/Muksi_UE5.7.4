@@ -6,14 +6,10 @@
 #include "Blueprint/UserWidget.h"
 #include "CardPreview_ValuePanel.generated.h"
 
+enum class EDescriptionValueType : uint8;
 class UTextBlock;
 class UImage;
-
-UENUM()
-enum class EValueType : uint8
-{
-	Attack,
-};
+class UTexture2D;
 
 /**
  * 
@@ -24,7 +20,7 @@ class MUKSI_API UCardPreview_ValuePanel : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	void SetValue(EValueType Type, int32 Value);
+	void SetValue(EDescriptionValueType ValueType, int32 Value);
 	
 protected:
 	virtual void NativePreConstruct() override;
@@ -36,5 +32,5 @@ protected:
 	TObjectPtr<UImage> Image_ValueType;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Battle|Preview")
-	TMap<EValueType, TObjectPtr<UImage>> TypeStyles;
+	TMap<EDescriptionValueType, TObjectPtr<UTexture2D>> TypeStyles;
 };

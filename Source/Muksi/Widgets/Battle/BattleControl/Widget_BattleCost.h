@@ -32,6 +32,7 @@ public:
 	void SetPreviewCost(int32 InCost);
 	void ClearPreviewCost();
 
+	void RefreshCost();
 protected:
 	virtual void NativeDestruct() override;
 
@@ -47,11 +48,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EBattleCostDisplayType CostDisplayType = EBattleCostDisplayType::Current;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Cost")
+	bool bAutoRefreshCost = true;
 private:
 	void HandleCostChanged();
 	
 	void InitializeCostSlots(int32 MaxCost);
-	void RefreshCost();
 	void UpdateCostSlots(int32 CurrentCost);
 	void UnbindSkillComponent();
 
