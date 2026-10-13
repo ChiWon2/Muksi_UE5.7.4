@@ -5,7 +5,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Muksi/Contents/Travel/Public/Characters/MuksiWorldCharacter.h"
-#include "Muksi/Save/BattleEncounterSubsystem.h"
+#include "Muksi/Contents/Travel/Public/Managers/WorldBattleEncounterManager.h"
 #include "Muksi/Save/MuksiSaveGame.h"
 #include "Muksi/Save/MuksiSaveSubsystem.h"
 
@@ -238,17 +238,17 @@ bool AMuksiWorldGameMode::CanRestoreSavedWorld(const UMuksiSaveGame* SaveGame) c
 
 void AMuksiWorldGameMode::StartTestBattle()
 {
-	UBattleEncounterSubsystem* BattleSubsystem =
-		UBattleEncounterSubsystem::Get(this);
+	AWorldBattleEncounterManager* EncounterManager =
+		AWorldBattleEncounterManager::Get(this);
 
-	if (!IsValid(BattleSubsystem))
+	if (!IsValid(EncounterManager))
 	{
 		UE_LOG(
 			LogTemp,
 			Error,
 			TEXT(
 				"[MuksiWorldGameMode] "
-				"BattleEncounterSubsystem is invalid"
+				"WorldBattleEncounterManager is missing in the current level"
 			)
 		);
 
@@ -265,7 +265,7 @@ void AMuksiWorldGameMode::StartTestBattle()
 		*TestBattleName.ToString()
 	);
 
-	if (!BattleSubsystem->StartBattleEncounter(
+	if (!EncounterManager->StartEncounter(
 			TestBattleName))
 	{
 		UE_LOG(

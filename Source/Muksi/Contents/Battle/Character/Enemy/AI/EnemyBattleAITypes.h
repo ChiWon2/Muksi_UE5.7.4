@@ -11,6 +11,7 @@ enum class EEnemySkillSelectState : uint8
 {
 	Failed,
 	Selected,
+	PanicRequested,
 	NoUsableSkill
 };
 

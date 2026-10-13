@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Muksi/Contents/Battle/Encounter/Data/MuksiBattleEncounterData.h"
 #include "BattleEncounterSubsystem.generated.h"
 
 
@@ -32,17 +33,12 @@ class MUKSI_API UBattleEncounterSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 public:
-	virtual void Initialize(
-		FSubsystemCollectionBase& Collection) override;
-
-	virtual void Deinitialize() override;
-
-	static UBattleEncounterSubsystem* Get(
+		static UBattleEncounterSubsystem* Get(
 		const UObject* WorldContextObject);
 
 
 	UFUNCTION(BlueprintCallable, Category = "Battle Occur")
-	bool StartBattleEncounter(FName BattleName);
+	bool StartBattleEncounter(FName EncounterID, const FMuksiBattleEncounterData& EncounterData);
 	UFUNCTION(BlueprintCallable, Category = "Battle Occur")
 	bool FinishBattleEncounter(const FBattleResult& BattleResult);
 
@@ -54,31 +50,10 @@ public:
 	}
 
 private:
-	
-	void CacheCharacterDataPaths();
-	void CacheBattleLevelPaths();
-
-
-	bool ParseBattleName(
-		FName BattleName,
-		FName& OutCharacterName,
-		FName& OutLevelName) const;
-
-
-	UMuksiCharacterDataAsset* LoadCharacterData(
-		FName CharacterName) const;
-
-
-	bool OpenBattleLevel(FName LevelName);
+    bool OpenBattleLevel(const TSoftObjectPtr<UWorld>& BattleLevel);
 
 private:
-
-	TMap<FName, FSoftObjectPath> CharacterDataPathMap;
-
-
-	TMap<FName, FSoftObjectPath> BattleLevelPathMap;
-
-	UPROPERTY(Transient)
+UPROPERTY(Transient)
 	TObjectPtr<UMuksiCharacterDataAsset> CurrentEnemyData = nullptr;
 	
 	UPROPERTY(Transient)

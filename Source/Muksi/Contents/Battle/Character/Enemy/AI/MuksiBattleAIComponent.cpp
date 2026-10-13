@@ -11,9 +11,11 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillTypes.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Hex/HexGridMath.h"
+#include "Muksi/Contents/Battle/Data/MuksiBattleCardType.h"
 #include "Muksi/Contents/Battle/Targeting/Session/BattleTargetingSession.h"
 #include "Muksi/Contents/Battle/Simulation/Data/BattleSimulationTypes.h"
 
@@ -84,6 +86,9 @@ void UMuksiBattleAIComponent::CancelDecision()
     SelfSkillOwner = nullptr;
     OpponentSkillOwner = nullptr;
     Candidates.Reset();
+    AvailableSkillIds.Reset();
+    FilteredSkillIds.Reset();
+    SkillScores.Reset();
     SelectedResult = FEnemySkillSelectResult();
     OpponentThreat = 0.f;
 }
@@ -139,6 +144,8 @@ bool UMuksiBattleAIComponent::BuildCandidate(const FBattleSkillInstance& Instanc
         // Score based on resolved affected coordinates, not only the clicked tile.
         OutCandidate.bCanAffectOpponent |= Session->GetCurrentStepResult().GetAllAffectedCoords().Contains(OpponentCharacter->GetCharacterCoord());
         OutCandidate.bCanAffectOpponent |= Session->GetCurrentStepResult().ContainsTarget(OpponentCharacter);
+        OutCandidate.bCanAffectSelf |= Session->GetCurrentStepResult().GetAllAffectedCoords().Contains(SelfCharacter->GetCharacterCoord());
+        OutCandidate.bCanAffectSelf |= Session->GetCurrentStepResult().ContainsTarget(SelfCharacter);
 
         // Store the resolved target, since UpdateSelection may snap to another valid tile.
         OutCandidate.StepCoords.Add(Session->GetCurrentStepResult().Step.TargetCoord);
@@ -151,92 +158,334 @@ bool UMuksiBattleAIComponent::BuildCandidate(const FBattleSkillInstance& Instanc
     return Session->IsCompleted();
 }
 
-bool UMuksiBattleAIComponent::GenerateCandidates()
+bool UMuksiBattleAIComponent::GenerateAvailableSkills()
 {
+    AvailableSkillIds.Reset();
+    FilteredSkillIds.Reset();
     Candidates.Reset();
+    SkillScores.Reset();
 
-    if (!SelfCharacter || !OpponentCharacter || !GridManager)
+    if (!SelfSkillOwner || !SelfCharacter || !OpponentCharacter || !GridManager)
         return false;
 
-    UBattleSkillComponent* Skills = SelfSkillOwner->GetBattleSkillComponent();
+    const UBattleSkillComponent* Skills = SelfSkillOwner->GetBattleSkillComponent();
+
     if (!Skills)
         return false;
 
     for (const FBattleSkillInstance& Instance : Skills->GetSkillInstances())
     {
-        if (!Skills->CanUseSkill(Instance.InstanceId))
+        if (!Instance.SkillData || !Skills->CanUseSkill(Instance.InstanceId))
             continue;
 
-        if (Instance.SkillData && !Instance.SkillData->TargetingData.HasSteps())
+        AvailableSkillIds.Add(Instance.InstanceId);
+    }
+
+    return true;
+}
+
+bool UMuksiBattleAIComponent::CheckSelfStatusEffect(FName EffectID, int32 MinimumStack) const
+{
+    if (!SelfSkillOwner || EffectID.IsNone())
+        return false;
+
+    const UMuksiStatusEffectComponent* StatusEffects = SelfSkillOwner->GetStatusEffectComponent();
+
+    return StatusEffects && StatusEffects->GetEffectStackCount(EffectID) >= MinimumStack;
+}
+
+bool UMuksiBattleAIComponent::FilterAvailableSkills(const TArray<FBattleCardTypeInfoData>& AllowedCardTypes, const TArray<FName>& AllowedCardIDs)
+{
+    FilteredSkillIds.Reset();
+    Candidates.Reset();
+    SkillScores.Reset();
+
+    if (!SelfSkillOwner || (AllowedCardTypes.IsEmpty() && AllowedCardIDs.IsEmpty()))
+        return false;
+
+    const UBattleSkillComponent* Skills = SelfSkillOwner->GetBattleSkillComponent();
+
+    if (!Skills)
+        return false;
+
+    for (const FBattleSkillInstance& Instance : Skills->GetSkillInstances())
+    {
+        if (!AvailableSkillIds.Contains(Instance.InstanceId) || !Instance.SkillData)
+            continue;
+
+        if (!AllowedCardIDs.IsEmpty() && !AllowedCardIDs.Contains(Instance.SkillData->CardID))
+            continue;
+
+        if (AllowedCardTypes.IsEmpty())
+        {
+            FilteredSkillIds.Add(Instance.InstanceId);
+            continue;
+        }
+
+        const FBattleCardTypeInfoData& Type = Instance.SkillData->CardTypeInfo;
+
+        for (const FBattleCardTypeInfoData& Allowed : AllowedCardTypes)
+        {
+            if (Allowed.CardType != Type.CardType)
+                continue;
+
+            bool bMatches = false;
+
+            switch (Allowed.CardType)
+            {
+            case EMuksiBattleCardType::Attack:
+                bMatches = Allowed.AttackType == EMuksiAttackCardType::None || Allowed.AttackType == Type.AttackType;
+                break;
+            case EMuksiBattleCardType::Defense:
+                bMatches = Allowed.DefenceType == EMuksiDefenseCardType::None || Allowed.DefenceType == Type.DefenceType;
+                break;
+            case EMuksiBattleCardType::Move:
+                bMatches = Allowed.MoveType == EMuksiMoveCardType::None || Allowed.MoveType == Type.MoveType;
+                break;
+            case EMuksiBattleCardType::Special:
+                bMatches = Allowed.SpecialType == EMuksiSpecialCardType::None || Allowed.SpecialType == Type.SpecialType;
+                break;
+            case EMuksiBattleCardType::Buff:
+            case EMuksiBattleCardType::None:
+                bMatches = true;
+                break;
+            }
+
+            if (!bMatches)
+                continue;
+
+            FilteredSkillIds.Add(Instance.InstanceId);
+            break;
+        }
+    }
+
+    return !FilteredSkillIds.IsEmpty();
+}
+
+bool UMuksiBattleAIComponent::EvaluateSkillCandidates()
+{
+    SkillScores.Reset();
+
+    if (!SelfSkillOwner)
+        return false;
+
+    const UBattleSkillComponent* Skills = SelfSkillOwner->GetBattleSkillComponent();
+
+    if (!Skills)
+        return false;
+
+    for (const FBattleSkillInstance& Instance : Skills->GetSkillInstances())
+    {
+        if (!FilteredSkillIds.Contains(Instance.InstanceId) || !Instance.SkillData)
+            continue;
+
+        SkillScores.Add(Instance.InstanceId, -Instance.SkillData->Cost * CostWeight);
+    }
+
+    return !SkillScores.IsEmpty();
+}
+
+bool UMuksiBattleAIComponent::GenerateTargetingCandidates()
+{
+    Candidates.Reset();
+
+    if (!SelfSkillOwner || !SelfCharacter || !OpponentCharacter || !GridManager)
+        return false;
+
+    const UBattleSkillComponent* Skills = SelfSkillOwner->GetBattleSkillComponent();
+
+    if (!Skills)
+        return false;
+
+    for (const FBattleSkillInstance& Instance : Skills->GetSkillInstances())
+    {
+        if (!FilteredSkillIds.Contains(Instance.InstanceId) || !Skills->CanUseSkill(Instance.InstanceId))
+            continue;
+
+        if (!Instance.SkillData)
+            continue;
+
+        if (!Instance.SkillData->TargetingData.HasSteps())
         {
             FEnemyActionCandidate Candidate;
+
             if (BuildCandidate(Instance, SelfCharacter->GetCharacterCoord(), Candidate))
                 Candidates.Add(MoveTemp(Candidate));
 
             continue;
         }
 
-        // Probe every tile as a desired targeting coordinate; use the game's targeting validator.
         for (const FBattleGridCell& Cell : GridManager->GetGridCells(DecisionWorld))
         {
-            if (!Cell.bWalkable)
-                continue;
-
             FEnemyActionCandidate Candidate;
+
             if (BuildCandidate(Instance, Cell.GridCoord, Candidate))
                 Candidates.Add(MoveTemp(Candidate));
         }
 
-        // Some skills have no targeting steps or require an occupied tile.
-        if (Instance.SkillData)
-        {
-            FEnemyActionCandidate Candidate;
-            if (BuildCandidate(Instance, OpponentCharacter->GetCharacterCoord(), Candidate))
-                Candidates.Add(MoveTemp(Candidate));
-        }
+        FEnemyActionCandidate OpponentCandidate;
+
+        if (BuildCandidate(Instance, OpponentCharacter->GetCharacterCoord(), OpponentCandidate))
+            Candidates.Add(MoveTemp(OpponentCandidate));
     }
 
-    return true;
+    return !Candidates.IsEmpty();
 }
 
-bool UMuksiBattleAIComponent::EvaluateCandidates()
+void UMuksiBattleAIComponent::ScoreTargetingCandidate(FEnemyActionCandidate& Candidate, int32 TargetDistance, int32 CurrentDistance) const
+{
+    Candidate.SkillScore = SkillScores.FindRef(Candidate.InstanceId);
+    Candidate.DamageScore = Candidate.bCanAffectOpponent ? 10.f : 0.f;
+    Candidate.PositionScore = -FMath::Abs(TargetDistance - 1) * 2.f;
+    Candidate.SurvivalScore = -OpponentThreat * FMath::Max(0, CurrentDistance - TargetDistance) * 0.25f;
+    Candidate.CostScore = -Candidate.Skill->Cost;
+    Candidate.TotalScore = Candidate.SkillScore;
+}
+
+bool UMuksiBattleAIComponent::EvaluateOpponentTargeting()
 {
     if (!SelfCharacter || !OpponentCharacter)
         return false;
 
-    const FHexOffsetCoord OpponentCoord = OpponentCharacter->GetCharacterCoord();
     const FHexOffsetCoord SelfCoord = SelfCharacter->GetCharacterCoord();
+    const FHexOffsetCoord OpponentCoord = OpponentCharacter->GetCharacterCoord();
     const int32 CurrentDistance = FHexGridMath::GetHexDistance(SelfCoord, OpponentCoord);
+    TArray<FEnemyActionCandidate> ValidCandidates;
 
     for (FEnemyActionCandidate& Candidate : Candidates)
     {
+        if (!Candidate.Skill || !Candidate.bCanAffectOpponent)
+            continue;
+
         const FHexOffsetCoord TargetCoord = Candidate.StepCoords.IsEmpty() ? SelfCoord : Candidate.StepCoords.Last();
         const int32 TargetDistance = FHexGridMath::GetHexDistance(TargetCoord, OpponentCoord);
-
-        // Heuristics only: actual damage/knockback is not simulated at this tier.
-        Candidate.DamageScore = Candidate.bCanAffectOpponent ? 10.f : 0.f;
-        Candidate.PositionScore = -FMath::Abs(TargetDistance - 1) * 2.f;
-        Candidate.SurvivalScore = OpponentThreat * FMath::Max(0, CurrentDistance - TargetDistance) * -0.25f;
-        Candidate.CostScore = -Candidate.Skill->Cost;
-
-        Candidate.TotalScore = Candidate.DamageScore * DamageWeight;
+        ScoreTargetingCandidate(Candidate, TargetDistance, CurrentDistance);
+        Candidate.TotalScore += Candidate.DamageScore * DamageWeight;
         Candidate.TotalScore += Candidate.PositionScore * PositionWeight;
         Candidate.TotalScore += Candidate.SurvivalScore * SurvivalWeight;
-        Candidate.TotalScore += Candidate.CostScore * CostWeight;
+        ValidCandidates.Add(MoveTemp(Candidate));
     }
 
+    Candidates = MoveTemp(ValidCandidates);
+    return !Candidates.IsEmpty();
+}
+
+bool UMuksiBattleAIComponent::EvaluateApproachOpponentTargeting()
+{
+    if (!SelfCharacter || !OpponentCharacter)
+        return false;
+
+    const FHexOffsetCoord SelfCoord = SelfCharacter->GetCharacterCoord();
+    const FHexOffsetCoord OpponentCoord = OpponentCharacter->GetCharacterCoord();
+    const int32 CurrentDistance = FHexGridMath::GetHexDistance(SelfCoord, OpponentCoord);
+    TArray<FEnemyActionCandidate> ValidCandidates;
+
+    for (FEnemyActionCandidate& Candidate : Candidates)
+    {
+        if (!Candidate.Skill || Candidate.StepCoords.IsEmpty())
+            continue;
+
+        // A targeting coordinate is not guaranteed to be the post-execution movement destination.
+        const int32 TargetDistance = FHexGridMath::GetHexDistance(Candidate.StepCoords.Last(), OpponentCoord);
+
+        if (TargetDistance >= CurrentDistance)
+            continue;
+
+        ScoreTargetingCandidate(Candidate, TargetDistance, CurrentDistance);
+        Candidate.TotalScore += (CurrentDistance - TargetDistance) * (PositionWeight * 3.f + 1.f);
+        ValidCandidates.Add(MoveTemp(Candidate));
+    }
+
+    Candidates = MoveTemp(ValidCandidates);
+    return !Candidates.IsEmpty();
+}
+
+bool UMuksiBattleAIComponent::EvaluateRetreatFromOpponentTargeting()
+{
+    if (!SelfCharacter || !OpponentCharacter)
+        return false;
+
+    const FHexOffsetCoord SelfCoord = SelfCharacter->GetCharacterCoord();
+    const FHexOffsetCoord OpponentCoord = OpponentCharacter->GetCharacterCoord();
+    const int32 CurrentDistance = FHexGridMath::GetHexDistance(SelfCoord, OpponentCoord);
+    TArray<FEnemyActionCandidate> ValidCandidates;
+
+    for (FEnemyActionCandidate& Candidate : Candidates)
+    {
+        if (!Candidate.Skill || Candidate.StepCoords.IsEmpty())
+            continue;
+
+        // A targeting coordinate is not guaranteed to be the post-execution movement destination.
+        const int32 TargetDistance = FHexGridMath::GetHexDistance(Candidate.StepCoords.Last(), OpponentCoord);
+
+        if (TargetDistance <= CurrentDistance)
+            continue;
+
+        ScoreTargetingCandidate(Candidate, TargetDistance, CurrentDistance);
+        Candidate.TotalScore += (TargetDistance - CurrentDistance) * (PositionWeight * 3.f + 1.f);
+        ValidCandidates.Add(MoveTemp(Candidate));
+    }
+
+    Candidates = MoveTemp(ValidCandidates);
+    return !Candidates.IsEmpty();
+}
+
+bool UMuksiBattleAIComponent::EvaluateSelfTargeting()
+{
+    if (!SelfCharacter)
+        return false;
+
+    TArray<FEnemyActionCandidate> ValidCandidates;
+
+    for (FEnemyActionCandidate& Candidate : Candidates)
+    {
+        if (!Candidate.Skill)
+            continue;
+
+        // Skills with no targeting steps execute without an explicit target selection.
+        // For self-only buffs and defence actions, this is a valid self action.
+        const bool bImplicitSelf = Candidate.StepCoords.IsEmpty() &&
+            (Candidate.Skill->CardTypeInfo.CardType == EMuksiBattleCardType::Buff ||
+             Candidate.Skill->CardTypeInfo.CardType == EMuksiBattleCardType::Defense);
+
+        if (!Candidate.bCanAffectSelf && !bImplicitSelf)
+            continue;
+
+        Candidate.SkillScore = SkillScores.FindRef(Candidate.InstanceId);
+        Candidate.TotalScore = Candidate.SkillScore;
+        ValidCandidates.Add(MoveTemp(Candidate));
+    }
+
+    Candidates = MoveTemp(ValidCandidates);
+    return !Candidates.IsEmpty();
+}
+
+void UMuksiBattleAIComponent::StoreSelectedCandidate(const FEnemyActionCandidate& Candidate)
+{
+    SelectedResult.State = EEnemySkillSelectState::Selected;
+    SelectedResult.SelectedSkill = Candidate.Skill;
+    SelectedResult.SelectedSkillInstanceId = Candidate.InstanceId;
+    SelectedResult.TargetingStepCoords = Candidate.StepCoords;
+    SelectedResult.TargetingStepDirections = Candidate.StepDirections;
+}
+
+bool UMuksiBattleAIComponent::SelectRandomAction()
+{
+    if (Candidates.IsEmpty())
+        return false;
+
+    const FEnemyActionCandidate& Candidate = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+    StoreSelectedCandidate(Candidate);
     return true;
 }
 
-bool UMuksiBattleAIComponent::SelectAction()
+bool UMuksiBattleAIComponent::SelectBestAction()
 {
     if (Candidates.IsEmpty())
-    {
-        SelectedResult.State = EEnemySkillSelectState::NoUsableSkill;
-        return true;
-    }
+        return false;
 
     float BestScore = -TNumericLimits<float>::Max();
+
     for (const FEnemyActionCandidate& Candidate : Candidates)
         BestScore = FMath::Max(BestScore, Candidate.TotalScore);
 
@@ -251,12 +500,13 @@ bool UMuksiBattleAIComponent::SelectAction()
         TotalWeight += Weight;
     }
 
-    float Roll = FMath::FRandRange(0.f, TotalWeight);
+    float Roll = FMath::FRand() * TotalWeight;
     int32 SelectedIndex = Candidates.Num() - 1;
 
     for (int32 Index = 0; Index < Weights.Num(); ++Index)
     {
         Roll -= Weights[Index];
+
         if (Roll > 0.f)
             continue;
 
@@ -265,19 +515,74 @@ bool UMuksiBattleAIComponent::SelectAction()
     }
 
     const FEnemyActionCandidate& Candidate = Candidates[SelectedIndex];
-    SelectedResult.State = EEnemySkillSelectState::Selected;
-    SelectedResult.SelectedSkill = Candidate.Skill;
-    SelectedResult.SelectedSkillInstanceId = Candidate.InstanceId;
-    SelectedResult.TargetingStepCoords = Candidate.StepCoords;
-    SelectedResult.TargetingStepDirections = Candidate.StepDirections;
+    StoreSelectedCandidate(Candidate);
 
     UE_LOG(LogTemp, Log, TEXT("[EnemyAI] Selected %s, Score=%.2f, Candidates=%d"), *GetNameSafe(Candidate.Skill), Candidate.TotalScore, Candidates.Num());
     return true;
 }
 
+bool UMuksiBattleAIComponent::SelectRandomValidAction()
+{
+    if (!SelfSkillOwner)
+        return false;
+
+    const UBattleSkillComponent* Skills = SelfSkillOwner->GetBattleSkillComponent();
+
+    if (!Skills)
+        return false;
+
+    FilteredSkillIds.Reset();
+
+    for (const FBattleSkillInstance& Instance : Skills->GetSkillInstances())
+    {
+        if (!AvailableSkillIds.Contains(Instance.InstanceId) || !Instance.SkillData)
+            continue;
+
+        if (Instance.SkillData->CardTypeInfo.CardType == EMuksiBattleCardType::Special)
+            continue;
+
+        if (Skills->CanUseSkill(Instance.InstanceId))
+            FilteredSkillIds.Add(Instance.InstanceId);
+    }
+
+    if (!GenerateTargetingCandidates())
+        return false;
+
+    TArray<FGuid> CandidateSkillIds;
+
+    for (const FEnemyActionCandidate& Candidate : Candidates)
+        CandidateSkillIds.AddUnique(Candidate.InstanceId);
+
+    if (CandidateSkillIds.IsEmpty())
+        return false;
+
+    const FGuid SelectedSkillId = CandidateSkillIds[FMath::RandRange(0, CandidateSkillIds.Num() - 1)];
+    TArray<int32> MatchingCandidateIndices;
+
+    for (int32 Index = 0; Index < Candidates.Num(); ++Index)
+    {
+        if (Candidates[Index].InstanceId == SelectedSkillId)
+            MatchingCandidateIndices.Add(Index);
+    }
+
+    const int32 SelectedIndex = MatchingCandidateIndices[FMath::RandRange(0, MatchingCandidateIndices.Num() - 1)];
+    const FEnemyActionCandidate& Candidate = Candidates[SelectedIndex];
+    StoreSelectedCandidate(Candidate);
+
+    UE_LOG(LogTemp, Log, TEXT("[EnemyAI] Fallback selected %s"), *GetNameSafe(Candidate.Skill));
+    return true;
+}
+
+bool UMuksiBattleAIComponent::SelectPanicAction()
+{
+    SelectedResult = FEnemySkillSelectResult();
+    SelectedResult.State = EEnemySkillSelectState::PanicRequested;
+    return true;
+}
+
 bool UMuksiBattleAIComponent::CompleteDecision()
 {
-    if (SelectedResult.State != EEnemySkillSelectState::Selected && SelectedResult.State != EEnemySkillSelectState::NoUsableSkill)
+    if (SelectedResult.State != EEnemySkillSelectState::Selected && SelectedResult.State != EEnemySkillSelectState::PanicRequested)
         return false;
 
     const FEnemySkillSelectResult Result = SelectedResult;
@@ -298,3 +603,12 @@ bool UMuksiBattleAIComponent::CompleteDecision()
 
     return true;
 }
+
+int32 UMuksiBattleAIComponent::GetDecisionDistance() const
+{
+    if (!SelfCharacter || !OpponentCharacter)
+        return INDEX_NONE;
+
+    return FHexGridMath::GetHexDistance(SelfCharacter->GetCharacterCoord(), OpponentCharacter->GetCharacterCoord());
+}
+

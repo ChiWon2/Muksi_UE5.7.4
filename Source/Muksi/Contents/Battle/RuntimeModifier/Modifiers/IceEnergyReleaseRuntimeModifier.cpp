@@ -44,8 +44,8 @@ UIceEnergyReleaseRuntimeModifier::UIceEnergyReleaseRuntimeModifier()
 	const int32 ComboDamageValues[IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount]
 	{
 		8,
-		15,
-		30
+		10,
+		15
 	};
 
 	for (int32 AttackIndex = 0; AttackIndex < IceEnergyReleaseRuntimeModifier::MaxAdditionalAttackCount; ++AttackIndex)

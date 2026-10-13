@@ -63,7 +63,7 @@ private:
     UPROPERTY(EditAnywhere, Category = "Battle|Setup|Preload", meta = (ClampMin = "1.0"))
     float RenderPreparationTimeoutSeconds = 60.0f;
 
-    UPROPERTY(EditAnywhere, Category = "Battle|Setup|Grid")
+    UPROPERTY(Transient)
     TObjectPtr<ABattleGridManager> BattleGridManager = nullptr;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Setup|Character", meta = (AllowPrivateAccess = "true"))

@@ -10,7 +10,7 @@ FInstancedStruct GameEventUtils::MakeStartBattle(FName BattleID)
 {
     FEvent_StartBattle Event;
 
-    Event.BattleName = BattleID;
+    Event.EncounterID = BattleID;
 
     return FInstancedStruct::Make(Event);
 }

@@ -17,7 +17,7 @@
 #include "Muksi/Contents/Battle/StatusEffect/StatusEffectRegistryDataAsset.h"
 #include "Muksi/Contents/Battle/Targeting/BattleTargetingManager.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
-#include "Muksi/Save/BattleEncounterSubsystem.h"
+#include "Muksi/Contents/Battle/Encounter/BattleEncounterSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 ABattleManager::ABattleManager()

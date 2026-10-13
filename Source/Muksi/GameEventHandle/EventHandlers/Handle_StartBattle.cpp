@@ -1,15 +1,11 @@
 #include "Handle_StartBattle.h"
 #include "../GameEventHandleSubsystem.h"
 #include "../Events/Event_StartBattle.h"
-#include "Muksi/Save/BattleEncounterSubsystem.h"
+#include "Muksi/Contents/Travel/Public/Managers/WorldBattleEncounterManager.h"
 
 
 void FHandle_StartBattle::Handle_StartBattle(const UObject* WorldContext,const FEvent_StartBattle& Event)
 {
-    /*UE_LOG(LogTemp, Warning, TEXT("[Handle_StartBattle] Start Battle : %s"),*Event.BattleName.ToString());
-    UBattleEncounterSubsystem* BattleSubsystem = UBattleEncounterSubsystem::Get(WorldContext);
-    BattleSubsystem->StartBattleEncounter(Event.BattleName);*/
-    
     if (!IsValid(WorldContext))
     {
         UE_LOG(
@@ -24,14 +20,14 @@ void FHandle_StartBattle::Handle_StartBattle(const UObject* WorldContext,const F
         return;
     }
 
-    if (Event.BattleName.IsNone())
+    if (Event.EncounterID.IsNone())
     {
         UE_LOG(
             LogTemp,
             Error,
             TEXT(
                 "[Handle_StartBattle] "
-                "BattleName is None"
+                "EncounterID is None"
             )
         );
 
@@ -43,32 +39,32 @@ void FHandle_StartBattle::Handle_StartBattle(const UObject* WorldContext,const F
         Warning,
         TEXT(
             "[Handle_StartBattle] "
-            "Start Battle: %s"
+            "Start Encounter: %s"
         ),
-        *Event.BattleName.ToString()
+        *Event.EncounterID.ToString()
     );
 
-    UBattleEncounterSubsystem* BattleSubsystem =
-        UBattleEncounterSubsystem::Get(
+    AWorldBattleEncounterManager* EncounterManager =
+        AWorldBattleEncounterManager::Get(
             WorldContext
         );
 
-    if (!IsValid(BattleSubsystem))
+    if (!IsValid(EncounterManager))
     {
         UE_LOG(
             LogTemp,
             Error,
             TEXT(
                 "[Handle_StartBattle] "
-                "BattleEncounterSubsystem is invalid"
+                "WorldBattleEncounterManager is missing in the current level"
             )
         );
 
         return;
     }
 
-    if (!BattleSubsystem->StartBattleEncounter(
-            Event.BattleName))
+    if (!EncounterManager->StartEncounter(
+            Event.EncounterID))
     {
         UE_LOG(
             LogTemp,
@@ -77,7 +73,7 @@ void FHandle_StartBattle::Handle_StartBattle(const UObject* WorldContext,const F
                 "[Handle_StartBattle] "
                 "Failed to start battle: %s"
             ),
-            *Event.BattleName.ToString()
+            *Event.EncounterID.ToString()
         );
     }
 }

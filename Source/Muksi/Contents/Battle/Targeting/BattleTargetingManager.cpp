@@ -9,6 +9,7 @@
 #include "Muksi/Contents/Battle/Character/BattleCharacter_Player.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Character/Enemy/AI/EnemyBattleAITypes.h"
+#include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Contents/Battle/Character/Panic/PanicStrategyBase.h"
 #include "Muksi/Contents/Battle/Data/BattleAction.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
@@ -823,6 +824,23 @@ void ABattleTargetingManager::FinishEnemyCardSelectionDecision(const FEnemySkill
     ABattleCharacter_Enemy* EnemyCharacter = RuntimeContext ? RuntimeContext->GetEnemyCharacter() : nullptr;
     if (!EnemyCharacter)
         return;
+
+    if (SkillResult.State == EEnemySkillSelectState::PanicRequested)
+    {
+        UBattleCardManager* CardManager = BattleManager->GetBattleCardManager();
+        FCharacterPanicTimeoutResult PanicResult;
+
+        if (!CardManager || !CardManager->ResolveEnemyPanicOnTimeout(BattleManager->GetCurrentExchange(), PanicResult))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[EnemyAI] Unable to resolve PanicCard; waiting for timeout."));
+            return;
+        }
+
+        if (!RequestEnemyPanicTargeting(PanicResult.PanicCard))
+            UE_LOG(LogTemp, Error, TEXT("[EnemyAI] PanicCard targeting failed; waiting for timeout."));
+
+        return;
+    }
 
     UBattleSkillComponent* SkillComponent = EnemyCharacter->GetBattleSkillComponent();
     if (SkillResult.State == EEnemySkillSelectState::Selected && (!SkillComponent || !SkillComponent->CanUseSkill(SkillResult.SelectedSkillInstanceId)))

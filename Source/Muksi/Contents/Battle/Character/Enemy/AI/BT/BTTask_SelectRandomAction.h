@@ -2,16 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTTask_SelectAction.generated.h"
+#include "BTTask_SelectRandomAction.generated.h"
 
 UCLASS()
-class MUKSI_API UBTTask_SelectAction : public UBTTaskNode
+class MUKSI_API UBTTask_SelectRandomAction : public UBTTaskNode
 {
     GENERATED_BODY()
 
 public:
-    UBTTask_SelectAction();
+    UBTTask_SelectRandomAction();
 
-protected:
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };

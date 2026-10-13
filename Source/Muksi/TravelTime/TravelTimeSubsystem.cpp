@@ -18,6 +18,7 @@ void UTravelTimeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UTravelTimeSubsystem::InitializeTravelTimeSubsystem()
 {
     CurrentDate = StartDate;
+    LastBroadcastMinute = INDEX_NONE;
     SetTotalTravelTime(TotalTravelMinute);
 }
 
@@ -32,6 +33,13 @@ void UTravelTimeSubsystem::Tick(float DeltaTime)
     {
         AccumulatedRealSeconds -= SecondsPerTravelHour;
         AdvanceOneHour();
+    }
+
+    const int32 CurrentMinute = FMath::Clamp(FMath::FloorToInt(AccumulatedRealSeconds / SecondsPerTravelHour * 60.f), 0, 59);
+    if (CurrentMinute != LastBroadcastMinute)
+    {
+        LastBroadcastMinute = CurrentMinute;
+        OnMinuteChanged.Broadcast();
     }
 }
 
