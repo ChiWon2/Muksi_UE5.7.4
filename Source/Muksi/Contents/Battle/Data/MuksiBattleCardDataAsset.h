@@ -90,13 +90,7 @@ public:
 	// 기만 카드는 자신의 CardData / Targeting / Execution을 표시 정보로 사용하고, 실제 전투에서는 DeceivedCard의 Execution을 사용한다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive")
 	bool bIsDeceiveCard = false;
-
-	/*// Actual World에서 실제 동작에 사용할 카드.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive", meta = (EditCondition = "bIsDeceiveCard"))
-	TObjectPtr<UMuksiBattleCardDataAsset> ActualCard = nullptr;
-
-	UFUNCTION(BlueprintPure, Category = "Battle|Deceive")
-	UMuksiBattleCardDataAsset* GetActualCard() const;*/
+	
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle|Deceive", meta = (EditCondition = "bIsDeceiveCard"))
 	TObjectPtr<UMuksiBattleCardDataAsset> DeceivedCard = nullptr;

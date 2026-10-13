@@ -9,11 +9,10 @@
 
 void UCardInfoEffectEntry::SetEffectData(const FCardEffectDisplayData& InEffectData)
 {
-	if (Text_AttackValue)
+	/*if (Text_AttackValue)
 	{
 		Text_AttackValue->SetText(FText::AsNumber(InEffectData.AttackValue));
-	}
-
+	}*/
 	if (Text_EffectDescription)
 	{
 		Text_EffectDescription->SetText(InEffectData.EffectDescription);

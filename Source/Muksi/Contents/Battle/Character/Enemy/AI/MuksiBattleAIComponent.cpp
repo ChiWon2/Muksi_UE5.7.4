@@ -236,8 +236,8 @@ bool UMuksiBattleAIComponent::FilterAvailableSkills(const TArray<FBattleCardType
             case EMuksiBattleCardType::Attack:
                 bMatches = Allowed.AttackType == EMuksiAttackCardType::None || Allowed.AttackType == Type.AttackType;
                 break;
-            case EMuksiBattleCardType::Defence:
-                bMatches = Allowed.DefenceType == EMuksiDefenceCardType::None || Allowed.DefenceType == Type.DefenceType;
+            case EMuksiBattleCardType::Defense:
+                bMatches = Allowed.DefenceType == EMuksiDefenseCardType::None || Allowed.DefenceType == Type.DefenceType;
                 break;
             case EMuksiBattleCardType::Move:
                 bMatches = Allowed.MoveType == EMuksiMoveCardType::None || Allowed.MoveType == Type.MoveType;
@@ -446,7 +446,7 @@ bool UMuksiBattleAIComponent::EvaluateSelfTargeting()
         // For self-only buffs and defence actions, this is a valid self action.
         const bool bImplicitSelf = Candidate.StepCoords.IsEmpty() &&
             (Candidate.Skill->CardTypeInfo.CardType == EMuksiBattleCardType::Buff ||
-             Candidate.Skill->CardTypeInfo.CardType == EMuksiBattleCardType::Defence);
+             Candidate.Skill->CardTypeInfo.CardType == EMuksiBattleCardType::Defense);
 
         if (!Candidate.bCanAffectSelf && !bImplicitSelf)
             continue;

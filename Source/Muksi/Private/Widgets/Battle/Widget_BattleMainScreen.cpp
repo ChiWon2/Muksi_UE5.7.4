@@ -21,6 +21,7 @@
 #include "MuksiDebugHelper.h"
 #include "Muksi/Contents/Battle/Character/BattleSkillComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Contents/Battle/Sequence/Presentation/BattleActionGroupController.h"
 #include "Muksi/Contents/Battle/Sequence/Presentation/BattleActionPresenter.h"
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleControlPanel.h"
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleSkillBar.h"
@@ -187,10 +188,16 @@ void UWidget_BattleMainScreen::BindBattleSequenceManagerEvents()
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.AddUObject(this, &UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested);
 	BattleSequenceManager->BattleActionPresentationRequestedDelegate.AddUniqueDynamic(this, &UWidget_BattleMainScreen::HandleBattleActionPresentationRequested);
 	
-	UBattleActionPresenter* BattleActionPresenter = BattleSequenceManager->GetActionPresenter();
+	/*UBattleActionPresenter* BattleActionPresenter = BattleSequenceManager->GetActionPresenter();
 	if (!BattleActionPresenter)
 		return;
-	BattleActionPresenter->OnSkillRevealDeceiveRequested.AddUObject(this, &UWidget_BattleMainScreen::HandleSkillRevealDeceiveRequested);
+	BattleActionPresenter->OnSkillRevealDeceiveRequested.AddUObject(this, &UWidget_BattleMainScreen::HandleSkillRevealDeceiveRequested);*/
+	
+	UBattleActionGroupController* GroupController = BattleSequenceManager->GetActionGroupController();
+	if (!IsValid(GroupController))
+		return;
+	GroupController->OnSkillRevealDeceiveRequested.RemoveAll(this);
+	GroupController->OnSkillRevealDeceiveRequested.AddUObject(this, &UWidget_BattleMainScreen::HandleSkillRevealDeceiveRequested);
 }
 
 void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
@@ -200,6 +207,12 @@ void UWidget_BattleMainScreen::UnbindBattleSequenceManagerEvents()
 
 	BattleSequenceManager->DeceiveCardRevealRequestedDelegate.RemoveAll(this);
 	BattleSequenceManager->BattleActionPresentationRequestedDelegate.RemoveDynamic(this, &UWidget_BattleMainScreen::HandleBattleActionPresentationRequested);
+	
+	UBattleActionGroupController* GroupController = BattleSequenceManager->GetActionGroupController();
+	if (IsValid(GroupController))
+	{
+		GroupController->OnSkillRevealDeceiveRequested.RemoveAll(this);
+	}
 }
 
 void UWidget_BattleMainScreen::BindBattleSkillReveal()
@@ -708,6 +721,11 @@ void UWidget_BattleMainScreen::DisplayRoundStartUIFinish()
 
 	if (HandleUIFinishCount <= 0)
 	{
+		if (StatusHUDWidget)
+		{
+			StatusHUDWidget->RefreshEnemyCost();
+		}
+
 		CompletePhaseUI(EBattlePhase::RoundStart);
 	}
 }
@@ -900,7 +918,12 @@ void UWidget_BattleMainScreen::HandleSkillRevealFinished(int32 ExchangeIndex)
 	{
 		return;
 	}
-
+	
+	// 스킬 공개 완료 시 계산돼 있던 표시 코스트를 읽음
+	if (StatusHUDWidget)
+	{
+		StatusHUDWidget->RefreshEnemyCost();
+	}
 	BattleTargetingManager->NotifyEnemyCardRevealUIFinished(ExchangeIndex);
 }
 
@@ -1118,15 +1141,15 @@ void UWidget_BattleMainScreen::HandleSkillRevealDeceiveRequested(const FBattleAc
 	}
 
 	//BattleSequenceManager->NotifyDeceiveCardRevealFinished();
-	UBattleActionPresenter* BattleActionPresenter = BattleSequenceManager->GetActionPresenter();
-	if (!BattleActionPresenter)
+	UBattleActionGroupController* GroupController = BattleSequenceManager->GetActionGroupController();
+	if (!GroupController)
 	{
 		return;
 	}
 	
 	if (!BattleSkillRevealPanel)
 	{
-		BattleActionPresenter->NotifySkillRevealDeceiveFinished();
+		GroupController->NotifySkillRevealDeceiveFinished();
 		return;
 	}
 
@@ -1138,7 +1161,7 @@ void UWidget_BattleMainScreen::HandleSkillRevealDeceiveRequested(const FBattleAc
 
 	if (!bStarted)
 	{
-		BattleActionPresenter->NotifySkillRevealDeceiveFinished();
+		GroupController->NotifySkillRevealDeceiveFinished();
 	}
 }
 
@@ -1198,12 +1221,12 @@ void UWidget_BattleMainScreen::NotifyDeceiveCardRevealFinished()
 	}
 
 	//BattleSequenceManager->NotifyDeceiveCardRevealFinished();
-	UBattleActionPresenter* BattleActionPresenter = BattleSequenceManager->GetActionPresenter();
-	if (!BattleActionPresenter)
+	UBattleActionGroupController* GroupController  = BattleSequenceManager->GetActionGroupController();
+	if (!GroupController)
 	{
 		return;
 	}
-	BattleActionPresenter->NotifySkillRevealDeceiveFinished();
+	GroupController->NotifySkillRevealDeceiveFinished();
 }
 
 void UWidget_BattleMainScreen::PlayAttackAction(int32 InIndex, ABattleCharacterBase* AttackCharacter, ABattleCharacterBase* TargetCharacter, UMuksiBattleCardDataAsset* CardDataAsset)

@@ -16,6 +16,7 @@ class UBattlePhaseTaskContext;
 class UBattleActionExecutor;
 class UBattleActionPresenter;
 class ABattleSkillInfoActor;
+class UBattleActionGroupController;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDeceiveCardRevealRequestedDelegate, const FBattleAction&);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FBattleSequenceActionStartedDelegate, FBattleAction&, FBattleAction&);
@@ -117,6 +118,30 @@ private:
 	void StartNextBattleActionDeferred();
 	void FinishBattleActionSequence();
 	void ResetBattleActionSequence();
+	
+	//BattleAction 직전, 직후 행동(Exchange단위)--------------------------------------------------------------------------------
+public:
+	void NotifyActionGroupStartFinished();
+	
+	void NotifyActionGroupEndFinished();
+	
+	UBattleActionGroupController* GetActionGroupController() const {return ActionGroupController.Get();}
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleActionGroupController> ActionGroupController;
+	
+	void BuildCurrentActionGroup();
+
+	UPROPERTY(Transient)
+	TArray<FBattleAction> CurrentGroupActions;
+
+	int32 CurrentGroupExchangeIndex = INDEX_NONE;
+	bool bWaitingForActionGroupStart = false;
+
+private:
+	bool bWaitingForActionGroupEnd = false;
+	
+	//------------------------------------------------------------------------------------------------------------------
 	
 	//BattleAction 직전 행동(카메라, Enemy Cost 등등)----------------------------------------------------------------------
 public:

@@ -53,6 +53,15 @@ void UBattleActionPresenter::Shutdown()
 
 bool UBattleActionPresenter::StartPresentation(const FBattleAction& BattleAction)
 {
+	// 향후 단일 Action의 실행 전 연출을 넣을 위치
+	if (!IsValid(SequenceManager))
+	{
+		return false;
+	}
+
+	SequenceManager->NotifyBattleActionPresentationFinished();
+	return true;
+	
 	if (bPresentationRunning)
 	{
 		UE_LOG(
@@ -87,19 +96,11 @@ bool UBattleActionPresenter::StartPresentation(const FBattleAction& BattleAction
 	bSkillRevealDeceiveFinished = false;
 	const bool bIsDeceive = (IsValid(CurrentAction.Card.Get()) && IsValid(CurrentAction.Card->GetDeceivedCard()));
 	bWaitingForDeceivePresentation = bIsDeceive;
+	
 
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT(
-			"[BattleActionPresenter] Start Presentation. "
-			"Attacker=%s Card=%s"
-		),
-		*GetNameSafe(CurrentAction.Attacker.Get()),
-		*GetNameSafe(CurrentAction.Card.Get())
-	);
-
-	StartCameraPresentation();
+	
+	//카메라 연출은 다른곳으로
+	//StartCameraPresentation();
 	return true;
 }
 

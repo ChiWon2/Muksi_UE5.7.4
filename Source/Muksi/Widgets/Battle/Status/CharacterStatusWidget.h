@@ -24,7 +24,7 @@ class MUKSI_API UCharacterStatusWidget : public UUserWidget
 	GENERATED_BODY()
 public:
 	void SetData(ABattleCharacterBase* BattleCharacter);
-
+	void RefreshCost();
 protected:
 	virtual void NativeDestruct() override;
 	//*** Bind Widget ***//
@@ -32,10 +32,12 @@ protected:
 	UImage* Image_CharacterImage;
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_CharacterName;
+	
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_CharacterHP;
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* ProgressBar_CharacterHP;
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UStatusEffectBarWidget> StatusEffectBarWidget;
 	UPROPERTY(meta = (BindWidget))
@@ -53,6 +55,27 @@ protected:
 	void HPUp(float PreHP, float AftHP);
 	void HPDown(float PreHP, float AftHP);
 	void UnbindBattleStatComponent();
+	
+	//HP ProgressBar 천천히 줄어들기--------------------------------------------------------------------------------------
+public:
+protected:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* ProgressBar_CharacterHPDelayed;
+
+	// 피격 후 붉은 바가 움직이기까지 기다리는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HP|Animation", meta = (ClampMin = "0.0"))
+	float HPDelayedStartDelay = 0.2f;
+
+	// 초당 줄어드는 비율. 0.5이면 초당 최대 체력의 50%만큼 감소
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HP|Animation", meta = (ClampMin = "0.01"))
+	float HPDelayedDecreaseSpeed = 0.5f;
+
+	float TargetHPPercent = 1.0f;
+	float DelayedHPPercent = 1.0f;
+	float HPDelayRemaining = 0.0f;
+	//------------------------------------------------------------------------------------------------------------------
 	
 	//스킬 호버링 코스트 보여주기-------------------------------------------------------------------------------------------
 public:

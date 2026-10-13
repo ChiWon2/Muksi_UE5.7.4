@@ -114,9 +114,14 @@ void UWidget_BattleSkillRevealSlot::NativeConstruct()
 void UWidget_BattleSkillRevealSlot::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	if (!bPlayingDissolveReveal ||
-		!DissolveMaterialInstance)
+	if (!bPlayingDissolveReveal)
 	{
+		return;
+	}
+	
+	if (!IsValid(DissolveMaterialInstance))
+	{
+		FinishDeceiveReveal();
 		return;
 	}
 
@@ -168,11 +173,11 @@ void UWidget_BattleSkillRevealSlot::UpdateOwnerColor()
 	SlotMaterialInstance->SetVectorParameterValue(TEXT("Color"), TargetColor);
 }
 
-void UWidget_BattleSkillRevealSlot::RevealDeceive()
+bool UWidget_BattleSkillRevealSlot::RevealDeceive()
 {
 	if (!IsValid(SkillData) || !IsValid(SkillData->GetDeceivedCard()) || !Image_DissolveReveal || !DissolveMaterialInstance)
 	{
-		return;
+		return false;
 	}
 
 	DissolveElapsedTime = 0.0f;
@@ -180,10 +185,17 @@ void UWidget_BattleSkillRevealSlot::RevealDeceive()
 
 	Image_DissolveReveal->SetVisibility(ESlateVisibility::HitTestInvisible);
 	DissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"),-0.47f);
+	
+	return true;
 }
 
 void UWidget_BattleSkillRevealSlot::FinishDeceiveReveal()
 {
+	if (!bPlayingDissolveReveal)
+	{
+		return;
+	}
+	
 	bPlayingDissolveReveal = false;
 	bDeceiveRevealed = true;
 
@@ -198,6 +210,9 @@ void UWidget_BattleSkillRevealSlot::FinishDeceiveReveal()
 	{
 		OnSkillHovered.Broadcast(SkillData, IsPlayerSkill());
 	}
+	
+	// 완료 통지는 마지막에 실행
+	OnDeceiveRevealFinished.Broadcast(this);
 }
 
 void UWidget_BattleSkillRevealSlot::HandleRevealAnimationFinished()

@@ -7,6 +7,7 @@
 #include "CardPreview_ValuePanel.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
 #include "Muksi/Widgets/Battle/Widget_BattleCardBase.h"
 
@@ -82,9 +83,19 @@ void UCardPreviewPanel::SetCardData(UMuksiBattleCardDataAsset* InCardData)
 		Text_CardName->SetText(InCardData->CardName);
 	}
 
-	if (Text_CardSpeed)
+	if (Text_SkillCost)
 	{
-		Text_CardSpeed->SetText(FText::AsNumber(InCardData->CardSpeed));
+		Text_SkillCost->SetText(FText::AsNumber(InCardData->Cost));
+	}
+	
+	if (Text_SkillSpeed)
+	{
+		Text_SkillSpeed->SetText(FText::Format(NSLOCTEXT("CardPreview", "SkillSpeed", "Skill Speed : {0}"), FText::AsNumber(InCardData->CardSpeed)));
+	}
+	
+	if (Text_SkillCoolDown)
+	{
+		Text_SkillCoolDown->SetText(FText::Format(NSLOCTEXT("CardPreview", "CoolDown", "Skill Speed : {0}"), FText::AsNumber(InCardData->Cooldown)));
 	}
 
 	if (Image_CardIllustration)
@@ -97,17 +108,11 @@ void UCardPreviewPanel::SetCardData(UMuksiBattleCardDataAsset* InCardData)
 		CardPreviewEffectPanel->SetCardData(InCardData);
 	}
 	
-	if (ValuePanel)
+	RefreshValuePanels(InCardData);
+	
+	if (CardPreviewEffectPanel)
 	{
-		if (!InCardData->EffectDisplayData.IsEmpty())
-		{
-			ValuePanel->SetVisibility(ESlateVisibility::HitTestInvisible);
-			ValuePanel->SetValue(EValueType::Attack, InCardData->EffectDisplayData[0].AttackValue);
-		}else
-		{
-			ValuePanel->SetVisibility(ESlateVisibility::Hidden);
-		}
-		
+		CardPreviewEffectPanel->StartAutoScroll();
 	}
 }
 
@@ -128,4 +133,76 @@ void UCardPreviewPanel::HidePreview()
 {
 	SetVisibility(ESlateVisibility::Collapsed);
 	CurrentCardData = nullptr;
+	
+	if (CardPreviewEffectPanel)
+	{
+		CardPreviewEffectPanel->StopAutoScroll();
+	}
+}
+
+void UCardPreviewPanel::RefreshValuePanels(const UMuksiBattleCardDataAsset* CardData)
+{
+	if (!VerticalBox_ValuePanels)
+	{
+		return;
+	}
+
+	// 이번 스킬에서 표시할 값들을 순서대로 수집
+	TArray<FDescriptionValueData> Values;
+
+	if (CardData)
+	{
+		for (const FCardEffectDisplayData& EffectData
+			: CardData->EffectDisplayData)
+		{
+			for (const FDescriptionValueData& ValueData : EffectData.DescriptionValues)
+			{
+				if (ValueData.DescriptionType == EDescriptionValueType::None)
+				{
+					continue;
+				}
+				Values.Add(ValueData);
+			}
+		}
+	}
+
+	// 부족한 패널만 추가 생성
+	while (ValuePanels.Num() < Values.Num())
+	{
+		if (!ValuePanelClass)
+		{
+			break;
+		}
+
+		UCardPreview_ValuePanel* NewPanel = CreateWidget<UCardPreview_ValuePanel>(GetOwningPlayer(), ValuePanelClass);
+
+		if (!NewPanel)
+		{
+			break;
+		}
+
+		VerticalBox_ValuePanels->AddChildToVerticalBox(NewPanel);
+		ValuePanels.Add(NewPanel);
+	}
+
+	// 필요한 패널 갱신, 남는 패널 숨김
+	for (int32 i = 0; i < ValuePanels.Num(); ++i)
+	{
+		UCardPreview_ValuePanel* Panel = ValuePanels[i];
+
+		if (!Panel)
+		{
+			continue;
+		}
+
+		if (Values.IsValidIndex(i))
+		{
+			Panel->SetValue(Values[i].DescriptionType, Values[i].MainValue);
+			Panel->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			Panel->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }
