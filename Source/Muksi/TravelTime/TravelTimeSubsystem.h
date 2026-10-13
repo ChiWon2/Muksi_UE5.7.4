@@ -12,6 +12,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
     CurrentTime
 );
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTravelMinuteChanged);
+
 UCLASS()
 class MUKSI_API UTravelTimeSubsystem : public UGameInstanceSubsystem, public FTickableGameObject
 {
@@ -33,6 +35,7 @@ private:
     float AccumulatedRealSeconds = 0.f;
 
     bool bIsRunning = false;
+    int32 LastBroadcastMinute = INDEX_NONE;
 
 public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -44,6 +47,9 @@ public:
 public:
     UPROPERTY(BlueprintAssignable)
     FOnTravelHourPassed OnHourPassed;
+
+    UPROPERTY(BlueprintAssignable)
+    FOnTravelMinuteChanged OnMinuteChanged;
 
     UFUNCTION(BlueprintCallable)
     void StartTravelTime();

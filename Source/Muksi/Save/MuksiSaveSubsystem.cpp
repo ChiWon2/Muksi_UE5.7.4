@@ -3,7 +3,7 @@
 
 #include "Muksi/Save/MuksiSaveSubsystem.h"
 
-#include "BattleEncounterSubsystem.h"
+#include "Muksi/Contents/Battle/Encounter/BattleEncounterSubsystem.h"
 #include "MuksiSaveGame.h"
 #include "Kismet/GameplayStatics.h"
 

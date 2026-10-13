@@ -10,8 +10,8 @@ struct FEvent_StartBattle : public FEvent_Base
     GENERATED_BODY()
 
 public:
-    // BattleEncounterSubsystem에서 사용하는 전투 이름
+    // BattleEncounterSubsystem에서 사용하는 Encounter ID
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FName BattleName;
+    FName EncounterID;
 
 };

@@ -46,6 +46,7 @@ enum class EMuksiSpecialCardType : uint8
 	None		UMETA(DisplayName = "None"),
 	Counter		UMETA(DisplayName = "Counter"),
 	Knockback	UMETA(DisplayName = "Knockback"),
+	StackChargeAttack UMETA(DisplayName = "StackChargeAttack")
 };
 
 USTRUCT(BlueprintType)

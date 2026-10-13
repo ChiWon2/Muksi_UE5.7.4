@@ -12,7 +12,7 @@
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Setup/AssetPreload/BattleAssetPreloadManager.h"
-#include "Muksi/Save/BattleEncounterSubsystem.h"
+#include "Muksi/Contents/Battle/Encounter/BattleEncounterSubsystem.h"
 
 ABattleSetupManager::ABattleSetupManager()
 {
