@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
@@ -38,101 +38,66 @@ void UBattleStatComponent::CopyRuntimeStateFrom(const UBattleStatComponent& Sour
 
 float UBattleStatComponent::ApplyDamage(float Damage)
 {
-	if (bIsDead)
-	{
+	if (Damage <= 0.0f || bIsDead)
 		return 0.0f;
-	}
 
-	if (Damage <= 0.0f)
-	{
-		return 0.0f;
-	}
-	
-	const float FinalDamage = FMath::Max(1.0f, Damage - CurrentStats.Defense);
-
-	const float PreviousHP = CurrentHP;
-
-	CurrentHP = FMath::Clamp(
-		CurrentHP - FinalDamage,
-		0.0f,
-		CurrentStats.HP
-	);
-
-	const float AppliedDamage = PreviousHP - CurrentHP;
-	
-	CurrentStats.HP = CurrentHP;
-	
-	OnHPChanged.Broadcast(PreviousHP, CurrentStats.HP);
-
-	if (CurrentHP <= 0.0f)
-	{
-		HandleDeath();
-	}
-
-	return AppliedDamage;
+	return -ApplyHPChange(-FMath::Max(1.0f, Damage - CurrentStats.Defense), TEXT("Damage"));
 }
 
 float UBattleStatComponent::Heal(float HealAmount)
 {
-	if (bIsDead)
-	{
+	if (HealAmount <= 0.0f || bIsDead)
 		return 0.0f;
-	}
 
-	if (HealAmount <= 0.0f)
-	{
+	return ApplyHPChange(HealAmount, TEXT("Heal"));
+}
+
+float UBattleStatComponent::ApplyHPChange(float HPDelta, FName StyleKey)
+{
+	if (bIsDead || FMath::IsNearlyZero(HPDelta))
 		return 0.0f;
-	}
 
 	const float PreviousHP = CurrentHP;
+	CurrentHP = FMath::Clamp(CurrentHP + HPDelta, 0.0f, CurrentStats.HP);
 
-	CurrentHP = FMath::Clamp(
-		CurrentHP + HealAmount,
-		0.0f,
-		CurrentStats.HP
-	);
+	const float AppliedHPChange = CurrentHP - PreviousHP;
+	if (FMath::IsNearlyZero(AppliedHPChange))
+		return 0.0f;
 
-	const float AppliedHeal = CurrentHP - PreviousHP;
+	OnHPChanged.Broadcast(PreviousHP, CurrentHP);
+	OnHPChangeApplied.Broadcast(AppliedHPChange, StyleKey, Cast<ABattleCharacterBase>(GetOwner()));
 
-	OnHPChanged.Broadcast(PreviousHP, CurrentStats.HP);
+	if (CurrentHP <= 0.0f)
+		HandleDeath();
 
-	return AppliedHeal;
+	return AppliedHPChange;
 }
 
 void UBattleStatComponent::SetCurrentHP(float NewHP)
 {
 	if (bIsDead)
-	{
 		return;
-	}
 
-	if (NewHP > BaseStats.HP){NewHP = BaseStats.HP;}
-	
-	CurrentHP = FMath::Clamp(
-		NewHP,
-		0.0f,
-		CurrentStats.HP
-	);
-	
-	OnHPChanged.Broadcast(CurrentStats.HP,NewHP);
-	
-	CurrentStats.HP = NewHP;
+	const float PreviousHP = CurrentHP;
+	CurrentHP = FMath::Clamp(NewHP, 0.0f, CurrentStats.HP);
+
+	if (!FMath::IsNearlyEqual(PreviousHP, CurrentHP))
+		OnHPChanged.Broadcast(PreviousHP, CurrentHP);
+
 	if (CurrentHP <= 0.0f)
-	{
 		HandleDeath();
-	}
 }
 
 void UBattleStatComponent::RestoreFullHP()
 {
 	if (bIsDead)
-	{
 		return;
-	}
 
+	const float PreviousHP = CurrentHP;
 	CurrentHP = CurrentStats.HP;
-	CurrentStats.HP = BaseStats.HP;
-	OnHPChanged.Broadcast(CurrentHP, CurrentStats.HP);
+
+	if (!FMath::IsNearlyEqual(PreviousHP, CurrentHP))
+		OnHPChanged.Broadcast(PreviousHP, CurrentHP);
 }
 
 void UBattleStatComponent::SetCurrentSpeed(float NewSpeed)

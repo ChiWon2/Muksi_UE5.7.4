@@ -2,6 +2,9 @@
 
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
+#include "Widgets/Battle/FloatingText/BattleFloatingTextManager.h"
+#include "Widgets/Battle/FloatingText/BattleFloatingTextDataAsset.h"
+#include "Widgets/Battle/FloatingText/Widget_BattleFloatingText.h"
 
 #include "Controllers/MuksiPlayerController.h"
 #include "Controllers/PlayerMode/PlayerMode_Battle.h"
@@ -95,6 +98,12 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	BindBattleControlPanelEvents();
 	BindBattleInputEvents();
 
+	if (FloatingTextCanvas && FloatingTextDataAsset && FloatingTextDataAsset->FloatingTextWidgetClass)
+	{
+		FloatingTextManager = NewObject<UBattleFloatingTextManager>(this);
+		FloatingTextManager->Initialize(this, FloatingTextCanvas, FloatingTextDataAsset);
+	}
+
 	BattleManager->StartBattleFlow();
 	
 	/*if (CardPreviewPanel)
@@ -105,6 +114,10 @@ void UWidget_BattleMainScreen::NativeConstruct()
 
 void UWidget_BattleMainScreen::NativeDestruct()
 {
+	if (FloatingTextManager)
+		FloatingTextManager->UnbindCharacters();
+
+
 	UnbindBattleManagerEvents();
 	UnbindBattleSequenceManagerEvents();
 	UnbindBattlePipelineWidgetEvents();
@@ -138,6 +151,9 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 	checkf(IsValid(Player), TEXT("PlayerCharacter is null"));
 	checkf(IsValid(Enemy), TEXT("EnemyCharacter is null"));
 	
+	if (FloatingTextManager)
+		FloatingTextManager->BindCharacters(Player, Enemy);
+
 	ActivePassiveWidget->SetData(Player, Enemy);//각 캐릭터 Passive 관련 위젯 설정
 	StatusHUDWidget->SetData(Player, Enemy);//각 캐릭터 Stat 관련 위젯 설정
 	

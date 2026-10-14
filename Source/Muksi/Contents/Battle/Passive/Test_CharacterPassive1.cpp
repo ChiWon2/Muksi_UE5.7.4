@@ -1,10 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Muksi/Contents/Battle/Passive/Test_CharacterPassive1.h"
 
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 
 UTest_CharacterPassive1::UTest_CharacterPassive1()
 {
@@ -51,7 +52,7 @@ void UTest_CharacterPassive1::Passive1_()
 	
 	//지금 당장 힐 이펙트가 없으니까
 	ABattleCharacterBase* Character = GetOwnerCharacter();
-	Character->SetCurrentHP(Character->GetCurrentHP() + 2);
+	Character->GetBattleStatComponent()->ApplyHPChange(2, TEXT("Heal"));
 	
 	//패시브 작동 UI 띄우기
 	OnPassiveActive.Broadcast(PassiveImage, PassiveName);
@@ -75,7 +76,7 @@ void UTest_CharacterPassive1::Passive2_()
 	
 	//지금 당장 힐 이펙트가 없으니까
 	ABattleCharacterBase* Character = GetOwnerCharacter();
-	Character->SetCurrentHP(Character->GetCurrentHP() + 2);
+	Character->GetBattleStatComponent()->ApplyHPChange(2, TEXT("Heal"));
 	//나중에는 막 버프 넣기 같은 거 넣을 수 도 있음
 	
 	//패시브 작동 UI 띄우기
