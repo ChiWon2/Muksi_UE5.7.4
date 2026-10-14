@@ -3,6 +3,9 @@
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
 
+#include "Controllers/MuksiPlayerController.h"
+#include "Controllers/PlayerMode/PlayerMode_Battle.h"
+
 #include "Engine/World.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
@@ -90,8 +93,7 @@ void UWidget_BattleMainScreen::NativeConstruct()
 	BindBattleSkillReveal();
 
 	BindBattleControlPanelEvents();
-	
-
+	BindBattleInputEvents();
 
 	BattleManager->StartBattleFlow();
 	
@@ -111,8 +113,7 @@ void UWidget_BattleMainScreen::NativeDestruct()
 	UnbindBattleSkillReveal();
 	
 	UnbindBattleControlPanelEvents();
-	
-
+	UnbindBattleInputEvents();
 
 	if (BattleTargetingManager)
 	{
@@ -327,6 +328,46 @@ void UWidget_BattleMainScreen::UnbindBattleControlPanelEvents()
 	}
 
 	BattleControlPanel->OnBattleSkillSelected.RemoveAll(this);
+}
+
+void UWidget_BattleMainScreen::BindBattleInputEvents()
+{
+	AMuksiPlayerController* PlayerController = Cast<AMuksiPlayerController>(GetOwningPlayer());
+
+	if (!PlayerController)
+		return;
+
+	UPlayerMode_Battle* BattleMode = Cast<UPlayerMode_Battle>(PlayerController->GetCurrentPlayerMode());
+
+	if (!BattleMode)
+		return;
+
+	BattleMode->OnBattleSkillSlotInput.RemoveAll(this);
+	BattleMode->OnBattleSkillSlotInput.AddUObject(this, &UWidget_BattleMainScreen::HandleBattleSkillSlotInput);
+}
+
+void UWidget_BattleMainScreen::UnbindBattleInputEvents()
+{
+	AMuksiPlayerController* PlayerController = Cast<AMuksiPlayerController>(GetOwningPlayer());
+
+	if (!PlayerController)
+		return;
+
+	UPlayerMode_Battle* BattleMode = Cast<UPlayerMode_Battle>(PlayerController->GetCurrentPlayerMode());
+
+	if (BattleMode)
+		BattleMode->OnBattleSkillSlotInput.RemoveAll(this);
+}
+
+void UWidget_BattleMainScreen::HandleBattleSkillSlotInput(int32 SlotIndex)
+{
+	if (!BattleControlPanel)
+		return;
+
+	UWidget_BattleSkillBar* BattleSkillBar = BattleControlPanel->GetBattleSkillBar();
+
+	if (BattleSkillBar)
+		BattleSkillBar->TrySelectSkillSlot(SlotIndex);
 }
 
 void UWidget_BattleMainScreen::HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)

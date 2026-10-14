@@ -27,6 +27,7 @@ public:
 	void SetBattleCharacter(ABattleCharacterBase* InCharacter);
 	
 	void SetSkillSlotActive(bool bActive);
+	bool TrySelectSkillSlot(int32 SlotIndex);
 	
 	void RefreshSkillSlots();
 	
@@ -43,8 +44,11 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget_BattleSkillSlot>> SkillSlots;
 
+	bool bSkillSlotActive = true;
+
 private:
 	void InitializeSkillSlots();
+	bool TrySelectSkill(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData);
 	void HandleSkillSlotClicked(const FGuid& InstanceId,UMuksiBattleCardDataAsset* CardData);
 	
 	void HandleSkillSlotHovered(UMuksiBattleCardDataAsset* SkillData,  int32 RemainingCooldown);

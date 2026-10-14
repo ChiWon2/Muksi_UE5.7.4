@@ -147,7 +147,10 @@ protected:
 	
 	void BindBattleControlPanelEvents();
 	void UnbindBattleControlPanelEvents();
+	void BindBattleInputEvents();
+	void UnbindBattleInputEvents();
 	void HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData);
+	void HandleBattleSkillSlotInput(int32 SlotIndex);
 
 	void HandleBattleSkillHovered(UMuksiBattleCardDataAsset* SkillData, int32 RemainingCooldown);
 	void HandleBattleSkillUnhovered();

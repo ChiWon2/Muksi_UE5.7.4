@@ -19,11 +19,33 @@ void UWidget_BattleSkillBar::SetBattleCharacter(ABattleCharacterBase* InCharacte
 
 void UWidget_BattleSkillBar::SetSkillSlotActive(bool bActive)
 {
+	bSkillSlotActive = bActive;
+
 	SetVisibility(
 		bActive
 			? ESlateVisibility::Visible
 			: ESlateVisibility::HitTestInvisible
 	);
+}
+
+bool UWidget_BattleSkillBar::TrySelectSkillSlot(int32 SlotIndex)
+{
+	if (!bSkillSlotActive || !BoundCharacter)
+		return false;
+
+	UBattleSkillComponent* SkillComponent = BoundCharacter->GetBattleSkillComponent();
+
+	if (!SkillComponent)
+		return false;
+
+	const TArray<FBattleSkillInstance>& SkillInstances = SkillComponent->GetSkillInstances();
+
+	if (!SkillInstances.IsValidIndex(SlotIndex))
+		return false;
+
+	const FBattleSkillInstance& SkillInstance = SkillInstances[SlotIndex];
+
+	return TrySelectSkill(SkillInstance.InstanceId, SkillInstance.SkillData);
 }
 
 void UWidget_BattleSkillBar::RefreshSkillSlots()
@@ -111,40 +133,31 @@ void UWidget_BattleSkillBar::InitializeSkillSlots()
 	}
 }
 
-void UWidget_BattleSkillBar::HandleSkillSlotClicked(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)
+bool UWidget_BattleSkillBar::TrySelectSkill(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)
 {
-	if (!BoundCharacter || !CardData || !InstanceId.IsValid())
-	{
-		return;
-	}
+	if (!bSkillSlotActive || !BoundCharacter || !CardData || !InstanceId.IsValid())
+		return false;
 
 	UBattleSkillComponent* SkillComponent = BoundCharacter->GetBattleSkillComponent();
 
 	if (!SkillComponent)
-	{
-		return;
-	}
+		return false;
 
 	if (!SkillComponent->CanUseSkill(InstanceId))
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("[BattleSkillBar] Skill is not ready. Card=%s"),
-			*GetNameSafe(CardData)
-		);
-
-		return;
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSkillBar] Skill is not ready. Card=%s"), *GetNameSafe(CardData));
+		return false;
 	}
 
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("[BattleSkillBar] Skill Clicked Card=%s"),
-		*GetNameSafe(CardData)
-	);
+	UE_LOG(LogTemp, Warning, TEXT("[BattleSkillBar] Skill Selected Card=%s"), *GetNameSafe(CardData));
 
 	OnBattleSkillSelected.Broadcast(InstanceId, CardData);
+	return true;
+}
+
+void UWidget_BattleSkillBar::HandleSkillSlotClicked(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)
+{
+	TrySelectSkill(InstanceId, CardData);
 }
 
 void UWidget_BattleSkillBar::HandleSkillSlotHovered(UMuksiBattleCardDataAsset* SkillData,  int32 RemainingCooldown)

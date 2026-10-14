@@ -32,6 +32,10 @@ void UPlayerModeBase::HandleRightClick(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleRightClick"));
 }
 
+void UPlayerModeBase::HandleNumberKeyPressed(int32 NumberKey)
+{
+}
+
 void UPlayerModeBase::HandlePPressedKey(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandlePPressedKey"));

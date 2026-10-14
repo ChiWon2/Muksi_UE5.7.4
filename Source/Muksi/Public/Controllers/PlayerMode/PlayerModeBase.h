@@ -28,6 +28,7 @@ public:
 	
 	virtual void HandleLeftClick(const FInputActionValue& Value);
 	virtual void HandleRightClick(const FInputActionValue& Value);
+	virtual void HandleNumberKeyPressed(int32 NumberKey);
 	
 	virtual void HandlePPressedKey(const FInputActionValue& Value);
 	virtual void HandleTabPressedKey(const FInputActionValue& Value);

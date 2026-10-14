@@ -118,6 +118,9 @@ void AMuksiPlayerController::SetupInputComponent()
 			EnhancedInput->BindAction(RPressAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnRKeyPressed);
 			UE_LOG(LogTemp, Log, TEXT("Bind RPressAction"));
 		}
+
+		if (NumberKeyAction)
+			EnhancedInput->BindAction(NumberKeyAction, ETriggerEvent::Started, this, &AMuksiPlayerController::OnNumberKeyPressed);
 	}
 }
 
@@ -177,10 +180,22 @@ void AMuksiPlayerController::OnLeftClick(const FInputActionValue& Value)
 
 void AMuksiPlayerController::OnRightClick(const FInputActionValue& Value)
 {
-	if (CurrentPlayerMode){CurrentPlayerMode->HandleRightClick(Value);}
+	if (CurrentPlayerMode)
+		CurrentPlayerMode->HandleRightClick(Value);
 }
 
+void AMuksiPlayerController::OnNumberKeyPressed(const FInputActionValue& Value)
+{
+	if (!CurrentPlayerMode)
+		return;
 
+	const int32 NumberKey = FMath::RoundToInt(Value.Get<float>());
+
+	if (NumberKey < 1 || NumberKey > 9)
+		return;
+
+	CurrentPlayerMode->HandleNumberKeyPressed(NumberKey);
+}
 
 void AMuksiPlayerController::OnEKeyPressed(const FInputActionValue& Value)
 {
