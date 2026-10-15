@@ -26,6 +26,7 @@
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleControlPanel.h"
 #include "Muksi/Widgets/Battle/BattleControl/Widget_BattleSkillBar.h"
 #include "Muksi/Widgets/Battle/CardPreview/CardPreviewPanel.h"
+#include "Muksi/Widgets/Battle/CardPreview/Widget_CardPreviewCanvas.h"
 #include "Muksi/Widgets/Battle/Hand/Card/BattleCardManager.h"
 #include "Muksi/Widgets/Battle/Passive/PassiveActivePopupWidget.h"
 #include "Muksi/Widgets/Battle/PipeLine/BattlePipelineWidget.h"
@@ -91,7 +92,12 @@ void UWidget_BattleMainScreen::NativeConstruct()
 
 	BindBattleControlPanelEvents();
 	
+	if (CardPreviewCanvas)
+	{
+		CardPreviewCanvas->OnRevealPreviewFinished.RemoveAll(this);
 
+		CardPreviewCanvas->OnRevealPreviewFinished.AddUObject(this, &UWidget_BattleMainScreen::HandleCardRevealPreviewFinished);
+	}
 
 	BattleManager->StartBattleFlow();
 	
@@ -118,6 +124,12 @@ void UWidget_BattleMainScreen::NativeDestruct()
 	{
 		BattleTargetingManager->OnEnemyCardSelectionReady.RemoveAll(this);
 		BattleTargetingManager->OnPlayerTargetingCancelled.RemoveAll(this);
+	}
+	
+	if (CardPreviewCanvas)
+	{
+		CardPreviewCanvas->OnRevealPreviewFinished.RemoveAll(this);
+		CardPreviewCanvas->StopRevealPreview();
 	}
 
 	Super::NativeDestruct();
@@ -346,10 +358,10 @@ void UWidget_BattleMainScreen::HandleBattleSkillHovered(UMuksiBattleCardDataAsse
 		HandleBattleSkillUnhovered();
 		return;
 	}
-
-	if (CardPreviewPanel_Player)
+	
+	if (CardPreviewCanvas)
 	{
-		CardPreviewPanel_Player->HandleSkillHovered(SkillData, RemainingCooldown);
+		CardPreviewCanvas->ShowSkillPreview(SkillData,true, RemainingCooldown);
 	}
 
 	if (StatusHUDWidget && RemainingCooldown <= 0)
@@ -363,15 +375,28 @@ void UWidget_BattleMainScreen::HandleBattleSkillHovered(UMuksiBattleCardDataAsse
 
 void UWidget_BattleMainScreen::HandleBattleSkillUnhovered()
 {
-	if (CardPreviewPanel_Player)
+	if (CardPreviewCanvas)
 	{
-		CardPreviewPanel_Player->HandleSkillHoverEnded();
+		CardPreviewCanvas->HideSkillPreview(true);
 	}
 
 	if (StatusHUDWidget)
 	{
 		StatusHUDWidget->ClearPlayerCostPreview();
 	}
+}
+
+void UWidget_BattleMainScreen::HandleCardRevealPreviewFinished(int32 ExchangeIndex)
+{
+	if (!BattleManager ||
+		!BattleTargetingManager ||
+		BattleManager->GetCurrentPhase() != EBattlePhase::CardReveal ||
+		ExchangeIndex != BattleManager->GetCurrentExchange())
+	{
+		return;
+	}
+
+	BattleTargetingManager->NotifyEnemyCardRevealUIFinished(ExchangeIndex);
 }
 
 
@@ -381,32 +406,19 @@ void UWidget_BattleMainScreen::HandleRevealSkillHovered(UMuksiBattleCardDataAsse
 	{
 		return;
 	}
-
-	UCardPreviewPanel* PreviewPanel = bIsPlayerSkill
-		? CardPreviewPanel_Player
-		: CardPreviewPanel_Enemy;
-
-	if (!PreviewPanel)
+	
+	if (CardPreviewCanvas)
 	{
-		return;
+		CardPreviewCanvas->ShowSkillPreview(SkillData, bIsPlayerSkill,-1);
 	}
-
-	// SkillReveal에서는 쿨다운 정보 표시 안 함
-	PreviewPanel->HandleSkillHovered(SkillData,-1);
 }
 
 void UWidget_BattleMainScreen::HandleRevealSkillUnHovered(bool bIsPlayerSkill)
 {
-	UCardPreviewPanel* PreviewPanel = bIsPlayerSkill
-		? CardPreviewPanel_Player
-		: CardPreviewPanel_Enemy;
-	
-	if (!PreviewPanel)
+	if (CardPreviewCanvas)
 	{
-		return;
+		CardPreviewCanvas->HideSkillPreview(bIsPlayerSkill);
 	}
-	
-	PreviewPanel->HandleCardHoverEnded(nullptr);
 }
 
 void UWidget_BattleMainScreen::HandleBattleSkillCostChanged()
@@ -458,6 +470,10 @@ void UWidget_BattleMainScreen::HandleDeceiveCardRevealRequested(const FBattleAct
 void UWidget_BattleMainScreen::HandlePhaseUIRequested(EBattlePhase OldPhase, EBattlePhase NewPhase, UBattlePhaseTaskContext* TaskContext)
 {
 	PhaseUITask = nullptr;
+	if (NewPhase != EBattlePhase::CardReveal && CardPreviewCanvas)
+	{
+		CardPreviewCanvas->StopRevealPreview();
+	}
 	
 	if (NewPhase != EBattlePhase::CardReveal && TaskContext) 
 		PhaseUITask = TaskContext->RegisterTask(this);
@@ -924,7 +940,32 @@ void UWidget_BattleMainScreen::HandleSkillRevealFinished(int32 ExchangeIndex)
 	{
 		StatusHUDWidget->RefreshEnemyCost();
 	}
-	BattleTargetingManager->NotifyEnemyCardRevealUIFinished(ExchangeIndex);
+	
+	UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+	const FBattleAction* PlayerAction = RuntimeContext ? RuntimeContext->GetPlayerExchangeAction(ExchangeIndex) : nullptr;
+	const FBattleAction* EnemyAction = RuntimeContext ? RuntimeContext->GetEnemyExchangeAction(ExchangeIndex) : nullptr;
+	
+	if (!CardPreviewCanvas || !PlayerAction || !EnemyAction)
+	{
+		HandleCardRevealPreviewFinished(ExchangeIndex);
+		return;
+	}
+	
+	const bool bPlayerFirst = PlayerAction->IsHigherPriorityThan(*EnemyAction);
+	const FBattleAction* FirstAction = bPlayerFirst ? PlayerAction : EnemyAction;
+	const FBattleAction* SecondAction = bPlayerFirst ? EnemyAction : PlayerAction;
+	
+	if (!CardPreviewCanvas->StartRevealPreview(
+		ExchangeIndex,
+		FirstAction->Card.Get(),
+		FirstAction->bPlayerAction,
+		SecondAction->Card.Get(),
+		SecondAction->bPlayerAction))
+	{
+		HandleCardRevealPreviewFinished(ExchangeIndex);
+	}
+	
+	//BattleTargetingManager->NotifyEnemyCardRevealUIFinished(ExchangeIndex);
 }
 
 void UWidget_BattleMainScreen::TimeOutCardSelect()
