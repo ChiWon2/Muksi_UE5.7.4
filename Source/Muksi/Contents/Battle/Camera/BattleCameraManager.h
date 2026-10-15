@@ -234,62 +234,30 @@ protected:
 	);
 
 protected:
-	UPROPERTY(
-		VisibleAnywhere,
-		BlueprintReadOnly,
-		Category = "Battle Camera"
-	)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Camera")
 	TObjectPtr<USceneComponent> SceneRoot = nullptr;
 
-	UPROPERTY(
-		VisibleAnywhere,
-		BlueprintReadOnly,
-		Category = "Battle Camera"
-	)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Camera")
 	TObjectPtr<USpringArmComponent> CameraSpringArm = nullptr;
 
-	UPROPERTY(
-		VisibleAnywhere,
-		BlueprintReadOnly,
-		Category = "Battle Camera"
-	)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Camera")
 	TObjectPtr<UCineCameraComponent> BattleCamera = nullptr;
 
 protected:
 	// 위치 보간 속도
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Interpolation",
-		meta = (ClampMin = "0.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Interpolation", meta = (ClampMin = "0.0"))
 	float LocationInterpSpeed = 5.0f;
 
 	// 회전 보간 속도
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Interpolation",
-		meta = (ClampMin = "0.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Interpolation", meta = (ClampMin = "0.0"))
 	float RotationInterpSpeed = 5.0f;
 
 	// SpringArm 길이 보간 속도
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Interpolation",
-		meta = (ClampMin = "0.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Interpolation", meta = (ClampMin = "0.0"))
 	float ArmLengthInterpSpeed = 5.0f;
 
 	// Focal Length 보간 속도
-	UPROPERTY(
-		EditAnywhere,
-		BlueprintReadWrite,
-		Category = "Battle Camera|Interpolation",
-		meta = (ClampMin = "0.0")
-	)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Camera|Interpolation", meta = (ClampMin = "0.0"))
 	float FocalLengthInterpSpeed = 5.0f;
 
 	//캐릭터 클릭 화면 Focus----------------------------------------------------------------------------------------------

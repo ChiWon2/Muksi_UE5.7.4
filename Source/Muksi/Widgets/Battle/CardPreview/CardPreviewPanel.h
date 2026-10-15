@@ -35,11 +35,13 @@ public:
 	void HandleSkillHovered(UMuksiBattleCardDataAsset* SkillData, int32 RemainingCooldown);
 	void HandleSkillHoverEnded();
 
+	void HidePreview();
+	void ShowPreview(UMuksiBattleCardDataAsset* InCardData);
 protected:
 	void SetCardData(UMuksiBattleCardDataAsset* InCardData);
 
-	void ShowPreview(UMuksiBattleCardDataAsset* InCardData);
-	void HidePreview();
+	
+	
 	
 	
 	UPROPERTY(meta = (BindWidget))

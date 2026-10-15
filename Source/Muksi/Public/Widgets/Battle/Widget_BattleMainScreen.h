@@ -23,6 +23,7 @@ class UBattlePipelineWidget;
 class UWidget_BattleControlPanel;
 class UWidget_BattleSkillRevealPanel;
 class UEffectDescriptionPopup;
+class UWidget_CardPreviewCanvas;
 
 class ABattleCharacterBase;
 class UButton;
@@ -67,10 +68,7 @@ protected:
 	//***** Bound Widgets ****
 	
 	UPROPERTY(meta = (BindWidget))
-	UCardPreviewPanel* CardPreviewPanel_Player;
-	
-	UPROPERTY(meta = (BindWidget))
-	UCardPreviewPanel* CardPreviewPanel_Enemy;
+	TObjectPtr<UWidget_CardPreviewCanvas> CardPreviewCanvas;
 
 	UPROPERTY(meta = (BindWidget))
 	UPassiveActivePopupWidget* ActivePassiveWidget;
@@ -168,6 +166,7 @@ protected:
 	void HandleBattleSkillHovered(UMuksiBattleCardDataAsset* SkillData, int32 RemainingCooldown);
 	void HandleBattleSkillUnhovered();
 	
+	void HandleCardRevealPreviewFinished(int32 ExchangeIndex);
 	
 	void HandleBattleSkillCostChanged();
 	
