@@ -1,7 +1,13 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Widgets/Battle/Widget_BattleMainScreen.h"
+#include "Widgets/Battle/FloatingText/BattleFloatingTextManager.h"
+#include "Widgets/Battle/FloatingText/BattleFloatingTextDataAsset.h"
+#include "Widgets/Battle/FloatingText/Widget_BattleFloatingText.h"
+
+#include "Controllers/MuksiPlayerController.h"
+#include "Controllers/PlayerMode/PlayerMode_Battle.h"
 
 #include "Engine/World.h"
 #include "Muksi/Contents/Battle/BattleManager.h"
@@ -109,6 +115,10 @@ void UWidget_BattleMainScreen::NativeConstruct()
 
 void UWidget_BattleMainScreen::NativeDestruct()
 {
+	if (FloatingTextManager)
+		FloatingTextManager->UnbindCharacters();
+
+
 	UnbindBattleManagerEvents();
 	UnbindBattleSequenceManagerEvents();
 	UnbindBattlePipelineWidgetEvents();
@@ -117,8 +127,7 @@ void UWidget_BattleMainScreen::NativeDestruct()
 	UnbindBattleSkillReveal();
 	
 	UnbindBattleControlPanelEvents();
-	
-
+	UnbindBattleInputEvents();
 
 	if (BattleTargetingManager)
 	{
@@ -149,6 +158,9 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 	checkf(IsValid(Player), TEXT("PlayerCharacter is null"));
 	checkf(IsValid(Enemy), TEXT("EnemyCharacter is null"));
 	
+	if (FloatingTextManager)
+		FloatingTextManager->BindCharacters(Player, Enemy);
+
 	ActivePassiveWidget->SetData(Player, Enemy);//각 캐릭터 Passive 관련 위젯 설정
 	StatusHUDWidget->SetData(Player, Enemy);//각 캐릭터 Stat 관련 위젯 설정
 	
@@ -339,6 +351,46 @@ void UWidget_BattleMainScreen::UnbindBattleControlPanelEvents()
 	}
 
 	BattleControlPanel->OnBattleSkillSelected.RemoveAll(this);
+}
+
+void UWidget_BattleMainScreen::BindBattleInputEvents()
+{
+	AMuksiPlayerController* PlayerController = Cast<AMuksiPlayerController>(GetOwningPlayer());
+
+	if (!PlayerController)
+		return;
+
+	UPlayerMode_Battle* BattleMode = Cast<UPlayerMode_Battle>(PlayerController->GetCurrentPlayerMode());
+
+	if (!BattleMode)
+		return;
+
+	BattleMode->OnBattleSkillSlotInput.RemoveAll(this);
+	BattleMode->OnBattleSkillSlotInput.AddUObject(this, &UWidget_BattleMainScreen::HandleBattleSkillSlotInput);
+}
+
+void UWidget_BattleMainScreen::UnbindBattleInputEvents()
+{
+	AMuksiPlayerController* PlayerController = Cast<AMuksiPlayerController>(GetOwningPlayer());
+
+	if (!PlayerController)
+		return;
+
+	UPlayerMode_Battle* BattleMode = Cast<UPlayerMode_Battle>(PlayerController->GetCurrentPlayerMode());
+
+	if (BattleMode)
+		BattleMode->OnBattleSkillSlotInput.RemoveAll(this);
+}
+
+void UWidget_BattleMainScreen::HandleBattleSkillSlotInput(int32 SlotIndex)
+{
+	if (!BattleControlPanel)
+		return;
+
+	UWidget_BattleSkillBar* BattleSkillBar = BattleControlPanel->GetBattleSkillBar();
+
+	if (BattleSkillBar)
+		BattleSkillBar->TrySelectSkillSlot(SlotIndex);
 }
 
 void UWidget_BattleMainScreen::HandleBattleSkillSelected(const FGuid& InstanceId, UMuksiBattleCardDataAsset* CardData)

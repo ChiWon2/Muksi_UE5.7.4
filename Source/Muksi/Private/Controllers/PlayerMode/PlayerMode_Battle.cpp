@@ -154,6 +154,16 @@ void UPlayerMode_Battle::HandleRightClick(const FInputActionValue& Value)
 	BattleTargetingManager->RequestUndoOrCancelPlayerTargeting();
 }
 
+void UPlayerMode_Battle::HandleNumberKeyPressed(int32 NumberKey)
+{
+	Super::HandleNumberKeyPressed(NumberKey);
+
+	if (NumberKey < 1 || NumberKey > 9)
+		return;
+
+	OnBattleSkillSlotInput.Broadcast(NumberKey - 1);
+}
+
 void UPlayerMode_Battle::HandleRPressedKey(const FInputActionValue& Value)
 {
 	Super::HandleRPressedKey(Value);

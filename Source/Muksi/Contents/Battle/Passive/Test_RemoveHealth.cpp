@@ -1,9 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Muksi/Contents/Battle/Passive/Test_RemoveHealth.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 
 UTest_RemoveHealth::UTest_RemoveHealth()
 {
@@ -42,5 +43,5 @@ void UTest_RemoveHealth::Passive1_()
 	UE_LOG(LogTemp, Error, TEXT("RemoveHealth Binding Passive1 Setting"));
 	ABattleCharacterBase* Character = GetOwnerCharacter();
 	UE_LOG(LogTemp, Error, TEXT("Test Get Current HP %f"), Character->GetCurrentHP());
-	Character->SetCurrentHP(Character->GetCurrentHP() - 20);
+	Character->GetBattleStatComponent()->ApplyHPChange(-20, TEXT("PassiveDamage"));
 }

@@ -16,6 +16,8 @@ class ABattleGridManager;
 class ABattleGridTile;
 class ABattleTargetingManager;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBattleSkillSlotInput, int32);
+
 UCLASS(Blueprintable, BlueprintType)
 class MUKSI_API UPlayerMode_Battle : public UPlayerModeBase
 {
@@ -30,8 +32,11 @@ public:
 
 	virtual void HandleLeftClick(const FInputActionValue& Value) override;
 	virtual void HandleRightClick(const FInputActionValue& Value) override;
+	virtual void HandleNumberKeyPressed(int32 NumberKey) override;
 	virtual void HandleRPressedKey(const FInputActionValue& Value) override;
 	//~ End UPlayerModeBase Interface
+
+	FOnBattleSkillSlotInput OnBattleSkillSlotInput;
 
 	UPROPERTY()
 	TObjectPtr<ABattleGridTile> HoveredGridTile = nullptr;

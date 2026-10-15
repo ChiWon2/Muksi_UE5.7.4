@@ -1,6 +1,7 @@
-#include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
+﻿#include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecution.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
+#include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 #include "Muksi/Contents/Battle/Grid/BattleGridManager.h"
 #include "Muksi/Contents/Battle/Execution/Data/BattleExecutionTypes.h"
 #include "Muksi/Contents/Battle/Execution/Executions/Damage/DamageExecutionData.h"
@@ -136,7 +137,10 @@ int32 UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Conte
 
 	const int32 PreviousHP = FMath::RoundToInt(TargetCharacter->GetCurrentHP());
 	const int32 NewHP = FMath::Max(0, PreviousHP - FinalDamage);
-	TargetCharacter->SetCurrentHP(NewHP);
+	if (Context.ExecutionMode == EBattleExecutionMode::ActualBattle)
+		TargetCharacter->GetBattleStatComponent()->ApplyHPChange(-FinalDamage, TEXT("Damage"));
+	else
+		TargetCharacter->SetCurrentHP(NewHP);
 
 	const int32 AppliedDamage = PreviousHP - NewHP;
 	UE_LOG(LogTemp, Log, TEXT("[DamageExecution] BaseDamage=%d FinalDamage=%d AppliedDamage=%d Target=%s NewHP=%d"), DamageData.DamageValue, FinalDamage, AppliedDamage, *GetNameSafe(TargetCharacter), NewHP);

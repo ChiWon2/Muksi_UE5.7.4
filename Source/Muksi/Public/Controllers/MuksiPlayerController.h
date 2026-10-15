@@ -110,10 +110,14 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> RPressAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> NumberKeyAction;
 	
 
 	void OnLeftClick(const FInputActionValue& Value);
 	void OnRightClick(const FInputActionValue& Value);
+	void OnNumberKeyPressed(const FInputActionValue& Value);
 	
 	
 	void OnEKeyPressed(const FInputActionValue& Value);
