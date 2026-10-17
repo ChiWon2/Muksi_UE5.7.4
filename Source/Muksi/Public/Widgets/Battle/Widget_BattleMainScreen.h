@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,8 +10,7 @@
 
 class UCardPreviewPanel;
 class UCanvasPanel;
-class UBattleFloatingTextManager;
-class UBattleFloatingTextDataAsset;
+class UWidget_BattleFloatingTextCanvas;
 class UBattleStatusHUDWidget;
 class UWidget_CharacterData;
 class UInkLineWidget;
@@ -88,14 +87,9 @@ protected:
 	//***** Bound Widgets ****
 protected:
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UCanvasPanel> FloatingTextCanvas;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Floating Text")
-	TObjectPtr<UBattleFloatingTextDataAsset> FloatingTextDataAsset;
+	TObjectPtr<UWidget_BattleFloatingTextCanvas> FloatingTextCanvas;
 
 private:
-	UPROPERTY(Transient)
-	TObjectPtr<UBattleFloatingTextManager> FloatingTextManager;
 
 	UPROPERTY()
 	TObjectPtr<ABattleManager> BattleManager;

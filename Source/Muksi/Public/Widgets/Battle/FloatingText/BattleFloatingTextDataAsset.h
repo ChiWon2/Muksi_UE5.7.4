@@ -16,6 +16,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floating Text")
 	TSubclassOf<UWidget_BattleFloatingText> FloatingTextWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floating Text|Stack")
+	FBattleFloatingTextStackSettings StackSettings;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floating Text")
 	TMap<FName, FBattleFloatingTextData> FloatingTextStyles;
 

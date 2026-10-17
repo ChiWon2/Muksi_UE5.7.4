@@ -138,7 +138,7 @@ int32 UDamageExecution::ApplyDamageToTarget(const FBattleExecutionContext& Conte
 	const int32 PreviousHP = FMath::RoundToInt(TargetCharacter->GetCurrentHP());
 	const int32 NewHP = FMath::Max(0, PreviousHP - FinalDamage);
 	if (Context.ExecutionMode == EBattleExecutionMode::ActualBattle)
-		TargetCharacter->GetBattleStatComponent()->ApplyHPChange(-FinalDamage, TEXT("Damage"));
+		TargetCharacter->GetBattleStatComponent()->ApplyHPChange(-FinalDamage, DamageData.FloatingTextStyleKey);
 	else
 		TargetCharacter->SetCurrentHP(NewHP);
 
