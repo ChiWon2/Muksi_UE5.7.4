@@ -19,6 +19,7 @@ USaeMaekStatusEffect::USaeMaekStatusEffect()
 	FDamageExecutionData DamageData;
 	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::Attacker;
 	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
+	DamageData.FloatingTextStyleKey = TEXT("Saemaek");
 	DamageData.bTriggerHitReaction = false;
 	DamageData.bTriggerStatusEffectReactions = true;
 

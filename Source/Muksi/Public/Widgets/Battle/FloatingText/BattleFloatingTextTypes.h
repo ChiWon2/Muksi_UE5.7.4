@@ -35,6 +35,15 @@ struct MUKSI_API FBattleFloatingTextAnimationStyle
 };
 
 USTRUCT(BlueprintType)
+struct MUKSI_API FBattleFloatingTextStackSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0"))
+	float StackSpacing = 8.0f;
+};
+
+USTRUCT(BlueprintType)
 struct MUKSI_API FBattleFloatingTextData
 {
 	GENERATED_BODY()

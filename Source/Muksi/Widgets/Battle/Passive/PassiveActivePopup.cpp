@@ -3,6 +3,7 @@
 
 #include "Muksi/Widgets/Battle/Passive/PassiveActivePopup.h"
 
+#include "Animation/WidgetAnimation.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 
@@ -46,23 +47,58 @@ void UPassiveActivePopup::SetData(UTexture2D* CharacterImage, FText PassiveName)
 
 void UPassiveActivePopup::StartRemoveTimer(float LifeTime)
 {
-	if (!GetWorld())
+	UWorld* World = GetWorld();
+	if (!World)
 	{
 		return;
 	}
 
-	GetWorld()->GetTimerManager().ClearTimer(RemoveTimerHandle);
+	bRemoving = false;
 
-	GetWorld()->GetTimerManager().SetTimer(
+	float ShowDuration = 0.0f;
+
+	if (Anim_Show)
+	{
+		PlayAnimation(Anim_Show);
+		ShowDuration = Anim_Show->GetEndTime() - Anim_Show->GetStartTime();
+	}
+
+	World->GetTimerManager().ClearTimer(RemoveTimerHandle);
+
+	World->GetTimerManager().SetTimer(
 		RemoveTimerHandle,
 		this,
 		&UPassiveActivePopup::RemovePopup,
-		LifeTime,
+		ShowDuration + LifeTime,
 		false
 	);
 }
 
+void UPassiveActivePopup::OnAnimationFinished_Implementation(const UWidgetAnimation* Animation)
+{
+	Super::OnAnimationFinished_Implementation(Animation);
+	
+	if (Animation == Anim_Hide && bRemoving)
+	{
+		RemoveFromParent();
+	}
+}
+
 void UPassiveActivePopup::RemovePopup()
 {
-	RemoveFromParent();
+	if (bRemoving)
+	{
+		return;
+	}
+
+	bRemoving = true;
+
+	if (Anim_Hide)
+	{
+		PlayAnimation(Anim_Hide);
+	}
+	else
+	{
+		RemoveFromParent();
+	}
 }
