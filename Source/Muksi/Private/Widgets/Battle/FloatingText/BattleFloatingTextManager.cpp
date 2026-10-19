@@ -40,6 +40,7 @@ void UBattleFloatingTextManager::UnbindCharacters()
 
 	PlayerStats = nullptr;
 	EnemyStats = nullptr;
+	ActiveFloatingTexts.Empty();
 }
 
 void UBattleFloatingTextManager::HandleHPChangeApplied(float HPChange, FName StyleKey, ABattleCharacterBase* TargetCharacter)
@@ -66,7 +67,6 @@ void UBattleFloatingTextManager::HandleHPChangeApplied(float HPChange, FName Sty
 
 	CanvasSlot->SetAutoSize(true);
 	CanvasSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-	CanvasSlot->SetPosition(ScreenPosition + FVector2D((SpawnCount++ % 3 - 1) * 26.0f, 0.0f));
 
 	FBattleFloatingTextData FloatingTextData;
 	FloatingTextData.Style.Color = HPChange > 0.0f ? FLinearColor(0.3f, 0.95f, 0.45f) : FLinearColor(0.95f, 0.25f, 0.25f);
@@ -74,5 +74,37 @@ void UBattleFloatingTextManager::HandleHPChangeApplied(float HPChange, FName Sty
 	if (const FBattleFloatingTextData* ConfiguredData = FloatingTextDataAsset->FloatingTextStyles.Find(StyleKey))
 		FloatingTextData = *ConfiguredData;
 
+	ActiveFloatingTexts.RemoveAll([](const FBattleActiveFloatingText& Entry)
+	{
+		return !Entry.TargetCharacter.IsValid() || !Entry.Widget.IsValid() || !Entry.Widget->GetParent();
+	});
+
+	const float TextHeight = FMath::Max(static_cast<float>(FloatingTextData.Style.FontSize), static_cast<float>(FloatingTextData.Style.DescriptionFontSize));
+	const float NewTextHeight = FMath::Max(TextHeight, FloatingTextData.Icon ? 32.0f : 0.0f);
+	const float StackSpacing = FloatingTextDataAsset->StackSettings.StackSpacing;
+
+	// Resolve the spawn location once. Existing widgets never move because of another spawn.
+	FVector2D SpawnPosition = ScreenPosition;
+
+	for (const FBattleActiveFloatingText& Entry : ActiveFloatingTexts)
+	{
+		if (Entry.TargetCharacter.Get() != TargetCharacter)
+			continue;
+
+		// Do not connect stacks across unrelated screen positions after a camera cut.
+		if (FMath::Abs(Entry.SpawnPosition.X - ScreenPosition.X) > 140.0f || FMath::Abs(Entry.SpawnPosition.Y - ScreenPosition.Y) > 180.0f)
+			continue;
+
+		SpawnPosition.Y = FMath::Min(SpawnPosition.Y, Entry.SpawnPosition.Y - (Entry.Height + NewTextHeight) * 0.5f - StackSpacing);
+	}
+
+	CanvasSlot->SetPosition(SpawnPosition);
+
 	FloatingTextWidget->SetFloatingText(HPChange, FloatingTextData);
+
+	FBattleActiveFloatingText& NewEntry = ActiveFloatingTexts.AddDefaulted_GetRef();
+	NewEntry.TargetCharacter = TargetCharacter;
+	NewEntry.Widget = FloatingTextWidget;
+	NewEntry.Height = NewTextHeight;
+	NewEntry.SpawnPosition = SpawnPosition;
 }

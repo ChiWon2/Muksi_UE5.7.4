@@ -16,6 +16,7 @@ UBleedStatusEffect::UBleedStatusEffect()
 	FDamageExecutionData DamageData;
 	DamageData.TargetPolicy = EBattleExecutionTargetPolicy::ExecutionTarget;
 	DamageData.DefensePolicy = EDamageDefensePolicy::IgnoreDefense;
+	DamageData.FloatingTextStyleKey = TEXT("Bleed");
 	DamageData.bTriggerHitReaction = false;
 	DamageData.bTriggerStatusEffectReactions = false;
 

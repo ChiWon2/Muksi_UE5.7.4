@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -10,6 +10,14 @@ class UWidget_BattleFloatingText;
 class UBattleFloatingTextDataAsset;
 class UBattleStatComponent;
 class ABattleCharacterBase;
+
+struct FBattleActiveFloatingText
+{
+	TWeakObjectPtr<ABattleCharacterBase> TargetCharacter;
+	TWeakObjectPtr<UWidget_BattleFloatingText> Widget;
+	float Height = 0.0f;
+	FVector2D SpawnPosition = FVector2D::ZeroVector;
+};
 
 UCLASS()
 class MUKSI_API UBattleFloatingTextManager : public UObject
@@ -40,5 +48,5 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UBattleStatComponent> EnemyStats;
 
-	int32 SpawnCount = 0;
+	TArray<FBattleActiveFloatingText> ActiveFloatingTexts;
 };
