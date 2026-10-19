@@ -26,14 +26,6 @@ public:
 protected:
 	//공격 타입이 정해지면 그때 다시
 	//void SetAttackTypeIcon(EMuksiAttackCardType AttackType);
-	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UImage> Image_AttackType;
-	
-	
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_Value;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UEffectRichTextBlock> Text_EffectDescription;
