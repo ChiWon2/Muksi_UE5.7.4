@@ -8,6 +8,7 @@
 
 class UImage;
 class UTextBlock;
+class UWidgetAnimation;
 
 /**
  * 
@@ -26,6 +27,13 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	UTextBlock* TextBlock_PassiveName;
 	
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_Show;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Anim_Hide;
+
+	virtual void OnAnimationFinished_Implementation(const UWidgetAnimation* Animation) override;
 	
 	
 	UFUNCTION()
@@ -33,4 +41,6 @@ protected:
 	
 private:
 	FTimerHandle RemoveTimerHandle;
+	
+	bool bRemoving = false;
 };
