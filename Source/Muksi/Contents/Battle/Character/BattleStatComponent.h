@@ -29,6 +29,14 @@ public:
 	// 속도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Stat")
 	float Speed = 10.0f;
+	
+	// 선택 제한 시간 보정값 (초)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Stat")
+	float SelectTimeBonus = 0.0f;
+	
+	//스킬 선택 속도
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle Stat")
+	FVector2D SelectSpeed = FVector2D(1.f, 1.f);
 };
 
 //현재 HP의 변화를 감지해야 하는 UI/BattleManager 등등에서 감지하기 위한 델리게이트
@@ -147,7 +155,24 @@ public:
 	{
 		return CurrentStats.Speed;
 	}
+	
+	//스킬 선택 속도
+	UFUNCTION(BlueprintPure, Category = "Battle Stat")
+	FVector2D GetSelectSpeed()const
+	{
+		return CurrentStats.SelectSpeed;
+	}
 
+	// 선택 제한 시간 보정값 반환
+	UFUNCTION(BlueprintPure, Category = "Battle Stat")
+	float GetSelectTimeBonus() const
+	{
+		return CurrentStats.SelectTimeBonus;
+	}
+
+	// 버프·디버프에 따른 보정값 변경
+	void ModifySelectTimeBonus(float Delta);
+	
 public:
 	// 체력이 변경됐을 때 호출
 	UPROPERTY(BlueprintAssignable, Category = "Battle Stat|Event")

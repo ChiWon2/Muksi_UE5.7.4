@@ -162,6 +162,11 @@ void UWidget_BattleMainScreen::SetCharacterData(ABattleCharacterBase* Player, AB
 	StatusHUDWidget->SetData(Player, Enemy);//각 캐릭터 Stat 관련 위젯 설정
 	
 	BattleControlPanel->SetBattleCharacter(Player);
+	
+	if (BattleControlPanel && BattleTargetingManager)
+	{
+		BattleControlPanel->BindPlayerSelectTimer(BattleTargetingManager->GetPlayerSelectTimer());
+	}
 
 	BindBattleSkillEvent();
 	BindBattleInputEvents();
@@ -704,10 +709,10 @@ void UWidget_BattleMainScreen::ReadyStart()
 {
 	// UI 받아올 거 설정
 	//위젯 -> Widget_BattleMainScreen 바인딩
-	if (BattleControlPanel)
+	/*if (BattleControlPanel)
 	{
 		BattleControlPanel->OnExchangeTimeExpired.AddUObject(this, &UWidget_BattleMainScreen::TimeOutCardSelect);
-	}
+	}*/
 	
 	BindBattleSequenceManagerEvents();
 }
@@ -861,17 +866,12 @@ void UWidget_BattleMainScreen::StartExchangeSelectCard(int32 ExchangeIndex)
 
 	HandleSkillSlot(true);
 
-	if (BattleTargetingManager)
-	{
-		BattleTargetingManager->RequestEnemyCardSelection();
-	}
-
 	HandleUIFinishCount = 0;
 
-	if (BattleControlPanel)
+	/*if (BattleControlPanel)
 	{
 		BattleControlPanel->StartExchangeTimer(ExchangeIndex);
-	}
+	}*/
 
 	BattlePipelineWidgetSetting(EBattlePhase::CardSelect);
 }
@@ -1018,7 +1018,7 @@ void UWidget_BattleMainScreen::HandleSkillRevealFinished(int32 ExchangeIndex)
 	//BattleTargetingManager->NotifyEnemyCardRevealUIFinished(ExchangeIndex);
 }
 
-void UWidget_BattleMainScreen::TimeOutCardSelect()
+/*void UWidget_BattleMainScreen::TimeOutCardSelect()
 {
 	if (!BattleManager || !BattleTargetingManager)
     {
@@ -1122,7 +1122,7 @@ void UWidget_BattleMainScreen::TimeOutCardSelect()
                 TEXT("Failed enemy panic targeting"));
         }
     }
-}
+}*/
 
 bool UWidget_BattleMainScreen::UpdateCurrentExchangeSkillReveal()
 {
@@ -1190,10 +1190,10 @@ void UWidget_BattleMainScreen::CardRevealed()
 		return;
 	}
 
-	if (BattleControlPanel)
+	/*if (BattleControlPanel)
 	{
 		BattleControlPanel->StopExchangeTimer();
-	}
+	}*/
 
 	const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
 

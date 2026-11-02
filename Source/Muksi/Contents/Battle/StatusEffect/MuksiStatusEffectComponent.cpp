@@ -440,6 +440,33 @@ void UMuksiStatusEffectComponent::EndAppliedFXWait()
 	TryFinishAppliedFXWait();
 }
 
+float UMuksiStatusEffectComponent::CaptureSelectTimeBonusForExchange()
+{
+	float TotalBonus = 0.0f;
+
+	for (UMuksiStatusEffect* Effect : ActiveEffects)
+	{
+		if (!IsValid(Effect) || Effect->IsExpired())
+		{
+			continue;
+		}
+
+		const float Modifier = Effect->GetSelectTimeModifierSeconds();
+
+		if (FMath::IsNearlyZero(Modifier))
+		{
+			continue;
+		}
+
+		TotalBonus += Modifier;
+
+		// 이번 Exchange의 선택 시간 계산에 사용했음을 표시
+		Effect->NotifySelectTimeUsed();
+	}
+
+	return TotalBonus;
+}
+
 void UMuksiStatusEffectComponent::TryFinishAppliedFXWait()
 {
 	if (!bAppliedFXWaitActive || !bAppliedFXWaitSealed || PendingAppliedFXCount > 0)

@@ -5,13 +5,58 @@
 
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
 
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
-#include "Muksi/Widgets/Battle/CharacterData/VerticalCommonTextBlock.h"
+#include "Muksi/Widgets/Battle/CharacterData/CharacterBattleStatPanel.h"
 
-void UWidget_PlayerProfilePanel::SetData(UMuksiCharacterDataAsset* DataAsset)
+void UWidget_PlayerProfilePanel::SetData(const FBattleCharacterInfo& Info)
+{
+	if (!IsValid(PlayerCharacter))
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[PlayerProfilePanel] PlayerCharacter is invalid."));
+		return;
+	}
+
+	UBattleStatComponent* StatComponent = PlayerCharacter->GetBattleStatComponent();
+
+	if (!IsValid(StatComponent))
+	{
+		return;
+	}
+
+	if (PlayerImage)
+	{
+		PlayerImage->SetBrushFromTexture(Info.CharacterIllustration.Get());
+	}
+
+	if (TextBlock_PlayerName)
+	{
+		TextBlock_PlayerName->SetText(Info.CharacterName);
+	}
+
+	if (TextBlock_PlayerIntroduction)
+	{
+		TextBlock_PlayerIntroduction->SetText(Info.FactionDescription);
+	}
+
+	MaxHP = StatComponent->GetMaxHP();
+	SetHP(StatComponent->GetCurrentHP());
+
+	StatComponent->OnHPChanged.AddUniqueDynamic(this, &UWidget_PlayerProfilePanel::HPChanged);
+	
+	if (CharacterBattleStatPanel)
+	{
+		CharacterBattleStatPanel->SetData(PlayerCharacter);
+	}
+}
+
+/*void UWidget_PlayerProfilePanel::SetData(UMuksiCharacterDataAsset* DataAsset)
 {
 	//이미지
 	PlayerImage->SetBrushFromTexture(DataAsset->CharacterIllustration);
@@ -24,9 +69,9 @@ void UWidget_PlayerProfilePanel::SetData(UMuksiCharacterDataAsset* DataAsset)
 	SetHP(PlayerCharacter->GetCurrentHP());
 	if (!PlayerCharacter){UE_LOG(LogTemp, Error, TEXT("BattleCharacter is null (Widget_PlayerProfilePanel.cpp)"));return;}
 	PlayerCharacter->BattleStatComponent->OnHPChanged.AddUniqueDynamic(this, &UWidget_PlayerProfilePanel::HPChanged);
-}
+}*/
 
-void UWidget_PlayerProfilePanel::SetHP(int32 CurrentHP)
+void UWidget_PlayerProfilePanel::SetHP(float CurrentHP)
 {
 	if (!IsValid(CharacterHPProgressBar))
 	{

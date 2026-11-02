@@ -176,6 +176,8 @@ void ABattleSetupManager::LoadEncounterEnemyCharacterData()
     EnemyCharacterDataAsset = EncounterEnemyData;
 }
 
+
+
 bool ABattleSetupManager::CreateBattleCharacters()
 {
     if (!IsValid(BattleManager) || !IsValid(BattleGridManager))
@@ -195,7 +197,60 @@ bool ABattleSetupManager::CreateBattleCharacters()
         return false;
     }
 
-    TSubclassOf<ABattleCharacterBase> PlayerClass = PlayerCharacterDataAsset->BattleCharacterClass;
+    //Player Init Data 관련----------------------------------------------------------------------------------------------
+    //지금은 PlayerCharacterDataAsset에 의존해 PlayerInitData를 만들고 순차 적용방식이지만, 전부 변환 완료되면 빈 PlayerInitData를
+    //만들고 채워넣는 방식
+    FBattleCharacterInitData PlayerInitData = PlayerCharacterDataAsset->MakeBattleInitData();
+
+    // 월드에서 전달한 데이터 확인
+    UBattleEncounterSubsystem* EncounterSubsystem = UBattleEncounterSubsystem::Get(this);
+
+    bool bHasWorldInitData = false;
+
+    if (IsValid(EncounterSubsystem))
+    {
+        FBattleCharacterInitData WorldInitData;
+
+        if (EncounterSubsystem->GetPlayerBattleInitData(WorldInitData))
+        {
+            if (WorldInitData.Stats.HP > 0.f)
+            {
+                // 월드 스탯 적용
+                PlayerInitData.Stats.HP = WorldInitData.Stats.HP;
+                PlayerInitData.Stats.Attack = WorldInitData.Stats.Attack;
+                PlayerInitData.Stats.Defense = WorldInitData.Stats.Defense;
+
+                PlayerInitData.CurrentHP = FMath::Clamp(
+                    WorldInitData.CurrentHP,
+                    0.f,
+                    PlayerInitData.Stats.HP
+                );
+
+                bHasWorldInitData = true;
+            }
+            
+            if (!WorldInitData.Skills.IsEmpty())
+            {
+                PlayerInitData.Skills = WorldInitData.Skills;
+            }
+            
+            if (!WorldInitData.PassiveClasses.IsEmpty())
+            {
+                PlayerInitData.PassiveClasses = WorldInitData.PassiveClasses;
+            }
+        }
+        
+        
+    }
+
+    UE_LOG(LogTemp, Log,
+        TEXT("[BattleSetup] InitData Source=%s, HP=%.1f/%.1f"),
+        bHasWorldInitData ? TEXT("World") : TEXT("DataAsset"),
+        PlayerInitData.CurrentHP,
+        PlayerInitData.Stats.HP);
+    //------------------------------------------------------------------------------------------------------------------
+    TSubclassOf<ABattleCharacterBase> PlayerClass = PlayerInitData.CharacterClass;
+    
     TSubclassOf<ABattleCharacterBase> EnemyClass = EnemyCharacterDataAsset->BattleCharacterClass;
     if (!PlayerClass || !EnemyClass)
     {
@@ -223,7 +278,8 @@ bool ABattleSetupManager::CreateBattleCharacters()
         return false;
     }
 
-    PlayerCharacter->SetCharacterData(PlayerCharacterDataAsset, BattleManager);
+    PlayerCharacter->InitializeCharacter(PlayerInitData,BattleManager);
+    //PlayerCharacter->SetCharacterData(PlayerCharacterDataAsset, BattleManager);
 
     ABattleCharacter_Enemy* EnemyCharacter = World->SpawnActor<ABattleCharacter_Enemy>(EnemyClass, SpawnTransform);
     if (!IsValid(EnemyCharacter))
@@ -242,6 +298,11 @@ bool ABattleSetupManager::CreateBattleCharacters()
     FaceCharactersTowardEachOther(PlayerCharacter, EnemyCharacter);
 
     RuntimeContext->SetBattleCharacters(PlayerCharacter, EnemyCharacter);
+    
+    if (bHasWorldInitData && IsValid(EncounterSubsystem))
+    {
+        EncounterSubsystem->ClearPlayerBattleInitData();
+    }
     return true;
 }
 

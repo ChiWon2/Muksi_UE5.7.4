@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Muksi/Contents/Battle/Encounter/Data/MuksiBattleEncounterData.h"
+#include "Muksi/Contents/Battle/Data/BattleCharacterInitData.h"
 #include "BattleEncounterSubsystem.generated.h"
 
 
@@ -36,7 +37,6 @@ public:
 		static UBattleEncounterSubsystem* Get(
 		const UObject* WorldContextObject);
 
-
 	UFUNCTION(BlueprintCallable, Category = "Battle Occur")
 	bool StartBattleEncounter(FName EncounterID, const FMuksiBattleEncounterData& EncounterData);
 	UFUNCTION(BlueprintCallable, Category = "Battle Occur")
@@ -48,10 +48,22 @@ public:
 	{
 		return CurrentEnemyData;
 	}
+	
+	void SetPlayerBattleInitData(const FBattleCharacterInitData& InitData);
+
+	bool GetPlayerBattleInitData(FBattleCharacterInitData& OutInitData) const;
+	
+	void ClearPlayerBattleInitData();
 
 private:
     bool OpenBattleLevel(const TSoftObjectPtr<UWorld>& BattleLevel);
 
+	UPROPERTY(Transient)
+	FBattleCharacterInitData PendingPlayerInitData;
+
+	UPROPERTY(Transient)
+	bool bHasPendingPlayerInitData = false;
+	
 private:
 UPROPERTY(Transient)
 	TObjectPtr<UMuksiCharacterDataAsset> CurrentEnemyData = nullptr;
@@ -64,4 +76,13 @@ UPROPERTY(Transient)
 	FName CurrentEncounterName = NAME_None;
 	UPROPERTY(Transient)
 	FName ReturnLevelName = NAME_None;
+	
+	// 월드 복귀 후 전투 결과 가져오기--------------------------------------------------------------------------------------
+public:
+	bool ConsumePendingBattleReturn(FName& OutEncounterID, FBattleResult& OutBattleResult);
+private:
+	UPROPERTY(Transient)
+	FBattleResult PendingBattleResult;
+	
+	
 };

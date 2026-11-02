@@ -49,7 +49,11 @@ public:
 	virtual void OnBattleExchangeCompleted(int32 ExchangeIndex);
 	virtual void BuildHitDealtExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);
 	virtual void BuildHitReceivedExecutionEntries(const FBattleExecutionContext& Context, int32 Damage, TArray<FBattleExecutionEntry>& OutExecutionEntries);
-
+    
+    virtual float GetSelectTimeModifierSeconds() const{ return 0.0f; }
+    // 새 Exchange의 선택 시간 계산에 사용되었음을 알림
+    virtual void NotifySelectTimeUsed();
+    
 
 public:
 

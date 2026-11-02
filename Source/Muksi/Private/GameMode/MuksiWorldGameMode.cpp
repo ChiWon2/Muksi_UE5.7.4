@@ -29,6 +29,10 @@ void AMuksiWorldGameMode::HandleStartingNewPlayer_Implementation(APlayerControll
 void AMuksiWorldGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	GetWorldTimerManager().SetTimerForNextTick(this, &AMuksiWorldGameMode::TryRequestWorldLoad);
+	
+	
 	//Pawn 제대로 생성되었는지 확인용
 	UE_LOG(
 		LogTemp,
@@ -234,6 +238,36 @@ bool AMuksiWorldGameMode::CanRestoreSavedWorld(const UMuksiSaveGame* SaveGame) c
 	}
 
 	return true;
+}
+
+void AMuksiWorldGameMode::TryRequestWorldLoad()
+{
+	UMuksiSaveSubsystem* SaveSubsystem = UMuksiSaveSubsystem::Get(this);
+
+	if (!IsValid(SaveSubsystem))
+	{
+		return;
+	}
+
+	UMuksiSaveGame* SaveGame = SaveSubsystem->GetCurrentSaveGame();
+
+	if (!IsValid(SaveGame))
+	{
+		return;
+	}
+
+	// 저장 데이터가 없거나 다른 월드에서 저장한 경우
+	if (!CanRestoreSavedWorld(SaveGame))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[WorldGameMode] Skip world load"));
+		return;
+	}
+
+	// 월드 저장 데이터 복원 요청
+	if (SaveSubsystem->RequestWorldLoad())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[WorldGameMode] World load requested"));
+	}
 }
 
 void AMuksiWorldGameMode::StartTestBattle()

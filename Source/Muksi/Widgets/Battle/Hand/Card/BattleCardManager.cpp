@@ -281,18 +281,11 @@ bool UBattleCardManager::ResolveCharacterPanicOnTimeout(ABattleCharacterBase* Ch
 		return false;
 	}
 
-	UMuksiCharacterDataAsset* CharacterData =
-		Character->GetCharacterData();
-
-	if (!CharacterData)
-	{
-		return false;
-	}
+	
 
 	TArray<const FCharacterPanicData*> ValidPanicDataArray;
 
-	for (const FCharacterPanicData& PanicData :
-		 CharacterData->TimeoutPenalties)
+	for (const FCharacterPanicData& PanicData : Character->GetTimeoutPenalties())
 	{
 		if (PanicData.IsValid())
 		{

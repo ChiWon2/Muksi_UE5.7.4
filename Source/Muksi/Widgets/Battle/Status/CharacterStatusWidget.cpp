@@ -17,11 +17,19 @@ void UCharacterStatusWidget::SetData(ABattleCharacterBase* BattleCharacter)
 	if (StatusEffectBarWidget) StatusEffectBarWidget->InitWidget(nullptr);
 	if (BattleCostWidget){ BattleCostWidget->SetData(nullptr); }
 	if (!IsValid(BattleCharacter)) return;
-	if (IsValid(BattleCharacter->GetCharacterData()))
+	
+	const FBattleCharacterInfo& Info = BattleCharacter->GetCharacterInfo();
+
+	if (Image_CharacterImage)
 	{
-		Image_CharacterImage->SetBrushFromTexture(BattleCharacter->GetCharacterData()->CharacterIllustration);
-		TextBlock_CharacterName->SetText(BattleCharacter->GetCharacterData()->CharacterName);
+		Image_CharacterImage->SetBrushFromTexture(Info.CharacterHUD.Get());
 	}
+
+	if (TextBlock_CharacterName)
+	{
+		TextBlock_CharacterName->SetText(Info.CharacterName);
+	}
+	
 	BattleStatComponent = BattleCharacter->GetBattleStatComponent();
 	if (!BattleStatComponent)
 	{
@@ -39,6 +47,7 @@ void UCharacterStatusWidget::SetData(ABattleCharacterBase* BattleCharacter)
 	if (!BattleCostWidget)
 	{
 		UE_LOG(LogTemp, Error, TEXT("BattleCostWidget is null (CharacterStatusWidget.cpp)"));
+		return;
 	}
 	BattleCostWidget->SetData(BattleCharacter->GetBattleSkillComponent());
 }

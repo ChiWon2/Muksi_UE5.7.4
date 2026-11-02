@@ -18,11 +18,12 @@
 #include "Muksi/Contents/Battle/Flow/BattlePhaseTask.h"
 #include "Muksi/Contents/Battle/Runtime/BattleRuntimeContext.h"
 #include "Muksi/Contents/Battle/Simulation/BattleSimulationManager.h"
-#include "Muksi/Contents/Battle/Simulation/Character/BattleSimulationCharacter.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
 #include "Muksi/Contents/Battle/Targeting/CardData/TargetingCardData.h"
 #include "Muksi/Contents/Battle/Targeting/Presentation/TargetingPresentationController.h"
 #include "Muksi/Contents/Battle/Targeting/Preview/Context/TargetingPreviewContext.h"
 #include "Muksi/Contents/Battle/Targeting/Session/BattleTargetingSession.h"
+#include "Muksi/Contents/Battle/Timer/BattleTimerComponent.h"
 
 namespace
 {
@@ -33,6 +34,9 @@ namespace
 ABattleTargetingManager::ABattleTargetingManager()
 {
     PrimaryActorTick.bCanEverTick = false;
+    
+    PlayerSelectTimer = CreateDefaultSubobject<UBattleTimerComponent>(TEXT("PlayerSelectTimer"));
+    EnemySelectTimer = CreateDefaultSubobject<UBattleTimerComponent>(TEXT("EnemySelectTimer"));
 }
 
 
@@ -95,6 +99,9 @@ bool ABattleTargetingManager::InitializeBattleFlow(ABattleManager* InBattleManag
         return false;
 
     TargetingPresentationController->Initialize(BattleManager->GetBattleGridManager());
+    
+    PlayerSelectTimer->OnTimerExpired.AddUniqueDynamic(this, &ABattleTargetingManager::HandlePlayerSelectTimeout);
+    EnemySelectTimer->OnTimerExpired.AddUniqueDynamic(this, &ABattleTargetingManager::HandleEnemySelectTimeout);
 
     return true;
 }
@@ -111,9 +118,14 @@ void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, E
         if (OldPhase != EBattlePhase::Targeting)
         {
             ResetEnemyTargeting();
+
+            bPlayerSelectTimedOut = false;
+            bEnemySelectTimedOut = false;
+
+            StartSelectTimers();
+
             RequestEnemyCardSelection();
         }
-
         break;
 
     case EBattlePhase::Targeting:
@@ -129,11 +141,20 @@ void ABattleTargetingManager::HandlePhaseEntryRequested(EBattlePhase OldPhase, E
             }));
         }
         break;
-
+    case EBattlePhase::CardReveal:
+        StopSelectTimers();
+        break;
     case EBattlePhase::SimulationSequence:
+        StopSelectTimers();
+        break;
     case EBattlePhase::ExchangeEnd:
+        StopSelectTimers();
+        break;
     case EBattlePhase::RoundEnd:
+        StopSelectTimers();
+        break;
     case EBattlePhase::BattleEnd:
+        StopSelectTimers();
         ClearAllTargeting();
         PlayerTargetingCard = nullptr;
         break;
@@ -339,6 +360,11 @@ bool ABattleTargetingManager::RequestPlayerPanicTargeting(UMuksiBattleCardDataAs
 
 bool ABattleTargetingManager::RequestPlayerSkillSelection(const FGuid& SkillInstanceId, UMuksiBattleCardDataAsset* SkillData)
 {
+    if (bPlayerSelectTimedOut)
+    {
+        return false;
+    }
+    
     if (!SkillInstanceId.IsValid() ||
        !IsValid(SkillData))
     {
@@ -515,6 +541,11 @@ bool ABattleTargetingManager::CompletePlayerTargeting()
         return false;
     }
     
+    if (PlayerSelectTimer)
+    {
+        PlayerSelectTimer->StopTimer();
+    }
+    
     if (PlayerTargetingSkillInstanceId.IsValid())
     {
         UBattleSkillComponent* SkillComponent = PlayerCharacter->GetBattleSkillComponent();
@@ -533,7 +564,11 @@ bool ABattleTargetingManager::CompletePlayerTargeting()
 
 bool ABattleTargetingManager::RequestEnemyCardSelection()
 {
-
+    if (bEnemySelectTimedOut)
+    {
+        return false;
+    }
+    
     UBattleRuntimeContext* BattleRuntimeContext = BattleManager->GetBattleRuntimeContext();
     if (BattleManager->GetCurrentPhase() != EBattlePhase::CardSelect
         && BattleManager->GetCurrentPhase() != EBattlePhase::Targeting)
@@ -820,6 +855,11 @@ void ABattleTargetingManager::FinishEnemyCardSelectionDecision(const FEnemySkill
     if (!BattleManager || (BattleManager->GetCurrentPhase() != EBattlePhase::CardSelect && BattleManager->GetCurrentPhase() != EBattlePhase::Targeting))
         return;
 
+    if (bEnemySelectTimedOut)
+    {
+        return;
+    }
+    
     UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
     ABattleCharacter_Enemy* EnemyCharacter = RuntimeContext ? RuntimeContext->GetEnemyCharacter() : nullptr;
     if (!EnemyCharacter)
@@ -858,6 +898,11 @@ void ABattleTargetingManager::FinishEnemyCardSelectionDecision(const FEnemySkill
 
     if (!BattleManager->SubmitTargetingAction(EnemyCharacter, SelectedSkill, TargetingIntent, false))
         return;
+    
+    if (EnemySelectTimer)
+    {
+        EnemySelectTimer->StopTimer();
+    }
 
     if (UBattleSkillComponent* Skills = EnemyCharacter->GetBattleSkillComponent())
     {
@@ -1243,6 +1288,146 @@ bool ABattleTargetingManager::CompletePlayerPanicTargeting()
 
     // FBattleAction 생성
     return CompletePlayerTargeting();
+}
+
+void ABattleTargetingManager::StartSelectTimers()
+{
+    if (!BattleManager || !PlayerSelectTimer || !EnemySelectTimer)
+    {
+        return;
+    }
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+    if (!RuntimeContext)
+    {
+        return;
+    }
+
+    //여기에 만약 첫 Round의 첫 Exchange일 경우 시간 무한 넣기
+    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+
+    // 두 캐릭터가 공통으로 사용할 기본 시간
+    const float BaseDuration = ExchangeDurationCurve
+        ? ExchangeDurationCurve->GetFloatValue(
+            static_cast<float>(ExchangeIndex))
+        : DefaultSelectDuration;
+
+    auto CalculateDuration = [BaseDuration](ABattleCharacterBase* Character)
+        {
+        if (!IsValid(Character))
+        {
+            return BaseDuration;
+        }
+
+        UMuksiStatusEffectComponent* EffectComponent =
+            Character->GetStatusEffectComponent();
+
+        const float Bonus = EffectComponent ? EffectComponent->CaptureSelectTimeBonusForExchange()
+            : 0.0f;
+
+        return FMath::Max(1.0f, BaseDuration + Bonus);
+        };
+
+    const float PlayerDuration = CalculateDuration(RuntimeContext->GetPlayerCharacter());
+    const float EnemyDuration = CalculateDuration(RuntimeContext->GetEnemyCharacter());
+
+    PlayerSelectTimer->StartTimer(PlayerDuration, 5.0f);
+    EnemySelectTimer->StartTimer(EnemyDuration, 5.0f);
+}
+
+void ABattleTargetingManager::StopSelectTimers()
+{
+    if (PlayerSelectTimer)
+    {
+        PlayerSelectTimer->StopTimer();
+    }
+
+    if (EnemySelectTimer)
+    {
+        EnemySelectTimer->StopTimer();
+    }
+}
+
+void ABattleTargetingManager::HandlePlayerSelectTimeout()
+{
+    if (!BattleManager)
+        return;
+
+    const EBattlePhase Phase = BattleManager->GetCurrentPhase();
+
+    if (Phase != EBattlePhase::CardSelect && Phase != EBattlePhase::Targeting)
+        return;
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+    UBattleCardManager* CardManager = BattleManager->GetBattleCardManager();
+
+    if (!RuntimeContext || !CardManager)
+        return;
+
+    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+
+    if (RuntimeContext->GetPlayerExchangeAction(ExchangeIndex))
+        return;
+
+    bPlayerSelectTimedOut = true;
+
+    FCharacterPanicTimeoutResult Result;
+
+    if (!CardManager->ResolvePlayerPanicOnTimeout(
+        ExchangeIndex, Result))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to resolve Player Panic"));
+        return;
+    }
+
+    if (!RequestPlayerPanicTargeting(Result.PanicCard))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed Player Panic Targeting"));
+    }
+}
+
+void ABattleTargetingManager::HandleEnemySelectTimeout()
+{
+    if (!BattleManager)
+        return;
+
+    const EBattlePhase Phase = BattleManager->GetCurrentPhase();
+
+    if (Phase != EBattlePhase::CardSelect && Phase != EBattlePhase::Targeting)
+        return;
+
+    UBattleRuntimeContext* RuntimeContext = BattleManager->GetBattleRuntimeContext();
+
+    UBattleCardManager* CardManager = BattleManager->GetBattleCardManager();
+
+    if (!RuntimeContext || !CardManager)
+        return;
+
+    const int32 ExchangeIndex = BattleManager->GetCurrentExchange();
+
+    if (RuntimeContext->GetEnemyExchangeAction(ExchangeIndex))
+        return;
+
+    bEnemySelectTimedOut = true;
+
+    // 진행 중인 AI 선택 취소
+    CancelPendingEnemyCardSelection();
+
+    FCharacterPanicTimeoutResult Result;
+
+    if (!CardManager->ResolveEnemyPanicOnTimeout(
+        ExchangeIndex, Result))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to resolve Enemy Panic"));
+        return;
+    }
+
+    if (!RequestEnemyPanicTargeting(Result.PanicCard))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed Enemy Panic Targeting"));
+    }
 }
 
 int32 ABattleTargetingManager::CalculateDirectionToCoord(const UBattleTargetingSession* Session, const FHexOffsetCoord& TargetCoord) const

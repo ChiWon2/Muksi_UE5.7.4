@@ -19,6 +19,10 @@ namespace MuksiStatusEffectIDs
     static const FName ReduceDamage(TEXT("ReduceDamage"));
     static const FName MultiplyDamage(TEXT("MultiplyDamage"));
     static const FName Haste(TEXT("Haste"));
+    
+
+    static const FName Agitation(TEXT("Agitation"));    // 선택 제한 시간 디버프
+    static const FName Composure(TEXT("Composure"));  // 선택 제한 시간 버프
 
     //특수Effect
     

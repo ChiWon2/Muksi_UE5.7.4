@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Muksi/Contents/Battle/Data/BattleCharacterInitData.h"
 #include "Muksi/Contents/Battle/Data/BattlePhase.h"
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "Muksi/Contents/Battle/Setup/AssetPreload/BattleAssetPreloadManager.h"

@@ -106,6 +106,14 @@ struct MUKSI_API FMuksiItemStatModifier
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment Stat")
 	float FateGradeBonus = 0.f;
+	
+	// 힘 포인트 보정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment Stat")
+	int32 Power = 0;
+
+	// 최종 화술 보정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment Stat")
+	float NegotiationPower = 0.f;
 };
 
 

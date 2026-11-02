@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Widget_BattleControlPanel.generated.h"
 
+class UBattleTimerComponent;
 class UWidget_BattleSkillBar;
 class ABattleCharacterBase;
 class UMuksiBattleCardDataAsset;
@@ -46,9 +47,29 @@ private:
 public:
 	FOnExchangeTimeExpired OnExchangeTimeExpired;
 
-	void StartExchangeTimer();
+	/*void StartExchangeTimer();
 	void StartExchangeTimer(int32 ExchangeIndex);
-	void StopExchangeTimer();
+	void StopExchangeTimer();*/
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UBattleTimerComponent> BoundPlayerTimer;
+	
+	void BindPlayerSelectTimer(UBattleTimerComponent* InTimer);
+	void HideSelectTimer();
+
+private:
+	UFUNCTION()
+	void HandlePlayerTimerStarted(float TotalDuration, float WarningTime);
+
+	UFUNCTION()
+	void HandlePlayerTimerUpdated(float RemainingTime, float RemainingRatio);
+
+	UFUNCTION()
+	void HandlePlayerTimerWarning();
+
+	UFUNCTION()
+	void HandlePlayerTimerExpired();
+	
 protected:
 	virtual void NativeTick(const FGeometry& Geometry, float InDeltaTime) override;
 	
@@ -59,8 +80,8 @@ protected:
 	TObjectPtr<UCurveFloat> ExchangeDurationCurve;
 	
 private:
-	void UpdateExchangeTimer(float DeltaTime);
-	void HandleExchangeTimerExpired();
+	/*void UpdateExchangeTimer(float DeltaTime);
+	void HandleExchangeTimerExpired();*/
 	
 	float ExchangeTotalDuration = 15.0f;
 	float ExchangeRemainingTime = 0.0f;

@@ -241,7 +241,7 @@ protected:
 	void SetBattleSkillSetting();
 	
 	void HandleSkillRevealFinished(int32 ExchangeIndex);
-	void TimeOutCardSelect();
+	//void TimeOutCardSelect();
 	
 	bool UpdateCurrentExchangeSkillReveal();
 public:

@@ -113,6 +113,11 @@ void UBattleStatComponent::ModifyCurrentSpeed(float Delta)
 	SetCurrentSpeed(CurrentStats.Speed + Delta);
 }
 
+void UBattleStatComponent::ModifySelectTimeBonus(float Delta)
+{
+	CurrentStats.SelectTimeBonus += Delta;
+}
+
 void UBattleStatComponent::HandleDeath()
 {
 	if (bIsDead)
