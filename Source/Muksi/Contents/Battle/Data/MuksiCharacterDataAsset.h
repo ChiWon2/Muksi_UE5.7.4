@@ -3,15 +3,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BattleCharacterInitData.h"
 #include "MuksiBattleCardDataAsset.h"
 #include "Engine/DataAsset.h"
 #include "MuksiCharacterDataAsset.generated.h"
+
+struct FBattleCharacterInitData;
 
 class UMuksiBattleCardDataAsset;
 class ABattleCharacterBase;
 class UCharacterPassive;
 
-//캐릭터마다 달라지는 정적 설정이라 여기에
+/*//캐릭터마다 달라지는 정적 설정이라 여기에
 USTRUCT(BlueprintType)
 struct FCharacterPanicData
 {
@@ -28,7 +31,7 @@ struct FCharacterPanicData
 	{
 		return PenaltyCard != nullptr;
 	}
-};
+};*/
 
 /**
  * 
@@ -46,6 +49,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
 	TObjectPtr<UTexture2D> CharacterIllustration = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character")
+	TObjectPtr<UTexture2D> CharacterHUD = nullptr;
 
 public:
 	//캐릭터 스탯 관련
@@ -93,4 +99,7 @@ public:
 	TSubclassOf<ABattleCharacterBase> BattleCharacterClass = nullptr;
 	
 
+	// 기본 설정을 전투 초기화 데이터로 변환. 
+	//기존에서는 CharacterDataAsset에서 정보를 뽑아서 썼다면 DataAsset으로(플레이어는 월드 씬 데이터로) FBattleCharacterInitData를 만들고 거기서 정보 뽑아서 쓰는 구조로 
+	FBattleCharacterInitData MakeBattleInitData();
 };

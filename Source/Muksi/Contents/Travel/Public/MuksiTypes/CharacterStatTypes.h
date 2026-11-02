@@ -8,14 +8,63 @@ struct MUKSI_API FBaseStat
 {
 	GENERATED_BODY()
 
+	// 경공
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 LightnessSkill = 0;
 
+	// 내공
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 InternalEnergy = 0;
 
+	// 체력
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Vitality = 0;
+
+	// 힘
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Power = 0;
+
+	// 기감
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Sense = 0;
+
+	// 화술
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Negotiation = 0;
+};
+
+USTRUCT(BlueprintType)
+struct MUKSI_API FStatFormulaBaseValues
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxHP = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaxInternalEnergy = 0;
+	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float AttackPower = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DefensePower = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HitRate = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CriticalRate = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MoveSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float TravelMoveSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FateEncounterChance = 0.f;
 };
 
 USTRUCT(BlueprintType)
@@ -36,17 +85,6 @@ struct MUKSI_API FWeaponMasteryStat
 	int32 FistMastery = 0;
 };
 
-USTRUCT(BlueprintType)
-struct MUKSI_API FSpecialStat
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Sense = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Negotiation = 0;
-};
 
 USTRUCT(BlueprintType)
 struct MUKSI_API FTravelStat
@@ -61,6 +99,9 @@ struct MUKSI_API FTravelStat
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float FateGradeBonus = 0.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float NegotiationPower = 0.f;
 };
 
 USTRUCT(BlueprintType)

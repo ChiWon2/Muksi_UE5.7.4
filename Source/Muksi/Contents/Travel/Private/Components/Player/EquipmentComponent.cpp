@@ -35,6 +35,9 @@ namespace
 		Target.TravelMoveSpeed += Source.TravelMoveSpeed;
 		Target.FateEncounterChance += Source.FateEncounterChance;
 		Target.FateGradeBonus += Source.FateGradeBonus;
+		
+		Target.Power += Source.Power;
+		Target.NegotiationPower += Source.NegotiationPower;
 	}
 }
 
@@ -54,6 +57,7 @@ FMuksiItemStatModifier MakeEnhancedModifier(
 	Result.HitRate *= Multiplier;
 	Result.CriticalRate *= Multiplier;
 	Result.MoveSpeed *= Multiplier;
+	Result.NegotiationPower *= Multiplier;
 
 	return Result;
 }

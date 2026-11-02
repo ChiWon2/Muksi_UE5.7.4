@@ -6,6 +6,7 @@
 #include "Muksi/Contents/Battle/Hex/HexOffsetCoord.h"
 #include "GameFramework/Actor.h"
 #include "Muksi/Contents/Battle/Camera/BattleCameraManager.h"
+#include "Muksi/Contents/Battle/Data/BattleCharacterInitData.h"
 #include "Muksi/Contents/Battle/Data/MuksiCharacterDataAsset.h"
 #include "Muksi/Contents/Battle/Interfaces/SelectableCharacterInterface.h"
 #include "BattleCharacterBase.generated.h"
@@ -25,7 +26,7 @@ class UCharacterPassiveComponent;
 class UBattleStatComponent;
 
 //여기 적혀있는거 고쳐야 함
-USTRUCT(BlueprintType)
+/*USTRUCT(BlueprintType)
 struct MUKSI_API FCharacterData
 {
 	GENERATED_BODY()
@@ -53,7 +54,7 @@ struct MUKSI_API FCharacterData
 	TObjectPtr<UMuksiCharacterDataAsset> CharacterAsset = nullptr;
 
 	UPROPERTY(Transient)
-	int32 MaxHP = 0;
+	float MaxHP = 0.f;
 	
 	UPROPERTY(Transient)
 	float AttackValue = 0.f;
@@ -66,7 +67,7 @@ struct MUKSI_API FCharacterData
 	
 	UPROPERTY(Transient)
 	TArray<TSubclassOf<UCharacterPassive>> CharacterPassives;
-};
+};*/
 
 
 UCLASS()
@@ -78,6 +79,8 @@ public:
 	ABattleCharacterBase();
 
 public:
+	void InitializeCharacter(const FBattleCharacterInitData& InitData, ABattleManager* BattleManager);
+	
 	float GetCurrentHP() const;
 	void SetCurrentHP(float NewHP);
 	
@@ -87,11 +90,9 @@ public:
 
 	virtual void SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager);
 	
-	UMuksiCharacterDataAsset* GetCharacterData()const{return CharacterData.CharacterAsset;};
-	
-	FHexOffsetCoord GetCharacterCoord()const{return CharacterData.CurrentPosition;};
+	FHexOffsetCoord GetCharacterCoord()const{return CurrentPosition;};
 	virtual FName GetTargetingCharacterKey() const { return GetFName(); }
-	void SetCharacterPosition(FHexOffsetCoord NewPosition){CharacterData.CurrentPosition = NewPosition;};
+	void SetCharacterPosition(FHexOffsetCoord NewPosition){CurrentPosition = NewPosition;};
 	
 	int32 GetCurrentBattleCardCount()const;
 	
@@ -103,19 +104,16 @@ public:
 	}
 	
 public:
-	UFUNCTION(
-		BlueprintPure,
-		Category = "Battle Character|Camera"
-	)
+	UFUNCTION(BlueprintPure, Category = "Battle Character|Camera")
 	FTransform GetCameraFocusTransform() const;
 	
-	
-	
+	const FBattleCharacterInfo& GetCharacterInfo() const{ return CharacterInfo; }
+	const TArray<FCharacterPanicData>& GetTimeoutPenalties() const{ return TimeoutPenalties; }
 protected:
-	void InitializeBattleStats();
 	void CopySimulationStateFrom(const ABattleCharacterBase& SourceCharacter);
 
-	FCharacterData CharacterData;
+	/*UPROPERTY(Transient)
+	FCharacterData CharacterData;*/
 	
 public:
 	
@@ -162,6 +160,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> ClickCollision = nullptr;
 
+	UPROPERTY(Transient)
+	TArray<FCharacterPanicData> TimeoutPenalties;
+	
+	UPROPERTY(Transient)
+	FBattleCharacterInfo CharacterInfo;
+	
+	// 전투 그리드에서 사용하는 현재 좌표.
+	UPROPERTY(Transient)
+	FHexOffsetCoord CurrentPosition;
 
 public:
 	//Component

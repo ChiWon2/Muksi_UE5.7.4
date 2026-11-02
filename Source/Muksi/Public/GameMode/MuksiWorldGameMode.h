@@ -37,9 +37,14 @@ private:
 		const UMuksiSaveGame* SaveGame
 	) const;
 	
+	//월드 세이브 로드 관련------------------------------------------------------------------------------------------------
+private:
+	void TryRequestWorldLoad();
+	//------------------------------------------------------------------------------------------------------------------
 	
 	
-	//Battle Encounter Test 용도임 제대로 작동하는거 보고 아래 전부 지워야 함
+	
+	//Battle Encounter Test 용도임 제대로 작동하는거 보고 아래 전부 지워야 함--------------------------------------------------
 	void StartTestBattle();
 	FTimerHandle TestBattleTimerHandle;
 	

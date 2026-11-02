@@ -6,12 +6,16 @@
 #include "Blueprint/UserWidget.h"
 #include "Widget_PlayerProfilePanel.generated.h"
 
+struct FBattleCharacterInfo;
+
 class ABattleCharacterBase;
 class UMuksiCharacterDataAsset;
 class UImage;
 class UTextBlock;
 class UProgressBar;
 class UVerticalCommonTextBlock;
+class UCharacterBattleStatPanel;
+
 /**
  * 
  */
@@ -23,7 +27,8 @@ class MUKSI_API UWidget_PlayerProfilePanel : public UUserWidget
 	
 public:
 	void SetBattleCharacter(ABattleCharacterBase* BattleCharacter){PlayerCharacter = BattleCharacter;};
-	void SetData(UMuksiCharacterDataAsset* DataAsset);
+	void SetData(const FBattleCharacterInfo& Info);
+	//void SetData(UMuksiCharacterDataAsset* DataAsset);
 
 protected:
 	//***** BindWidget *****	Begin
@@ -37,9 +42,12 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UProgressBar> CharacterHPProgressBar;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCharacterBattleStatPanel> CharacterBattleStatPanel;
 	//***** BindWidget *****	End
 	
-	void SetHP(int32 CurrentHP);
+	void SetHP(float CurrentHP);
 	UPROPERTY()
 	float MaxHP = 0.f;
 	

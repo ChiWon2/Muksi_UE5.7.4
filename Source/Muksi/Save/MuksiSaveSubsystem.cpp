@@ -127,6 +127,22 @@ bool UMuksiSaveSubsystem::StartNewGame()
 	return true;
 }
 
+bool UMuksiSaveSubsystem::RequestWorldLoad()
+{
+	if (!IsValid(CurrentSaveGame))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[SaveSubsystem] CurrentSaveGame is invalid"));
+
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[SaveSubsystem] RequestWorldLoad Broadcast"));
+
+	OnLoadRequested.Broadcast(CurrentSaveGame);
+
+	return true;
+}
+
 bool UMuksiSaveSubsystem::CaptureCurrentWorldState()
 {
 	//CurrentSaveGame 확인 <- 없으면 에러
@@ -342,63 +358,15 @@ bool UMuksiSaveSubsystem::LoadOrCreateSaveGame()
 
 bool UMuksiSaveSubsystem::WriteWorldSaveGame()
 {
-	if (!IsValid(CurrentSaveGame.Get()))
+	//    각 매니저에 저장 요청 전달
+	if (!CaptureCurrentWorldState())
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT(
-				"WriteSaveGame: "
-				"CurrentSaveGame is invalid"
-			)
-		);
-
-		return false;
-	}
-	OnSaveRequested.Broadcast(CurrentSaveGame);
-	const bool bSaveSucceeded =
-		UGameplayStatics::SaveGameToSlot(
-			CurrentSaveGame.Get(),
-			SaveSlotName,
-			UserIndex
-		);
-	if (!bSaveSucceeded)
-	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT(
-				"WriteSaveGame: "
-				"SaveGameToSlot failed. "
-				"Slot=%s"
-			),
-			*SaveSlotName
-		);
-
+		UE_LOG(LogTemp, Error, TEXT("WriteWorldSaveGame: Failed to capture world state"));
 		return false;
 	}
 
-	UE_LOG(
-		LogTemp,
-		Log,
-		TEXT(
-			"SaveGame written: "
-			"Slot=%s, World=%s, Location=%s"
-		),
-		*SaveSlotName,
-
-		*CurrentSaveGame
-			->SavedWorldName
-			.ToString(),
-
-		*CurrentSaveGame
-			->PlayerWorldData
-			.PlayerTransform
-			.GetLocation()
-			.ToString()
-	);
-
-	return true;
+	// 2. 수집된 데이터를 디스크에 기록
+	return WriteSaveGame();
 }
 
 bool UMuksiSaveSubsystem::WriteSaveGame()

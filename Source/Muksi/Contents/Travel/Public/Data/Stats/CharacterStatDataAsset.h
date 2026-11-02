@@ -5,6 +5,9 @@
 #include "Muksi/Contents/Travel/Public/MuksiTypes/CharacterStatTypes.h"
 #include "CharacterStatDataAsset.generated.h"
 
+class UCharacterPassive;
+class UMuksiBattleCardDataAsset;
+
 UCLASS(BlueprintType)
 class MUKSI_API UCharacterStatDataAsset : public UDataAsset
 {
@@ -13,19 +16,10 @@ class MUKSI_API UCharacterStatDataAsset : public UDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
 	FBaseStat BaseStat;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
+	TArray<UMuksiBattleCardDataAsset*> BaseSkillDataAssets;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
-	FWeaponMasteryStat WeaponMasteryStat;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
-	FSpecialStat SpecialStat;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
-	FTravelStat BaseTravelStat;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
-	FResourceStat InitialResourceStat;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
-	FCombatStat BaseCombatStat;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Passive")
+	TArray<TSubclassOf<UCharacterPassive>> BasePassives;
 };

@@ -26,7 +26,7 @@ void UCharacterDataPanelWidget::ApplyCharacterData(ABattleCharacterBase* Charact
 	}
 
 	PlayerProfilePanelWidget->SetBattleCharacter(CharacterData);
-	PlayerProfilePanelWidget->SetData(CharacterData->GetCharacterData());
+	PlayerProfilePanelWidget->SetData(CharacterData->GetCharacterInfo());
 
 	UBattleSkillComponent* SkillComponent = CharacterData->GetBattleSkillComponent();
 

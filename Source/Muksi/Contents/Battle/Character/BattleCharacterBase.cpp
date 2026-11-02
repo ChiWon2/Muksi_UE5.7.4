@@ -93,6 +93,38 @@ ABattleCharacterBase::ABattleCharacterBase()
 	BattleSkillComponent = CreateDefaultSubobject<UBattleSkillComponent>(TEXT("BattleSkillComponent"));
 }
 
+void ABattleCharacterBase::InitializeCharacter(const FBattleCharacterInitData& InitData, ABattleManager* BattleManager)
+{
+	if (!BattleManager ||
+		!BattleStatComponent ||
+		!BattleSkillComponent ||
+		!PassiveComponent ||
+		!StatusEffectComponent)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[BattleCharacterBase] Initialization dependency is missing."));
+		return;
+	}
+	
+	// 캐릭터 자체에서 보관할 정보.
+	CharacterInfo = InitData.CharacterInfo;
+	TimeoutPenalties = InitData.TimeoutPenalties;
+
+	StatusEffectComponent->Initialize(BattleManager);
+
+	// 전투 능력치와 시작 HP.
+	BattleStatComponent->InitializeStats(InitData.Stats);
+	BattleStatComponent->SetCurrentHP(InitData.CurrentHP);
+
+	// 스킬과 코스트.
+	BattleSkillComponent->Initialize(InitData.Skills, InitData.MaxSkillCost);
+
+	// 패시브.
+	PassiveComponent->InitializePassives(InitData.PassiveClasses);
+}
+
 
 float ABattleCharacterBase::GetCurrentHP() const
 {
@@ -107,75 +139,65 @@ void ABattleCharacterBase::SetCurrentHP(float NewHP)
 
 FVector2D ABattleCharacterBase::GetCurrentSelectCardTime() const
 {
-	if (CharacterData.IsValid()){return FVector2D(CharacterData.CharacterAsset->CardSelectTimeMin, CharacterData.CharacterAsset->CardSelectTimeMax);}
-	return FVector2D(1.f,1.f);
+	if (!BattleStatComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleCharacterBase] BattleStatComponent is null"));
+		return FVector2D(1.f,1.f);
+	}
+	return BattleStatComponent->GetSelectSpeed();
 }
 
 
 float ABattleCharacterBase::GetCharacterSpeed() const
 {
-	if (BattleStatComponent)
-		return BattleStatComponent->GetSpeed();
-
-	return CharacterData.CharacterSpeed;
+	if (!BattleStatComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleCharacterBase]BattleStatComponent is null"));
+		return -1.f;
+	}
+	return BattleStatComponent->GetSpeed();;
 }
 
 void ABattleCharacterBase::SetCharacterData(UMuksiCharacterDataAsset* InCharacterData, ABattleManager* BattleManager)
 {
-	CharacterData.Init_DataAsset(InCharacterData);
+	/*CharacterData.Init_DataAsset(InCharacterData);
 	if (!CharacterData.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BattleCharacterBase SetCharacterData failed: CharacterDataAsset is null"));
 		return;
-	}
+	}*/
 	
-	if (!PassiveComponent)
+	if (!IsValid(InCharacterData))
 	{
-		UE_LOG(LogTemp, Error, TEXT("PassiveComponent is null (BattleCharacterBase.cpp)"));
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[BattleCharacterBase] Character DataAsset is invalid."));
 		return;
 	}
-	StatusEffectComponent->Initialize(BattleManager);
-	PassiveComponent->InitializePassives(CharacterData.CharacterPassives);
-	
-	InitializeBattleStats();
-	
-	
-	if (!BattleSkillComponent)
-	{
-		UE_LOG(LogTemp, Error, TEXT("BattleSkillComponent is null (BattleCharacterBase.cpp)"));
-		return;
-	}
-
-	BattleSkillComponent->Initialize(InCharacterData->CharacterDeck, InCharacterData->MaxSkillCost);
+	InitializeCharacter(InCharacterData->MakeBattleInitData(), BattleManager);
 }
 
-void ABattleCharacterBase::InitializeBattleStats()
-{
-	if (!BattleStatComponent)
-	{
-		UE_LOG(LogTemp, Error, TEXT("BattleStatComponent is null (BattleCharacterBase.cpp)"));
-		return;
-	}
-	FBattleStats BattleStats = FBattleStats();
-	BattleStats.Attack = CharacterData.AttackValue;
-	BattleStats.Defense = CharacterData.DefenseValue;
-	BattleStats.Speed = CharacterData.CharacterSpeed;
-	BattleStats.HP = CharacterData.MaxHP;
-	BattleStatComponent->InitializeStats(BattleStats);
-}
+
 
 void ABattleCharacterBase::CopySimulationStateFrom(const ABattleCharacterBase& SourceCharacter)
 {
-	CharacterData = FCharacterData();
+	/*CharacterData = FCharacterData();
 	CharacterData.CurrentPosition = SourceCharacter.CharacterData.CurrentPosition;
 	CharacterData.CharacterAsset = SourceCharacter.CharacterData.CharacterAsset;
 	CharacterData.MaxHP = SourceCharacter.CharacterData.MaxHP;
 	CharacterData.AttackValue = SourceCharacter.CharacterData.AttackValue;
 	CharacterData.DefenseValue = SourceCharacter.CharacterData.DefenseValue;
-	CharacterData.CharacterSpeed = SourceCharacter.CharacterData.CharacterSpeed;
+	CharacterData.CharacterSpeed = SourceCharacter.CharacterData.CharacterSpeed;*/
+	
+	CharacterInfo = SourceCharacter.CharacterInfo;
+	CurrentPosition = SourceCharacter.CurrentPosition;
+	TimeoutPenalties = SourceCharacter.TimeoutPenalties;
 
 	if (BattleStatComponent && SourceCharacter.BattleStatComponent)
+	{
 		BattleStatComponent->CopyRuntimeStateFrom(*SourceCharacter.BattleStatComponent);
+	}
 }
 
 void ABattleCharacterBase::HandleClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)

@@ -15,6 +15,8 @@ class UBattlePhaseTaskContext;
 class UBattleTargetingSession;
 class UMuksiBattleCardDataAsset;
 class UTargetingPresentationController;
+class UBattleTimerComponent;
+class UCurveFloat;
 
 struct FHitResult;
 struct FTargetingIntent;
@@ -129,4 +131,41 @@ private:
     FTimerHandle CardRevealPreviewTimerHandle;
 
     FGuid PlayerTargetingSkillInstanceId;
+    
+    //스킬 선택 타이머----------------------------------------------------------------------------------------------------
+public:
+    UBattleTimerComponent* GetPlayerSelectTimer() const
+    {
+        return PlayerSelectTimer.Get();
+    }
+private:
+    
+    void StartSelectTimers();
+    void StopSelectTimers();
+
+    UFUNCTION()
+    void HandlePlayerSelectTimeout();
+
+    UFUNCTION()
+    void HandleEnemySelectTimeout();
+    
+private:
+    UPROPERTY(VisibleAnywhere, Category = "Battle|Timer")
+    TObjectPtr<UBattleTimerComponent> PlayerSelectTimer;
+
+    UPROPERTY(VisibleAnywhere, Category = "Battle|Timer")
+    TObjectPtr<UBattleTimerComponent> EnemySelectTimer;
+
+    // 공용 기본 시간
+    UPROPERTY(EditAnywhere, Category = "Battle|Timer", meta = (ClampMin = "1.0"))
+    float DefaultSelectDuration = 15.0f;
+
+    // 기존 ExchangeDurationCurve를 이쪽으로 이동
+    UPROPERTY(EditAnywhere, Category = "Battle|Timer")
+    TObjectPtr<UCurveFloat> ExchangeDurationCurve;
+
+    // 캐릭터별 시간 만료 상태
+    bool bPlayerSelectTimedOut = false;
+    bool bEnemySelectTimedOut = false;
+    //------------------------------------------------------------------------------------------------------------------
 };
