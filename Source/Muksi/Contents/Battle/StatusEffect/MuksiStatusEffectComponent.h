@@ -52,6 +52,9 @@ public:
 	void BeginAppliedFXWait(FSimpleDelegate CompletionDelegate);
 	void EndAppliedFXWait();
 
+	// 새 Exchange의 선택 제한 시간 보정값 계산
+	float CaptureSelectTimeBonusForExchange();
+	
 protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 

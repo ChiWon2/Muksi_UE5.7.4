@@ -6,6 +6,8 @@
 #include "Muksi/Contents/Battle/BattleManager.h"
 #include "Muksi/Contents/Battle/Character/BattleCharacterBase.h"
 #include "Muksi/Contents/Battle/Character/BattleStatComponent.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectComponent.h"
+#include "Muksi/Contents/Battle/StatusEffect/MuksiStatusEffectIDs.h"
 
 UTest_CharacterPassive1::UTest_CharacterPassive1()
 {
@@ -23,11 +25,10 @@ void UTest_CharacterPassive1::HandleBattlePhaseChanged(EBattlePhase OldPhase,EBa
 	{
 	case EBattlePhase::RoundStart:
 		Passive2_();
-		break;
-
-	case EBattlePhase::RoundEnd:
 		Passive1_();
+		OnPassiveActive.Broadcast(PassiveImage, PassiveName);
 		break;
+	
 
 	default:
 		break;
@@ -36,12 +37,10 @@ void UTest_CharacterPassive1::HandleBattlePhaseChanged(EBattlePhase OldPhase,EBa
 
 void UTest_CharacterPassive1::Passive1()
 {
-	FText PassiveDescription1 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">국 종료 시</> 체력을 2 회복합니다."));
-	FText PassiveDescription2 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">국 종료 시</> <Effect id=\"Bleed\">출혈</> 2 부여")); 
+	FText PassiveDescription1 = FText::FromString(TEXT("<Style color=\"Red\" underline=\"true\">국 시작 시</> 체력을 2 회복합니다."));
 	
 	FPassiveTextLine PassiveLine;
 	PassiveLine.Text.Add(PassiveDescription1);
-	PassiveLine.Text.Add(PassiveDescription2);
 	
 	PassiveDescriptions.Add(PassiveLine);
 }
@@ -54,8 +53,13 @@ void UTest_CharacterPassive1::Passive1_()
 	ABattleCharacterBase* Character = GetOwnerCharacter();
 	Character->GetBattleStatComponent()->ApplyHPChange(2, TEXT("Heal"));
 	
-	//패시브 작동 UI 띄우기
-	OnPassiveActive.Broadcast(PassiveImage, PassiveName);
+	/*if (UMuksiStatusEffectComponent* StatusEffectComponent = Character->GetStatusEffectComponent())
+	{
+		StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Bleed,2,  // 부여할 스택
+			1   // Duration
+		);
+	}*/
+	
 }
 
 void UTest_CharacterPassive1::Passive2()
@@ -79,6 +83,10 @@ void UTest_CharacterPassive1::Passive2_()
 	Character->GetBattleStatComponent()->ApplyHPChange(2, TEXT("Heal"));
 	//나중에는 막 버프 넣기 같은 거 넣을 수 도 있음
 	
-	//패시브 작동 UI 띄우기
-	OnPassiveActive.Broadcast(PassiveImage, PassiveName);
+	if (UMuksiStatusEffectComponent* StatusEffectComponent = Character->GetStatusEffectComponent())
+	{
+		StatusEffectComponent->AddStatusEffect(MuksiStatusEffectIDs::Bleed,2,  // 부여할 스택
+			1   // Duration
+		);
+	}
 }

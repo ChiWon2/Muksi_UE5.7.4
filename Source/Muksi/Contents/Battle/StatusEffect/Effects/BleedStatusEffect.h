@@ -12,5 +12,7 @@ class MUKSI_API UBleedStatusEffect : public UExecutionModifyStatusEffect
 public:
 	UBleedStatusEffect();
 
+	virtual void EditBattleActions(FBattleAction& CurrentAction, FBattleAction& OpponentAction) override;
+	
 	virtual void BuildPhaseExecutionEntries(EBattlePhase OldPhase, EBattlePhase NewPhase, TArray<FBattleExecutionEntry>& OutExecutionEntries) override;
 };

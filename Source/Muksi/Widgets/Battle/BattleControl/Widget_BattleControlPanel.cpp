@@ -5,6 +5,7 @@
 
 #include "Widget_BattleSkillBar.h"
 #include "Muksi/Contents/Battle/Data/MuksiBattleCardDataAsset.h"
+#include "Muksi/Contents/Battle/Timer/BattleTimerComponent.h"
 #include "Muksi/Widgets/Battle/Timer/Widget_BattleTimer.h"
 
 void UWidget_BattleControlPanel::SetBattleCharacter(ABattleCharacterBase* InCharacter)
@@ -70,7 +71,60 @@ void UWidget_BattleControlPanel::HandleBattleSkillSelected(const FGuid& Instance
 	OnBattleSkillSelected.Broadcast(InstanceId, CardData);
 }
 
-void UWidget_BattleControlPanel::StartExchangeTimer()
+void UWidget_BattleControlPanel::BindPlayerSelectTimer(UBattleTimerComponent* InTimer)
+{
+	// 기존 타이머 연결 해제
+	if (IsValid(BoundPlayerTimer))
+	{
+		BoundPlayerTimer->OnTimerStarted.RemoveDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerStarted);
+		BoundPlayerTimer->OnTimerUpdated.RemoveDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerUpdated);
+		BoundPlayerTimer->OnTimerWarning.RemoveDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerWarning);
+		BoundPlayerTimer->OnTimerExpired.RemoveDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerExpired);
+	}
+
+	// 새로운 타이머 저장
+	BoundPlayerTimer = InTimer;
+
+	if (!IsValid(BoundPlayerTimer))
+	{
+		return;
+	}
+
+	BoundPlayerTimer->OnTimerStarted.AddUniqueDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerStarted);
+	BoundPlayerTimer->OnTimerUpdated.AddUniqueDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerUpdated);
+	BoundPlayerTimer->OnTimerWarning.AddUniqueDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerWarning);
+	BoundPlayerTimer->OnTimerExpired.AddUniqueDynamic(this, &UWidget_BattleControlPanel::HandlePlayerTimerExpired);
+}
+
+void UWidget_BattleControlPanel::HideSelectTimer()
+{
+}
+
+void UWidget_BattleControlPanel::HandlePlayerTimerStarted(float TotalDuration, float WarningTime)
+{
+	if (BattleTimerWidget)
+		BattleTimerWidget->ShowTimer(TotalDuration);
+}
+
+void UWidget_BattleControlPanel::HandlePlayerTimerUpdated(float RemainingTime, float RemainingRatio)
+{
+	if (BattleTimerWidget)
+		BattleTimerWidget->UpdateTimerDisplay(RemainingTime, RemainingRatio);
+}
+
+void UWidget_BattleControlPanel::HandlePlayerTimerWarning()
+{
+	if (BattleTimerWidget)
+		BattleTimerWidget->StartWarning();
+}
+
+void UWidget_BattleControlPanel::HandlePlayerTimerExpired()
+{
+	if (BattleTimerWidget)
+		BattleTimerWidget->ExpireTimer();
+}
+
+/*void UWidget_BattleControlPanel::StartExchangeTimer()
 {
 	ExchangeRemainingTime = ExchangeTotalDuration;
 
@@ -118,8 +172,8 @@ void UWidget_BattleControlPanel::StopExchangeTimer()
 	/*if (BattleTimerWidget)
 	{
 		BattleTimerWidget->HideTimer();
-	}*/
-}
+	}#1#
+}*/
 
 void UWidget_BattleControlPanel::NativeTick(const FGeometry& Geometry, float InDeltaTime)
 {
@@ -134,10 +188,10 @@ void UWidget_BattleControlPanel::NativeTick(const FGeometry& Geometry, float InD
 		return;
 	}
 
-	UpdateExchangeTimer(InDeltaTime);
+	//UpdateExchangeTimer(InDeltaTime);
 }
 
-void UWidget_BattleControlPanel::UpdateExchangeTimer(float DeltaTime)
+/*void UWidget_BattleControlPanel::UpdateExchangeTimer(float DeltaTime)
 {
 	ExchangeRemainingTime = FMath::Max(
 		ExchangeRemainingTime - DeltaTime,
@@ -196,7 +250,7 @@ void UWidget_BattleControlPanel::HandleExchangeTimerExpired()
 	);
 
 	OnExchangeTimeExpired.Broadcast();
-}
+}*/
 
 void UWidget_BattleControlPanel::SetTargetingMode(bool bTargeting)
 {

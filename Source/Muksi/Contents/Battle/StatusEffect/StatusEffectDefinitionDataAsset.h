@@ -34,7 +34,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|Display")
     FText DisplayName;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|Display")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|Display", meta = (MultiLine = true))
     FText Description;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect|Display")

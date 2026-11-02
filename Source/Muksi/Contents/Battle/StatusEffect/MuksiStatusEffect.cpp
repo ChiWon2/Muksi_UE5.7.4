@@ -69,6 +69,10 @@ void UMuksiStatusEffect::OnReapplied(int32 AddedStack,int32 AddedDuration)
     RemainingDuration = FMath::Max(RemainingDuration , AddedDuration);
 }
 
+void UMuksiStatusEffect::NotifySelectTimeUsed()
+{
+}
+
 bool UMuksiStatusEffect::IsExpired() const
 {
     return RemainingDuration <= 0 || CurrentStack <= 0;

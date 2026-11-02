@@ -131,12 +131,12 @@ void UWidget_StatHUD::RefreshStatUI()
 
 	SetTextIfValid(
 		SenseText,
-		FText::FromString(FString::Printf(TEXT("기감: %d"), StatComponent->SpecialStat.Sense))
+		FText::FromString(FString::Printf(TEXT("기감: %d"), StatComponent->BaseStat.Sense))
 	);
 
 	SetTextIfValid(
 		NegotiationText,
-		FText::FromString(FString::Printf(TEXT("화술: %d"), StatComponent->SpecialStat.Negotiation))
+		FText::FromString(FString::Printf(TEXT("화술: %d"), StatComponent->BaseStat.Negotiation))
 	);
 
 	SetTextIfValid(

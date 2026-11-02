@@ -22,8 +22,7 @@ public:
 	
 protected:
 	//BindWidget
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_AttackValue;
+	
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UEffectRichTextBlock> Text_EffectDescription;

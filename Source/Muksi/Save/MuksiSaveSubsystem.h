@@ -44,6 +44,9 @@ public:
 	bool StartNewGame();
 	
 	UFUNCTION(BlueprintCallable, Category = "Muksi|Save")
+	bool RequestWorldLoad();
+	
+	UFUNCTION(BlueprintCallable, Category = "Muksi|Save")
 	bool CaptureCurrentWorldState();
 
 	UFUNCTION(BlueprintCallable, Category = "Muksi|Save")

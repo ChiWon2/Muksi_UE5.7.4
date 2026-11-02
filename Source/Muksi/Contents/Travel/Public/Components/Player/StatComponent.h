@@ -9,6 +9,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStatChanged);
 
 class UCharacterStatDataAsset;
 class UMuksiSaveGame;
+class UMuksiBattleCardDataAsset;
+class UCharacterPassive;
+class UCharacterStatFormulaDataAsset;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class MUKSI_API UStatComponent : public UActorComponent
@@ -27,15 +30,17 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
 	TObjectPtr<UCharacterStatDataAsset> StatDataAsset = nullptr;
+	
+	// 기본 능력치의 최종 수치 계산에 사용할 Formula
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat")
+	TObjectPtr<UCharacterStatFormulaDataAsset> StatFormulaDataAsset = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	FBaseStat BaseStat;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	FWeaponMasteryStat WeaponMasteryStat;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
-	FSpecialStat SpecialStat;
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	FTravelStat TravelStat;
@@ -45,6 +50,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	FCombatStat CombatStat;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat|Battle")
+	TArray<UMuksiBattleCardDataAsset*> BaseSkillDataAssets;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat|Battle")
+	TArray<TSubclassOf<UCharacterPassive>> BasePassives;
 
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void InitializeStat();
@@ -86,6 +97,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stat|Growth")
 	void AddVitality(int32 Value);
+	
+	UFUNCTION(BlueprintCallable, Category = "Stat|Growth")
+	void AddPower(int32 Value);
 
 	UFUNCTION(BlueprintCallable, Category = "Stat|WeaponMastery")
 	void AddSwordMastery(int32 Value);
@@ -162,18 +176,24 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
 	int32 GetFistMastery() const { return WeaponMasteryStat.FistMastery; }
+	
+	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
+	int32 GetSense() const { return BaseStat.Sense; }
 
 	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
-	int32 GetSense() const { return SpecialStat.Sense; }
-
+	int32 GetNegotiation() const { return BaseStat.Negotiation; }
+	
 	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
-	int32 GetNegotiation() const { return SpecialStat.Negotiation; }
+	int32 GetPower() const { return BaseStat.Power; }
 
 	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
 	float GetCurrentStamina() const { return ResourceStat.CurrentStamina; }
 
 	UFUNCTION(BlueprintPure, Category = "Stat|Getter")
 	float GetMaxStamina() const { return ResourceStat.MaxStamina; }
+	
+	const TArray<UMuksiBattleCardDataAsset*>& GetBaseSkillDataAssets() const{ return BaseSkillDataAssets; }
+	const TArray<TSubclassOf<UCharacterPassive>>& GetBasePassives() const{ return BasePassives; }
 
 private:
 	void ClampResources();
