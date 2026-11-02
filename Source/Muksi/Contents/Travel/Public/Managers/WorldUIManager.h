@@ -7,6 +7,7 @@
 class UInventoryEquipmentUIComponent;
 class UTownDataAsset;
 class UTownUIControllerComponent;
+class UWorldMapMarkerUIComponent;
 
 UCLASS()
 class MUKSI_API AWorldUIManager : public AActor
@@ -15,6 +16,9 @@ class MUKSI_API AWorldUIManager : public AActor
 
 public:
 	AWorldUIManager();
+
+	UFUNCTION(BlueprintPure, Category = "World UI")
+	UWorldMapMarkerUIComponent* GetWorldMapMarkerUIComponent() const;
 
 	UFUNCTION(BlueprintPure, Category = "World UI")
 	UTownUIControllerComponent* GetTownUIControllerComponent() const;
@@ -35,6 +39,9 @@ public:
 	void OpenInventoryEquipmentUI();
 
 private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World UI", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UWorldMapMarkerUIComponent> WorldMapMarkerUIComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World UI", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTownUIControllerComponent> TownUIControllerComponent;
 

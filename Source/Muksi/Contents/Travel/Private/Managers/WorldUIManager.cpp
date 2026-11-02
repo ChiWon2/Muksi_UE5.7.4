@@ -2,16 +2,24 @@
 
 #include "Muksi/Contents/Travel/Public/Components/UI/InventoryEquipmentUIComponent.h"
 #include "Muksi/Contents/Travel/Public/Components/UI/TownUIControllerComponent.h"
+#include "Muksi/Contents/Travel/Public/Components/UI/WorldMapMarkerUIComponent.h"
 
 AWorldUIManager::AWorldUIManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	WorldMapMarkerUIComponent = CreateDefaultSubobject<UWorldMapMarkerUIComponent>(TEXT("WorldMapMarkerUIComponent"));
 
 	TownUIControllerComponent =
 		CreateDefaultSubobject<UTownUIControllerComponent>(TEXT("TownUIControllerComponent"));
 
 	InventoryEquipmentUIController =
 		CreateDefaultSubobject<UInventoryEquipmentUIComponent>(TEXT("InventoryEquipmentUIController"));
+}
+
+UWorldMapMarkerUIComponent* AWorldUIManager::GetWorldMapMarkerUIComponent() const
+{
+	return WorldMapMarkerUIComponent.Get();
 }
 
 UTownUIControllerComponent* AWorldUIManager::GetTownUIControllerComponent() const

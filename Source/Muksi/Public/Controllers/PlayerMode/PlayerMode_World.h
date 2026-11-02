@@ -5,10 +5,9 @@
 #include "PlayerMode_World.generated.h"
 
 class AMuksiWorldCharacter;
-class AZoneActor;
-class UTownDataAsset;
 class AWorldUIManager;
-struct FZoneData;
+class AWanderingCameraManager;
+class UWorldMapMarkerUIComponent;
 
 UCLASS()
 class MUKSI_API UPlayerMode_World : public UPlayerModeBase
@@ -18,25 +17,42 @@ class MUKSI_API UPlayerMode_World : public UPlayerModeBase
 public:
 	virtual void EnterMode(class AMuksiPlayerController* PlayerController) override;
 	virtual void ExitMode() override;
+	virtual void TickPlayerMode() override;
+	virtual void HandleLeftClick(const FInputActionValue& Value) override;
+	virtual void HandleLeftClickReleased(const FInputActionValue& Value) override;
+	virtual void HandleRightClick(const FInputActionValue& Value) override;
+	virtual void HandleRightClickTriggered(const FInputActionValue& Value) override;
+	virtual void HandleMouseWheel(const FInputActionValue& Value) override;
+	virtual void HandleCPressedKey(const FInputActionValue& Value) override;
 
-	void HandleWorldInputStarted(AMuksiWorldCharacter* WorldCharacter);
-	void HandleSetDestinationTriggered(AMuksiWorldCharacter* WorldCharacter);
-	void HandleSetDestinationReleased(AMuksiWorldCharacter* WorldCharacter);
 	void HandleInteract(AMuksiWorldCharacter* WorldCharacter);
 	void HandleOpenInventoryEquipment(AMuksiWorldCharacter* WorldCharacter);
 	void OpenInventoryEquipmentFromWorld();
 
+	UFUNCTION(BlueprintPure, Category = "World Camera")
+	AWanderingCameraManager* GetWanderingCameraManager() const { return WanderingCameraManager.Get(); }
 
 protected:
-	UPROPERTY(EditDefaultsOnly, Category = "World Input")
-	float ShortPressThreshold = 0.2f;
+	UPROPERTY(EditDefaultsOnly, Category = "World Input", meta = (ClampMin = "0.01", Units = "s"))
+	float RightClickMoveUpdateInterval = 0.1f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "World Camera")
+	TSubclassOf<AWanderingCameraManager> WanderingCameraManagerClass;
 
 private:
+	float LastRightClickMoveRequestTime = -1.0f;
+
+	void CreateWanderingCamera();
+	void UpdateWanderingCamera();
+	bool CanProcessWorldInput() const;
 	bool TryGetCursorHitLocation(FVector& OutLocation) const;
-
-
-	float FollowTime = 0.0f;
-	FVector CachedDestination = FVector::ZeroVector;
-
 	AWorldUIManager* FindWorldUIManager() const;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AWanderingCameraManager> WanderingCameraManager;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> PreviousViewTarget;
+
+	TWeakObjectPtr<UWorldMapMarkerUIComponent> WorldMapMarkerUI;
 };

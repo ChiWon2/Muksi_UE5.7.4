@@ -27,12 +27,28 @@ void UPlayerModeBase::HandleLeftClick(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleLeftClick"));
 }
 
+void UPlayerModeBase::HandleLeftClickReleased(const FInputActionValue& Value)
+{
+}
+
+void UPlayerModeBase::HandleCPressedKey(const FInputActionValue& Value)
+{
+}
+
 void UPlayerModeBase::HandleRightClick(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("PlayerModeBase HandleRightClick"));
 }
 
+void UPlayerModeBase::HandleRightClickTriggered(const FInputActionValue& Value)
+{
+}
+
 void UPlayerModeBase::HandleNumberKeyPressed(int32 NumberKey)
+{
+}
+
+void UPlayerModeBase::HandleMouseWheel(const FInputActionValue& Value)
 {
 }
 
@@ -120,5 +136,3 @@ TObjectPtr<ACineCameraActor> UPlayerModeBase::ApplyStartCamera()
 	
 	return StartCamera;
 }
-
-

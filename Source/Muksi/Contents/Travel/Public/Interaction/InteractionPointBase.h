@@ -6,6 +6,7 @@
 
 class USphereComponent;
 class AMuksiWorldCharacter;
+class UWorldMapMarkerComponent;
 
 UCLASS(Abstract, Blueprintable)
 class MUKSI_API AInteractionPointBase : public AActor
@@ -18,6 +19,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	virtual void Interact(AActor* Interactor);
 
+	UFUNCTION(BlueprintPure, Category = "World Map Marker")
+	virtual FText GetWorldMapDisplayName() const;
+
+	UFUNCTION(BlueprintPure, Category = "World Map Marker")
+	UWorldMapMarkerComponent* GetWorldMapMarkerComponent() const { return WorldMapMarker.Get(); }
+
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	int32 GetInteractionPriority() const { return InteractionPriority; }
 
@@ -27,8 +34,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	TObjectPtr<USphereComponent> InteractionSphere;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World Map Marker")
+	TObjectPtr<UWorldMapMarkerComponent> WorldMapMarker;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
 	int32 InteractionPriority = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+	bool bAutoInteractOnOverlap = false;
 
 	UFUNCTION()
 	void OnSphereBeginOverlap(
@@ -47,4 +60,7 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex
 	);
+
+private:
+	void ConfigureInteractionSphereCollision();
 };
