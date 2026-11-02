@@ -27,8 +27,12 @@ public:
 	virtual int32 GetInputMappingPriority() const { return 0; }
 	
 	virtual void HandleLeftClick(const FInputActionValue& Value);
+	virtual void HandleLeftClickReleased(const FInputActionValue& Value);
 	virtual void HandleRightClick(const FInputActionValue& Value);
+	virtual void HandleRightClickTriggered(const FInputActionValue& Value);
 	virtual void HandleNumberKeyPressed(int32 NumberKey);
+	virtual void HandleMouseWheel(const FInputActionValue& Value);
+	virtual void HandleCPressedKey(const FInputActionValue& Value);
 	
 	virtual void HandlePPressedKey(const FInputActionValue& Value);
 	virtual void HandleTabPressedKey(const FInputActionValue& Value);

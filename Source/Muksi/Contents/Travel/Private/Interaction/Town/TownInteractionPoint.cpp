@@ -4,6 +4,7 @@
 
 #include "Muksi/Contents/Travel/Public/Managers/WorldUIManager.h"
 #include "Muksi/Contents/Travel/Public/Data/Towns/TownDataAsset.h"
+#include "Muksi/Contents/Travel/Public/Components/WorldMap/WorldMapMarkerComponent.h"
 
 #include "Components/StaticMeshComponent.h"
 
@@ -14,6 +15,20 @@ ATownInteractionPoint::ATownInteractionPoint()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetupAttachment(GetRootComponent());
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ATownInteractionPoint::BeginPlay()
+{
+	Super::BeginPlay();
+	WorldMapMarker->AddVisualComponent(Mesh);
+}
+
+FText ATownInteractionPoint::GetWorldMapDisplayName() const
+{
+	if (TownDataAsset && !TownDataAsset->TownName.IsEmpty())
+		return TownDataAsset->TownName;
+
+	return NSLOCTEXT("WorldMapMarker", "Town", "마을");
 }
 
 void ATownInteractionPoint::Interact(AActor* Interactor)
@@ -53,7 +68,7 @@ void ATownInteractionPoint::Interact(AActor* Interactor)
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[TownInteraction] OpenTownUI Point=%s TownData=%s Interactor=%s"),
+	UE_LOG(LogTemp, Log, TEXT("[TownInteraction] OpenTownUI Point=%s TownData=%s Interactor=%s"),
 		*GetNameSafe(this),
 		*GetNameSafe(TownDataAsset),
 		*GetNameSafe(Interactor));

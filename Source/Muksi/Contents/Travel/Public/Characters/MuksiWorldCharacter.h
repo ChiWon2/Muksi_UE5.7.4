@@ -7,15 +7,14 @@
 
 class UCameraComponent;
 class USpringArmComponent;
-class UInputMappingContext;
 class UInputAction;
-class UEnhancedInputComponent;
 
 class AInteractionPointBase;
 class UPlayerCurrencyComponent;
 class UStatComponent;
 class UInventoryComponent;
 class UEquipmentComponent;
+class UWorldMapMarkerComponent;
 
 USTRUCT()
 struct FInteractionCandidate
@@ -45,9 +44,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> SetDestinationClickAction;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> InteractAction;
 
@@ -55,18 +52,6 @@ private:
 	TObjectPtr<UInputAction> InventoryEquipmentAction;
 
 protected:
-	/** True if the controlled character should navigate to the mouse cursor. */
-	uint32 bMoveToMouseCursor : 1;
-
-	/** Set to true if we're using touch input */
-	uint32 bIsTouch : 1;
-
-	/** Saved location of the character movement destination */
-	FVector CachedDestination = FVector::ZeroVector;
-
-	/** Time that the click input has been pressed */
-	float FollowTime = 0.0f;
-
 	//Interact
 	UPROPERTY(VisibleInstanceOnly, Category = "Interaction")
 	TObjectPtr<AInteractionPointBase> CurrentInteractionTarget = nullptr;
@@ -92,12 +77,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPlayerCurrencyComponent> PlayerCurrencyComponent = nullptr;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World Map Marker")
+	TObjectPtr<UWorldMapMarkerComponent> WorldMapMarker;
+
 	/** Input handlers */
-	void OnInputStarted();
-	void OnSetDestinationTriggered();
-	void OnSetDestinationReleased();
 	void Interact(const FInputActionValue& Value);
-	void OpenInventoryEquipment(const FInputActionValue& Value);	
+	void OpenInventoryEquipment(const FInputActionValue& Value);
 
 public:
 
@@ -120,7 +105,7 @@ public:
 	//Interact
 	void SetCurrentInteractionTarget(AInteractionPointBase* NewTarget);
 	void ClearCurrentInteractionTarget(AInteractionPointBase* TargetToClear);
-	
+
 	AInteractionPointBase* GetCurrentInteractionTarget() const;
 	AInteractionPointBase* GetBestInteractionTarget() const;
 

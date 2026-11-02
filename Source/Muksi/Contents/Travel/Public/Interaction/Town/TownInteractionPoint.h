@@ -16,6 +16,7 @@ public:
 	ATownInteractionPoint();
 
 	virtual void Interact(AActor* Interactor) override;
+	virtual FText GetWorldMapDisplayName() const override;
 
 	UFUNCTION(BlueprintPure, Category = "Town")
 	UTownDataAsset* GetTownDataAsset() const { return TownDataAsset.Get(); }
@@ -25,6 +26,7 @@ public:
 
 
 protected:
+	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	TObjectPtr<UStaticMeshComponent> Mesh;
